@@ -22,16 +22,18 @@ def win(t, a, b, fi=0.4, fo=0.4):
     return ease((t - a) / fi) * (1 - ease((t - (b - fo)) / fo))
 
 # ---------------------------------------------------------------- credits
-CREDITS = [  # (start, end, role, names) — times land on bar downbeats (~129 BPM)
-    (0.45, 2.10, '出品人', '西几王传媒'),
-    (2.21, 4.00, '编剧 / 导演', '苏打'),
-    (4.06, 5.90, '美术设计', 'Cait'),
-    (5.97, 7.75, 'AI画师', '沉溺　雪晴　索恩'),
+CREDITS = [  # (start, end, role, names, pos) — times land on bar downbeats (~129 BPM)
+    # 2026-11-09 05:52 用户：后期总监跟出品人；片名区只留主副标题，所有署名移到片名之前
+    (0.45, 2.10, '出品人', '西几王传媒', (0.30, 0.36)),
+    (0.60, 2.10, '后期总监', '沉溺', (0.30, 0.64)),
+    (2.21, 4.00, '编剧 / 导演', '苏打', (0.30, 0.46)),
+    (4.06, 5.90, '美术设计', 'Cait', (0.30, 0.36)),
+    (4.21, 5.90, '音乐', '西几王', (0.30, 0.64)),
+    (5.97, 7.75, 'AI画师', '沉溺　雪晴　索恩', (0.30, 0.46)),
 ]
 TITLE_HIT = 7.85          # title slam
-MUSIC_CREDIT = (9.68, 11.40, '音乐', '西几王')
-POST_CREDIT = (11.52, 13.25, '后期总监', '沉溺')   # 2026-11-09 用户补充
 TITLE_SHEEN = 11.52
+TA_X, TDOT_X, TB_X = 0.255, 0.418, 0.61   # 主标题两段与间隔点的横向中心
 TITLE_OUT = 13.35
 INTRO_END = 15.21
 
@@ -141,10 +143,8 @@ class Intro:
             fr = cv2.warpAffine(fr, M, (W, H), borderMode=cv2.BORDER_REFLECT)
         fr = self.emb.draw(fr, t, dt, 0.55 + 0.4 * low, energy=low)
         # credits
-        for (a, b, role, names) in CREDITS:
-            fr = credit_block(fr, t, a, b, role, names)
-        fr = credit_block(fr, t, *MUSIC_CREDIT, pos=(0.30, 0.78)) if t >= MUSIC_CREDIT[0] else fr
-        fr = credit_block(fr, t, *POST_CREDIT, pos=(0.30, 0.78)) if t >= POST_CREDIT[0] else fr
+        for (a, b, role, names, pos) in CREDITS:
+            fr = credit_block(fr, t, a, b, role, names, pos=pos)
         # title
         if t >= TITLE_HIT - 0.12:
             fr = self.title(fr, t, dt, hit)
@@ -162,9 +162,21 @@ class Intro:
         out = ease((t - TITLE_OUT) / 1.4)
         if hit > 0.85: fr = fr + (hit - 0.85) / 0.15 * 0.55  # flash
         fr = self.burst.draw(fr, t, dt, 1.4 * max(0, 1 - k / 3.5), energy=hit * 2)
-        rev = [eout((k - i * 0.035) / 0.28) * (1 - out) for i in range(4)]
-        rgb, al = text_layer('谁定正邪', F_BRUSH, 250, rev, spacing=0.10, pos=(0.47, 0.43 - 0.01 * eout(k / 6)), scale_in=0.45, blur_in=10 + out * 14)
-        fr = comp_text(fr, rgb, al, shadow=0.75, glowamt=0.25 * hit)
+        # 主标题「鬼屠 · 第三季」（书法，两段 + 朱红间隔点），副标题「主题曲《谁定正邪》」
+        y0 = 0.43 - 0.01 * eout(k / 6)
+        revA = [eout((k - i * 0.035) / 0.28) * (1 - out) for i in range(2)]
+        revB = [eout((k - (i + 2) * 0.035) / 0.28) * (1 - out) for i in range(3)]
+        rgbA, alA = text_layer('鬼屠', F_BRUSH, 210, revA, spacing=0.10, pos=(TA_X, y0), scale_in=0.45, blur_in=10 + out * 14)
+        rgbB, alB = text_layer('第三季', F_BRUSH, 210, revB, spacing=0.10, pos=(TB_X, y0), scale_in=0.45, blur_in=10 + out * 14)
+        fr = comp_text(fr, rgbA, alA, shadow=0.75, glowamt=0.25 * hit)
+        fr = comp_text(fr, rgbB, alB, shadow=0.75, glowamt=0.25 * hit)
+        al = np.maximum(alA, alB)
+        da = eout((k - 0.06) / 0.25) * (1 - out)
+        if da > 0:
+            dot = np.zeros((H, W), np.float32)
+            cv2.circle(dot, (int(W * TDOT_X), int(H * (y0 + 0.005))), 11, 1.0, -1, cv2.LINE_AA)
+            dot = cv2.GaussianBlur(dot, (0, 0), 1.0)[..., None] * da
+            fr = fr * (1 - dot) + dot * np.array([0.72, 0.08, 0.06], np.float32)
         # sheen pass across the title at the second hit
         if TITLE_SHEEN <= t < TITLE_SHEEN + 0.6:
             q = (t - TITLE_SHEEN) / 0.6
@@ -172,15 +184,14 @@ class Intro:
             band = np.exp(-((x - (0.15 + q * 0.7)) / 0.03) ** 2)
             fr += (al * band)[..., None] * 0.9
         sub_r = eout((k - 0.5) / 0.6) * (1 - out)
-        rgb, al = text_layer('鬼屠 · 第三季', F_SERIF, 34, [sub_r] * 8, spacing=0.5, pos=(0.47, 0.59), color=(0.80, 0.77, 0.72), scale_in=0, blur_in=4)
+        sub = '主题曲《谁定正邪》'
+        rgb, al = text_layer(sub, F_SERIF, 36, [sub_r] * len(sub), spacing=0.35, pos=(0.47, 0.60), color=(0.80, 0.77, 0.72), scale_in=0, blur_in=4)
         fr = comp_text(fr, rgb, al, shadow=0.5)
-        rgb, al = text_layer('主 题 曲', F_SERIF, 24, [sub_r] * 5, spacing=0.3, pos=(0.47, 0.285), color=(0.62, 0.60, 0.56), scale_in=0, blur_in=4)
-        fr = comp_text(fr, rgb, al, shadow=0.4)
         # seal stamps on the next beat
         ks = t - (TITLE_HIT + 0.46)
         if ks > 0:
             a = min(1, ks / 0.06) * (1 - out)
-            fr = seal(fr, '鬼屠', x=0.775, y=0.355, size=40, alpha=0.92 * a)
+            fr = seal(fr, "鬼屠", x=0.815, y=0.33, size=40, alpha=0.92 * a)
         return fr
 
 # ---------------------------------------------------------------- main

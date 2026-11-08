@@ -642,18 +642,25 @@ class Edict:
         return fr, (4 if k < 0.4 else 1)
 
 class Outro:
-    ROLES = [('出品人', '西几王传媒'), ('编剧 / 导演', '苏打'), ('美术设计', 'Cait'), ('AI画师', '沉溺　雪晴　索恩'), ('后期总监', '沉溺'), ('音乐', '西几王')]
+    ROLES = [('出品人', '西几王传媒'), ('后期总监', '沉溺'), ('编剧 / 导演', '苏打'), ('美术设计', 'Cait'), ('音乐', '西几王'), ('AI画师', '沉溺　雪晴　索恩')]
     def __init__(self, peak): self.peak = peak
     def frame(self, t, dt, P, s0, s1):
         fr, ca = self.peak.frame(t, dt, {'dawn': 1.0}, s0, s1)
         fr = fr * (1 - 0.35 * ease((t - s0) / 2.0))
         a = ease((t - (s0 + 0.8)) / 1.0) * (1 - ease((t - 228.6) / 0.8))
         if a > 0:
-            rgb, al = text_layer('谁定正邪', F_BRUSH, 170, [a] * 4, spacing=0.1, pos=(0.5, 0.45), scale_in=0, blur_in=6)
-            fr = comp_text(fr, rgb, al, shadow=0.7)
-            rgb, al = text_layer('鬼屠 · 第三季   主题曲', F_SERIF, 30, [a] * 14, spacing=0.4, pos=(0.5, 0.60), color=(0.85, 0.82, 0.76), scale_in=0, blur_in=3)
+            # 主标题「鬼屠 · 第三季」，副标题「主题曲《谁定正邪》」（与片头一致）
+            for txt, x in (('鬼屠', 0.315), ('第三季', 0.595)):
+                rgb, al = text_layer(txt, F_BRUSH, 150, [a] * len(txt), spacing=0.1, pos=(x, 0.45), scale_in=0, blur_in=6)
+                fr = comp_text(fr, rgb, al, shadow=0.7)
+            dot = np.zeros(fr.shape[:2], np.float32)
+            cv2.circle(dot, (int(fr.shape[1] * 0.437), int(fr.shape[0] * 0.455)), 8, 1.0, -1, cv2.LINE_AA)
+            dot = dot[..., None] * a
+            fr = fr * (1 - dot) + dot * np.array([0.72, 0.08, 0.06], np.float32)
+            sub = '主题曲《谁定正邪》'
+            rgb, al = text_layer(sub, F_SERIF, 32, [a] * len(sub), spacing=0.35, pos=(0.5, 0.60), color=(0.85, 0.82, 0.76), scale_in=0, blur_in=3)
             fr = comp_text(fr, rgb, al, shadow=0.6)
-            fr = seal(fr, '鬼屠', x=0.70, y=0.36, size=36, alpha=0.9 * a)
+            fr = seal(fr, '鬼屠', x=0.80, y=0.34, size=36, alpha=0.9 * a)
         b = ease((t - 229.4) / 1.0) * (1 - ease((t - 238.0) / 1.2))
         if b > 0:
             for j, (role, name) in enumerate(self.ROLES):
