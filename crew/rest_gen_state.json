@@ -1,5 +1,5 @@
 {
- "spent": 144,
+ "spent": 150,
  "jobs": {
   "S002:back_wind": {
    "tries": [
@@ -457,10 +457,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S123/front_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S125:stare": {
    "tries": [
@@ -470,10 +470,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S125/stare_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S128:blade_level": {
    "tries": [
@@ -483,10 +483,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S128/blade_level_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S132:back_walk": {
    "tries": [
@@ -496,10 +496,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S132/back_walk_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S135:sheath_hand": {
    "tries": [
@@ -509,10 +509,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S135/sheath_hand_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S050:scepter": {
    "tries": [
@@ -522,68 +522,94 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S050/scepter_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S051:grip_scepter": {
    "tries": [
     {
      "n": 1,
      "task_id": "171e0587-b815-4952-9d93-6d080c05aed6",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S051/grip_scepter_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S054:rise": {
    "tries": [
     {
      "n": 1,
      "task_id": "e0af87e9-6ce8-4206-b3b5-bf53c37b8776",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S054/rise_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S055:walk_look_up": {
    "tries": [
     {
      "n": 1,
      "task_id": "65e75bea-634e-4ab4-b275-66ee6da7a758",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S055/walk_look_up_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S056:palm_open": {
    "tries": [
     {
      "n": 1,
      "task_id": "b6c65de4-f4c6-45ef-8c45-f2f4f5253d6a",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S056/palm_open_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S056:palm_fist": {
    "tries": [
     {
      "n": 1,
      "task_id": "27006fb2-f304-4539-8814-f8a9b10147d4",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S056/palm_fist_try1_0.png",
+     "verdict": "ok"
+    }
+   ],
+   "accepted": 1
+  },
+  "S057:grab_turn": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "0a896734-d003-4782-8175-a036a2a06d2c",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S057/grab_turn_try1_0.png",
+     "verdict": "ok"
+    }
+   ],
+   "accepted": 1
+  },
+  "S062:puppeteer": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "d67a90ee-8354-4582-a3cb-a118fcac28a7",
      "status": "running",
      "pts": 3,
      "file": null,
@@ -592,17 +618,21 @@
    ],
    "accepted": null
   },
-  "S057:grab_turn": {
+  "S065:chin_up": {
    "tries": [
     {
      "n": 1,
-     "task_id": "0a896734-d003-4782-8175-a036a2a06d2c",
+     "task_id": "5c2b4926-6d67-413d-b42c-949550475cf5",
      "status": "running",
      "pts": 3,
      "file": null,
      "verdict": null
     }
    ],
+   "accepted": null
+  },
+  "S098:point_down": {
+   "tries": [],
    "accepted": null
   }
  }

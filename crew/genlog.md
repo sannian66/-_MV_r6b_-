@@ -105,3 +105,21 @@
 | 11-08 21:47 | S132 | RH_image2 | 4K 16:9 | 3 | ce11d6e9-bdf5-4eaf-821d-8487a558d9e2 | completed | rest_cands/S132/back_walk_try1_0.png | back_walk try1：Seen from behind walking away, sword sheathed at h |
 | 11-08 21:47 | S135 | RH_image2 | 4K 16:9 | 3 | 7395222f-90b7-4ce8-ae61-d6c065cff3a6 | completed | rest_cands/S135/sheath_hand_try1_0.png | sheath_hand try1：Close-up of his hand sliding the dao back into the |
 | 11-08 21:47 | S050 | RH_image2 | 4K 16:9 | 3 | aa247105-b294-4bfd-91f6-77b9f28b670e | completed | rest_cands/S050/scepter_try1_0.png | scepter try1：Standing in three-quarter view holding a tall dark |
+| 11-08 21:48 | S123 | RH_image2 | 4K 16:9 | 0 | da4487e9-bdf8-4ce2-881d-306f4ba89072 | 采用 | assets/gen/S123/front_raw.png | front try1 采用 |
+| 11-08 21:48 | S125 | RH_image2 | 4K 16:9 | 0 | 624158e3-b1e3-4613-8bd3-5f820f9eb88d | 采用 | assets/gen/S125/stare_raw.png | stare try1 采用 |
+| 11-08 21:48 | S128 | RH_image2 | 4K 16:9 | 0 | fe1bcd6e-b166-4496-af99-0f560d291c38 | 采用 | assets/gen/S128/blade_level_raw.png | blade_level try1 采用 |
+| 11-08 21:48 | S132 | RH_image2 | 4K 16:9 | 0 | ce11d6e9-bdf5-4eaf-821d-8487a558d9e2 | 采用 | assets/gen/S132/back_walk_raw.png | back_walk try1 采用 |
+| 11-08 21:48 | S135 | RH_image2 | 4K 16:9 | 0 | 7395222f-90b7-4ce8-ae61-d6c065cff3a6 | 采用 | assets/gen/S135/sheath_hand_raw.png | sheath_hand try1 采用 |
+| 11-08 21:48 | S050 | RH_image2 | 4K 16:9 | 0 | aa247105-b294-4bfd-91f6-77b9f28b670e | 采用 | assets/gen/S050/scepter_raw.png | scepter try1 采用 |
+| 11-08 21:49 | S051 | RH_image2 | 4K 16:9 | 3 | 171e0587-b815-4952-9d93-6d080c05aed6 | completed | rest_cands/S051/grip_scepter_try1_0.png | grip_scepter try1：Close-up of his aged long-fingered hand tightening |
+| 11-08 21:49 | S054 | RH_image2 | 4K 16:9 | 3 | e0af87e9-6ce8-4206-b3b5-bf53c37b8776 | completed | rest_cands/S054/rise_try1_0.png | rise try1：Rising from a crouch on one knee, one hand pushing |
+| 11-08 21:49 | S055 | RH_image2 | 4K 16:9 | 3 | 65e75bea-634e-4ab4-b275-66ee6da7a758 | completed | rest_cands/S055/walk_look_up_try1_0.png | walk_look_up try1：Walking forward toward camera-left, head tilted up |
+| 11-08 21:49 | S056 | RH_image2 | 4K 16:9 | 3 | b6c65de4-f4c6-45ef-8c45-f2f4f5253d6a | completed | rest_cands/S056/palm_open_try1_0.png | palm_open try1：Close-up of his open right palm facing up, fingers |
+| 11-08 21:50 | S056 | RH_image2 | 4K 16:9 | 3 | 27006fb2-f304-4539-8814-f8a9b10147d4 | completed | rest_cands/S056/palm_fist_try1_0.png | palm_fist try1：Close-up of the same right hand clenched into a ti |
+| 11-08 21:50 | S057 | RH_image2 | 4K 16:9 | 3 | 0a896734-d003-4782-8175-a036a2a06d2c | completed | rest_cands/S057/grab_turn_try1_0.png | grab_turn try1：Gripping the sword hilt at his hip while whipping  |
+| 11-08 21:51 | S051 | RH_image2 | 4K 16:9 | 0 | 171e0587-b815-4952-9d93-6d080c05aed6 | 采用 | assets/gen/S051/grip_scepter_raw.png | grip_scepter try1 采用 |
+| 11-08 21:51 | S054 | RH_image2 | 4K 16:9 | 0 | e0af87e9-6ce8-4206-b3b5-bf53c37b8776 | 采用 | assets/gen/S054/rise_raw.png | rise try1 采用 |
+| 11-08 21:51 | S055 | RH_image2 | 4K 16:9 | 0 | 65e75bea-634e-4ab4-b275-66ee6da7a758 | 采用 | assets/gen/S055/walk_look_up_raw.png | walk_look_up try1 采用 |
+| 11-08 21:51 | S056 | RH_image2 | 4K 16:9 | 0 | b6c65de4-f4c6-45ef-8c45-f2f4f5253d6a | 采用 | assets/gen/S056/palm_open_raw.png | palm_open try1 采用 |
+| 11-08 21:51 | S056 | RH_image2 | 4K 16:9 | 0 | 27006fb2-f304-4539-8814-f8a9b10147d4 | 采用 | assets/gen/S056/palm_fist_raw.png | palm_fist try1 采用 |
+| 11-08 21:51 | S057 | RH_image2 | 4K 16:9 | 0 | 0a896734-d003-4782-8175-a036a2a06d2c | 采用 | assets/gen/S057/grab_turn_raw.png | grab_turn try1 采用 |
