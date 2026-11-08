@@ -491,7 +491,7 @@ class S034(Shot):
 
     def render(self, t):
         u = self.u(t)
-        off = int(260 * u)
+        off = int(260 * min(1.2, max(0.0, u)))
         src = self.wall[off:off + 1300, :]
         sm = self.seam[off:off + 1300, :]
         q = self.quad(t)
@@ -962,7 +962,7 @@ class S045(Shot):
         T.warm('这一刀', 'xing', 120)
 
     def phase(self, t):
-        if t < 84.42: return 0.30 * ((t - self.t0) / 0.32) ** 1.5 * 0.6      # 慢起 0.3x
+        if t < 84.42: return 0.30 * clamp01((t - self.t0) / 0.32) ** 1.5 * 0.6      # 慢起 0.3x
         if t < 84.74: return 0.18 + 0.62 * (t - 84.42) / 0.32                 # 1.5x 爆发
         return 0.80 + 0.2 * clamp01((t - 84.74) / 0.4)
 
