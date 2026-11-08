@@ -48,6 +48,39 @@ def trail_hist(sw, chan_fn, t, x_fn, y_fn, scale, n=7, step=1 / 90):
     return out
 
 
+def eye_layer(t, cx, cy, w, rot=0.0, blink=0.0):
+    """程序化眼睛（刀面倒影用）：眉、上眼睑粗线、虹膜、瞳孔、眼神光、几缕乱发。返回亮度图 (H,W)。"""
+    s = 4; Lc = np.zeros((H // 2, W // 2), np.float32)
+    k = w / 300.0
+    def P(pts):
+        pts = np.asarray(pts, float) * k
+        c, si = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+        q = np.stack([pts[:, 0] * c - pts[:, 1] * si, pts[:, 0] * si + pts[:, 1] * c], 1) + [cx, cy]
+        return (q / 2 * s).astype(np.int32)
+    xs = np.linspace(-150, 150, 40)
+    up = np.stack([xs, -55 * (1 - (xs / 150) ** 2) ** 0.8 + 6], 1)
+    lo = np.stack([xs[::-1], 38 * (1 - (xs[::-1] / 150) ** 2) ** 1.1 + 6], 1)
+    white = np.zeros_like(Lc); cv2.fillPoly(white, [P(np.vstack([up, lo]))], 0.35, cv2.LINE_AA, 2)
+    ir = np.zeros_like(Lc)
+    cv2.circle(ir, tuple(P([[8, 2]])[0]), int(46 * k / 2 * s), 1.0, -1, cv2.LINE_AA, 2)
+    ir = ir * (white > 0)
+    Lc = white * (1 - ir) + ir * 0.12
+    cv2.circle(Lc, tuple(P([[8, 2]])[0]), int(18 * k / 2 * s), 0.0, -1, cv2.LINE_AA, 2)
+    cv2.polylines(Lc, [P(up)], False, 0.9, max(1, int(5 * k)), cv2.LINE_AA, 2)          # 上睑线
+    cv2.polylines(Lc, [P(lo)], False, 0.45, max(1, int(2 * k)), cv2.LINE_AA, 2)
+    brow = np.stack([xs * 1.1, -125 - 25 * (1 - (xs / 150) ** 2) + xs * 0.12], 1)
+    cv2.polylines(Lc, [P(brow)], False, 0.6, max(1, int(9 * k)), cv2.LINE_AA, 2)
+    r = np.random.default_rng(380)
+    for i in range(7):                                                                     # 乱发
+        x0 = r.uniform(-220, 200); sw_ = 12 * math.sin(t * 2 + i)
+        hs = np.stack([x0 + np.linspace(0, 160, 12) + sw_ * np.linspace(0, 1, 12), np.linspace(-260, 60, 12) + r.uniform(-40, 40)], 1)
+        cv2.polylines(Lc, [P(hs)], False, 0.55, max(1, int(3 * k)), cv2.LINE_AA, 2)
+    Lc = cv2.GaussianBlur(Lc, (0, 0), 1.0)
+    gl = np.zeros_like(Lc); cv2.circle(gl, tuple(P([[-6, -12]])[0]), int(8 * k / 2 * s), 1.0, -1, cv2.LINE_AA, 2)
+    Lc = Lc + cv2.GaussianBlur(gl, (0, 0), 1.2) * 1.6 + cv2.GaussianBlur(gl, (0, 0), 8) * 0.8
+    return cv2.resize(Lc, (W, H))
+
+
 class Shot:
     t0 = t1 = 0.0
     def u(self, t): return (t - self.t0) / (self.t1 - self.t0)
@@ -686,11 +719,9 @@ class S038(Shot):
         p0, p1 = (1520, 1180), (1150, -150)
         fr, bm = draw_blade(fr, p0, p1, 380, shine=0.6 - 0.3 * e, shine_w=0.12, return_mask=True, seed=8)
         # 倒影：眼睛（profile 特写渲染到离屏，再按刀身蒙版合成，冷色）
-        off = np.zeros((H, W, 3), np.float32) + 0.04
-        off, _ = rig.profile_cu(off, self.sw, t, 1250, 560, 1000, light='moon', glint=1.6, flip=True)
-        lum = off.mean(-1, keepdims=True)
-        refl = np.clip((lum - 0.03) * 2.2, 0, 1) * np.array([0.75, 0.82, 0.95], np.float32)
-        fr = fr * (1 - 0.6 * bm[..., None]) + refl * bm[..., None] * 1.3
+        eye = eye_layer(t, 1322, 470 + 30 * e, 330, rot=-6, blink=0.0)
+        refl = eye[..., None] * np.array([0.78, 0.85, 1.0], np.float32)
+        fr = fr * (1 - 0.65 * bm[..., None]) + refl * bm[..., None] * 1.25
         # 血线沿刃纹流下
         d = np.array(p1, float) - np.array(p0, float); Ld = np.linalg.norm(d); d /= Ld; n = np.array([-d[1], d[0]])
         head = 0.85 - 0.6 * eio((t - self.t0) / 1.0)
