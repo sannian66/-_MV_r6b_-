@@ -173,3 +173,15 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 合成：`units/sprite.py` SpriteLayer（发区/轮廓距离权重的分区网格风吹 remap、呼吸 0.5%、去饱和压暗偏冷 + gamma、屏幕空间主光衰减、按法线·光向的冷色 rim、背景光包裹、甩入方向模糊）。`units/chorus1.py` 新增 `S043Sprite`（`SPRITE_MODE=1` 时替换 S043；背后月光晕 + 远雾远雨（慢推）+ 人物（快推 = 视差）+ 眼中星芒 + 近景火星/雨丝；剪辑/运镜/FG/曝光/字幕表沿用 S043 键）。`SPRITE_EXT=t0,t1` 可把镜头拉长单独试渲。
 - 产出：`out/pilot/S043_sprite.mp4`（`units/render_sprite_S043.py video …`，82.06–85.56 共 3.5s 拉长版 + 原曲音频，相机按比例映射 vcam3 的 S043 运动、快门同比缩短）；对比 `lib/rig_test/sprite_vs_v4_S043.jpg`（`lib/rig_test/sprite_vs_v4.py 82.70`，正常剪辑时间线同一帧）。
 - 局限：一张静帧做不出真正的转头（现用 0.26s 甩入 + 模糊代替）；头顶马尾被生图裁掉；finish 的去饱和吃掉了暗红内领。
+
+## 16. 副歌一精灵版全段（SPRITE_MODE=1，2026-11-09 05:26– CST）
+- 规则：第 0 节 05:25 新规则（人物 = RH_image2 生图 + 抠图精灵；场景/字幕/卡点/运镜/粒子纯代码）。CLAUDE.md 同步改写，04:02 规则标为已取代。
+- 方案表：`crew/sprite_plan.md`（镜号｜处理｜姿势数｜提示词要点 + 选图结果）。精灵镜头：S029 S030 S035 S037 S038 S039 S041 S043 S044 S045 S046；保留代码：S028（刃面血滴，无人物）、S031（ELS 一粒黑点）。
+- 生图：`tools/gen_c1_sprites.py <镜号/姿势,...|all> <抽次>`（ThreadPoolExecutor 并发，先报价，日志追加 crew/genlog.md，候选落仓库外 `../gen_cands/`）。16 张 = 48 积分，重抽 1 次（S044）。
+- 抠图：`tools/pick_cut.py S0xx/pose=<候选>[:flip]` → `assets/gen/<镜号>/<姿势>_raw.png`（2560 宽）+ `_cut.png`；`force_poly()` 用原图多边形补回被抠掉的刀刃直边（S029）。
+- 合成：`units/chorus1_sprites.py`（`install(globals())` 返回各 SxxxSprite，继承原镜头类，复用原背景/粒子/刀光/字幕，只换人物）；`units/chorus1.py` 在 SPRITE_MODE=1 时替换 SHOTS，`SPRITE_SHOTS=S030,S035` 可只换部分镜头。镜头时长 = 剪辑表 CUT_F 原值（不拉长）。
+  - 动作镜头 = 关键姿势硬切：S030 ready→raise（61.40 闪白，刀尖星芒 61.88 按精灵最高点定位）；S035 run→leap（69.86）→slash（70.00 命中闪白 + 代码弧形刀光/碎砖/火星/速度线）；S045 windup→spin（84.30，角向模糊）→finish（84.47 命中 + 环形刀光 + 雨被斩开）。
+  - S038 刃面倒影 = 生图眼部特写（冷色化、留一点琥珀）按刀身蒙版羽化合成；S044 一张图 + 代码鞘口光线随拇指推开渐亮（风停不吹）；S046 人物精灵在后虚焦、代码刀身在前（刻字/墨爆不变）。
+- `units/sprite.py` 改动：`fit()`（按 alpha 包围盒高度缩放 + 脚底锚点）、`top`（最高点）、保色遮罩 `red_mask()`（色相比例取暗红，红领/红穗/血不去饱和）、`alpha/defocus/rotblur` 参数。`units/c1kit.finish(..., red_keep=)`：SPRITE_MODE 下按色相比例保住暗红（修试点「去饱和吃掉暗红内领」）。
+- 渲染：`units/c1sprite_render.sh`（帧 1784–2586 = 59.47–86.20s，2 进程 × 90 帧分块写 /tmp 再拷 `out/chorus1_sprite/chunks/`，断点续跑；混 `audio/谁定正邪.mp3`）→ `out/chorus1_sprite/chorus1_sprite_master_crf18.mp4`（不入库）+ `out/chorus1_sprite/chorus1_sprite_crf23.mp4`。联系表 `lib/rig_test/c1_sprite_contact.py` → `lib/rig_test/c1_sprite_contact.jpg`。
+- 新沙箱注意：skia 需要系统库 `sudo apt-get install -y libegl1 libgl1`（否则 props.CharWall 报 skia None）。

@@ -1,5 +1,5 @@
 {
- "spent": 72,
+ "spent": 90,
  "jobs": {
   "S002:back_wind": {
    "tries": [
@@ -30,10 +30,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S003/thumb_push_try2_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 2
   },
   "S004:profile": {
    "tries": [
@@ -170,9 +170,17 @@
     {
      "n": 1,
      "task_id": "fd9bfc54-d9a2-4b05-9a64-fc97a630f3f1",
-     "status": "done",
+     "status": "rejected",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S018/look_up_try1_0.png",
+     "verdict": "高马尾缺失，像披发"
+    },
+    {
+     "n": 2,
+     "task_id": "a8efaa9f-e64b-4525-816d-fea2b3b73145",
+     "status": "running",
+     "pts": 3,
+     "file": null,
      "verdict": null
     }
    ],
@@ -191,9 +199,9 @@
     {
      "n": 2,
      "task_id": "dbdd1725-7784-414d-af42-951d9764608c",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S021/finger_try2_0.png",
      "verdict": null
     }
    ],
@@ -207,10 +215,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S023/look_up_low_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S024:fist": {
    "tries": [
@@ -220,19 +228,27 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S024/fist_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S024:pommel_thrust": {
    "tries": [
     {
      "n": 1,
      "task_id": "c81cdb2b-fe11-4eb1-9cc4-59621ded094b",
-     "status": "done",
+     "status": "rejected",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S024/pommel_thrust_try1_0.png",
+     "verdict": "头顶马尾被画框裁掉"
+    },
+    {
+     "n": 2,
+     "task_id": "3d57f41c-11b0-4b6c-a978-886c86bb0174",
+     "status": "running",
+     "pts": 3,
+     "file": null,
      "verdict": null
     }
    ],
@@ -243,9 +259,9 @@
     {
      "n": 1,
      "task_id": "fcc9dcde-06e7-4993-b7b5-1c817773c157",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S071/land_kneel_try1_0.png",
      "verdict": null
     }
    ],
@@ -256,9 +272,9 @@
     {
      "n": 1,
      "task_id": "b644400c-a65f-4e79-871d-16bf4f8d74f7",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S072/rise_draw_try1_0.png",
      "verdict": null
     }
    ],
@@ -269,9 +285,9 @@
     {
      "n": 1,
      "task_id": "d66bff2f-b371-4cd4-b17f-a814d949056f",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S073/spin1_try1_0.png",
      "verdict": null
     }
    ],
@@ -282,9 +298,9 @@
     {
      "n": 1,
      "task_id": "b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S073/spin2_try1_0.png",
      "verdict": null
     }
    ],
@@ -295,6 +311,58 @@
     {
      "n": 1,
      "task_id": "f0b597db-dbde-4dc0-b1c4-cb9f73c87529",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S074/head_turn_try1_0.png",
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S078:run": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "f13672b0-b5d0-4f72-9671-8231c707e9cd",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S079:leap_slash_up": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "816c9d12-820a-4c35-a65d-c8cffd22c7a0",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S082:walk_front": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "b7d59ec0-ae6d-49e7-a612-13bce4976447",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S083:sash": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "e754c2b2-6ea5-410c-8712-e4cd96b97c2d",
      "status": "running",
      "pts": 3,
      "file": null,

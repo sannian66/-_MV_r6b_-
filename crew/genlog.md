@@ -57,3 +57,14 @@
 | 11-08 21:39 | S023 | RH_image2 | 4K 16:9 | 3 | 15969192-73db-429d-a0fb-0cc424cf3203 | completed | rest_cands/S023/look_up_low_try1_0.png | look_up_low try1：Low-angle shot from below, standing, head tilted u |
 | 11-08 21:39 | S024 | RH_image2 | 4K 16:9 | 3 | 0d8c52d8-122c-470c-885b-36d6c50fd2e6 | completed | rest_cands/S024/fist_try1_0.png | fist try1：Raising a clenched right fist in front of his ches |
 | 11-08 21:39 | S024 | RH_image2 | 4K 16:9 | 3 | c81cdb2b-fe11-4eb1-9cc4-59621ded094b | completed | rest_cands/S024/pommel_thrust_try1_0.png | pommel_thrust try1：Thrusting the sword pommel backward over his shoul |
+| 11-08 21:40 | S003 | RH_image2 | 4K 16:9 | 0 | 7fa643c0-1099-4e57-8a1a-c8d9d6ecca68 | 采用 | assets/gen/S003/thumb_push_raw.png | thumb_push try2 采用 |
+| 11-08 21:40 | S023 | RH_image2 | 4K 16:9 | 0 | 15969192-73db-429d-a0fb-0cc424cf3203 | 采用 | assets/gen/S023/look_up_low_raw.png | look_up_low try1 采用 |
+| 11-08 21:40 | S024 | RH_image2 | 4K 16:9 | 0 | 0d8c52d8-122c-470c-885b-36d6c50fd2e6 | 采用 | assets/gen/S024/fist_raw.png | fist try1 采用 |
+| 11-08 21:40 | S024 | RH_image2 | 4K 16:9 | 0 | c81cdb2b-fe11-4eb1-9cc4-59621ded094b | 重抽 |  | pommel_thrust try1 判废：头顶马尾被画框裁掉 |
+| 11-08 21:40 | S018 | RH_image2 | 4K 16:9 | 0 | fd9bfc54-d9a2-4b05-9a64-fc97a630f3f1 | 重抽 |  | look_up try1 判废：高马尾缺失，像披发 |
+| 11-08 21:40 | S021 | RH_image2 | 4K 16:9 | 3 | dbdd1725-7784-414d-af42-951d9764608c | completed | rest_cands/S021/finger_try2_0.png | finger try2：Huge hand reaching down from top of frame, index f |
+| 11-08 21:40 | S071 | RH_image2 | 4K 16:9 | 3 | fcc9dcde-06e7-4993-b7b5-1c817773c157 | completed | rest_cands/S071/land_kneel_try1_0.png | land_kneel try1：Landing in a low kneel on one knee, sword planted  |
+| 11-08 21:40 | S072 | RH_image2 | 4K 16:9 | 3 | b644400c-a65f-4e79-871d-16bf4f8d74f7 | completed | rest_cands/S072/rise_draw_try1_0.png | rise_draw try1：Rising from the kneel while drawing the dao from t |
+| 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 3 | d66bff2f-b371-4cd4-b17f-a814d949056f | completed | rest_cands/S073/spin1_try1_0.png | spin1 try1：Mid-spin, back partly to camera, sword arm extende |
+| 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 3 | b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d | completed | rest_cands/S073/spin2_try1_0.png | spin2 try1：Completing a spinning sword sweep, facing camera,  |
+| 11-08 21:41 | S074 | RH_image2 | 4K 16:9 | 3 | f0b597db-dbde-4dc0-b1c4-cb9f73c87529 | completed | rest_cands/S074/head_turn_try1_0.png | head_turn try1：Close-up of his head turning sideways in profile,  |
