@@ -134,60 +134,92 @@ def lerp_into(arr, m, bb, val):
 
 
 # ============================================================== rig._Canvas 的 skia 版（接口不变）
+_DQ = 4096.0          # 深度编码：q = (d + 2048) * 4096 → 24bit（约 0.00025 精度，±2048 范围）
+
 class SkCanvas:
-    """与 rig._Canvas 完全同接口：C(h,w,4 uint8: A,tone,red,metal) / M(h,w,3) / G(h,w) / D(h,w float 深度) / dcur。
-    poly / cap / circ / ell / line / strand / ribbon 与旧版签名一致；另加 fill(target,...) / stroke(target,...) 供刀身等
-    直接写 M/G 通道的地方使用。"""
+    """与 rig._Canvas 同接口：C(h,w,4 uint8: A,tone,red,metal) / M(h,w,3) / G(h,w) / D(h,w float 深度) / dcur。
+    内部是三张 skia 面，直接在 skia 里完成逐通道“按覆盖率 lerp”（与 cv2.fillPoly LINE_AA 语义一致）：
+      · B  RGBA8888 预乘：R=tone G=red B=metal A=覆盖（不透明色 SrcOver → RGB 按覆盖率 lerp、A 为覆盖并集）
+      · Gs A8：金饰，kSrc 混合（AA 边按覆盖率 lerp 到目标值，可写 0 擦除）
+      · Ds RGBA8888：深度 24bit 编码，非 AA 硬写（内轮廓光要用硬边深度）
+      · Ms RGBA8888：刀身细节（钢色/刃线/热）
+    C/D 在读取时解码（只在合成时读一次）。"""
     backend = 'skia'
 
     def __init__(self, h, w):
-        self.C = np.zeros((h, w, 4), np.uint8)
-        self.M = np.zeros((h, w, 3), np.uint8)
+        self.h, self.w = h, w
+        self._B = np.zeros((h, w, 4), np.uint8)
+        self._Mb = np.zeros((h, w, 4), np.uint8)
         self.G = np.zeros((h, w), np.uint8)
-        self.D = np.full((h, w), -1e4, np.float32)
+        self._Db = np.zeros((h, w, 4), np.uint8)
+        mk = lambda arr, ct: skia.Surface(arr, colorType=ct, alphaType=skia.kPremul_AlphaType).getCanvas()
+        self._cB = mk(self._B, skia.kRGBA_8888_ColorType); self._cM = mk(self._Mb, skia.kRGBA_8888_ColorType)
+        self._cG = mk(self.G, skia.kAlpha_8_ColorType); self._cD = mk(self._Db, skia.kRGBA_8888_ColorType)
+        self._p = skia.Paint(AntiAlias=True)
+        self._pg = skia.Paint(AntiAlias=True); self._pg.setBlendMode(skia.BlendMode.kSrc)
+        self._pd = skia.Paint(AntiAlias=False); self._pd.setBlendMode(skia.BlendMode.kSrc)
         self.dcur = 0.0
-        self.cov = Coverage(h, w)
 
-    # ---- 底层：一条路径 → 覆盖率 → 各通道 lerp
-    def _apply(self, paths, col, gold=0, stroke=None, depth=True, smooth_alpha=None):
-        m, bb = self.cov.render(paths, stroke=stroke)
-        if m is None: return
-        lerp_into(self.C, m, bb, col)
-        lerp_into(self.G, m, bb, gold)
-        if depth:
-            y0, y1, x0, x1 = bb
-            d = self.D[y0:y1, x0:x1]; d[m >= 0.5] = self.dcur
+    # ---- 解码视图（兼容旧代码读取）
+    @property
+    def C(self):
+        B = self._B; out = np.empty_like(B)
+        out[..., 0] = B[..., 3]; out[..., 1:] = B[..., :3]
+        return out
+    @property
+    def M(self): return self._Mb[..., :3]
+    @property
+    def D(self):
+        Db = self._Db.astype(np.uint32)
+        q = (Db[..., 0] << 16) | (Db[..., 1] << 8) | Db[..., 2]
+        return np.where(Db[..., 3] > 0, q.astype(np.float32) / _DQ - 2048.0, np.float32(-1e4)).astype(np.float32)
+
+    # ---- 底层
+    def _draw(self, P, col, gold=0, stroke=None, depth=True):
+        p = self._p
+        p.setColor(skia.Color(int(col[1]), int(col[2]), int(col[3]) if len(col) > 3 else 0, 255))
+        a = col[0] / 255.0
+        if stroke:
+            p.setStyle(skia.Paint.kStroke_Style); p.setStrokeWidth(float(stroke)); p.setStrokeCap(skia.Paint.kRound_Cap)
+            p.setStrokeJoin(skia.Paint.kRound_Join)
+        else:
+            p.setStyle(skia.Paint.kFill_Style)
+        if a < 0.999: p.setAlphaf(a)
+        self._cB.drawPath(P, p)
+        g = self._pg; g.setStyle(p.getStyle()); g.setStrokeWidth(p.getStrokeWidth()); g.setStrokeCap(skia.Paint.kRound_Cap)
+        g.setColor(skia.Color(0, 0, 0, int(gold)))
+        if a < 0.999: g.setAlphaf(g.getAlphaf())          # 细线淡化只作用于形状通道
+        self._cG.drawPath(P, g)
+        if depth and not stroke:
+            q = int(np.clip((self.dcur + 2048.0) * _DQ, 0, 2 ** 24 - 1))
+            self._pd.setColor(skia.Color((q >> 16) & 255, (q >> 8) & 255, q & 255, 255))
+            self._cD.drawPath(P, self._pd)
 
     def poly(self, pts, col, gold=0):
-        self._apply(path_poly(pts), col, gold)
+        self._draw(path_poly(pts), col, gold)
 
     def cap(self, a, b, r1, r2, col, gold=0):
-        self._apply(path_capsule_union(a, b, r1, r2), col, gold)
+        self._draw(path_capsule_union(a, b, r1, r2), col, gold)
 
     def circ(self, c, r, col, gold=0):
-        self._apply(path_circle(c, max(r, 0.3)), col, gold)
+        self._draw(path_circle(c, max(r, 0.3)), col, gold)
 
     def ell(self, c, ax, ang, col, gold=0):
-        self._apply(path_ellipse(c, (max(ax[0], .3), max(ax[1], .3)), ang), col, gold)
+        self._draw(path_ellipse(c, (max(ax[0], .3), max(ax[1], .3)), ang), col, gold)
 
     def line(self, a, b, w, col, gold=0):
-        if w < 1.6:          # 细线：真·亚像素宽度描边（skia 对 <1px 线按覆盖率衰减，比旧版“1px+减色”更准）
-            P = path_poly([a, b], closed=False)
-            m, bb = self.cov.render(P, stroke=max(0.35, float(w)))
-            if m is None: return
-            lerp_into(self.C, m, bb, col); lerp_into(self.G, m, bb, gold)
+        if w < 1.6:          # 细线：真·亚像素宽度描边（skia 对 <1px 线按覆盖率衰减）
+            self._draw(path_poly([a, b], closed=False), col, gold, stroke=max(0.35, float(w)), depth=False)
         else:
             self.cap(a, b, w / 2, w / 2, col, gold)
 
     def strand(self, pts, w0, w1, col):
-        """发丝/飘带：整根一条平滑闭合路径（贝塞尔磨圆），不再是逐段拼接。"""
+        """发丝/飘带：整根一条贝塞尔磨圆的闭合路径（非逐段拼接）；光泽线为渐细细描边。"""
         pts = np.asarray(pts, float)
         n = len(pts)
         if n < 2: return
         if w0 < 1.3:
-            P = path_poly(pts, closed=False, smooth=n >= 3)
-            m, bb = self.cov.render(P, stroke=max(0.35, float(w0)))
-            if m is not None: lerp_into(self.C, m, bb, col)
+            self._draw(path_poly(pts, closed=False, smooth=n >= 3), col, 0, stroke=max(0.35, float(w0)), depth=False)
             return
         if n >= 3: pts = _upsample(pts, 3 if w0 > 2.5 else 2); n = len(pts)
         d = np.gradient(pts, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
@@ -195,17 +227,15 @@ class SkCanvas:
         prof = np.clip(0.55 + 2.2 * u, 0, 1) * (1 - u) ** 0.9 if w1 >= 0 else np.sin(np.pi * np.clip(u * 0.95 + 0.03, 0, 1)) ** 0.7
         w = (max(w1, 0) + (w0 - max(w1, 0)) * prof)[:, None] * 0.5
         poly = np.concatenate([pts + nn * w, (pts - nn * w)[::-1]])
-        self._apply(path_poly(poly, smooth=True), col)
-        if col[1] > 0 and n > 3 and w0 > 3.0:          # 发丝光泽线：细描边，渐细
+        self._draw(path_poly(poly, smooth=True), col)
+        if col[1] > 0 and n > 3 and w0 > 3.0:
             hl = (255, min(255, col[1] + 45), col[2], 0)
             m0, m1 = n // 5, max(n // 5 + 2, int(n * 0.7))
             off = pts[m0:m1] - nn[m0:m1] * w[m0:m1] * 0.35
-            P = path_poly(off, closed=False, smooth=True)
-            m, bb = self.cov.render(P, stroke=max(0.5, w0 * 0.12))
-            if m is not None: lerp_into(self.C, m, bb, hl)
+            self._draw(path_poly(off, closed=False, smooth=True), hl, 0, stroke=max(0.5, w0 * 0.12), depth=False)
 
     def ribbon(self, pts, widths, normals, cols):
-        """逐段着色的带子：每段沿切线前后各外扩 0.6px 与邻段重叠 → 无段间细缝。"""
+        """逐段着色的带子：相邻段沿切线各外扩 0.6px 重叠 → 无段间细缝。"""
         pts = np.asarray(pts, float)
         for k in range(len(pts) - 1):
             a, b = pts[k], pts[k + 1]
@@ -213,25 +243,26 @@ class SkCanvas:
             e = t / L * 0.6 if L > 1e-6 else t * 0
             q = np.array([a - e + normals[k] * widths[k], b + e + normals[k + 1] * widths[k + 1],
                           b + e - normals[k + 1] * widths[k + 1], a - e - normals[k] * widths[k]])
-            self._apply(path_poly(q), cols[k], 0)
+            self._draw(path_poly(q), cols[k], 0)
 
-    # ---- 通用：对任意通道填充 / 描边（替代直接 cv2.fillPoly(cv_.M, ...)）
-    def fill(self, target, pts, val, depth=False):
-        m, bb = self.cov.render(path_poly(pts))
-        if m is None: return
-        lerp_into(getattr(self, target), m, bb, val)
-        if depth:
-            y0, y1, x0, x1 = bb; d = self.D[y0:y1, x0:x1]; d[m >= 0.5] = self.dcur
+    # ---- 通用：对任意通道填充 / 描边
+    def _tgt(self, target, P, val, stroke=None, depth=False):
+        if target == 'C':
+            self._draw(P, val, 0, stroke=stroke, depth=depth); return
+        if target == 'G':
+            g = skia.Paint(self._pg); g.setColor(skia.Color(0, 0, 0, int(val)))
+            if stroke: g.setStyle(skia.Paint.kStroke_Style); g.setStrokeWidth(float(stroke)); g.setStrokeCap(skia.Paint.kRound_Cap)
+            self._cG.drawPath(P, g); return
+        if target == 'M':
+            m = skia.Paint(AntiAlias=True); v = list(val) + [0, 0, 0]
+            m.setColor(skia.Color(int(v[0]), int(v[1]), int(v[2]), 255))
+            if stroke: m.setStyle(skia.Paint.kStroke_Style); m.setStrokeWidth(float(stroke)); m.setStrokeCap(skia.Paint.kRound_Cap)
+            self._cM.drawPath(P, m); return
+        raise ValueError(target)
 
-    def stroke(self, target, pts, val, width, closed=False):
-        m, bb = self.cov.render(path_poly(pts, closed=closed), stroke=max(0.35, float(width)))
-        if m is None: return
-        lerp_into(getattr(self, target), m, bb, val)
-
-    def fill_ell(self, target, c, ax, ang, val):
-        m, bb = self.cov.render(path_ellipse(c, ax, ang))
-        if m is None: return
-        lerp_into(getattr(self, target), m, bb, val)
+    def fill(self, target, pts, val, depth=False): self._tgt(target, path_poly(pts), val, depth=depth)
+    def stroke(self, target, pts, val, width, closed=False): self._tgt(target, path_poly(pts, closed=closed), val, stroke=max(0.35, float(width)))
+    def fill_ell(self, target, c, ax, ang, val): self._tgt(target, path_ellipse(c, ax, ang), val)
 
 
 def _upsample(p, k):

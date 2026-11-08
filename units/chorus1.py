@@ -1193,11 +1193,18 @@ CUTS = {
 }
 
 
+class _Lazy:
+    def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None
+    def render(self, t):
+        if self.obj is None: self.obj = self.cls()
+        return self.obj.render(t)
+
+
 class Chorus1:
     T0, T1 = 58.5, 89.5
 
     def __init__(self):
-        self.shots = [S() for S in SHOTS]
+        self.shots = [_Lazy(S) for S in SHOTS]       # 镜头按需构建（分段渲染时只初始化用到的镜头）
         self.ids = [S.__name__ for S in SHOTS]
 
     def idx(self, t):

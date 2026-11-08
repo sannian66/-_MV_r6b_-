@@ -1115,7 +1115,10 @@ def _sw_draw(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim_
         r2 = _blur_ds(np.clip(A - _shift(A, -dx * scale * 0.012, -dy * scale * 0.012), 0, 1), scale * 0.008 + 1) * A
         Dm = cv_.D; Ds = _shift(Dm, -dx * rw * 1.5, -dy * rw * 1.5)
         inner = ((Dm - Ds) > 3.5).astype(np.float32) * (Ds > -1e3)
-        inner = cv2.GaussianBlur(inner, (0, 0), 0.6) * A
+        if BACKEND == 'skia':
+            inner = cv2.GaussianBlur(inner, (0, 0), 1.0); inner = np.clip((inner - 0.12) * 2.2, 0, 1) * A
+        else:
+            inner = cv2.GaussianBlur(inner, (0, 0), 0.6) * A
         rmod = 0.65 + 0.7 * tt
         rim_l = (r1 * 0.9 * rmod + inner * 0.32 * rmod + r2 * 0.30 + met * r2 * 0.6) * rim
         col = col + rc[None, None] * rim_l[..., None] / np.maximum(A, 1e-3)[..., None] * (A > 0.02)[..., None]
@@ -1339,7 +1342,11 @@ def _composite(fr, cv_, x0, y0, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.7, -0.7)
         sw_ = (soft if soft is not None else rimw * 4)
         r2 = cv2.GaussianBlur(np.clip(A - _shift(A, -dx * sw_, -dy * sw_), 0, 1), (0, 0), sw_ * 0.7 + 0.5) * A
         Dm = cv_.D; Ds = _shift(Dm, -dx * rimw * 1.5, -dy * rimw * 1.5)
-        inner = cv2.GaussianBlur((((Dm - Ds) > inner_thr) * (Ds > -1e3)).astype(np.float32), (0, 0), 0.6) * A
+        inner = (((Dm - Ds) > inner_thr) * (Ds > -1e3)).astype(np.float32)
+        if BACKEND == 'skia':   # 硬边深度 → 平滑后重新收紧成 AA 细线（去台阶）
+            inner = cv2.GaussianBlur(inner, (0, 0), 1.0); inner = np.clip((inner - 0.12) * 2.2, 0, 1) * A
+        else:
+            inner = cv2.GaussianBlur(inner, (0, 0), 0.6) * A
         rmod = 0.65 + 0.7 * tt
         rl = (r1 * 0.9 * rmod + inner * 0.4 * rmod + r2 * 0.3) * rim
         col = col + rc * (rl / np.maximum(A, 1e-3))[..., None] * (A > 0.02)[..., None]
