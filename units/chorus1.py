@@ -690,7 +690,7 @@ class S037(Shot):
         q = np.float32([[-200, 330], [2120, 360], [2120, 830], [-200, 830]])
         wl = K.warp_quad(self.wall, q)
         m = np.zeros((H, W), np.float32); cv2.fillConvexPoly(m, q.astype(np.int32), 1.0, cv2.LINE_AA)
-        fr = fr * (1 - m[..., None]) + wl * 0.85
+        fr = fr * (1 - m[..., None]) + wl * 0.38        # 逆光：墙压成近剪影，只留金光
         ed = np.zeros((H, W), np.float32); cv2.line(ed, (-200, 330), (2120, 360), 1.0, 2, cv2.LINE_AA)
         fr += cv2.GaussianBlur(ed, (0, 0), 1.2)[..., None] * 0.3
         # 一线金缝
@@ -699,11 +699,10 @@ class S037(Shot):
         cm = K.draw_crack((H, W), cr, 2.2, branches=3, seed=372)
         t_l = V(CT(15, 8))
         fl = 0.9 + 0.2 * math.sin(t * 11) + 1.0 * pulse(t, t_l, 0.5) * (t >= t_l)
-        fr = fr * 0.7
         fr += (cm * 1.5 + K.blur_ds(cm, 10) * 2.2 + K.blur_ds(cm, 60) * 1.4)[..., None] * GOLD * fl
         # 体积光：金光从缝里向天空和镜头扇形喷出（与其他砖墙镜头区分：逆光大光柱）
-        fr = fx2.god_rays(fr, (self.CX, 560), emit=np.clip(cm * 1.2 + K.blur_ds(cm, 12) * 2, 0, 1), strength=1.3 * fl,
-                          length=0.9, color=GOLD, t=t, shafts=0.7, seed=37)
+        fr = fx2.god_rays(fr, (self.CX, 560), emit=np.clip(cm * 1.2 + K.blur_ds(cm, 12) * 2, 0, 1), strength=3.2 * fl,
+                          length=1.0, color=GOLD, t=t, shafts=0.75, seed=37)
         # 地面 + 地面上的金光反射
         g = (0.03 + 0.02 * K.blur_ds(cm, 80))[..., None]
         fr = fr * (1 - self.gm[..., None]) + (g + (np.exp(-np.abs(x - self.CX) / 40) * np.exp(-(y - 820) / 60) * 0.25)[..., None] * GOLD) * self.gm[..., None]
