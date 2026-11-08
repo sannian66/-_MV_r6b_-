@@ -408,6 +408,7 @@ HEAD_PROFILE = [(-1.0, 5.6), (3.6, 5.6), (5.0, 3.8), (5.7, 1.6), (6.0, 0.9), (5.
                 (5.6, -6.6), (4.2, -7.1), (1.5, -6.2), (-0.5, -4.6), (-1.5, -1.0)]
 
 # ============================================================== 刀客「鬼屠」
+HAIR_V3 = True        # v3 发型/脸型（2026-11-09，按设定图）；False 回到 v2
 VIEWS = {'back': 0., 'back3q': 35., '3q': 55., 'side': 90., 'front3q': 135., 'front': 180.}
 
 class Swordsman:
@@ -465,6 +466,42 @@ class Swordsman:
         self.band = Chains(1, 12, 3.2, drag=3.0, damp=0.96, stiff=np.outer(np.ones(1), 0.3 * (1 - np.linspace(0, 1, 12)) ** 2 + 0.01))
         self.tex = noise_tex(1024, seed=7, base=10, octaves=6)
         self.tex2 = noise_tex(512, seed=3, base=40, octaves=3)
+        if HAIR_V3: self._hair_v3()
+
+    def _hair_v3(self):
+        """v3 发型（按设定图 lib/ref/guitu_hero_ref.py）：高马尾（先上扬再垂落、过腰、梢散）、中分刘海发帘 + 垂过眼前的几缕、
+        鬓边垂到胸前的长发。独立随机数，不扰动衣物等其他随机量。"""
+        rng = np.random.default_rng(self.seed * 7 + 1013); hair = self.hair
+        # 高马尾：16 节，根部短节做出上扬发髻弧，后面长节垂落；总长 ≈ 50 单位（头顶 → 腰下）
+        nP = max(8, int(15 * hair)); L = 16
+        segs = np.r_[1.4, 1.7, 2.1, np.full(L - 4, 3.75)]
+        self.ponytail = Chains(nP, L, np.outer(rng.uniform(0.86, 1.08, nP), segs), drag=2.5, damp=0.975,
+                               stiff=np.outer(np.ones(nP), np.r_[0, 0.7, 0.45, 0.25, 0.10, 0.04, np.full(L - 6, 0.007)]))
+        self.pt_spread = rng.normal(0, 1, (nP, 2))
+        self.pt_w = rng.uniform(0.7, 1.55, nP)
+        self.pt_scatter = rng.normal(0, 1, (nP, 3))                    # 发梢散乱方向
+        # 刘海：中分。0..2*nc-1 = 两侧发帘（从分缝斜扫到颧骨），其后 3 缕垂过眼前
+        nc = 4; rows = []
+        for sg in (1, -1):
+            for k in range(nc):
+                u = k / (nc - 1)
+                rows.append(dict(sg=sg, a=[sg * (0.35 + 1.25 * u), 6.55 - 0.55 * u, 1.6 + 1.1 * u], kind='curtain', u=u,
+                                 w=1.25 - 0.25 * u))
+        for sg, x0, w in ((1, 0.55, 0.9), (-1, -0.7, 0.8), (1, 0.15, 0.6)):
+            rows.append(dict(sg=sg, a=[x0, 6.6, 2.0], kind='eye', u=0, w=w))
+        self.bang_rows = rows
+        nB = len(rows); Lb = 7
+        self.bang_anchor = np.array([r['a'] for r in rows], float)
+        self.bang_len = np.array([2.05 if r['kind'] == 'curtain' else 2.15 for r in rows]) * rng.uniform(0.92, 1.08, nB)
+        self.bangs = Chains(nB, Lb, self.bang_len, drag=6.0, damp=0.95,
+                            stiff=np.outer(np.ones(nB), 0.55 * (1 - np.linspace(0, 1, Lb)) ** 1.2 + 0.06))
+        self.bang_w = np.array([r['w'] for r in rows])
+        # 鬓发：两侧各 2 绺，耳前垂到胸前
+        ns = 4
+        self.side_anchor = np.array([[4.4, 2.4, 0.9], [4.8, 1.6, -0.6], [-4.4, 2.4, 0.9], [-4.8, 1.6, -0.6]])
+        self.sidelocks = Chains(ns, 9, rng.uniform(2.5, 2.9, ns), drag=6.0, damp=0.965,
+                                stiff=np.outer(np.ones(ns), 0.30 * (1 - np.linspace(0, 1, 9)) ** 2 + 0.02))
+        self.side_w = np.array([1.15, 0.95, 1.15, 0.95])
 
     # ---------------------------------------------------- 骨骼
     def _skeleton(self, c):
@@ -567,6 +604,45 @@ class Swordsman:
         out['rb_rest'] = np.repeat(_nrm(rr @ Rp.T)[None], 2, 0)
         out['bd'] = (Pp + Rp @ [2.0, 5.2, 7.3])[None]
         out['bd_rest'] = np.repeat(_nrm(np.array([[0, -1., 0.08]]) @ Rp.T)[None], 11, 1)
+        if HAIR_V3 and hasattr(self, 'sidelocks'): out = self._anchors_v3(S, out)
+        return out
+
+    def _anchors_v3(self, S, out):
+        Rh, Hc = S['Rh'], S['Hc']
+        tie = Hc + Rh @ [0, 7.15, -2.3]; S['tie'] = tie
+        n = self.ponytail.C; L = self.ponytail.L; sp = self.pt_spread
+        out['pt'] = (np.repeat(tie[None], n, 0) + (Rh @ np.stack([sp[:, 0] * 0.55, sp[:, 1] * 0.25, sp[:, 1] * 0.2], 1).T).T)
+        u = np.linspace(0, 1, L - 1)
+        a = (28 + 152 * u ** 0.3) * D2R                     # 先向上（发髻弧）再折向后、垂下
+        rd = np.repeat(np.stack([np.zeros(L - 1), np.cos(a), -np.sin(a)], 1)[None], n, 0)
+        sc_ = self.pt_scatter
+        g = (u ** 1.6)[None]                                   # 越到发梢越散
+        rd[..., 0] += sp[:, :1] * 0.06 + sc_[:, :1] * 0.30 * g
+        rd[..., 2] += sc_[:, 2:3] * 0.18 * g
+        out['pt_rest'] = _nrm(rd @ Rh.T)
+        out['bg'] = Hc + self.bang_anchor @ Rh.T
+        nB, Lb = self.bangs.C, self.bangs.L
+        bd = np.zeros((nB, Lb - 1, 3)); v = np.linspace(0, 1, Lb - 1)
+        for i, r in enumerate(self.bang_rows):
+            sg = r['sg']
+            if r['kind'] == 'curtain':
+                # 从分缝向外、向前扫出，再沿额角—颧骨垂下（外侧发帘更早转下）
+                out_ = np.clip(1.0 - v * (1.6 + 0.6 * r['u']), 0, 1)
+                bd[i] = np.stack([sg * (0.12 + 0.6 * out_), -0.25 - 1.0 * (1 - out_), 0.6 * out_ + 0.12 * (1 - out_) - 0.1 * r['u']], 1)
+            else:
+                # 垂过眼前：先向前，再几乎竖直下垂、略向外，末端贴脸前
+                bd[i] = np.stack([sg * (0.10 + 0.14 * v), -0.35 - 1.0 * np.clip(v * 2.2, 0, 1), 0.85 * (1 - v) ** 2 - 0.12], 1)
+        out['bg_rest'] = _nrm(bd @ Rh.T)
+        out['sdl'] = Hc + self.side_anchor @ Rh.T
+        ns, Ls = self.sidelocks.C, self.sidelocks.L
+        sd = np.zeros((ns, Ls - 1, 3)); w = np.linspace(0, 1, Ls - 1)
+        for i in range(ns):
+            sg = np.sign(self.side_anchor[i, 0])
+            sd[i] = np.stack([sg * (0.12 - 0.05 * w), -np.ones(Ls - 1), 0.30 - 0.15 * w + 0.12 * (i % 2 == 0)], 1)
+        sd = _nrm(sd @ Rh.T)
+        # 低头/回头时鬓发受重力：rest 与世界向下混合
+        sd = _nrm(sd * 0.55 + np.array([0, -1.0, 0]) * 0.45 + (S['Rc'] @ [0, 0, 1.0]) * 0.18)
+        out['sdl_rest'] = sd
         return out
 
     def _colliders(self, S):
@@ -583,6 +659,11 @@ class Swordsman:
              (self.bangs, A['bg'], A['bg_rest'], []), (self.fly, A['fl'], A['fl_rest'], []),
              (self.skirt, A['sk'], A['sk_rest'], legs),
              (self.sleeve['l'], A['sll'], A['sll_rest'], []), (self.sleeve['r'], A['slr'], A['slr_rest'], [])]
+        if HAIR_V3 and hasattr(self, 'sidelocks'):
+            Rh, Hc = S['Rh'], S['Hc']
+            facecol = (Hc + Rh @ [0, -3.5, 0.9], Hc + Rh @ [0, 3.5, 0.6], 4.9)    # 脸前小胶囊：刘海贴脸但不穿脸
+            g[2] = (self.bangs, A['bg'], A['bg_rest'], [facecol])
+            g.append((self.sidelocks, A['sdl'], A['sdl_rest'], [(Hc + Rh @ [0, -2, 0], Hc + Rh @ [0, 2, 0], 5.3)] + cols[1:3]))
         if self.ribbons: g.append((self.rib, A['rb'], A['rb_rest'], legs + cols[1:2]))
         g.append((self.band, A['bd'], A['bd_rest'], legs))
         return g
@@ -1428,7 +1509,7 @@ LIGHTS = {'moon': dict(rim_color=(0.78, 0.86, 1.0), rim_dir=(-0.85, -0.45), lift
           'dawn': dict(rim_color=(1.0, 0.76, 0.40), rim_dir=(0.9, -0.35), lift=0.9)}
 
 def profile_cu(fr, sw, t, cx, cy, head_px, light='moon', glint=1.0, flip=False, action='stand_wind', phase=None, wind=-160,
-               wet=0.0, **over):
+               wet=0.0, cu_fill=1.0, **over):
     """头部/侧脸 CU：sw 为 Swordsman(view='side', hair≥2)。把头心放在 (cx,cy)，头高 head_px 像素（下巴到头顶≈13单位）。
     light='moon'(冷白月光，背后上方) / 'dawn'(金色晨光，正面侧逆)，glint>0 开一线眼光。连续帧调用请用递增 t。"""
     ph = (t * 0.25) % 1 if phase is None else phase
@@ -1441,7 +1522,16 @@ def profile_cu(fr, sw, t, cx, cy, head_px, light='moon', glint=1.0, flip=False, 
     x = cx - hx; y = cy + S['Hc'][1] * sc
     L = dict(LIGHTS[light]) if isinstance(light, str) else dict(light)
     if flip: L['rim_dir'] = (-L['rim_dir'][0], L['rim_dir'][1])
-    return sw.draw(fr, x, y, scale, glint=glint, **L)
+    if not HAIR_V3 or cu_fill is None:
+        return sw.draw(fr, x, y, scale, glint=glint, **L)
+    # v3 特写补光：抬天光与肤色补光、整体 lift，让面部在逆光里可读（只作用于这一次绘制，结束即恢复全局 FILL）
+    keep = dict(FILL)
+    FILL.update(amb=keep['amb'] + 0.18 * cu_fill, skin=keep['skin'] + 0.58 * cu_fill)
+    L['lift'] = L.get('lift', 1.0) * (1 + 0.22 * cu_fill)
+    try:
+        return sw.draw(fr, x, y, scale, glint=glint, **L)
+    finally:
+        FILL.clear(); FILL.update(keep)
 
 # ============================================================== 手部特写
 class HandCU:
@@ -2029,6 +2119,30 @@ HAIR_CAP = _ellip_pts((0, 1.25, -0.75), (5.35, 6.05, 6.3), na=22, bs=(-1.0, -0.6
                       keep=lambda p: not (p[2] > 1.2 and p[1] < 3.6 - max(0, abs(p[0]) - 3.4) * 2.2) and p[1] > -3.2)
 
 
+def _hair_cap3():
+    """v3 发盖扇区：椭球面采样，保留发际线以上的点。发际线连续：中分缝最高 → 弧形降到额角 → 鬓角（耳前）→ 耳后/后脑垂到后颈。
+    扇区要窄（发际线有台阶时宽扇区的凸包会横跨眼睛，形成 v2 那种“黑条”）。"""
+    c, r = (0, 1.25, -0.75), (5.3, 6.0, 6.25)
+    def hl(aa):
+        if aa < 1.15: return 3.15 - 1.9 * (aa / 1.15) ** 1.7 + (0.35 if aa < 0.12 else 0.0)
+        if aa < 1.45: return 1.25 - 3.05 * (aa - 1.15) / 0.30
+        if aa < 2.1: return -1.8 - 1.4 * (aa - 1.45) / 0.65
+        return -3.2 - 1.0 * min(1.0, (aa - 2.1) / 0.6)
+    pts_a, P = [], []
+    for b in np.linspace(-1.05, 1.5, 15):
+        for a in np.linspace(-math.pi, math.pi, 72, endpoint=False):
+            p = [c[0] + r[0] * math.cos(b) * math.sin(a), c[1] + r[1] * math.sin(b), c[2] + r[2] * math.cos(b) * math.cos(a)]
+            if p[1] > hl(abs(a)): pts_a.append(a); P.append(p)
+    pts_a = np.array(pts_a); P = np.array(P)
+    out = []
+    for ca in np.linspace(-math.pi, math.pi, 28, endpoint=False):
+        d = np.angle(np.exp(1j * (pts_a - ca)))
+        m = (np.abs(d) < 0.16) | ((P[:, 1] > 6.0) & (np.abs(d) < 0.9))
+        if m.sum() >= 3: out.append((ca, P[m]))
+    return out
+HAIR_CAP3 = _hair_cap3()
+
+
 def _eye_pts(sg, gaze=(0.0, 0.0), open_=1.0):
     """单眼（sg=+1 角色右眼 / -1 左眼）上睑、下睑、虹膜 3D 点（头部系）。外眼角略上挑，冷峻。"""
     u = np.linspace(-1, 1, 15)            # -1 内眼角 → +1 外眼角
@@ -2046,24 +2160,68 @@ def _eye_pts(sg, gaze=(0.0, 0.0), open_=1.0):
     return up, lo, ir, pu, ic
 
 
+# ---- v3 脸型（按设定图测量 lib/ref/guitu_hero_ref.py：清瘦、尖下巴、高颧骨、眼位下移、细长眼）
+HEAD3 = dict(
+    cran=_ellip_pts((0, 0.9, -0.55), (4.55, 5.55, 5.75)),
+    jaw=_mirror([[4.15, 1.0, 2.4], [3.95, -2.5, -0.2], [3.25, -4.6, 0.6], [2.45, -5.65, 2.8], [1.15, -6.55, 4.15],
+                 [3.55, -1.0, 3.45], [3.4, 0.6, 4.0], [2.0, 0.6, 5.1], [1.2, 3.0, 4.9], [0.0, 0.9, 5.65], [0.0, 3.0, 5.1],
+                 [2.95, -3.0, 3.0], [0.0, -3.5, 5.3], [0.0, -5.3, 5.15], [0.0, -6.75, 4.0], [1.0, -3.6, 5.0]]),
+    nose=_mirror([[0.0, 0.3, 5.5], [0.42, 0.0, 5.25], [0.0, -2.6, 6.7], [0.0, -2.95, 6.5], [0.92, -3.05, 5.5],
+                  [0.0, -3.35, 5.8], [0.5, -3.35, 5.3]]),
+    ulip=_mirror([[0.0, -3.4, 5.75], [0.0, -3.95, 5.92], [1.22, -4.25, 5.0], [0.0, -4.3, 5.65], [0.8, -3.5, 5.15]]),
+    llip=_mirror([[0.0, -4.35, 5.62], [0.0, -4.62, 5.72], [0.92, -4.35, 4.9], [0.0, -5.05, 5.35]]),
+    chin=_mirror([[0.0, -5.3, 5.22], [0.0, -5.95, 5.5], [0.0, -6.45, 5.2], [0.0, -6.8, 4.3], [0.88, -6.0, 4.8],
+                  [0.62, -6.6, 4.2], [0.7, -5.3, 4.98]]),
+)
+_FYR = np.array([(-9.0, -9.3), (-6.45, -6.75), (-3.45, -4.25), (-1.35, -2.75), (0.55, -0.45), (2.2, 1.45), (5.0, 4.6), (9.0, 9.0)])
+
+def _face3(p):
+    """v2 面部特征坐标 → v3（y 分段重映射 + 下半脸收窄成尖下巴）。"""
+    p = np.array(p, float); y = p[..., 1]
+    y2 = np.interp(y, _FYR[:, 0], _FYR[:, 1])
+    tap = 1 - 0.16 * np.clip((-y2 - 1.0) / 5.5, 0, 1) * (p[..., 2] > 1.0)
+    p[..., 0] = p[..., 0] * tap; p[..., 1] = y2
+    return p
+
+def _eye_pts3(sg, gaze=(0.0, 0.0), open_=1.0):
+    """v3 单眼：细长（宽高比≈3）、外眼角上挑、眼位下移；虹膜被上睑压住一部分（冷）。"""
+    u = np.linspace(-1, 1, 15)
+    cx, cy, hw, op = 1.62, -0.45, 1.0, 0.34
+    x = cx + hw * u
+    zf = lambda xx: 5.12 - 0.165 * xx ** 2
+    yu = cy + op * open_ * (1 - u ** 2) ** 0.7 + 0.15 * u - 0.06 * (u < -0.65)
+    yl = cy - 0.13 * (1 - u ** 2) ** 1.1 + 0.11 * u
+    up = np.stack([sg * x, yu, zf(x) + 0.05], 1); lo = np.stack([sg * x, yl, zf(x)], 1)
+    a = np.linspace(0, 2 * math.pi, 20, endpoint=False)
+    ic = np.array([sg * (cx + gaze[0] * 0.45 - 0.05), cy + 0.02 + gaze[1] * 0.25, zf(cx) + 0.12])
+    ex = _nrm(np.array([1.0, 0, -0.165 * 2 * cx]) * [sg, 1, 1]); ey = np.array([0, 1.0, 0])
+    ir = ic + 0.34 * (np.cos(a)[:, None] * ex + np.sin(a)[:, None] * ey)
+    pu = ic + 0.13 * (np.cos(a)[:, None] * ex + np.sin(a)[:, None] * ey)
+    return up, lo, ir, pu, ic
+
+
 def _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=165, hair_tone=34, detail=1.0, E=None, hd0=0.0):
     """头部 v2：多凸块并集（侧脸轮廓）+ 五官 + 耳 + 发盖。返回绘制函数列表 [(depth, fn, bias)]。"""
     Rh, Hc = S['Rh'], S['Hc']
     W = lambda p: Hc + np.asarray(p, float) @ Rh.T
+    V3 = HAIR_V3
+    Wf = (lambda p: W(_face3(p))) if V3 else W
+    HD = HEAD3 if V3 else HEAD2
+    eyefn = _eye_pts3 if V3 else _eye_pts
     out = []
     face_n = Rh @ [0, 0, 1.0]
     facing = float(face_n @ vdir)                       # 1=正脸 0=侧脸 -1=后脑
     side = float((Rh @ [1.0, 0, 0]) @ vdir)              # >0 角色右侧朝镜头
-    pieces = [cv2.convexHull(P2(W(np.vstack([HEAD2['cran'], HEAD2['jaw']]))).astype(np.float32)).reshape(-1, 2)]
+    pieces = [cv2.convexHull(P2(W(np.vstack([HD['cran'], HD['jaw']]))).astype(np.float32)).reshape(-1, 2)]
     for k in ('nose', 'ulip', 'llip', 'chin'):
-        pieces.append(cv2.convexHull(P2(W(HEAD2[k])).astype(np.float32)).reshape(-1, 2))
+        pieces.append(cv2.convexHull(P2(W(HD[k])).astype(np.float32)).reshape(-1, 2))
     big = sc > 5.5
     feat = sc > 7.0 and facing > -0.35
     neck = P2(np.array([S['N'] - S['Rc'] @ [0, 1.5, 0], W([0, -3.2, -0.8]), W([0, -4.6, 1.2])]))
 
     def headfn():
         # 颈：胸锁乳突肌斜线（侧面）
-        cv_.path(_sk.path_limb(neck[:2], [3.05 * sc, 2.65 * sc], k=2)[0], _col(skin * 0.86))
+        cv_.path(_sk.path_limb(neck[:2], ([2.45 * sc, 2.05 * sc] if V3 else [3.05 * sc, 2.65 * sc]), k=2)[0], _col(skin * 0.86))
         cv_.polys(pieces, _col(skin), smooth=False)
         if not big: return
         # 颧下/下颌阴影、眼窝（内绘，软）
@@ -2071,43 +2229,53 @@ def _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=165, hair_tone=34, detail=1.0
         for sg in (-1, 1):
             vis = float((Rh @ _nrm(np.array([sg * 0.45, 0.05, 1.0]))) @ vdir)
             if vis < -0.15: continue
-            ec = P2(W([sg * 2.0, 0.75, 4.7]))
+            ec = P2(W([sg * 1.65, -0.3, 4.45] if V3 else [sg * 2.0, 0.75, 4.7]))
             cv_.paint_in(sk_.path_ellipse(ec, (1.55 * sc, 1.05 * sc), 0), (skin * 0.62,), 0.55, blur=0.6 * sc)
-            ch = P2(W([sg * 3.3, -2.6, 3.6]))
+            ch = P2(W([sg * 3.05, -2.55, 3.25] if V3 else [sg * 3.3, -2.6, 3.6]))
             cv_.paint_in(sk_.path_ellipse(ch, (0.9 * sc, 1.9 * sc), 15 * sg), (skin * 0.72,), 0.45 * min(1, sc / 10), blur=0.9 * sc)
-        jaw_line = P2(W(np.array([[4.0, -3.4, -0.2], [3.3, -4.7, 1.3], [2.3, -5.7, 3.3], [1.1, -6.3, 4.4], [0, -6.5, 4.1]])))
+        jaw_line = P2(Wf(np.array([[4.0, -3.4, -0.2], [3.3, -4.7, 1.3], [2.3, -5.7, 3.3], [1.1, -6.3, 4.4], [0, -6.5, 4.1]])))
         cv_.paint_in(sk_.path_poly(jaw_line, closed=False, smooth=True), (skin * 0.55,), 0.35, blur=0.35 * sc, stroke=0.5 * sc)
         if not feat: return
         # 耳
         for sg in (-1, 1):
             en = Rh @ [sg, 0, 0.15]
             if en @ vdir < 0.25: continue
-            ring = W(np.array([[sg * 4.75, 0.2 + 1.35 * math.sin(a), -0.35 + 0.75 * math.cos(a) - 0.25 * (math.sin(a) < 0)]
+            ring = Wf(np.array([[sg * 4.75, 0.2 + 1.35 * math.sin(a), -0.35 + 0.75 * math.cos(a) - 0.25 * (math.sin(a) < 0)]
                                for a in np.linspace(0, 2 * math.pi, 14, endpoint=False)]))
             q = P2(ring)
             cv_.paint_in(sk_.path_poly(q, smooth=True), (skin * 0.9,), 1.0)
             cv_.paint_in(sk_.path_poly(q, smooth=True), (skin * 0.45,), 0.8, stroke=0.25 * sc)
-            inner = P2(W(np.array([[sg * 4.8, 0.2 + 0.8 * math.sin(a), -0.25 + 0.4 * math.cos(a)] for a in np.linspace(0.3, 5.0, 9)])))
+            inner = P2(Wf(np.array([[sg * 4.8, 0.2 + 0.8 * math.sin(a), -0.25 + 0.4 * math.cos(a)] for a in np.linspace(0.3, 5.0, 9)])))
             cv_.paint_in(sk_.path_poly(inner, closed=False, smooth=True), (skin * 0.5,), 0.7, stroke=0.18 * sc)
         # 眉（粗、内低外高，冷峻）
         for sg in (-1, 1):
             vis = float((Rh @ _nrm(np.array([sg * 0.5, 0.1, 1.0]))) @ vdir)
             if vis < -0.05: continue
-            bw = np.array([[sg * (0.65 + 2.75 * u), 1.72 + 0.62 * u - 0.18 * u * u, 5.45 - 0.165 * (0.65 + 2.75 * u) ** 2 * 0.8 + 0.15]
-                           for u in np.linspace(0, 1, 9)])
+            if V3:   # 剑眉：粗、平直上挑，眉头低而钝、眉尾细而高
+                bw = np.array([[sg * (0.42 + 2.5 * u), 0.14 + 0.50 * u - 0.05 * u * u, 5.45 - 0.165 * (0.42 + 2.5 * u) ** 2 * 0.8 + 0.1]
+                               for u in np.linspace(0, 1, 9)])
+                wd = (0.24 - 0.17 * np.linspace(0, 1, 9) ** 1.3)[:, None] * sc
+            else:
+                bw = np.array([[sg * (0.65 + 2.75 * u), 1.72 + 0.62 * u - 0.18 * u * u, 5.45 - 0.165 * (0.65 + 2.75 * u) ** 2 * 0.8 + 0.15]
+                               for u in np.linspace(0, 1, 9)])
+                wd = (0.34 - 0.2 * np.linspace(0, 1, 9) ** 1.5)[:, None] * sc
             q = P2(W(bw)); d = np.gradient(q, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
-            wd = (0.34 - 0.2 * np.linspace(0, 1, 9) ** 1.5)[:, None] * sc
-            cv_.paint_in(sk_.path_poly(np.vstack([q + nn * wd, (q - nn * wd)[::-1]]), smooth=True), (hair_tone * 0.7,), 0.95)
+            cv_.paint_in(sk_.path_poly(np.vstack([q + nn * wd, (q - nn * wd)[::-1]]), smooth=True), (hair_tone * (0.45 if V3 else 0.7),), 1.0 if V3 else 0.95)
         # 眼
         for sg in (-1, 1):
             vis = float((Rh @ _nrm(np.array([sg * 0.42, 0.0, 1.0]))) @ vdir)
             if vis < 0.0: continue
-            up, lo, ir, pu, ic = _eye_pts(sg)
+            up, lo, ir, pu, ic = eyefn(sg)
             qu, ql = P2(W(up)), P2(W(lo))
             white = sk_.path_poly(np.vstack([qu, ql[::-1]]), smooth=True)
             cv_.paint_in(white, (skin * 1.18,), 1.0)
             irp = sk_.path_and(sk_.path_poly(P2(W(ir)), smooth=True), white)
-            cv_.paint_in(irp, (34,), 1.0)
+            if V3:   # 琥珀瞳：金通道着色（后画的头发会把金通道擦掉 → 眼神光据此判定是否被发遮挡）
+                cv_.paint_in(irp, (78,), 1.0)
+                cv_.path(irp, (255, 78, 0, 0), gold=215, depth=False)
+                cv_.paint_in(sk_.path_and(sk_.path_poly(P2(W(ic + (ir - ic) * 0.62)), smooth=True), white), (110,), 0.55, blur=0.12 * sc)
+            else:
+                cv_.paint_in(irp, (34,), 1.0)
             cv_.paint_in(sk_.path_and(sk_.path_poly(P2(W(pu)), smooth=True), white), (6,), 1.0)
             # 上睑阴影落在眼球上
             cv_.paint_in(sk_.path_and(sk_.path_poly(qu + [0, 0.35 * sc], closed=False, smooth=True), white), (20,), 0.55,
@@ -2119,40 +2287,51 @@ def _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=165, hair_tone=34, detail=1.0
             prof = np.sin(np.linspace(0.12, 1.0, len(lid)) * math.pi * 0.82) ** 0.6
             wl = (0.07 + 0.2 * prof)[:, None] * sc
             cv_.paint_in(sk_.path_poly(np.vstack([lid + nn * wl, (lid - nn * wl)[::-1]]), smooth=True), (8,), 1.0)
-            crease = P2(W(up[3:13] + np.array([0, 0.36, 0.0])))
+            crease = P2(W(up[3:13] + np.array([0, 0.26 if V3 else 0.36, 0.0])))
             cv_.paint_in(sk_.path_poly(crease, closed=False, smooth=True), (skin * 0.5,), 0.8, stroke=0.12 * sc)
             cv_.paint_in(sk_.path_poly(ql[5:], closed=False, smooth=True), (skin * 0.55,), 0.8, stroke=0.1 * sc)
         # 鼻：鼻梁暗侧 + 鼻翼 + 鼻孔
         nl = 1 if side < 0 else -1                       # 背光侧
         if facing > 0.15:
-            br = P2(W(np.array([[nl * 0.55, 1.2, 5.3], [nl * 0.5, -0.4, 6.0], [nl * 0.6, -1.5, 6.3]])))
+            br = P2(Wf(np.array([[nl * 0.55, 1.2, 5.3], [nl * 0.5, -0.4, 6.0], [nl * 0.6, -1.5, 6.3]])))
             cv_.paint_in(sk_.path_poly(br, closed=False, smooth=True), (skin * 0.62,), 0.55, blur=0.25 * sc, stroke=0.45 * sc)
         for sg in (-1, 1):
             nv = float((Rh @ _nrm(np.array([sg * 0.6, -0.4, 0.8]))) @ vdir)
             if nv < -0.05: continue
-            wing = P2(W(np.array([[sg * 0.25, -2.2, 5.95], [sg * 0.85, -2.05, 5.6], [sg * 1.05, -1.65, 5.45]])))
+            wing = P2(Wf(np.array([[sg * 0.25, -2.2, 5.95], [sg * 0.85, -2.05, 5.6], [sg * 1.05, -1.65, 5.45]])))
             cv_.paint_in(sk_.path_poly(wing, closed=False, smooth=True), (skin * 0.45,), 0.85, stroke=0.13 * sc)
             if facing > 0.3:
-                cv_.paint_in(sk_.path_ellipse(P2(W([sg * 0.5, -2.15, 5.75])), (0.22 * sc, 0.1 * sc), 0), (skin * 0.3,), 0.9)
+                cv_.paint_in(sk_.path_ellipse(P2(Wf([sg * 0.5, -2.15, 5.75])), (0.22 * sc, 0.1 * sc), 0), (skin * 0.3,), 0.9)
         # 唇：口裂线 + 下唇阴影
-        mouth = P2(W(np.array([[x_, -3.45 - 0.05 * abs(x_), 5.72 - 0.38 * x_ * x_] for x_ in np.linspace(-1.3, 1.3, 9)])))
+        mouth = P2(Wf(np.array([[x_, -3.45 - 0.05 * abs(x_), 5.72 - 0.38 * x_ * x_] for x_ in np.linspace(-1.3, 1.3, 9)])))
         mz = np.array([float((Rh @ _nrm(np.array([x_ * 0.5, 0, 1.0]))) @ vdir) for x_ in np.linspace(-1.3, 1.3, 9)])
         ok = mz > -0.1
         if ok.sum() >= 2:
             cv_.paint_in(sk_.path_poly(mouth[ok], closed=False, smooth=True), (skin * 0.36,), 0.95, stroke=0.13 * sc)
-            ll = P2(W(np.array([[x_, -4.3, 5.35 - 0.3 * x_ * x_] for x_ in np.linspace(-0.8, 0.8, 5)])))
+            ll = P2(Wf(np.array([[x_, -4.3, 5.35 - 0.3 * x_ * x_] for x_ in np.linspace(-0.8, 0.8, 5)])))
             cv_.paint_in(sk_.path_poly(ll, closed=False, smooth=True), (skin * 0.6,), 0.5, blur=0.2 * sc, stroke=0.3 * sc)
     out.append((DP(Hc), headfn, 0.0))
     # 发盖（头顶 + 后脑 + 鬓）
     capq = P2(W(HAIR_CAP))
     cap = cv2.convexHull(capq.astype(np.float32)).reshape(-1, 2)
+    if V3:
+        # v3 发盖：按方位角分扇区的凸包并集，前额是中分的弧形发际线（设定图），而不是 v2 那种横切的一条直线。
+        # 朝后的扇区按自身深度排序（正面时在脸后），朝前/两侧的扇区盖在头皮上。
+        cap = []
+        for k_, (ca, cpts) in enumerate(HAIR_CAP3):
+            hull = cv2.convexHull(P2(W(cpts)).astype(np.float32)).reshape(-1, 2)
+            if math.cos(ca) < -0.25:
+                out.append((DP(W(cpts.mean(0))), (lambda hull=hull: cv_.poly(hull, _col(hair_tone))), 0.0))
+            else:
+                cap.append(hull)
     ring = np.array([[5.2 * math.cos(b) * math.sin(a), 1.2 + 6.0 * math.sin(b), -0.75 + 6.2 * math.cos(b) * math.cos(a)]
                      for a, b in [(a_, 0.85) for a_ in np.linspace(-2.6, 2.6, 22)]])
     ringq = P2(W(ring)); rv = (W(ring) - Hc) @ vdir > -0.5
     part = P2(W(np.array([[0.4 * math.sin(u * 3), 1.2 + 6.05 * math.sin(b_), -0.75 + 6.3 * math.cos(b_)] for u, b_ in
                           zip(np.linspace(0, 1, 8), np.linspace(1.15, 0.2, 8))])))
     def capfn():
-        cv_.poly(cap, _col(hair_tone))
+        if isinstance(cap, list): cv_.polys(cap, _col(hair_tone), smooth=False)
+        else: cv_.poly(cap, _col(hair_tone))
         if big:
             # 高光环（天使环）：分段短束高光，随头转
             seg = np.nonzero(rv)[0]
@@ -2167,7 +2346,7 @@ def _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=165, hair_tone=34, detail=1.0
     for sg in (-1, 1):
         vis = float((Rh @ _nrm(np.array([sg * 0.42, 0.0, 1.0]))) @ vdir)
         if vis > 0.05:
-            _, _, _, _, ic = _eye_pts(sg); eyes.append((vis, P2(W(ic + np.array([-0.12 * sg, 0.18, 0.1])))))
+            _, _, _, _, ic = eyefn(sg); eyes.append((vis, P2(W(ic + np.array([-0.12 * sg, 0.18, 0.1])))))
     return out, eyes, facing
 
 
@@ -2208,7 +2387,8 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
     sc = scale / 100.0
     allp = [S[k] for k in ('Hc', 'tip', 'pommel', 'ltoe', 'rtoe', 'lheel', 'rheel', 'lfist', 'rfist', 'tie', 'Pp')]
     allp = np.vstack([np.array(allp)] + [g.P.reshape(-1, 3) for g in
-                      (self.ponytail, self.locks, self.skirt, self.rib, self.band, self.fly, self.bangs)])
+                      (self.ponytail, self.locks, self.skirt, self.rib, self.band, self.fly, self.bangs)
+                      + ((self.sidelocks,) if hasattr(self, 'sidelocks') else ())])
     X = allp[:, 0] * ct + allp[:, 2] * st
     U = x + fs * X * sc; V = y - allp[:, 1] * sc
     mg = scale * 0.08 + 10
@@ -2236,7 +2416,7 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
     cen = DP(S['Pp'])
     E = []
     def far(d): return 0.66 if d < cen - 1.5 else 1.0
-    COAT, PANT, BOOT, LEATH, SKIN = 74, 52, 88, 104, 168
+    COAT, PANT, BOOT, LEATH, SKIN = 74, 52, 88, 104, (188 if HAIR_V3 else 168)    # v3 肤色更苍白（设定图）
     Rc, Cw, Rp, Pp = S['Rc'], S['Cw'], S['Rp'], S['Pp']
     lod = sc > 3.0
     # ---------------------------------------------------------------- 腿：裤（可变半径）+ 长靴 + 绑腿
@@ -2532,7 +2712,7 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
     # 马尾：发团主体（体积）+ 发束
     ctr = self.ponytail.P.mean(0); cq_ = P2(ctr)
     spread = np.linalg.norm(self.ponytail.P - ctr[None], axis=-1).mean(0)
-    E.append((DP(ctr).mean() - 0.05, (lambda cq_=cq_: _clump(cv_, cq_, 4.6 * sc, 0.4 * sc, hair_tone, sc, hl=55, hl_side=hl_side, prof='spindle')),
+    E.append((DP(ctr).mean() - 0.05, (lambda cq_=cq_: _clump(cv_, cq_, (1.7 if hasattr(self, 'sidelocks') else 4.6) * sc, 0.4 * sc, hair_tone, sc, hl=55, hl_side=hl_side, prof='spindle')),
               hd0 - DP(ctr).mean() + 0.05))
     def add_clumps(ch, w0, tones, dbias=0.0, wscale=None, prof='taper', every=1):
         q = P2(ch.P); dd = DP(ch.P).mean(1)
@@ -2540,9 +2720,15 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
             ws = wscale[k] if wscale is not None else 1
             E.append((dd[k] + dbias, (lambda q=q[k], ws=ws, tn=tones[k]: _clump(cv_, q, w0 * ws * sc, 0.0, tn, sc, hl=48, hl_side=hl_side, prof=prof)),
                       hd0 - dd[k] - dbias))
-    add_clumps(self.ponytail, 2.9 * hw, [hair_tone + (14 if k % 3 == 1 else 0) for k in range(self.ponytail.C)], 0.0, self.pt_w)
-    add_clumps(self.locks, 2.4 * hw, [hair_tone + (10 if k % 3 == 0 else 0) for k in range(self.locks.C)], 0.0, self.lock_w)
-    add_clumps(self.bangs, 1.35 * hw, [hair_tone + 6] * self.bangs.C, 0.6)
+    v3h = hasattr(self, 'sidelocks')
+    add_clumps(self.ponytail, (1.75 if v3h else 2.9) * hw, [hair_tone + (14 if k % 3 == 1 else 0) for k in range(self.ponytail.C)], 0.0, self.pt_w)
+    add_clumps(self.locks, (1.8 if v3h else 2.4) * hw, [hair_tone + (10 if k % 3 == 0 else 0) for k in range(self.locks.C)], 0.0, self.lock_w)
+    if hasattr(self, 'sidelocks'):
+        # v3：刘海发帘/过眼发缕逐缕定宽；鬓发成束垂到胸前（在脸前一层，但宽度受控，不压成黑块）
+        add_clumps(self.bangs, 1.45 * hw, [hair_tone + (8 if k % 2 else 0) for k in range(self.bangs.C)], 0.9, self.bang_w)
+        add_clumps(self.sidelocks, 2.2 * hw, [hair_tone + (10 if k % 2 else 2) for k in range(self.sidelocks.C)], 0.35, self.side_w)
+    else:
+        add_clumps(self.bangs, 1.35 * hw, [hair_tone + 6] * self.bangs.C, 0.6)
     if detail > 0.5:                                      # 飞丝：少量、渐细、按尺度变宽（不再是 1px 乱线）
         q = P2(self.fly.P); dd = DP(self.fly.P).mean(1)
         for k in range(0, self.fly.C, 4):
@@ -2617,6 +2803,11 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
         eyes.sort(key=lambda e: -e[0])
         for vis_, e_ in eyes[:2]:
             gx, gy_ = float(e_[0]), float(e_[1])
+            if HAIR_V3 and 0 <= gx < w_ and 0 <= gy_ < h_:
+                # 遮挡判定：琥珀瞳写了金通道，之后画上的头发/眼睑会把它擦掉 → 只在瞳孔仍可见处点眼神光
+                rr_ = max(1, int(0.12 * sc)); Gw = cv_.G[max(0, int(gy_) - rr_):int(gy_) + rr_ + 1, max(0, int(gx) - rr_):int(gx) + rr_ + 1]
+                vis_ = vis_ * float(np.clip((Gw.astype(np.float32).mean() / 255.0 - 0.25) / 0.45, 0, 1)) if Gw.size else 0.0
+                if vis_ <= 0.02: continue
             if 0 <= gx < w_ and 0 <= gy_ < h_:
                 R = int(3 * sc + 8); ya, yb, xa, xb = max(0, int(gy_) - R), min(h_, int(gy_) + R), max(0, int(gx) - R), min(w_, int(gx) + R)
                 gl = np.zeros((yb - ya, xb - xa), np.float32)
