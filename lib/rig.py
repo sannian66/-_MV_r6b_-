@@ -1857,3 +1857,799 @@ class Emperor:
                            paper_col=(0.95, 0.9, 0.78))
         info = dict(bbox=(x0, y0, x1, y1), head=tuple(P2g(Hc)), hand=tuple(P2g(S['rhand'])))
         return fr, info
+
+
+# ##########################################################################################
+# ============================================================== v2 渲染层（角色组第二轮：精致度）
+# 接口不变：Swordsman.draw / profile_cu / HandCU.draw / Emperor.draw / _composite 签名与返回值完全一致。
+# rig.set_quality('v1'|'v2') 可切回旧画法做前后对比（默认 v2；无 skia 时自动走 v1）。
+# 新增：卡通体积明暗（伪法线：深度分区距离场 → 主光赛璐璐 + 天光环境 + 接触遮蔽 + 地面 AO）、
+#       loft 躯干（真实腰线）、可变半径肢体（关节过渡）、分层衣摆（前开衩/里衬/褶皱网格渐变）、
+#       3D 头部（多凸块并集侧脸轮廓 + 眼/眉/鼻/唇/耳特征，转头可读）、成束头发（发团 + 发束 + 高光环）、
+#       护腕/腰封/刀鞘细节、出刀拖影形变（smear）。
+QUALITY = 'v2'
+def set_quality(q):
+    """'v2'（默认，精致版）或 'v1'（第一轮画法，用于对比）。"""
+    global QUALITY
+    QUALITY = q
+
+
+def _cel(x, a, b):
+    t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
+
+
+def _shade2(A, D, rd, R, ground=None, key_soft=0.12, occ_k=None, depth_thr=0.9):
+    """伪法线体积明暗。A 覆盖、D 深度（-1e4=空）、rd 屏幕光向（光来自 rd 一侧）、R 体积半径（像素，≈肢体半径）。
+    返回 (key, amb, ao, nz)：key 主光(赛璐璐软边 0..1)、amb 天光(0.6..1.1)、ao 遮蔽(0..1)。"""
+    h, w = A.shape
+    Dm = np.where(A > 0.35, D, np.float32(-1e4)).astype(np.float32)
+    E = A < 0.5
+    dx = np.abs(np.diff(Dm, axis=1)) > depth_thr; dy = np.abs(np.diff(Dm, axis=0)) > depth_thr
+    E[:, :-1] |= dx; E[:, 1:] |= dx; E[:-1] |= dy; E[1:] |= dy
+    dist = cv2.distanceTransform((~E).astype(np.uint8), cv2.DIST_L2, 3)
+    u = np.clip(dist / max(R, 1.0), 0, 1)
+    hgt = np.sqrt(u * (2 - u))
+    hgt = cv2.GaussianBlur(hgt, (0, 0), max(0.8, R * 0.22))
+    gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=3) * (R / 8.0)
+    gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=3) * (R / 8.0)
+    inv = 1.0 / np.sqrt(gx * gx + gy * gy + 1.0)
+    nx, ny, nz = -gx * inv, -gy * inv, inv
+    ndl = nx * rd[0] + ny * rd[1]
+    key = _cel(ndl, 0.10 - key_soft, 0.10 + key_soft)
+    amb = 0.62 + 0.45 * np.clip(-ny * 0.9 + 0.35, 0, 1)
+    # 接触遮蔽：靠近更近部件处变暗（落影/AO）
+    k = int(max(3, occ_k if occ_k is not None else R * 1.6)) | 1
+    Dn = cv2.dilate(Dm, cv2.getStructuringElement(cv2.MORPH_RECT, (k, k)))
+    occ = np.clip((Dn - Dm - depth_thr) / 3.0, 0, 1) * (A > 0.02)
+    occ = cv2.GaussianBlur(occ, (0, 0), k * 0.35) * (A > 0.02)
+    ao = 1.0 - 0.55 * occ
+    if ground is not None:
+        yy = np.arange(h, dtype=np.float32)[:, None]
+        g0, g1 = ground
+        ao = ao * (0.62 + 0.38 * _cel(yy, g0, g1))
+    return key, amb, ao, nz, dist
+
+
+def _comp2(fr, cv_, x0, y0, rim_color, rim_dir, rim, rimw, lift, alpha, ink, R, ground=None, key=1.0,
+           tex_scale=1.0, inner_thr=3.5, spec_tone=None, return_A=False, paper=0.0, paper_col=(0.92, 0.88, 0.78),
+           burn=None, met_cb=None):
+    """v2 合成：tone/red/gold/金属 + 体积明暗 + 轮廓光 → fr。met_cb(col, A, inv) 可选：刀身金属自行着色。"""
+    C = cv_.C.astype(np.float32) * (1 / 255.)
+    A = C[..., 0]; h_, w_ = A.shape
+    if A.max() <= 0: return (fr, A, None) if return_A else (fr, A)
+    inv = 1.0 / np.maximum(A, 1e-3)
+    tone = C[..., 1] * inv; red = np.clip(C[..., 2] * inv, 0, 1); met = np.clip(C[..., 3] * inv, 0, 1)
+    gold = np.clip(cv_.G.astype(np.float32) / 255. * inv, 0, 1)
+    rd = np.array(rim_dir, float); rd /= max(np.linalg.norm(rd), 1e-6)
+    Dm = cv_.D
+    kk, amb, ao, nz, dist = _shade2(A, Dm, rd, R, ground)
+    # 布纹（细，低幅）
+    ts = max(1, int(round(tex_scale)))
+    tt = _tile(noise_tex(512, seed=3, base=40, octaves=3), (x0 // ts) % 512, (y0 // ts) % 512, h_ // ts + 2, w_ // ts + 2)
+    tt = cv2.resize(tt, ((w_ // ts + 2) * ts, (h_ // ts + 2) * ts), interpolation=cv2.INTER_LINEAR)[:h_, :w_]
+    inkc = INK if ink is None else np.asarray(ink, np.float32)
+    rc = np.asarray(rim_color, np.float32)
+    shade = (0.50 * amb + 0.95 * key * kk) * ao * (0.93 + 0.14 * tt)
+    lum = tone * shade * lift
+    cool = np.array([0.255, 0.258, 0.285], np.float32)
+    col = inkc[None, None] + lum[..., None] * cool
+    col = col + (kk * ao * tone * 0.10 * key)[..., None] * rc                # 受光面染一点光色
+    redc = np.array([0.60, 0.05, 0.042], np.float32)
+    rshade = (0.30 + 0.85 * tone) * (0.55 * amb + 0.75 * key * kk) * ao * min(1.4, 0.6 + 0.4 * lift)
+    col = col * (1 - red[..., None]) + (redc * rshade[..., None]) * red[..., None]
+    col = col * (1 - gold[..., None] * 0.65) + GOLD[None, None] * (0.34 * (0.45 + tone) * (0.5 + 0.7 * kk) * gold * 0.65)[..., None]
+    glow_add = None
+    if burn is not None and burn.get('prog', 0) > 0:
+        bp = burn['prog']; yb0, yb1 = burn['y0'], burn['y1']
+        nzb = _tile(noise_tex(512, seed=burn.get('seed', 5), base=12, octaves=5), x0 % 512, y0 % 512, h_, w_)
+        yy = (np.arange(h_, dtype=np.float32)[:, None] + y0 - yb0) / (yb1 - yb0)
+        f = yy * 0.8 + nzb * 0.35 - 0.05
+        th_ = bp * 1.15
+        keep = np.clip((f - th_) / 0.012, 0, 1)
+        charb = np.clip(1 - (f - th_) / 0.05, 0, 1) * keep
+        glow_add = np.exp(-((f - th_) / 0.010) ** 2) * (A > 0.05)
+        col = col * (1 - charb[..., None] * 0.85)
+        A = A * keep
+    if paper > 0:
+        fib = _tile(noise_tex(512, seed=21, base=60, octaves=3), x0 % 512, y0 % 512, h_, w_)
+        thick = np.clip(dist / (rimw * 12 + 1), 0, 1)
+        trans = (0.55 + 0.45 * fib) * (1 - 0.55 * thick) * (1 - np.clip(tone - 0.3, 0, 1))
+        pc = np.asarray(paper_col, np.float32) * (0.35 + 0.65 * rc / max(rc.max(), 1e-3))
+        col = col * (1 - paper) + (pc[None, None] * trans[..., None] + col * 0.2) * paper
+    if met_cb is not None and met.max() > 0.01:
+        col = met_cb(col, A, inv, met)
+    if rim > 0:
+        dx, dy = rd
+        r1 = np.clip(A - _shift(A, -dx * rimw, -dy * rimw), 0, 1)
+        sw_ = rimw * 4
+        r2 = _blur_ds(np.clip(A - _shift(A, -dx * sw_, -dy * sw_), 0, 1), sw_ * 0.7 + 0.5) * A
+        Ds = _shift(Dm, -dx * rimw * 1.5, -dy * rimw * 1.5)
+        inner = (((Dm - Ds) > inner_thr) * (Ds > -1e3)).astype(np.float32)
+        inner = cv2.GaussianBlur(inner, (0, 0), 1.0); inner = np.clip((inner - 0.12) * 2.2, 0, 1) * A
+        thin = np.clip(dist / max(1.0, rimw * 1.2), 0.35, 1.0)                  # 极细的东西（飞丝）少吃边缘光，避免满屏白线
+        rl = (r1 * 0.95 * thin + inner * 0.38 * kk + r2 * 0.34 + met * r2 * 0.6) * rim
+        col = col + rc[None, None] * (rl / np.maximum(A, 1e-3))[..., None] * (A > 0.02)[..., None]
+    H_, W_ = fr.shape[:2]
+    xa, ya = max(0, x0), max(0, y0); xb, yb = min(W_, x0 + w_), min(H_, y0 + h_)
+    if xb <= xa or yb <= ya: return (fr, A, col) if return_A else (fr, A)
+    sl = (slice(ya - y0, yb - y0), slice(xa - x0, xb - x0))
+    a3 = (A[sl] * alpha)[..., None]
+    fr[ya:yb, xa:xb] = fr[ya:yb, xa:xb] * (1 - a3) + col[sl] * a3
+    if glow_add is not None:
+        g = glow_add[sl]
+        fr[ya:yb, xa:xb] += (g[..., None] * (GOLD * 1.6 + 0.3) + _blur_ds(g, 6)[..., None] * (RED * 1.5 + GOLD * 0.4)) * alpha
+    return (fr, A, col) if return_A else (fr, A)
+
+
+_composite_v1 = _composite
+def _composite(fr, cv_, x0, y0, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.7, -0.7), rim=1.0, rimw=2.0, lift=1.0, alpha=1.0,
+               ink=None, tex_scale=1.0, soft=None, paper=0.0, paper_col=(0.92, 0.88, 0.78), inner_thr=3.5, burn=None, vol=None):
+    """接口同 v1；v2 下加体积明暗（vol=体积半径像素，缺省按 rimw 推）。"""
+    if QUALITY != 'v2' or BACKEND != 'skia':
+        return _composite_v1(fr, cv_, x0, y0, rim_color, rim_dir, rim, rimw, lift, alpha, ink, tex_scale, soft, paper, paper_col,
+                             inner_thr, burn)
+    bdict = burn
+    return _comp2(fr, cv_, x0, y0, rim_color, rim_dir, rim, rimw, lift, alpha, ink, vol if vol else rimw * 7, None,
+                  tex_scale=tex_scale, inner_thr=inner_thr, paper=paper, paper_col=paper_col, burn=bdict)
+
+
+# ---------------------------------------------------------------- 3D 头部（头部系：x 右, y 上, z 前；原点 Hc）
+def _ellip_pts(c, r, na=18, bs=(-1.2, -0.75, -0.3, 0.15, 0.6, 1.05, 1.45), keep=None):
+    out = []
+    for b in bs:
+        for a in np.linspace(0, 2 * math.pi, na, endpoint=False):
+            p = [c[0] + r[0] * math.cos(b) * math.sin(a), c[1] + r[1] * math.sin(b), c[2] + r[2] * math.cos(b) * math.cos(a)]
+            if keep is None or keep(p): out.append(p)
+    return np.array(out)
+
+def _mirror(pts):
+    pts = np.asarray(pts, float); m = pts.copy(); m[:, 0] *= -1
+    return np.vstack([pts, m])
+
+HEAD2 = dict(
+    cran=_ellip_pts((0, 0.9, -0.55), (4.85, 5.55, 5.75)),
+    jaw=_mirror([[4.15, -0.6, 2.4], [3.95, -3.3, -0.2], [3.4, -4.6, 1.2], [2.4, -5.6, 3.3], [1.25, -6.25, 4.35],
+                 [3.3, 1.6, 4.1], [3.55, -1.4, 3.6], [1.9, 2.15, 5.15], [1.2, 4.1, 4.9], [0.0, 2.25, 5.72], [0.0, 4.3, 5.1],
+                 [0.0, -2.55, 5.25], [0.0, -4.55, 5.15], [0.0, -6.45, 4.1], [1.0, -2.6, 5.0]]),
+    nose=_mirror([[0.0, 1.45, 5.55], [0.45, 1.1, 5.3], [0.0, -1.35, 6.85], [0.0, -1.85, 6.6], [1.0, -1.95, 5.55],
+                  [0.0, -2.3, 5.85], [0.55, -2.3, 5.3]]),
+    ulip=_mirror([[0.0, -2.3, 5.8], [0.0, -2.95, 6.02], [1.35, -3.15, 5.05], [0.0, -3.42, 5.72], [0.85, -2.4, 5.2]]),
+    llip=_mirror([[0.0, -3.5, 5.72], [0.0, -3.85, 5.86], [1.05, -3.55, 4.95], [0.0, -4.3, 5.42]]),
+    chin=_mirror([[0.0, -4.55, 5.3], [0.0, -5.25, 5.72], [0.0, -5.95, 5.45], [0.0, -6.45, 4.55], [1.35, -5.35, 4.95],
+                  [1.3, -6.1, 4.3], [0.8, -4.6, 5.05]]),
+)
+# 发团（头盖）：略大的椭球，去掉脸部
+HAIR_CAP = _ellip_pts((0, 1.25, -0.75), (5.35, 6.05, 6.3), na=22, bs=(-1.0, -0.6, -0.2, 0.2, 0.6, 0.95, 1.25, 1.5),
+                      keep=lambda p: not (p[2] > 1.2 and p[1] < 3.6 - max(0, abs(p[0]) - 3.4) * 2.2) and p[1] > -3.2)
+
+
+def _eye_pts(sg, gaze=(0.0, 0.0), open_=1.0):
+    """单眼（sg=+1 角色右眼 / -1 左眼）上睑、下睑、虹膜 3D 点（头部系）。外眼角略上挑，冷峻。"""
+    u = np.linspace(-1, 1, 15)            # -1 内眼角 → +1 外眼角
+    cx, cy = 2.05, 0.55
+    x = cx + 1.12 * u
+    zf = lambda xx: 5.15 - 0.165 * xx ** 2
+    yu = cy + 0.50 * open_ * (1 - u ** 2) ** 0.75 + 0.16 * u - 0.05 * (u < -0.6)
+    yl = cy - 0.24 * (1 - u ** 2) ** 1.2 + 0.10 * u
+    up = np.stack([sg * x, yu, zf(x) + 0.05], 1); lo = np.stack([sg * x, yl, zf(x)], 1)
+    a = np.linspace(0, 2 * math.pi, 20, endpoint=False)
+    ic = np.array([sg * (cx + gaze[0] * 0.5 - 0.06), cy + 0.06 + gaze[1] * 0.3, zf(cx) + 0.12])
+    ex = _nrm(np.array([1.0, 0, -0.165 * 2 * cx * sg * sg]) * [sg, 1, 1]); ey = np.array([0, 1.0, 0])
+    ir = ic + 0.5 * (np.cos(a)[:, None] * ex + np.sin(a)[:, None] * ey * 1.02)
+    pu = ic + 0.22 * (np.cos(a)[:, None] * ex + np.sin(a)[:, None] * ey)
+    return up, lo, ir, pu, ic
+
+
+def _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=165, hair_tone=34, detail=1.0, E=None, hd0=0.0):
+    """头部 v2：多凸块并集（侧脸轮廓）+ 五官 + 耳 + 发盖。返回绘制函数列表 [(depth, fn, bias)]。"""
+    Rh, Hc = S['Rh'], S['Hc']
+    W = lambda p: Hc + np.asarray(p, float) @ Rh.T
+    out = []
+    face_n = Rh @ [0, 0, 1.0]
+    facing = float(face_n @ vdir)                       # 1=正脸 0=侧脸 -1=后脑
+    side = float((Rh @ [1.0, 0, 0]) @ vdir)              # >0 角色右侧朝镜头
+    pieces = [cv2.convexHull(P2(W(np.vstack([HEAD2['cran'], HEAD2['jaw']]))).astype(np.float32)).reshape(-1, 2)]
+    for k in ('nose', 'ulip', 'llip', 'chin'):
+        pieces.append(cv2.convexHull(P2(W(HEAD2[k])).astype(np.float32)).reshape(-1, 2))
+    big = sc > 5.5
+    feat = sc > 7.0 and facing > -0.35
+    neck = P2(np.array([S['N'] - S['Rc'] @ [0, 1.5, 0], W([0, -3.2, -0.8]), W([0, -4.6, 1.2])]))
+
+    def headfn():
+        # 颈：胸锁乳突肌斜线（侧面）
+        cv_.path(_sk.path_limb(neck[:2], [3.05 * sc, 2.65 * sc], k=2)[0], _col(skin * 0.86))
+        cv_.polys(pieces, _col(skin), smooth=False)
+        if not big: return
+        # 颧下/下颌阴影、眼窝（内绘，软）
+        sk_ = _sk
+        for sg in (-1, 1):
+            vis = float((Rh @ _nrm(np.array([sg * 0.45, 0.05, 1.0]))) @ vdir)
+            if vis < -0.15: continue
+            ec = P2(W([sg * 2.0, 0.75, 4.7]))
+            cv_.paint_in(sk_.path_ellipse(ec, (1.55 * sc, 1.05 * sc), 0), (skin * 0.62,), 0.55, blur=0.6 * sc)
+            ch = P2(W([sg * 3.3, -2.6, 3.6]))
+            cv_.paint_in(sk_.path_ellipse(ch, (0.9 * sc, 1.9 * sc), 15 * sg), (skin * 0.72,), 0.45 * min(1, sc / 10), blur=0.9 * sc)
+        jaw_line = P2(W(np.array([[4.0, -3.4, -0.2], [3.3, -4.7, 1.3], [2.3, -5.7, 3.3], [1.1, -6.3, 4.4], [0, -6.5, 4.1]])))
+        cv_.paint_in(sk_.path_poly(jaw_line, closed=False, smooth=True), (skin * 0.55,), 0.35, blur=0.35 * sc, stroke=0.5 * sc)
+        if not feat: return
+        # 耳
+        for sg in (-1, 1):
+            en = Rh @ [sg, 0, 0.15]
+            if en @ vdir < 0.25: continue
+            ring = W(np.array([[sg * 4.75, 0.2 + 1.35 * math.sin(a), -0.35 + 0.75 * math.cos(a) - 0.25 * (math.sin(a) < 0)]
+                               for a in np.linspace(0, 2 * math.pi, 14, endpoint=False)]))
+            q = P2(ring)
+            cv_.paint_in(sk_.path_poly(q, smooth=True), (skin * 0.9,), 1.0)
+            cv_.paint_in(sk_.path_poly(q, smooth=True), (skin * 0.45,), 0.8, stroke=0.25 * sc)
+            inner = P2(W(np.array([[sg * 4.8, 0.2 + 0.8 * math.sin(a), -0.25 + 0.4 * math.cos(a)] for a in np.linspace(0.3, 5.0, 9)])))
+            cv_.paint_in(sk_.path_poly(inner, closed=False, smooth=True), (skin * 0.5,), 0.7, stroke=0.18 * sc)
+        # 眉（粗、内低外高，冷峻）
+        for sg in (-1, 1):
+            vis = float((Rh @ _nrm(np.array([sg * 0.5, 0.1, 1.0]))) @ vdir)
+            if vis < -0.05: continue
+            bw = np.array([[sg * (0.65 + 2.75 * u), 1.72 + 0.62 * u - 0.18 * u * u, 5.45 - 0.165 * (0.65 + 2.75 * u) ** 2 * 0.8 + 0.15]
+                           for u in np.linspace(0, 1, 9)])
+            q = P2(W(bw)); d = np.gradient(q, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
+            wd = (0.34 - 0.2 * np.linspace(0, 1, 9) ** 1.5)[:, None] * sc
+            cv_.paint_in(sk_.path_poly(np.vstack([q + nn * wd, (q - nn * wd)[::-1]]), smooth=True), (hair_tone * 0.7,), 0.95)
+        # 眼
+        for sg in (-1, 1):
+            vis = float((Rh @ _nrm(np.array([sg * 0.42, 0.0, 1.0]))) @ vdir)
+            if vis < 0.0: continue
+            up, lo, ir, pu, ic = _eye_pts(sg)
+            qu, ql = P2(W(up)), P2(W(lo))
+            white = sk_.path_poly(np.vstack([qu, ql[::-1]]), smooth=True)
+            cv_.paint_in(white, (skin * 1.18,), 1.0)
+            irp = sk_.path_and(sk_.path_poly(P2(W(ir)), smooth=True), white)
+            cv_.paint_in(irp, (34,), 1.0)
+            cv_.paint_in(sk_.path_and(sk_.path_poly(P2(W(pu)), smooth=True), white), (6,), 1.0)
+            # 上睑阴影落在眼球上
+            cv_.paint_in(sk_.path_and(sk_.path_poly(qu + [0, 0.35 * sc], closed=False, smooth=True), white), (20,), 0.55,
+                         blur=0.25 * sc, stroke=0.55 * sc)
+            # 上睑线（粗，外眼角拖出眼尾）+ 双眼皮细线 + 下睑
+            tail = qu[-1] + (qu[-1] - qu[-3]) * 0.9
+            lid = np.vstack([qu, tail[None]])
+            d = np.gradient(lid, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
+            prof = np.sin(np.linspace(0.12, 1.0, len(lid)) * math.pi * 0.82) ** 0.6
+            wl = (0.07 + 0.2 * prof)[:, None] * sc
+            cv_.paint_in(sk_.path_poly(np.vstack([lid + nn * wl, (lid - nn * wl)[::-1]]), smooth=True), (8,), 1.0)
+            crease = P2(W(up[3:13] + np.array([0, 0.36, 0.0])))
+            cv_.paint_in(sk_.path_poly(crease, closed=False, smooth=True), (skin * 0.5,), 0.8, stroke=0.12 * sc)
+            cv_.paint_in(sk_.path_poly(ql[5:], closed=False, smooth=True), (skin * 0.55,), 0.8, stroke=0.1 * sc)
+        # 鼻：鼻梁暗侧 + 鼻翼 + 鼻孔
+        nl = 1 if side < 0 else -1                       # 背光侧
+        if facing > 0.15:
+            br = P2(W(np.array([[nl * 0.55, 1.2, 5.3], [nl * 0.5, -0.4, 6.0], [nl * 0.6, -1.5, 6.3]])))
+            cv_.paint_in(sk_.path_poly(br, closed=False, smooth=True), (skin * 0.62,), 0.55, blur=0.25 * sc, stroke=0.45 * sc)
+        for sg in (-1, 1):
+            nv = float((Rh @ _nrm(np.array([sg * 0.6, -0.4, 0.8]))) @ vdir)
+            if nv < -0.05: continue
+            wing = P2(W(np.array([[sg * 0.25, -2.2, 5.95], [sg * 0.85, -2.05, 5.6], [sg * 1.05, -1.65, 5.45]])))
+            cv_.paint_in(sk_.path_poly(wing, closed=False, smooth=True), (skin * 0.45,), 0.85, stroke=0.13 * sc)
+            if facing > 0.3:
+                cv_.paint_in(sk_.path_ellipse(P2(W([sg * 0.5, -2.15, 5.75])), (0.22 * sc, 0.1 * sc), 0), (skin * 0.3,), 0.9)
+        # 唇：口裂线 + 下唇阴影
+        mouth = P2(W(np.array([[x_, -3.45 - 0.05 * abs(x_), 5.72 - 0.38 * x_ * x_] for x_ in np.linspace(-1.3, 1.3, 9)])))
+        mz = np.array([float((Rh @ _nrm(np.array([x_ * 0.5, 0, 1.0]))) @ vdir) for x_ in np.linspace(-1.3, 1.3, 9)])
+        ok = mz > -0.1
+        if ok.sum() >= 2:
+            cv_.paint_in(sk_.path_poly(mouth[ok], closed=False, smooth=True), (skin * 0.36,), 0.95, stroke=0.13 * sc)
+            ll = P2(W(np.array([[x_, -4.3, 5.35 - 0.3 * x_ * x_] for x_ in np.linspace(-0.8, 0.8, 5)])))
+            cv_.paint_in(sk_.path_poly(ll, closed=False, smooth=True), (skin * 0.6,), 0.5, blur=0.2 * sc, stroke=0.3 * sc)
+    out.append((DP(Hc), headfn, 0.0))
+    # 发盖（头顶 + 后脑 + 鬓）
+    capq = P2(W(HAIR_CAP))
+    cap = cv2.convexHull(capq.astype(np.float32)).reshape(-1, 2)
+    ring = np.array([[5.2 * math.cos(b) * math.sin(a), 1.2 + 6.0 * math.sin(b), -0.75 + 6.2 * math.cos(b) * math.cos(a)]
+                     for a, b in [(a_, 0.85) for a_ in np.linspace(-2.6, 2.6, 22)]])
+    ringq = P2(W(ring)); rv = (W(ring) - Hc) @ vdir > -0.5
+    part = P2(W(np.array([[0.4 * math.sin(u * 3), 1.2 + 6.05 * math.sin(b_), -0.75 + 6.3 * math.cos(b_)] for u, b_ in
+                          zip(np.linspace(0, 1, 8), np.linspace(1.15, 0.2, 8))])))
+    def capfn():
+        cv_.poly(cap, _col(hair_tone))
+        if big:
+            # 高光环（天使环）：分段短束高光，随头转
+            seg = np.nonzero(rv)[0]
+            for i in seg[::2]:
+                j = min(i + 2, len(ringq) - 1)
+                if not rv[j]: continue
+                cv_.paint_in(_sk.path_poly(ringq[i:j + 1], closed=False, smooth=True), (hair_tone + 70,), 0.75, blur=0.15 * sc,
+                             stroke=0.55 * sc)
+            cv_.paint_in(_sk.path_poly(part, closed=False, smooth=True), (hair_tone * 0.4,), 0.6, stroke=0.25 * sc)
+    out.append((DP(Hc) + 0.4, capfn, 0.0))
+    eyes = []
+    for sg in (-1, 1):
+        vis = float((Rh @ _nrm(np.array([sg * 0.42, 0.0, 1.0]))) @ vdir)
+        if vis > 0.05:
+            _, _, _, _, ic = _eye_pts(sg); eyes.append((vis, P2(W(ic + np.array([-0.12 * sg, 0.18, 0.1])))))
+    return out, eyes, facing
+
+
+def _clump(cv_, q, w0, w1, tone, sc, hl=40, hl_side=1, red=0, depth=True, prof='taper'):
+    """一束头发：渐细填充 + 一侧高光线。q (n,2) 局部像素点，w0/w1 根/梢宽（像素）。"""
+    q = np.asarray(q, float)
+    if len(q) < 2: return
+    if len(q) >= 3: q = _upsample(q, 3)
+    n = len(q); u = np.linspace(0, 1, n)
+    d = np.gradient(q, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
+    if prof == 'taper':
+        pr = np.clip(0.75 + 1.2 * u, 0, 1) * (1 - u) ** 0.85
+    else:
+        pr = np.sin(np.pi * np.clip(u * 0.9 + 0.08, 0, 1)) ** 0.6
+    w = (w1 + (w0 - w1) * pr)[:, None] * 0.5
+    poly = np.vstack([q + nn * w, (q - nn * w)[::-1]])
+    P = _sk.path_poly(poly, smooth=True)
+    cv_.path(P, _col(tone, red), depth=depth)
+    if hl and w0 > 2.2:
+        m0, m1 = max(1, n // 6), max(n // 6 + 2, int(n * 0.62))
+        hq = q[m0:m1] + nn[m0:m1] * w[m0:m1] * 0.35 * hl_side
+        cv_.paint_in(_sk.path_poly(hq, closed=False, smooth=True), (tone + hl, red), 0.8, blur=max(0.3, w0 * 0.06),
+                     stroke=max(0.6, w0 * 0.16))
+        if w0 > 6:
+            cv_.paint_in(_sk.path_poly(q[1:-2] - nn[1:-2] * w[1:-2] * 0.55 * hl_side, closed=False, smooth=True), (tone * 0.45, red),
+                         0.6, blur=w0 * 0.08, stroke=w0 * 0.18)
+
+
+def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim_dir=(-0.75, -0.65), rim=1.0, lift=1.0,
+              alpha=1.0, heat=0.0, shine=None, blade_glow=1.0, ink=None, return_masks=False, sword_visible=True,
+              detail=1.0, glint=0.0):
+    if self.sk is None: raise RuntimeError('先调用 pose()')
+    S = self.sk
+    if flip is not None: self.flip = flip
+    fs = -1. if self.flip else 1.
+    th = (VIEWS.get(self.view, self.view) if isinstance(self.view, str) else self.view) * D2R
+    ct, st = math.cos(th), math.sin(th)
+    sc = scale / 100.0
+    allp = [S[k] for k in ('Hc', 'tip', 'pommel', 'ltoe', 'rtoe', 'lheel', 'rheel', 'lfist', 'rfist', 'tie', 'Pp')]
+    allp = np.vstack([np.array(allp)] + [g.P.reshape(-1, 3) for g in
+                      (self.ponytail, self.locks, self.skirt, self.rib, self.band, self.fly, self.bangs)])
+    X = allp[:, 0] * ct + allp[:, 2] * st
+    U = x + fs * X * sc; V = y - allp[:, 1] * sc
+    mg = scale * 0.08 + 10
+    x0 = int(max(0, math.floor(U.min() - mg))); x1 = int(min(fr.shape[1], math.ceil(U.max() + mg)))
+    y0 = int(max(0, math.floor(V.min() - mg))); y1 = int(min(fr.shape[0], math.ceil(V.max() + mg)))
+    info = dict(bbox=(x0, y0, x1, y1))
+    def P2(Pw):
+        Pw = np.asarray(Pw, float)
+        Xs = Pw[..., 0] * ct + Pw[..., 2] * st
+        return np.stack([x + fs * Xs * sc - x0, y - Pw[..., 1] * sc - y0], -1)
+    def DP(Pw):
+        Pw = np.asarray(Pw, float); return Pw[..., 0] * st - Pw[..., 2] * ct
+    def scr(Pw):
+        q = P2(Pw); return (float(q[0] + x0), float(q[1] + y0))
+    info['tip'] = scr(S['tip']); info['guard'] = scr(S['guard']); info['hand'] = scr(S['rfist'])
+    info['head'] = scr(S['Hc']); info['pommel'] = scr(S['pommel'])
+    if x1 - x0 < 4 or y1 - y0 < 4:
+        return fr, info
+    cv_ = _Canvas(y1 - y0, x1 - x0)
+    sk_ = _sk
+    rd = np.array(rim_dir, float); rd /= max(np.linalg.norm(rd), 1e-6)
+    L3 = np.array([fs * rd[0] * ct, -rd[1], fs * rd[0] * st]) * 0.8 - np.array([st, 0, -ct]) * 0.6
+    L3 /= np.linalg.norm(L3)
+    vdir = np.array([st, 0, -ct])
+    cen = DP(S['Pp'])
+    E = []
+    def far(d): return 0.66 if d < cen - 1.5 else 1.0
+    COAT, PANT, BOOT, LEATH, SKIN = 74, 52, 88, 104, 168
+    Rc, Cw, Rp, Pp = S['Rc'], S['Cw'], S['Rp'], S['Pp']
+    lod = sc > 3.0
+    # ---------------------------------------------------------------- 腿：裤（可变半径）+ 长靴 + 绑腿
+    for s in 'lr':
+        hip, kn, an = S[s + 'hip'], S[s + 'knee'], S[s + 'ank']
+        d = DP(kn); f = far(d)
+        Pw = np.array([hip, hip + (kn - hip) * 0.38, kn, kn + (an - kn) * 0.3, an])
+        q = P2(Pw); ft = P2(np.array([an, S[s + 'toe'], S[s + 'heel'], S[s + 'ball']]))
+        def legfn(q=q, ft=ft, f=f):
+            cv_.path(sk_.path_limb(q, np.array([5.1, 5.35, 3.85, 4.05, 2.75]) * sc)[0], _col(PANT * f))
+            bt0 = q[2] + (q[4] - q[2]) * 0.42
+            bq = np.array([bt0, q[3] + (q[4] - q[3]) * 0.55, q[4]])
+            cv_.path(sk_.path_limb(bq, np.array([3.75, 3.2, 2.95]) * sc, k=3)[0], _col(BOOT * f))
+            a, toe, heel, ball = ft
+            sole = np.array([a + (heel - a) * 0.25 + (a - ball) * 0.15, heel, heel + (ball - heel) * 0.5 + (heel - a) * 0.08, ball,
+                             toe, toe + (ball - toe) * 0.3 + (a - ball) * 0.25, a + (toe - a) * 0.45 + (a - heel) * 0.15])
+            cv_.poly(sole, _col(BOOT * f))
+            if lod:
+                cv_.paint_in(sk_.path_poly([heel, ball, toe], closed=False, smooth=True), (20,), 0.9, stroke=0.7 * sc)   # 鞋底
+                sv = bq[2] - bq[0]; nn = np.array([-sv[1], sv[0]]) / (np.hypot(*sv) + 1e-6)
+                cv_.paint_in(sk_.path_poly([bq[0] - nn * 3.9 * sc, bq[0] + nn * 3.9 * sc], closed=False), (BOOT * 1.6 * f,), 0.9,
+                             stroke=0.9 * sc)                                                                      # 靴口翻边
+                for k_, uu in enumerate((0.25, 0.5, 0.75)):                                                        # 绑带
+                    c0 = bq[0] + sv * uu
+                    cv_.paint_in(sk_.path_poly([c0 - nn * 3.6 * sc - sv * 0.05, c0 + nn * 3.6 * sc + sv * 0.06], closed=False),
+                                 (BOOT * 0.5 * f,), 0.8, stroke=0.35 * sc)
+                kv = q[2] - q[0]; kn_ = np.array([-kv[1], kv[0]]) / (np.hypot(*kv) + 1e-6)
+                cv_.paint_in(sk_.path_poly([q[1] + kn_ * 1.5 * sc, q[2] - kn_ * 1.0 * sc + kv * 0.05], closed=False, smooth=True),
+                             (PANT * 0.45 * f,), 0.6, blur=0.6 * sc, stroke=0.7 * sc)                               # 裤褶
+        E.append((d, legfn))
+    # ---------------------------------------------------------------- 躯干 loft（真实腰线）
+    RINGS = ((-1.0, 8.9, 5.9, 0.0), (5.0, 9.1, 5.9, 0.2), (11.5, 10.3, 6.3, 0.6), (17.5, 11.3, 6.0, 0.4), (21.2, 11.6, 4.9, -0.2),
+             (24.3, 5.6, 3.9, 0.1))
+    ang = np.linspace(0, 2 * math.pi, 14, endpoint=False)
+    rings = [np.stack([np.sin(ang) * rx, np.full_like(ang, yy), np.cos(ang) * rz + zc], 1) @ Rc.T + Cw for yy, rx, rz, zc in RINGS]
+    hipr = np.stack([np.sin(ang) * 9.8, np.full_like(ang, 2.5), np.cos(ang) * 6.8], 1) @ Rp.T + Pp
+    rings = [hipr] + rings
+    rq = [P2(r) for r in rings]
+    loft = [cv2.convexHull(np.vstack([a, b]).astype(np.float32)).reshape(-1, 2) for a, b in zip(rq[:-1], rq[1:])]
+    dt_ = DP(Cw)
+    front_vis = DP(Cw + Rc @ [0, 15, 6]) > DP(Cw + Rc @ [0, 15, -6])
+    colA = P2(np.array([Cw + Rc @ p for p in ([-3.0, 25.0, 1.6], [-1.6, 20.5, 5.4], [1.6, 13.5, 6.4], [5.6, 6.0, 5.8], [7.6, 2.0, 5.0])]))
+    colB = P2(np.array([Cw + Rc @ p for p in ([3.0, 25.0, 1.6], [1.8, 20.0, 5.5], [-0.4, 15.5, 6.3])]))
+    vneck = P2(np.array([Cw + Rc @ p for p in ([-3.0, 25.0, 1.6], [3.0, 25.0, 1.6], [0.4, 15.0, 6.4])]))
+    folds = [P2(np.array([Cw + Rc @ p for p in pts])) for pts in
+             (([4.0, 3.5, 5.6], [6.5, 11, 5.6], [8.5, 17, 4.8]), ([-5.5, 4.0, 5.4], [-7.6, 10, 5.4], [-9.5, 16, 4.0]),
+              ([1.0, 4.0, 6.0], [3.0, 9.0, 6.2]))]
+    backf = [P2(np.array([Cw + Rc @ p for p in pts])) for pts in
+             (([0, 22.5, -4.6], [0, 9, -5.6], [0, 1, -5.2]), ([-3, 20, -5.6], [-8.5, 13, -5.3]), ([3, 20, -5.6], [8.5, 13, -5.3]))]
+    def torsofn():
+        cv_.polys(loft, _col(COAT), smooth=False)
+        if not lod: return
+        if front_vis:
+            cv_.paint_in(sk_.path_poly(vneck), (148,), 1.0)                                       # 中衣白领
+            for qq in (colA, colB):                                                                # 交领宽边
+                cv_.paint_in(sk_.path_poly(qq, closed=False, smooth=True), (COAT * 1.45,), 1.0, stroke=1.25 * sc)
+                cv_.paint_in(sk_.path_poly(qq, closed=False, smooth=True), (COAT * 0.45,), 0.8, stroke=0.25 * sc)
+            for qq in folds:
+                cv_.paint_in(sk_.path_poly(qq, closed=False, smooth=True), (COAT * 0.42,), 0.55, blur=0.7 * sc, stroke=0.9 * sc)
+        else:
+            for k_, qq in enumerate(backf):
+                cv_.paint_in(sk_.path_poly(qq, closed=False, smooth=True), (COAT * (0.45 if k_ == 0 else 0.55),), 0.6,
+                             blur=0.6 * sc, stroke=(0.5 if k_ == 0 else 0.9) * sc)
+    E.append((dt_ - 0.8, torsofn))
+    # ---------------------------------------------------------------- 腰封（宽皮 + 缠绳 + 金扣）
+    angb = np.linspace(0, 2 * math.pi, 28, endpoint=False)
+    bring = np.array([np.stack([np.sin(angb) * (9.9 + 0.3 * (yy > 5)), np.full_like(angb, yy), np.cos(angb) * 6.9 + 0.3], 1) @ Rp.T + Pp
+                      for yy in (3.0, 6.9, 10.8)])
+    bq3 = P2(bring.reshape(-1, 3)).reshape(3, -1, 2); bdp = DP(bring)
+    bhull = cv2.convexHull(bq3[[0, 2]].reshape(-1, 2).astype(np.float32)).reshape(-1, 2)
+    vis = bdp[0] > DP(Pp) - 0.5
+    buck = Pp + Rp @ [1.2, 6.9, 7.35]
+    bk_vis = (Rp @ [0.15, 0, 1.0]) @ vdir > 0.1
+    def beltfn():
+        cv_.poly(bhull, _col(LEATH))
+        if not lod: return
+        for r in (0, 2):
+            idx = np.nonzero(vis & np.roll(vis, -1))[0]
+            for k in idx:
+                cv_.paint_in(sk_.path_poly([bq3[r, k], bq3[r, (k + 1) % len(angb)]], closed=False), (LEATH * 1.7,), 0.9, stroke=0.4 * sc)
+        idx = np.nonzero(vis)[0]
+        if len(idx) > 2:                                                                            # 中缠暗红绳
+            seq = bq3[1, idx]
+            cv_.paint_in(sk_.path_poly(seq, closed=False), (90, 170), 1.0, stroke=1.3 * sc)
+            cv_.paint_in(sk_.path_poly(seq - [0, 0.35 * sc], closed=False), (170, 150), 0.6, stroke=0.3 * sc)
+    E.append((DP(Pp) + 0.2, beltfn))
+    if bk_vis and lod:
+        bc = P2(buck); bdir = P2(Pp + Rp @ [3.2, 6.9, 7.0]) - bc; bl_ = np.hypot(*bdir) + 1e-6
+        def buckfn(bc=bc):
+            cv_.ell(bc, (1.5 * sc, 2.0 * sc), 0, _col(165), gold=235)
+            cv_.paint_in(sk_.path_ellipse(bc, (0.8 * sc, 1.2 * sc), 0), (60,), 0.9)
+        E.append((DP(buck) + 0.3, buckfn))
+    # ---------------------------------------------------------------- 衣摆：外袍（前开衩、褶皱网格渐变、里衬）+ 内摆
+    P = self.skirt.P; nS, Ls = P.shape[:2]
+    Pn = np.roll(P, -1, 0)
+    t1 = Pn[:, :-1] - P[:, :-1]; t2 = P[:, 1:] - P[:, :-1]
+    nrm = _nrm(np.cross(t2, t1))
+    cenq = (P[:, :-1] + Pn[:, 1:]) / 2
+    radial = cenq - Pp[None, None]; radial[..., 1] = 0
+    sgn = np.sign((nrm * radial).sum(-1, keepdims=True)); nrm = nrm * np.where(sgn == 0, 1, sgn)
+    # 顶点法线（相邻面平均）
+    vn = np.zeros((nS, Ls, 3)); vn[:, :-1] += nrm; vn[:, 1:] += nrm; vn += np.roll(vn, 1, 0) * 0.0
+    vn = _nrm(vn + np.roll(vn, 1, 0))
+    lamv = np.clip(vn @ L3, -1, 1); facev = vn @ vdir
+    fold = 1.0 + 0.32 * np.cos(np.arange(nS) * math.pi)[:, None] * self.pleat[:, None]
+    q2 = P2(P)
+    angs = np.linspace(0, 360, nS, endpoint=False)
+    def col_tones(i):
+        tA = COAT * fold[i] * (0.62 + 0.55 * np.clip(lamv[i], 0, 1))
+        tB = COAT * fold[(i + 1) % nS] * (0.62 + 0.55 * np.clip(lamv[(i + 1) % nS], 0, 1))
+        bf = (facev[i] + facev[(i + 1) % nS]) * 0.5
+        lin = np.where(bf < -0.05, 0.62, 1.0)                                     # 背面=里衬更暗
+        return tA * lin, tB * lin
+    inner_sc = 0.82
+    for i in range(nS):
+        i2 = (i + 1) % nS
+        a_mid = (angs[i] + 10) % 360
+        is_slit = (a_mid < 22 or a_mid > 338)                                        # 前开衩
+        dcol = DP(cenq[i]).mean()
+        Pi = np.stack([P[i], P[i2]], 1).reshape(-1, 2) if False else None
+        quads = np.concatenate([q2[i], q2[i2]], 0)                                   # 2*Ls 个顶点
+        idx = []
+        for j in range(Ls - 1):
+            a_, b_, c_, d_ = j, Ls + j, Ls + j + 1, j + 1
+            idx += [a_, b_, c_, a_, c_, d_]
+        tA, tB = col_tones(i)
+        tones = np.concatenate([tA, tB])
+        outline = np.vstack([q2[i], q2[i2][::-1]])
+        if is_slit:
+            # 内摆（短、收窄）：开衩处露出的暗色里层
+            cin = Pp + (P[[i, i2]][:, :int(Ls * 0.7)] - Pp) * [inner_sc, 1, inner_sc]
+            qi = P2(cin); Li = qi.shape[1]
+            qq = np.concatenate([qi[0], qi[1]], 0)
+            idx2 = []
+            for j in range(Li - 1):
+                idx2 += [j, Li + j, Li + j + 1, j, Li + j + 1, j + 1]
+            tin = np.full(2 * Li, PANT * 0.9)
+            E.append((dcol - 1.2, (lambda qq=qq, idx2=idx2, tin=tin, ol=np.vstack([qi[0], qi[1][::-1]]):
+                                   cv_.mesh_tone(qq, tin, idx2, outline=ol)), cen - dcol + 1.2))
+            continue
+        E.append((dcol, (lambda qq=quads, tn=tones, idx=idx, ol=outline: cv_.mesh_tone(qq, tn, idx, outline=ol)), cen - dcol))
+    # 底边滚边
+    hem = q2[:, -1]; hd = DP(P[:, -1])
+    for i in range(nS):
+        i2 = (i + 1) % nS
+        a_mid = (angs[i] + 10) % 360
+        if a_mid < 22 or a_mid > 338: continue
+        dd_ = max(hd[i], hd[i2]) + 0.02
+        E.append((dd_, (lambda a=hem[i], b=hem[i2]: cv_.line(a, b, 0.6 * sc, _col(COAT * 1.65))), cen - dd_))
+    # 开衩边（门襟滚边，竖线）
+    for i in (17, 1):
+        if i >= nS: continue
+        dd_ = DP(P[i]).mean() + 0.03
+        E.append((dd_, (lambda q=q2[i]: cv_.stroke('C', q, _col(COAT * 1.65), 0.6 * sc)), cen - dd_))
+    # ---------------------------------------------------------------- 手臂 + 宽袖 + 护腕 + 拳
+    for s in 'lr':
+        sh, el, wr, fist = S[s + 'sh'], S[s + 'el'], S[s + 'wr'], S[s + 'fist']
+        d = DP((sh + el) / 2); f = far(d)
+        q = P2(np.array([sh, sh + (el - sh) * 0.3, el, el + (wr - el) * 0.3, wr, fist]))
+        SL = self.sleeve[s].P
+        sq = P2(SL)
+        n1 = SL[1:, 0] - SL[:-1, 0]
+        sl_t = []
+        for k in range(4):
+            v1 = SL[min(k + 1, 3), 0] - SL[max(k - 1, 0), 0]; v2 = SL[k, -1] - SL[k, 0]
+            n_ = _nrm(np.cross(v1, v2)); sl_t.append(0.6 + 0.6 * abs(n_ @ L3))
+        sidx = []
+        for k in range(3):
+            for j in range(3):
+                a_, b_, c_, d_ = k * 4 + j, (k + 1) * 4 + j, (k + 1) * 4 + j + 1, k * 4 + j + 1
+                sidx += [a_, b_, c_, a_, c_, d_]
+        stone = np.array([[COAT * f * sl_t[k] * (1.05 if j == 3 else 1.0 - 0.08 * (j == 1)) for j in range(4)] for k in range(4)]).reshape(-1)
+        soutline = np.vstack([sq[0, :], sq[:, -1], sq[3, ::-1], sq[::-1, 0]])
+        def armfn(q=q, sq=sq, f=f, stone=stone, soutline=soutline, sidx=sidx):
+            cv_.path(sk_.path_limb(q[:3], np.array([4.4, 4.1, 3.4]) * sc, k=3)[0], _col(COAT * f))
+            cv_.mesh_tone(sq.reshape(-1, 2), stone, sidx, outline=soutline)
+            if lod:
+                cv_.paint_in(sk_.path_poly(sq[:, -1], closed=False, smooth=True), (COAT * 1.6 * f,), 0.9, stroke=0.5 * sc)   # 袖口滚边
+            cv_.path(sk_.path_limb(q[2:5], np.array([3.5, 3.45, 2.5]) * sc, k=3)[0], _col(COAT * 0.9 * f))
+            # 护腕（皮，三道绑带 + 金边）
+            fa = q[2] + (q[4] - q[2]) * 0.3
+            bp_ = np.array([fa, fa + (q[4] - fa) * 0.5, q[4]])
+            cv_.path(sk_.path_limb(bp_, np.array([3.15, 2.85, 2.55]) * sc, k=3)[0], _col(LEATH * 1.05 * f))
+            if lod:
+                dd = q[4] - fa; nn = np.array([-dd[1], dd[0]]) / (np.hypot(*dd) + 1e-6)
+                for u in (0.22, 0.52, 0.82):
+                    c0 = fa + dd * u
+                    cv_.paint_in(sk_.path_poly([c0 - nn * 3.2 * sc, c0 + nn * 3.2 * sc + dd * 0.05], closed=False), (LEATH * 1.75 * f,),
+                                 0.9, stroke=0.42 * sc)
+                cv_.paint_in(sk_.path_poly([fa - nn * 3.2 * sc, fa + nn * 3.2 * sc], closed=False), (200,), 0.8, stroke=0.3 * sc)
+            # 拳（缠布）
+            fd = q[5] - q[4]; fl = np.hypot(*fd) + 1e-6; fu = fd / fl; fn_ = np.array([-fu[1], fu[0]])
+            hq = np.array([q[4] - fu * 0.4 * sc, q[4] + fu * 1.3 * sc, q[5] + fu * 0.9 * sc])
+            cv_.path(sk_.path_limb(hq, np.array([1.95, 2.35, 2.2]) * sc, k=3)[0], _col(SKIN * 0.82 * f))
+            if lod:
+                for u in (0.15, 0.55):
+                    c0 = hq[0] + (hq[2] - hq[0]) * u
+                    cv_.paint_in(sk_.path_poly([c0 - fn_ * 2.4 * sc, c0 + fn_ * 2.4 * sc + fu * 0.6 * sc], closed=False), (190 * f,), 0.85,
+                                 stroke=0.55 * sc)
+                kn = hq[2] - fu * 0.2 * sc
+                cv_.paint_in(sk_.path_poly([kn - fn_ * 1.8 * sc, kn + fn_ * 1.8 * sc], closed=False), (SKIN * 0.5 * f,), 0.6, stroke=0.3 * sc)
+        E.append((d + (0.5 if s == 'r' else 0), armfn))
+    # ---------------------------------------------------------------- 刀鞘（黑漆 + 金具 + 下緒红绳）
+    M, sdv = S['sc_m'], S['sc_d']
+    scq = P2(np.array([M, M + sdv * 9, M + sdv * 46, M + sdv * 47.6]))
+    def scabfn():
+        cv_.path(sk_.path_limb(scq[[0, 2]], np.array([1.85, 1.5]) * sc, k=2)[0], _col(42))
+        cv_.cap(scq[2], scq[3], 1.55 * sc, 1.15 * sc, _col(160), gold=210)                              # 鐺（金）
+        cv_.cap(scq[0], scq[0] + (scq[2] - scq[0]) * 0.035, 2.05 * sc, 2.05 * sc, _col(165), gold=220)  # 鯉口
+        if lod:
+            dv = scq[2] - scq[0]; nv = np.array([-dv[1], dv[0]]) / (np.hypot(*dv) + 1e-6)
+            sgn_ = 1 if nv @ rd[:2] > 0 else -1
+            cv_.paint_in(sk_.path_poly([scq[0] + nv * sgn_ * 0.9 * sc + dv * 0.05, scq[2] + nv * sgn_ * 0.7 * sc], closed=False),
+                         (150,), 0.85, stroke=0.35 * sc)                                                 # 漆面高光
+            for u in (0.12, 0.17):
+                c0 = scq[0] + dv * u
+                cv_.cap(c0 - nv * 1.9 * sc, c0 + nv * 1.9 * sc, 0.3 * sc, 0.3 * sc, _col(160), gold=200)
+            c1 = scq[0] + dv * 0.145                                                                     # 下緒（暗红绳）
+            cord = np.array([c1, c1 + nv * 2.5 * sc + dv * 0.04, c1 + nv * 1.0 * sc + dv * 0.12, c1 + nv * 3.4 * sc + dv * 0.2])
+            cv_.stroke('C', cord, _col(110, 190), 0.55 * sc)
+    E.append((DP(M + sdv * 20), scabfn))
+    # ---------------------------------------------------------------- 刀（同 v1 + 出刀拖影 smear）
+    if sword_visible:
+        g2 = P2(S['guard']); t2 = P2(S['tip']); pm = P2(S['pommel'])
+        dv = t2 - g2; l2 = np.hypot(*dv)
+        dirv = dv / (l2 + 1e-6); n2 = np.array([-dirv[1], dirv[0]])
+        ev = getattr(self, 'edge_vel', None)
+        want = 1.0 if n2[1] > 0 else -1.0
+        if ev is not None and not S['sheathed']:
+            evs = P2(S['tip'] + ev) - t2
+            if np.hypot(*evs) > 1: want = 1.0 if (evs @ n2) > 0 else -1.0
+        self.edge_sign = want
+        n2 = n2 * want
+        wd = 2.4 * sc
+        def bl(s, v):
+            curv = -0.045 * l2 * s * s
+            w = wd * (1 - 0.18 * s)
+            return g2 + dirv * l2 * s + n2 * (curv + v * w * 0.5)
+        ss = np.linspace(0, 1, 26)
+        spine = [bl(s, -1) for s in ss[:-1]]; edge = [bl(s, 1) for s in ss[:-1]]
+        kk = np.linspace(0, 1, 6)
+        kis = [bl(0.93 + 0.07 * k, 1 - 2 * k ** 1.6) for k in kk]
+        outline = np.array(spine[:24] + [bl(1.0, -1.0)] + list(reversed(kis[1:])) + edge[:24][::-1])
+        shin = np.array([bl(s, -0.2) for s in ss[:24]] + [bl(s, -1) for s in ss[:24][::-1]])
+        ha = np.array([bl(s, 0.35 + 0.12 * math.sin(s * 38)) for s in ss[:24]] + [bl(s, 1) for s in ss[:24][::-1]])
+        edge_line = np.array([bl(s, 0.95) for s in ss[:24]] + kis[1:])
+        info['blade_poly'] = outline + [x0, y0]
+        # 拖影：上一帧刀身 → 本帧刀身之间的扫掠面（金属通道，半透明），表现挥刀形变
+        prev = getattr(self, 'sk_prev', None)
+        smear = None
+        if prev is not None and not S['sheathed'] and not prev.get('sheathed', True):
+            pg, pt = P2(prev['guard']), P2(prev['tip'])
+            mv = np.hypot(*(pt - t2))
+            if mv > 0.10 * l2:
+                smear = np.array([g2 + dirv * l2 * 0.3, t2, pt, pg + (pt - pg) * 0.3])
+        if S['sheathed']:
+            bdep = DP(S['guard'])
+            def swfn():
+                cv_.cap(g2, pm, 1.3 * sc, 1.25 * sc, _col(48))
+                cv_.cap(pm, pm + (pm - g2) * 0.04, 1.4 * sc, 1.4 * sc, _col(170), gold=230)
+                for u in np.linspace(0.1, 0.9, 6):
+                    c0 = g2 + (pm - g2) * u; cv_.line(c0 - n2 * 1.2 * sc + (pm - g2) * 0.04, c0 + n2 * 1.2 * sc, .35 * sc, _col(125))
+                cv_.ell(g2, (0.55 * sc, 2.7 * sc), math.degrees(math.atan2(dirv[1], dirv[0])), _col(170), gold=200)
+            E.append((bdep + 0.3, swfn))
+        else:
+            bdep = DP(S['guard'] + S['bd'] * 12)
+            def swfn():
+                if smear is not None:
+                    cv_.fill('C', smear, (110, 0, 0, 255), depth=False)
+                    cv_.fill('M', smear, (70, 0, 40))
+                cv_.fill('C', outline, (255, 0, 0, 255), depth=True)
+                cv_.fill('G', outline, 0)
+                cv_.fill('M', outline, (120, 0, 90))
+                cv_.fill('M', shin, (62, 0, 40))
+                cv_.fill('M', ha, (190, 0, 255))
+                cv_.stroke('M', edge_line, (255, 255, 255), max(0.6, 0.35 * sc))
+                cv_.cap(g2, pm, 1.3 * sc, 1.2 * sc, _col(48))
+                for u in np.linspace(0.08, 0.92, 7):
+                    c0 = g2 + (pm - g2) * u; cv_.line(c0 - n2 * 1.15 * sc, c0 + n2 * 1.15 * sc + (pm - g2) * 0.05, .35 * sc, _col(125))
+                cv_.cap(pm, pm + (pm - g2) * 0.05, 1.4 * sc, 1.4 * sc, _col(170), gold=230)
+                cv_.ell(g2, (0.55 * sc, 2.7 * sc), math.degrees(math.atan2(dirv[1], dirv[0])), _col(170))
+                cv_.fill_ell('G', g2, (0.55 * sc + 0.12, 2.7 * sc), math.degrees(math.atan2(dirv[1], dirv[0])), 200)
+            E.append((bdep, swfn))
+    # ---------------------------------------------------------------- 头 + 头发
+    Rh, Hc = S['Rh'], S['Hc']
+    hair_tone = 34
+    hd0 = DP(Hc) + 4.0
+    hfns, eyes, facing = _draw_head2(cv_, P2, DP, S, sc, vdir, L3, skin=SKIN, hair_tone=hair_tone, detail=detail)
+    for dd_, fn, b in hfns: E.append((dd_, fn, b))
+    tie2 = P2(S['tie'])
+    hw = 1 / math.sqrt(self.hair)
+    hl_side = 1 if fs * rd[0] < 0 else -1
+    # 马尾：发团主体（体积）+ 发束
+    ctr = self.ponytail.P.mean(0); cq_ = P2(ctr)
+    spread = np.linalg.norm(self.ponytail.P - ctr[None], axis=-1).mean(0)
+    E.append((DP(ctr).mean() - 0.05, (lambda cq_=cq_: _clump(cv_, cq_, 4.6 * sc, 0.4 * sc, hair_tone, sc, hl=55, hl_side=hl_side, prof='spindle')),
+              hd0 - DP(ctr).mean() + 0.05))
+    def add_clumps(ch, w0, tones, dbias=0.0, wscale=None, prof='taper', every=1):
+        q = P2(ch.P); dd = DP(ch.P).mean(1)
+        for k in range(0, ch.C, every):
+            ws = wscale[k] if wscale is not None else 1
+            E.append((dd[k] + dbias, (lambda q=q[k], ws=ws, tn=tones[k]: _clump(cv_, q, w0 * ws * sc, 0.0, tn, sc, hl=48, hl_side=hl_side, prof=prof)),
+                      hd0 - dd[k] - dbias))
+    add_clumps(self.ponytail, 2.9 * hw, [hair_tone + (14 if k % 3 == 1 else 0) for k in range(self.ponytail.C)], 0.0, self.pt_w)
+    add_clumps(self.locks, 2.4 * hw, [hair_tone + (10 if k % 3 == 0 else 0) for k in range(self.locks.C)], 0.0, self.lock_w)
+    add_clumps(self.bangs, 2.1 * hw, [hair_tone + 6] * self.bangs.C, 0.6)
+    if detail > 0.5:                                      # 飞丝：少量、渐细、按尺度变宽（不再是 1px 乱线）
+        q = P2(self.fly.P); dd = DP(self.fly.P).mean(1)
+        for k in range(0, self.fly.C, 4):
+            E.append((dd[k] + 0.3, (lambda q=q[k]: _clump(cv_, q, max(0.7, 0.42 * sc), 0.0, hair_tone + 20, sc, hl=0)), hd0 - dd[k] - 0.3))
+    # 发绳（朱红缠绕）
+    E.append((DP(S['tie']) + 0.2, (lambda: (cv_.circ(tie2, 1.45 * sc, _col(160, 255)),
+                                            cv_.paint_in(sk_.path_circle(tie2 + np.array([-0.35, -0.35]) * sc, 0.6 * sc), (230, 255), 0.7)) if True else None),
+              hd0 - DP(S['tie']) - 0.2))
+    # ---------------------------------------------------------------- 飘带（朱红，扭转渐变）+ 腰前暗红长带
+    def add_ribbon(ch, idx, wbase, redv, tone0, twist_rate, tassel=False):
+        Pr = ch.P[idx]; q = P2(Pr)
+        d = np.gradient(q, axis=0); nn = np.stack([-d[:, 1], d[:, 0]], 1) / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-6)
+        tw = np.arange(len(q)) * twist_rate + idx * 1.3 + Pr[:, 1] * 0.05 + (self.t_last or 0) * 2.0
+        cw = np.cos(tw)
+        wid = wbase * sc * (0.32 + 0.68 * np.abs(cw)) * np.linspace(1, 0.8, len(q))
+        shade_ = 0.5 + 0.5 * np.clip(cw * 0.8 + 0.2, -1, 1)
+        cols = [_col(tone0 * (0.42 + 0.75 * shade_[k]), redv) for k in range(len(q))]
+        dd = DP(Pr)
+        for k in range(0, len(q) - 1, 3):
+            kk_ = slice(k, min(k + 4, len(q)))
+            E.append((dd[kk_].mean(), (lambda qq=q[kk_], ww=wid[kk_], nn_=nn[kk_], cc=cols[kk_]: cv_.ribbon(qq, ww, nn_, cc))))
+        if tassel:
+            end = q[-1]; dv_ = q[-1] - q[-2]; dv_ = dv_ / (np.hypot(*dv_) + 1e-6)
+            nv = np.array([-dv_[1], dv_[0]])
+            def tas(end=end, dv_=dv_, nv=nv):
+                cv_.circ(end, 1.0 * sc, _col(150, 0), gold=220)
+                for m in range(7):
+                    a = end + nv * (m - 3) * 0.35 * sc
+                    cv_.line(a, a + (dv_ * 5.5 + nv * (m - 3) * 0.4) * sc, max(0.6, 0.3 * sc), _col(110, redv))
+            E.append((dd[-1] + 0.01, tas))
+    if self.ribbons:
+        add_ribbon(self.rib, 0, 1.75, 255, 235, 0.5)
+        add_ribbon(self.rib, 1, 1.45, 255, 205, 0.58)
+        kq = P2(self.rib.P[0, 0])
+        E.append((DP(self.rib.P[0, 0]) + 0.05, lambda kq=kq: (cv_.circ(kq, 1.7 * sc, _col(200, 255)),
+                                                            cv_.paint_in(sk_.path_circle(kq, 0.8 * sc), (110, 255), 0.8))))
+    add_ribbon(self.band, 0, 1.8, 150, 120, 0.18, tassel=True)
+    # ---------------------------------------------------------------- 绘制（画家算法）
+    E.sort(key=lambda e: e[0])
+    for e in E:
+        cv_.dcur = e[0] + (e[2] if len(e) > 2 else 0.0); e[1]()
+    # ---------------------------------------------------------------- 合成
+    rc = np.asarray(rim_color, np.float32)
+    def met_cb(col, A, inv, met):
+        Mm = cv_.M.astype(np.float32) / 255. * inv[..., None]
+        steel = Mm[..., 0:1] * np.array([0.50, 0.52, 0.56], np.float32) + Mm[..., 0:1] ** 2 * rc * 0.35
+        steel = steel + Mm[..., 1:2] * 0.85
+        if shine is not None and 'blade_poly' in info:
+            h_, w_ = A.shape
+            g2_ = np.array(info['guard']) - [x0, y0]; t2_ = np.array(info['tip']) - [x0, y0]
+            dvv = t2_ - g2_; ll = (dvv @ dvv) + 1e-6
+            yy, xx = np.mgrid[0:h_, 0:w_]
+            sp_ = ((xx - g2_[0]) * dvv[0] + (yy - g2_[1]) * dvv[1]) / ll
+            band = np.exp(-((sp_ - shine) / 0.06) ** 2).astype(np.float32)
+            steel = steel + band[..., None] * (0.5 + 0.8 * Mm[..., 0:1]) * np.array([1.0, 0.97, 0.92], np.float32)
+        if heat > 0:
+            hh = Mm[..., 2:3] * heat
+            steel = steel * (1 - hh * 0.6) + hh * (RED * 1.2 + GOLD * hh * 0.7)
+        return col * (1 - met[..., None]) + steel * met[..., None]
+    ground = (P2(S['ltoe'])[1] - 34 * sc, P2(S['ltoe'])[1] - 4 * sc)
+    ground = (min(ground[0], P2(S['rtoe'])[1] - 34 * sc), ground[1])
+    gy = max(P2(S['ltoe'])[1], P2(S['rtoe'])[1])
+    reg_before = fr[y0:y1, x0:x1].copy()
+    fr, A, col_ = _comp2(fr, cv_, x0, y0, rim_color, rd, rim, float(np.clip(scale * 0.0042, 0.8, 3.2)), lift * 1.05, alpha, ink,
+                         R=3.6 * sc, ground=(gy - 40 * sc, gy - 2 * sc), tex_scale=max(1, sc * 0.5), return_A=True, met_cb=met_cb)
+    out = fr[y0:y1, x0:x1]
+    h_, w_ = A.shape
+    Ac = cv_.C[..., 0].astype(np.float32) / 255.
+    met = np.clip(cv_.C[..., 3].astype(np.float32) / 255. / np.maximum(Ac, 1e-3), 0, 1)
+    # 眼神光：虹膜上的小高光点 + 晕（替代 v1 的横条）
+    if glint > 0 and eyes:
+        eyes.sort(key=lambda e: -e[0])
+        for vis_, e_ in eyes[:2]:
+            gx, gy_ = float(e_[0]), float(e_[1])
+            if 0 <= gx < w_ and 0 <= gy_ < h_:
+                R = int(3 * sc + 8); ya, yb, xa, xb = max(0, int(gy_) - R), min(h_, int(gy_) + R), max(0, int(gx) - R), min(w_, int(gx) + R)
+                gl = np.zeros((yb - ya, xb - xa), np.float32)
+                cv2.circle(gl, (int((gx - xa) * 8), int((gy_ - ya) * 8)), max(4, int(0.16 * sc * 8)), 1.0, -1, cv2.LINE_AA, 3)
+                g = gl * 1.4 + cv2.GaussianBlur(gl, (0, 0), max(0.6, 0.12 * sc)) * 1.2 + cv2.GaussianBlur(gl, (0, 0), 0.9 * sc + 1) * 0.6
+                out[ya:yb, xa:xb] += g[..., None] * rc * glint * alpha * (0.5 + 0.5 * vis_)
+    if heat > 0 and blade_glow > 0 and met.max() > 0.01:
+        gsm = _blur_ds(met * Ac * heat, max(2, 1.5 * sc))
+        out += gsm[..., None] * (RED * 1.2 + GOLD * 0.3) * blade_glow * alpha
+    dr = getattr(self, 'drops', None)
+    if dr is not None and len(dr):
+        q = P2(dr[:, :3]); qv = P2(dr[:, :3] + dr[:, 3:6] * 0.012) - q
+        lay = np.zeros(A.shape, np.float32)
+        for k in range(len(q)):
+            a = q[k]; b = a + qv[k]
+            cv2.line(lay, (int(a[0] * 8), int(a[1] * 8)), (int(b[0] * 8), int(b[1] * 8)), float(1 - dr[k, 6] / 0.7),
+                     max(1, int(0.35 * sc)), cv2.LINE_AA, 3)
+        out += cv2.GaussianBlur(lay, (0, 0), 0.6)[..., None] * (0.35 + 0.5 * rc) * alpha
+    fr[y0:y1, x0:x1] = out
+    if return_masks:
+        bm = np.zeros(fr.shape[:2], np.float32); bm[y0:y1, x0:x1] = met * Ac
+        am = np.zeros(fr.shape[:2], np.float32); am[y0:y1, x0:x1] = A * alpha
+        info['blade_mask'] = bm; info['alpha'] = am
+    info['alpha_local'] = A
+    return fr, info
+
+
+def _sw_draw_dispatch(self, fr, x, y, scale, *a, **kw):
+    if QUALITY == 'v2' and BACKEND == 'skia':
+        return _sw_draw2(self, fr, x, y, scale, *a, **kw)
+    return _sw_draw(self, fr, x, y, scale, *a, **kw)
+Swordsman.draw = _sw_draw_dispatch
+
+# 骨架比例微调（v2）：肩更宽、肩线略低 → 倒三角；记录上一帧骨架供拖影
+_pose_v1 = Swordsman.pose
+def _pose_v2(self, *a, **kw):
+    prev, tl = self.sk, self.t_last
+    t = a[2] if len(a) > 2 else kw.get('t')
+    S = _pose_v1(self, *a, **kw)
+    self.sk_prev = prev if (prev is not None and tl is not None and t is not None and 0 < t - tl <= 0.2) else None
+    return S
+Swordsman.pose = _pose_v2
