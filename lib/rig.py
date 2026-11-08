@@ -1910,6 +1910,9 @@ def _shade2(A, D, rd, R, ground=None, key_soft=0.12, occ_k=None, depth_thr=0.9):
     return key, amb, ao, nz, dist
 
 
+FILL = dict(amb=0.62, skin=0.42)   # v2.1 亮度：天光权重（v2 原 0.50）、肤色补光
+def set_fill(**kw): FILL.update(kw)
+
 def _comp2(fr, cv_, x0, y0, rim_color, rim_dir, rim, rimw, lift, alpha, ink, R, ground=None, key=1.0,
            tex_scale=1.0, inner_thr=3.5, spec_tone=None, return_A=False, paper=0.0, paper_col=(0.92, 0.88, 0.78),
            burn=None, met_cb=None):
@@ -1929,7 +1932,10 @@ def _comp2(fr, cv_, x0, y0, rim_color, rim_dir, rim, rimw, lift, alpha, ink, R, 
     tt = cv2.resize(tt, ((w_ // ts + 2) * ts, (h_ // ts + 2) * ts), interpolation=cv2.INTER_LINEAR)[:h_, :w_]
     inkc = INK if ink is None else np.asarray(ink, np.float32)
     rc = np.asarray(rim_color, np.float32)
-    shade = (0.50 * amb + 0.95 * key * kk) * ao * (0.93 + 0.14 * tt)
+    shade = (FILL['amb'] * amb + 0.95 * key * kk) * ao * (0.93 + 0.14 * tt)
+    # 肤色补光（v2.1）：皮肤（高 tone、非红非金属）在逆光下也保留可读的面部明暗，避免侧脸/回头变成暗块
+    skinm = _cel(tone, 0.50, 0.60) * (1 - red) * (1 - met)
+    shade = shade + skinm * FILL['skin'] * (0.55 + 0.45 * amb) * (0.6 + 0.4 * ao)
     lum = tone * shade * lift
     cool = np.array([0.255, 0.258, 0.285], np.float32)
     col = inkc[None, None] + lum[..., None] * cool
@@ -2536,7 +2542,7 @@ def _sw_draw2(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim
                       hd0 - dd[k] - dbias))
     add_clumps(self.ponytail, 2.9 * hw, [hair_tone + (14 if k % 3 == 1 else 0) for k in range(self.ponytail.C)], 0.0, self.pt_w)
     add_clumps(self.locks, 2.4 * hw, [hair_tone + (10 if k % 3 == 0 else 0) for k in range(self.locks.C)], 0.0, self.lock_w)
-    add_clumps(self.bangs, 2.1 * hw, [hair_tone + 6] * self.bangs.C, 0.6)
+    add_clumps(self.bangs, 1.35 * hw, [hair_tone + 6] * self.bangs.C, 0.6)
     if detail > 0.5:                                      # 飞丝：少量、渐细、按尺度变宽（不再是 1px 乱线）
         q = P2(self.fly.P); dd = DP(self.fly.P).mean(1)
         for k in range(0, self.fly.C, 4):

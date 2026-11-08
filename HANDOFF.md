@@ -129,3 +129,10 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - **全片字幕规范**写在 `crew/chorus1_v2_edit.md` 第 4 节，其他段落照此执行（lyric3.LyricLayer + Sentence 表即可复用）。
 - 产出：`out/sample_chorus1_v3.mp4`（CRF18，未入库）、`out/sample_chorus1_v3_web.mp4`（CRF24）、`out/chorus1_v3_contact.jpg`、`out/chorus1_v3_mainchar_compare.jpg`。
 - 回退：`C1_CAM=2` v2 相机，`C1_LYR=2` 关统一字幕层（但镜头内散字已删，需 git 取回 v2 的 chorus1.py）。
+
+## 11. 人物模型 v2 接手核验（2026-11-09 03:40 CST）
+- `_composite` 两处定义不是冲突：第二处是 v2 包装层（`_composite_v1 = _composite` 后重定义，v1/无 skia 时回落），保留。
+- 亲眼核验 `v2_cmp.py sw cu`：全身 v2 明显好于 v1（体积明暗、腰封/长靴/护腕、飘带有厚度）；CU 偏暗、正面回头脸被刘海压成黑块、眼神光穿透头发 → 待修。
+- v2.1 改动：`rig.FILL`（天光 0.50→0.62、肤色补光 0.42，可 `rig.set_fill()` 调）；正面刘海发束 2.1→1.35×hw。侧脸已能读出鼻/唇/眼。
+- 对比图：`lib/rig_test/v2_cmp_sw_cu.jpg`。
+- 下一步：S043 回头（眼神光加遮挡判定、刘海分缝露额、头发发束改尖细）→ 握刀手 → 刀上眼睛 → 其余角色。副歌一仍未用 v2 重渲。
