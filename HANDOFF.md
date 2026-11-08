@@ -119,3 +119,5 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 产出：`out/sample_chorus1_v2.mp4`（CRF18，未入库）、`out/sample_chorus1_v2_web.mp4`（CRF24，入库）、`out/chorus1_v2_cuts.jpg`（34 个切点/插入前后帧）。渲染：`units/c1v2_render.sh`（后台 2 进程，out/c1v2chunks/）。
 - 坑：ffmpeg `+faststart` 直接写 /workspace（juicefs）会在写尾时 I/O error、留下坏文件——先写 /tmp 再拷（mux 已改）。v1 母版曾被误覆盖，已用 out/c1chunks/final.txt 重新拼回。
 - 待办：S029/S044 手部、S043 发丝仍粗（角色组）；S048 雨滴倒影仍小；墙镜头 S033/S034/S035/S036 仍是同一砖墙材质，可换 props.CharWall；props.Blade / fx2.RainSheet 尚未替换 c1kit 版。
+- 02:33 副歌一 v2（运镜/卡点轮）：`out/sample_chorus1_v2.mp4`（66.7MB 未入库）、`out/sample_chorus1_v2_web.mp4`（已入库）。卡点图 `crew/hitmap_c1.json`（139 击打，htdemucs 拆鼓），相机模块 `units/vcam.py`，剪辑说明 `crew/chorus1_v2_edit.md`；22 镜 + 13 处插入闪切，47 切点。已切到共享 Skia 库。ffmpeg 成片先写 /tmp 再拷进 /workspace（JuiceFS 写 trailer 会报错）。
+- v2 待改：手部特写、回头发丝、雨滴倒影小、四个砖墙镜头仍同材质（可换 props.CharWall）、c1kit 旧刀/雨可换 props/fx2。等用户审片。
