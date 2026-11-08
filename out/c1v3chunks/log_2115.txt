@@ -1,0 +1,2 @@
+Fontconfig warning: "/usr/share/fontconfig/conf.avail/05-reset-dirs-sample.conf", line 6: unknown element "reset-dirs"
+72.00s  0.46s/f

@@ -121,3 +121,11 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 待办：S029/S044 手部、S043 发丝仍粗（角色组）；S048 雨滴倒影仍小；墙镜头 S033/S034/S035/S036 仍是同一砖墙材质，可换 props.CharWall；props.Blade / fx2.RainSheet 尚未替换 c1kit 版。
 - 02:33 副歌一 v2（运镜/卡点轮）：`out/sample_chorus1_v2.mp4`（66.7MB 未入库）、`out/sample_chorus1_v2_web.mp4`（已入库）。卡点图 `crew/hitmap_c1.json`（139 击打，htdemucs 拆鼓），相机模块 `units/vcam.py`，剪辑说明 `crew/chorus1_v2_edit.md`；22 镜 + 13 处插入闪切，47 切点。已切到共享 Skia 库。ffmpeg 成片先写 /tmp 再拷进 /workspace（JuiceFS 写 trailer 会报错）。
 - v2 待改：手部特写、回头发丝、雨滴倒影小、四个砖墙镜头仍同材质（可换 props.CharWall）、c1kit 旧刀/雨可换 props/fx2。等用户审片。
+
+## 10. 副歌一 v3（摄影指导 + 剪辑组，2026-11-09 03:00 CST）
+- 用户审 v2：鼓点震动太多 → 克制；运镜加量；歌词排版乱 → 统一（最终：全部思源宋多字重，不用书法字）。切点/转场/闪切/定格慢放/字落点不变。
+- 新文件：`units/vcam3.py`（克制版脉冲 + 2.5D 相机：环绕 yaw / 仰俯 pitch / 变焦推拉 vtg / 焦点转移 focus / beat 速度坡度 / 前景遮挡物 FGOcc）、`units/lyric3.py`（统一字幕层）、`units/shake_stats.py`（v2/v3 震动量化 → crew/shake_v2_v3.json）、`units/c1v3_render.sh`、`units/c1v3_contact.py`。
+- 字体：`fonts/NotoSerifSC-{Regular,Medium,SemiBold,Bold,Black}.otf`（noto-cjk 官方 SubsetOTF/SC，OFL，`fonts/NotoSerifSC-OFL.txt`），typo 里注册为 serif_r/serif_m/serif_sb/serif_b/serif_black（chorus1.py 注册；宋体字形不加墨迹纹理）。
+- **全片字幕规范**写在 `crew/chorus1_v2_edit.md` 第 4 节，其他段落照此执行（lyric3.LyricLayer + Sentence 表即可复用）。
+- 产出：`out/sample_chorus1_v3.mp4`（CRF18，未入库）、`out/sample_chorus1_v3_web.mp4`（CRF24）、`out/chorus1_v3_contact.jpg`、`out/chorus1_v3_mainchar_compare.jpg`。
+- 回退：`C1_CAM=2` v2 相机，`C1_LYR=2` 关统一字幕层（但镜头内散字已删，需 git 取回 v2 的 chorus1.py）。
