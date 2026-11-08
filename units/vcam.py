@@ -104,6 +104,7 @@ class VCam:
         self.moves = []          # [(t0, t1, Move, gain)]
         self.whips = []          # [(t_cut, (vx,vy), L, n_out, n_in)]
         self.holds = []          # [(t0, t1)] 定格/憋住段：脉冲静音
+        self.hardcuts = []       # 非甩镜切点：运动模糊不跨切点计算
 
     # -------------------------------------------------------------- 配置
     def shot(self, t0, t1, move=None, gain=1.0):
@@ -114,6 +115,8 @@ class VCam:
         self.whips.append((t_cut, tuple(v), L, n_out, n_in))
 
     def hold(self, t0, t1): self.holds.append((t0, t1))
+
+    def cut(self, t): self.hardcuts.append(t)
 
     # -------------------------------------------------------------- 求值
     def _gain(self, t):
@@ -189,7 +192,14 @@ class VCam:
     def apply(self, fr, t, overscan=1.035, shutter=0.5):
         """把机位施加到已渲染的镜头画面上；返回 (fr, st)。自动方向运动模糊 + 推拉径向模糊。"""
         st = self.state(t)
-        s0 = self.state(t - shutter / FPS)
+        tp = t - shutter / FPS
+        cb = [c for c in self.hardcuts if tp < c <= t + 1e-6]
+        if cb:      # 快门跨过硬切：上一镜的机位不算进本镜速度
+            zb, xb, yb, rb = self.base(cb[-1] + 1e-5)
+            dz_, dx_, dy_, dr_, _ = self.impulses(tp)
+            s0 = dict(z=zb * (1 + dz_), x=xb + dx_, y=yb + dy_)
+        else:
+            s0 = self.state(tp)
         z = st['z'] * overscan
         M = cv2.getRotationMatrix2D((W / 2, H / 2), st['rot'], z)
         M[0, 2] -= st['x'] * z; M[1, 2] -= st['y'] * z

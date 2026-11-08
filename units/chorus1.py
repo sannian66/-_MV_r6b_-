@@ -1052,6 +1052,7 @@ class S046(Shot):
 
     def render(self, t):
         u = self.u(t)
+        tr = REAL_T[0] if REAL_T[0] is not None else t     # 画面定格慢放，刻字/闪光/墨爆按真实时间
         fr = self.bg.copy()
         self.sw.pose('stand_wind', 0.3, self.t0 + min(t - self.t0, 0.3) * 0.0 + (t - self.t0), wind=-150)
         fr, _ = self.sw.draw(fr, 1350, 1700, 1500, rim_color=(0.8, 0.85, 1.0), rim_dir=(0.6, -0.8), rim=1.0, lift=0.3,
@@ -1065,21 +1066,21 @@ class S046(Shot):
         # 刀身刻字
         d = np.array(p1, float) - np.array(p0, float); d /= np.linalg.norm(d); n = np.array([-d[1], d[0]])
         a0 = np.array(p0) + d * 420 - n * 10; a1 = np.array(p0) + d * 1520 - n * 10; a2 = np.array(p0) + d * 1720 - n * 10
-        pc = clamp01((t - (V(CT(19, 3)) - 0.1)) / (V(CT(19, 7)) - V(CT(19, 3)) + 0.2))
+        pc = clamp01((tr - (V(CT(19, 3)) - 0.1)) / (V(CT(19, 7)) - V(CT(19, 3)) + 0.2))
         fr = T.carved_on_blade(fr, '就是我的回', [tuple(a0), tuple(a1)], height=86, p=pc, fname='song', finish='steel', taper=(1, 1))
-        pa = clamp01((t - (self.T_ANS - 0.15)) / 0.15)
+        pa = clamp01((tr - (self.T_ANS - 0.15)) / 0.15)
         if pa > 0:
             fr = T.carved_on_blade(fr, '答', [tuple(a1 + d * 10), tuple(a2)], height=100, p=pa, fname='song', finish='red', taper=(1, 1))
         # 定格 0.3s 后推
-        z = 1.0 + 0.04 * eio(clamp01((t - self.t0 - 0.3) / 0.6))
-        k = pulse(t, self.T_ANS, 0.12) * (t >= self.T_ANS)
+        z = 1.0 + 0.04 * eio(clamp01((tr - self.t0 - 0.3) / 0.6))
+        k = pulse(tr, self.T_ANS, 0.12) * (tr >= self.T_ANS)
         fr = cam(fr, z * (1 + 0.08 * k), 0, 0)
-        if self.T_CRASH <= t < self.T_CRASH + 1 / 30 + 1e-3: fr = fr * 0.4 + 0.8          # 鼓回归：闪白
-        if self.T_ANS <= t < self.T_ANS + 2 / 30 + 1e-3: fr = fr * 0.6 + GOLD * 0.5
+        if self.T_CRASH <= tr < self.T_CRASH + 1 / 30 + 1e-3: fr = fr * 0.4 + 0.8          # 鼓回归：闪白
+        if self.T_ANS <= tr < self.T_ANS + 2 / 30 + 1e-3: fr = fr * 0.6 + GOLD * 0.5
         # 朱墨爆开（不再纯黑：暗朱墨 + 金边，避免整屏死黑）
-        if t >= self.T_ANS + 1 / 30:
-            pb = clamp01((t - self.T_ANS) / 0.22)
-            m = K.ink_blot(pb, seed=46, center=(1100, 600))
+        if tr >= self.T_ANS + 1 / 30:
+            pb = 0.17 * eout((tr - self.T_ANS) / 0.2, 2)     # 墨只从左下角炸开一角，留出刀身「答」（v1 85.9–86.5 近全黑）
+            m = K.ink_blot(pb, seed=46, center=(150, 950))
             edge = np.clip(K.blur_ds(m, 6) - m * 0.85, 0, 1)
             fr = over(fr, m, RED * 0.22 + 0.015)
             fr += edge[..., None] * GOLD * 1.2 * (1 - 0.5 * pb)
@@ -1130,7 +1131,7 @@ class S047(Shot):
         fr = cam(fr, 1.0 + 0.04 * e, 0, -40 + 40 * e)
         # 墨退
         if t < self.t0 + 0.3:
-            m = K.ink_blot(eout((t - self.t0) / 0.3, 2), seed=47, center=(960, 600), reverse=True)
+            m = K.ink_blot(0.93 + 0.07 * eout((t - self.t0) / 0.2, 2), seed=47, center=(960, 600), reverse=True)
             fr = over(fr, m, RED * 0.22 + 0.015)
         pk = clamp01((t - 86.6) / 0.6)
         if pk > 0:
@@ -1263,10 +1264,12 @@ GAIN = {'S028': 0.6, 'S034': 0.8, 'S038': 0.8, 'S043': 0.7, 'S046': 0.5, 'S047':
 # 时间重映射：定格 / 慢放（憋住乐句尾）
 def _hold(t0, k):
     return lambda t: t if t < t0 else t0 + (t - t0) * k
+def _hold2(t0, t1, k):
+    return lambda t: t if t < t0 else (t0 + (t - t0) * k if t < t1 else t0 + (t1 - t0) * k + (t - t1))
 REMAP = {
+    'S046': _hold2(84.80, V(85.69), 0.15),        # 鼓停：刀身定格慢放（刻字仍按真实字头落点）
     'S027': _hold(V(59.13), 0.06),     # 军鼓滚奏最后一击后定格，鼓停的静默里憋住，等「血」
     'S041': _hold(V(79.61) + 0.12, 0.3),   # 「扛」后慢放 0.3x 憋到小节头
-    'S046': _hold(84.80, 0.2),         # 鼓停：刀身定格慢放，鼓回归前不动
 }
 
 # 段落能量包络（强弱交替 / 呼吸）：(时间, 能量)
@@ -1326,6 +1329,8 @@ def build_cam():
         c = CUTS.get(S.__name__)
         if c and c[0] == 'whip':
             cam_.whip(S.t0, c[3]['dir'], c[3].get('L', 400))
+        else:
+            cam_.cut(S.t0)
     cam_.hold(V(59.13), 59.267)
     cam_.hold(84.80, V(85.69))
     return cam_
