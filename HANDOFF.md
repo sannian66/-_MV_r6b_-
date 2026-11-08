@@ -109,3 +109,13 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 下一步：用户审副歌一样片 → 点头后各段摄制组并行铺开全片 → 剪辑质检 `crew/qa.md` → 渲染交付。
 - 02:02 副歌一样片完成：`out/sample_chorus1.mp4`（31s/22镜，CRF18，66.6MB 未入库）、网络版 `out/sample_chorus1_web.mp4`（CRF24，已入库）。代码 `units/chorus1.py`、`units/c1kit.py`、`units/render_chorus1.py`；角色库冻结在 `units/c1_rig_frozen.py`（`C1_RIG=live` 切回共享库）。frame() 已含调色/黑边，组装时不要再 finish。
 - 样片待改：6 镜砖墙同质、手部特写偏平、S043 回头发丝乱、S038 刀上眼睛示意化、S048 雨滴倒影小、85.9–86.5 近全黑、光环字小、整体偏暗；歌词/刀光/裂缝/光束换 Skia。等用户审片意见。
+
+## 9. 副歌一 v2（摄影指导 + 剪辑组，2026-11-09 02:35 CST）
+- 用户审 v1：画面 OK，运镜/节奏/卡点不够。v2 只动运镜与剪辑，画面风格不变。
+- 卡点：`units/c1_sep.py`（htdemucs 分离 56–92s 鼓/人声/贝斯 → out/c1_*.wav）+ `units/hitmap.py` → `crew/hitmap_c1.json`、`crew/hitmap_c1.png`。139 击打（底鼓 73 / 军鼓 42 / hat 93 / 重音镲 7），字头在人声轨上精修。
+- 相机：`units/vcam.py`（弹簧阻尼卡点脉冲、缓动 + 速度坡度、方向连贯甩镜、速度运动模糊、前景视差层）。
+- 剪辑：`units/chorus1.py` 末尾 CUT_F / CUTS / MOVES / REMAP / ENERGY / INSERTS / FG / EXPO 表；说明见 `crew/chorus1_v2_edit.md`。22 镜 + 13 处插入闪切，平均镜长 1.41s。
+- 角色库已切共享 Skia 版（C1_RIG 默认 live；frozen 可回退）。
+- 产出：`out/sample_chorus1_v2.mp4`（CRF18，未入库）、`out/sample_chorus1_v2_web.mp4`（CRF24，入库）、`out/chorus1_v2_cuts.jpg`（34 个切点/插入前后帧）。渲染：`units/c1v2_render.sh`（后台 2 进程，out/c1v2chunks/）。
+- 坑：ffmpeg `+faststart` 直接写 /workspace（juicefs）会在写尾时 I/O error、留下坏文件——先写 /tmp 再拷（mux 已改）。v1 母版曾被误覆盖，已用 out/c1chunks/final.txt 重新拼回。
+- 待办：S029/S044 手部、S043 发丝仍粗（角色组）；S048 雨滴倒影仍小；墙镜头 S033/S034/S035/S036 仍是同一砖墙材质，可换 props.CharWall；props.Blade / fx2.RainSheet 尚未替换 c1kit 版。
