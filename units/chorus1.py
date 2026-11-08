@@ -69,7 +69,12 @@ class S027(Shot):
         x, y = K.grid()
         fr += (np.exp(-(((x - 1500) / 500) ** 2 + ((y - 300) / 300) ** 2)) * 0.25)[..., None] * RED
         heat = 0.55 + 0.45 * u
-        fr = draw_blade(fr, (-300, 980), (2400, 180), 560, shine=0.15 + 0.9 * u, shine_w=0.06, heat=heat)
+        fr, bm = draw_blade(fr, (-300, 980), (2400, 180), 560, shine=0.15 + 0.9 * u, shine_w=0.06, return_mask=True)
+        # 刃口烧红：只在刃口一侧（法线方向）渐变
+        d0 = np.array([2700., -800.]); d0 /= np.linalg.norm(d0); n0 = np.array([-d0[1], d0[0]])
+        sd = ((x + 300) * n0[0] + (y - 980) * n0[1]) / 280.0          # -1 背 … +1 刃
+        hz = np.clip((sd - 0.1) / 0.9, 0, 1) ** 2 * heat
+        fr = fr * (1 - 0.35 * hz[..., None] * bm[..., None]) + (hz * bm)[..., None] * (RED * 1.1 + GOLD * 0.15 * hz[..., None])
         # 刃口炽光线
         Lg = np.zeros((H // 2, W // 2), np.float32)
         d = np.array([2700., -800.]); d /= np.linalg.norm(d); nn = np.array([-d[1], d[0]])
@@ -168,7 +173,7 @@ class S028(Shot):
 # S029 60.53–61.46 MCU 握刀手收紧，火星掠过；虚焦月；「未冷」右下错落
 class S029(Shot):
     t0, t1 = 60.534, 61.463
-    MOON = (900, 340)
+    MOON = (900, 380)
     def __init__(self):
         self.hand = rig.HandCU(29)
         self.bg = K.sky(seed=29, cloud=0.5)
@@ -181,8 +186,8 @@ class S029(Shot):
         u = self.u(t)
         fr = self.bg.copy()
         prog = eout((t - self.t0) / 0.6, 2) * 0.9 + 0.1 * pulse(t, 60.6, 0.2)
-        fr = self.hand.draw(fr, 'grip', prog, t, self.MOON[0] + 40, self.MOON[1] + 60, 520, angle=-8,
-                            rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.4, -0.9))
+        fr = self.hand.draw(fr, 'grip', prog, t, self.MOON[0] + 20, self.MOON[1] + 170, 400, angle=-8,
+                            rim_color=(0.9, 0.93, 1.0), rim_dir=(-0.2, -1.0), lift=0.35)
         fr = fr[0] if isinstance(fr, tuple) else fr
         fr = K.sparks(fr, t, 2901, (300, 760), n=55, life=0.8, speed=(600, 1300), dirc=(1, -0.25), spread=0.25,
                       grav=120, area=(200, 120), amt=1.0)
@@ -257,7 +262,7 @@ class S031(Shot):
         self.emp = rig.Emperor(31)
         self.sw = rig.Swordsman(310, view='back')
         self.bg = K.sky(seed=31, cloud=0.7, top=(0.015, 0.017, 0.025), bot=(0.09, 0.095, 0.11)).copy()
-        rgb, A = K.moon_sprite(120)
+        rgb, A = K.moon_sprite(230)
         self.moon = (rgb, A)
         self.ridge = K.ridge_line(W, 905, 40, 312, 2)
         self.cloud = K.tile(512, 313, 4, 5)
@@ -265,11 +270,11 @@ class S031(Shot):
 
     def render(self, t):
         u = self.u(t)
-        cr = 240 * (1 - eio(u))                   # 机位从低处升起 + 上摇
+        cr = -240 * (1 - eio(u))                  # 机位从低处升起 + 上摇（起幅看地面，落幅见巨影全貌）
         fr = cam(self.bg, 1.0, 0, -cr * 0.25)
         # 月在巨影头部（日食般背光）
         hx, hy = 960, 330 + cr
-        fr = K.paste_sprite(fr, *self.moon, hx, hy - 10, scale=1.0)
+        fr = K.paste_sprite(fr, *self.moon, hx, hy - 30, scale=1.0)
         self.emp.pose('stand_backlit', (t * 0.2) % 1, t, wind=120)
         fr, _ = self.emp.draw(fr, 960, 330 + cr + 1700, 1880, rim_color=(0.85, 0.88, 0.95), rim_dir=(0, -1), rim=1.0,
                               lift=0.25, alpha=0.88)
@@ -367,7 +372,7 @@ class S033(Shot):
         far = K.mountains(W, H, 690, 90, 331, 5)
         self.bg = over(self.bg, far * 0.4, (0.12, 0.13, 0.15))
         wall, seam = K.brick_wall(2400, 1600, 120, 52, 6, 33)
-        self.wall = wall[:700, :2400].copy()
+        self.wall = wall[:700, :2400].copy() * 1.25
         self.sw = rig.Swordsman(330, view='back3q')
         self.dust_t = K.tile(512, 332, 5, 5)
         # 地面
@@ -379,7 +384,7 @@ class S033(Shot):
         T.warm('若规则是', 'song', 80)
 
     def wall_top(self, t):
-        return self.HOR - 440 * eout((t - self.t0 - 0.05) / 1.2, 3)
+        return self.HOR - 560 * eout((t - self.t0 - 0.05) / 1.2, 3)
 
     def render(self, t):
         u = self.u(t)
@@ -389,14 +394,14 @@ class S033(Shot):
         hh = int(self.HOR - top)
         if hh > 2:
             # 墙体：从地下升起（纹理随之上移）
-            src = self.wall[:hh, 200:2200]
-            q = np.float32([[160, top], [1760, top], [1760, self.HOR], [160, self.HOR]])
+            src = self.wall[:hh, 0:2400]
+            q = np.float32([[-60, top], [1980, top], [1980, self.HOR], [-60, self.HOR]])
             wl = K.warp_quad(src, q)
             m = np.zeros((H, W), np.float32); cv2.fillConvexPoly(m, q.astype(np.int32), 1.0, cv2.LINE_AA)
             wl = wl * (0.55 + 0.45 * np.clip((np.arange(H)[:, None] - top) / 300, 0, 1))[..., None]
             fr = fr * (1 - m[..., None]) + wl
             # 墙顶月光边
-            ed = np.zeros((H, W), np.float32); cv2.line(ed, (160, int(top)), (1760, int(top)), 1.0, 2, cv2.LINE_AA)
+            ed = np.zeros((H, W), np.float32); cv2.line(ed, (-60, int(top)), (1980, int(top)), 1.0, 2, cv2.LINE_AA)
             fr += cv2.GaussianBlur(ed, (0, 0), 1.5)[..., None] * 0.4 * np.array([0.8, 0.85, 1.0], np.float32)
             # 刻字：随墙升起
             pc = clamp01((t - 66.25) / 1.0)
@@ -682,11 +687,10 @@ class S038(Shot):
         fr, bm = draw_blade(fr, p0, p1, 380, shine=0.6 - 0.3 * e, shine_w=0.12, return_mask=True, seed=8)
         # 倒影：眼睛（profile 特写渲染到离屏，再按刀身蒙版合成，冷色）
         off = np.zeros((H, W, 3), np.float32) + 0.04
-        off, _ = rig.profile_cu(off, self.sw, t, 1180, 600, 1100, light='moon', glint=1.4, flip=True)
-        off = off[:, ::-1]
+        off, _ = rig.profile_cu(off, self.sw, t, 1250, 560, 1000, light='moon', glint=1.6, flip=True)
         lum = off.mean(-1, keepdims=True)
         refl = np.clip((lum - 0.03) * 2.2, 0, 1) * np.array([0.75, 0.82, 0.95], np.float32)
-        fr = fr + refl * bm[..., None] * 0.75
+        fr = fr * (1 - 0.6 * bm[..., None]) + refl * bm[..., None] * 1.3
         # 血线沿刃纹流下
         d = np.array(p1, float) - np.array(p0, float); Ld = np.linalg.norm(d); d /= Ld; n = np.array([-d[1], d[0]])
         head = 0.85 - 0.6 * eio((t - self.t0) / 1.0)
@@ -835,7 +839,7 @@ class S042(Shot):
         rgb, A = K.moon_sprite(240)
         self.bg = K.paste_sprite(self.bg, rgb, A, 960, 520)
         self.cl = K.tile(1024, 421, 4, 6)
-        self.L = T.giant_layer('天', 'xing', (0.92, 0.92, 0.9), 960, 540, 600)
+        self.L = T.giant_layer('天', 'xing', (0.03, 0.03, 0.035), 960, 540, 600)
         T.warm('不判', 'xing', 110)
 
     def render(self, t):
@@ -843,11 +847,11 @@ class S042(Shot):
         fr = self.bg.copy()
         # 天字（月晕中，墨色剪影在月面上更有压迫感）
         if t < self.T_SL:
-            fr = T.compose(fr, self.L, shadow=0.6, glow=0.5, glow_color=(0.8, 0.85, 1.0),
+            fr = T.compose(fr, self.L, shadow=0.0, outline=2, outline_color=(0.75, 0.8, 0.9), glow=0.6, glow_color=(0.7, 0.78, 0.95),
                            opacity=eout((t - self.t0 - 0.1) / 0.4))
         else:
             fr = T.slash_layer(fr, self.L, clamp01((t - self.T_SL) / 0.8), (960, 540), -32, slide=0.35, sz=520, length=1700,
-                               style_kw=dict(shadow=0.6, glow=0.4, glow_color=(0.8, 0.85, 1.0)), seed=42)
+                               style_kw=dict(shadow=0.0, outline=2, outline_color=(0.75, 0.8, 0.9), glow=0.6, glow_color=(0.7, 0.78, 0.95)), seed=42)
         # 云吞月（前景云卷过）
         sh = 200 + 900 * eio(u)
         cl = cv2.resize(K.tile_crop(self.cl, sh, 100 - 80 * u, H // 2, W // 2), (W, H))
@@ -874,7 +878,7 @@ class S042(Shot):
 class S043(Shot):
     t0, t1 = 82.059, 82.988
     def __init__(self):
-        self.sw = rig.Swordsman(43, view='side', hair=2)
+        self.sw = rig.Swordsman(43, view='side', hair=1.0)
         self.bg = dark_bg(43, 0.02, 0.08)
 
     def render(self, t):
@@ -882,7 +886,7 @@ class S043(Shot):
         fr = self.bg.copy()
         fr = K.fog(fr, t, 431, amt=0.35, speed=(60, 0), y0=0.2, y1=1.0, color=(0.2, 0.21, 0.24))
         ph = clamp01((t - self.t0 + 0.1) / 0.8)
-        fr, info = rig.profile_cu(fr, self.sw, t, 860, 520, 560, light='moon', glint=1.0 + 2.5 * clamp01((ph - 0.5) / 0.3),
+        fr, info = rig.profile_cu(fr, self.sw, t, 880, 560, 400, light='moon', glint=1.0 + 2.5 * clamp01((ph - 0.5) / 0.3),
                                   action='turn_head', phase=ph)
         fr = K.sparks(fr, t, 4301, (200, 900), n=40, life=0.9, speed=(300, 800), dirc=(1, -0.6), spread=0.4, grav=80,
                       area=(100, 100), amt=0.9)
@@ -945,7 +949,7 @@ class S045(Shot):
         ring_y = fy - 59 * sc / 100 - 8 * sc / 100
         # 文字绕环（后半圈在人后）
         prog = tprog(19, [0, 1, 2], t, 0.25)
-        out, front, kw = T.text_on_ring(fr, '这一刀', cx, ring_y, 520, 120, phase=t * 2.2, size=120, fname='xing',
+        out, front, kw = T.text_on_ring(fr, '这一刀', cx, ring_y, 470, 110, phase=t * 2.2, size=170, fname='xing',
                                         emph=('刀',), emph_color='red', prog=prog)
         fr = out
         fr, info = self.sw.draw(fr, cx, fy, sc, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.5, -0.8), rim=1.3)
@@ -1022,8 +1026,8 @@ class S046(Shot):
 class S047(Shot):
     t0, t1 = 86.192, 87.562
     def __init__(self):
-        sk = K.sky(seed=47, cloud=0.9, horizon=0.7, top=(0.04, 0.043, 0.05), bot=(0.15, 0.155, 0.17), stars=0.0).copy()
-        for i, (by, amp, tone, al) in enumerate(((640, 200, 0.2, 0.45), (720, 160, 0.13, 0.6), (820, 120, 0.07, 0.8))):
+        sk = K.sky(seed=47, cloud=0.9, horizon=0.7, top=(0.07, 0.075, 0.085), bot=(0.24, 0.25, 0.27), stars=0.0).copy()
+        for i, (by, amp, tone, al) in enumerate(((620, 200, 0.17, 0.55), (720, 160, 0.10, 0.7), (830, 120, 0.04, 0.9))):
             m = K.mountains(W, H, by, amp, 470 + i, 3 + i)
             sk = over(sk, m * al, (tone, tone * 1.02, tone * 1.08))
             sk = over(sk, K.blur_ds(m, 40) * 0.25, (0.2, 0.21, 0.23))
@@ -1130,7 +1134,7 @@ SHOTS = [S027, S028, S029, S030, S031, S032, S033, S034, S035, S036, S037, S038,
 CUTS = {
     'S028': ('flash_white', 0.10, 0.20, {}),
     'S029': ('hard', 0, 0, {}),
-    'S030': ('match_cut', 0.12, 0.22, dict(shape='circle', center=(900, 340), radius=150)),
+    'S030': ('match_cut', 0.12, 0.22, dict(shape='circle', center=(910, 470), radius=150)),
     'S031': ('iris_moon', 0.10, 0.30, dict(center=(900, 330), radius=200)),
     'S032': ('slash_wipe', 0.10, 0.25, dict(angle=78)),
     'S033': ('hard', 0, 0, {}),

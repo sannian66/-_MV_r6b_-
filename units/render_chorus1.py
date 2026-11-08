@@ -69,8 +69,47 @@ def all_():
     print('done', OUT + '/sample_chorus1.mp4')
 
 
+CH = 90   # 每块帧数
+
+
+def chunks(budget=100):
+    """分块渲染（每次调用最多跑 budget 秒，2 进程并行；已完成的块跳过），可反复调用直到全部完成。"""
+    f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
+    os.makedirs(OUT + '/c1chunks', exist_ok=True)
+    todo = [(a, min(a + CH, f1)) for a in range(f0, f1, CH)]
+    todo = [c for c in todo if not os.path.exists(f'{OUT}/c1chunks/c_{c[0]}.mp4')]
+    st = time.time(); run = []
+    while (todo or run):
+        while todo and len(run) < 2 and time.time() - st < budget:
+            a, b = todo.pop(0); o = f'{OUT}/c1chunks/c_{a}.mp4'
+            pr = subprocess.Popen([sys.executable, __file__, 'seg', str(a), str(b), o + '.tmp.mp4'],
+                                  stdout=open(f'{OUT}/c1chunks/log_{a}.txt', 'w'), stderr=subprocess.STDOUT)
+            run.append((pr, o))
+        for pr, o in run[:]:
+            if pr.poll() is not None:
+                run.remove((pr, o))
+                if pr.returncode == 0: os.replace(o + '.tmp.mp4', o)
+        if not run and (not todo or time.time() - st >= budget): break
+        time.sleep(1)
+    left = len([c for c in [(a, 0) for a in range(f0, f1, CH)] if not os.path.exists(f'{OUT}/c1chunks/c_{c[0]}.mp4')])
+    print('remaining chunks', left)
+
+
+def mux():
+    f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
+    lst = OUT + '/c1chunks/list.txt'
+    open(lst, 'w').write(''.join(f"file 'c_{a}.mp4'\n" for a in range(f0, f1, CH)))
+    subprocess.check_call(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', lst,
+                           '-ss', f'{T0:.3f}', '-t', f'{T1 - T0:.3f}', '-i', ROOT + '/song.mp3',
+                           '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest',
+                           '-movflags', '+faststart', OUT + '/sample_chorus1.mp4'])
+    print('done', OUT + '/sample_chorus1.mp4')
+
+
 if __name__ == '__main__':
     m = sys.argv[1] if len(sys.argv) > 1 else 'contact'
     if m == 'seg': seg(int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
     elif m == 'contact': contact([float(x) for x in sys.argv[2:]] or None)
     elif m == 'all': all_()
+    elif m == 'chunks': chunks(float(sys.argv[2]) if len(sys.argv) > 2 else 100)
+    elif m == 'mux': mux()
