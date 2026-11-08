@@ -769,6 +769,58 @@ def _blur_ds(a, sig):
 def _shift(a, dx, dy):
     return cv2.warpAffine(a, np.float32([[1, 0, dx], [0, 1, dy]]), (a.shape[1], a.shape[0]), borderMode=cv2.BORDER_CONSTANT)
 
+# ============================================================== v2 体积光照（所有角色共用）
+FORM = dict(on=True, key=0.62, shadow=0.42, ao=0.5, terminator=0.18)
+def set_form(**kw):
+    """v2 体积光照开关/参数：rig.set_form(on=False) 回到 v1 平涂。key=受光面提亮, shadow=背光面压暗, ao=遮蔽强度"""
+    FORM.update(kw)
+
+def _form(A, D, px, ldir=(-0.7, -0.7), depth_thr=2.5, lz=0.42, flat=None):
+    """从覆盖率 A 与分层深度 D 推出“鼓起”的伪法线（每个部件按深度断层各自成体积），返回 (亮度乘子, AO)。
+    px: 体积半径(像素)；ldir: 屏幕光向（指向光源）。二值化的明暗交界（赛璐璐）+ 柔和过渡 + 层间接触阴影。"""
+    h, w = A.shape
+    if not FORM['on'] or h < 6 or w < 6:
+        one = np.ones((h, w), np.float32); return one, one
+    inside = A > 0.5
+    Dv = np.where(inside, D, np.float32(-1e4)).astype(np.float32)
+    ds = int(max(1, min(6, px // 14)))
+    if ds > 1:
+        Ai = cv2.resize(inside.astype(np.uint8), (max(1, w // ds), max(1, h // ds)), interpolation=cv2.INTER_NEAREST)
+        Dd = cv2.resize(Dv, (Ai.shape[1], Ai.shape[0]), interpolation=cv2.INTER_NEAREST)
+    else:
+        Ai = inside.astype(np.uint8); Dd = Dv
+    ed = Ai == 0
+    jx = np.abs(np.diff(Dd, axis=1)) > depth_thr; jy = np.abs(np.diff(Dd, axis=0)) > depth_thr
+    # 只把“较远”的一侧当边：近处部件完整鼓起，远处部件在被遮挡处下沉
+    fx = jx & (Dd[:, 1:] < Dd[:, :-1]); bx = jx & ~fx
+    fy = jy & (Dd[1:] < Dd[:-1]); by = jy & ~fy
+    ed[:, 1:] |= fx; ed[:, :-1] |= bx; ed[1:] |= fy; ed[:-1] |= by
+    dist = cv2.distanceTransform((~ed).astype(np.uint8), cv2.DIST_L2, 3) * ds
+    u = np.clip(dist / max(px, 1.0), 0, 1)
+    hgt = np.sqrt(1 - (1 - u) ** 2).astype(np.float32) * px
+    hgt = cv2.GaussianBlur(hgt, (0, 0), max(0.8, px / ds * 0.08))
+    gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=3) / (8 * ds); gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=3) / (8 * ds)
+    lx, ly = ldir; ln = math.hypot(lx, ly) + 1e-6; lx, ly = lx / ln * (1 - lz * lz) ** 0.5, ly / ln * (1 - lz * lz) ** 0.5
+    nz = 1.0
+    nn = np.sqrt(gx * gx + gy * gy + nz * nz)
+    ndl = (-gx * lx - gy * ly + nz * lz) / nn
+    tm = FORM['terminator']
+    cel = np.clip((ndl - (lz - 0.05)) / tm + 0.5, 0, 1); cel = cel * cel * (3 - 2 * cel)
+    soft = np.clip(ndl, 0, 1)
+    mul = (1 - FORM['shadow']) + FORM['shadow'] * 0.35 * soft + (FORM['shadow'] * 0.65 + FORM['key']) * cel
+    # 接触阴影：附近有更近的部件 → 被遮蔽
+    r = max(2, int(px * 0.5 / ds))
+    Dn = cv2.dilate(Dd, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))
+    occ = np.clip((Dn - Dd - depth_thr) / 6.0, 0, 1) * (Ai > 0)
+    occ = cv2.GaussianBlur(occ.astype(np.float32), (0, 0), r * 0.6)
+    # 轮廓内缘环境遮蔽（体积边缘略暗、中心通透）
+    edge_ao = 1 - 0.25 * (1 - np.clip(dist / max(px * 0.5, 1), 0, 1))
+    ao = (1 - FORM['ao'] * occ) * edge_ao
+    if ds > 1:
+        mul = cv2.resize(mul.astype(np.float32), (w, h), interpolation=cv2.INTER_LINEAR)
+        ao = cv2.resize(ao.astype(np.float32), (w, h), interpolation=cv2.INTER_LINEAR)
+    return mul.astype(np.float32), ao.astype(np.float32)
+
 def _col(tone, red=0, metal=0):
     return (255, int(np.clip(tone, 0, 255)), int(np.clip(red, 0, 255)), int(metal))
 
@@ -1081,6 +1133,8 @@ def _sw_draw(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim_
     tt = cv2.resize(tt, ((w_ // ts + 2) * ts, (h_ // ts + 2) * ts), interpolation=cv2.INTER_LINEAR)[:h_, :w_]
     lift_c = np.array([0.24, 0.24, 0.27], np.float32) * lift
     inkc = INK if ink is None else np.asarray(ink, np.float32)
+    fmul, fao = _form(A, cv_.D, max(3.0, scale * 0.032), tuple(rd))
+    tone = tone * fmul * fao
     tone_t = tone * (0.75 + 0.5 * tt)
     col = inkc[None, None] + tone_t[..., None] * lift_c
     redc = np.array([0.55, 0.045, 0.04], np.float32)
@@ -1297,7 +1351,7 @@ def _blade_trail_cv(fr, history, color=(1.0, 0.95, 0.88), intensity=1.0, glow=1.
 
 # ============================================================== 通用剪影合成（其他角色/道具复用）
 def _composite(fr, cv_, x0, y0, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.7, -0.7), rim=1.0, rimw=2.0, lift=1.0, alpha=1.0,
-               ink=None, tex_scale=1.0, soft=None, paper=0.0, paper_col=(0.92, 0.88, 0.78), inner_thr=3.5, burn=None):
+               ink=None, tex_scale=1.0, soft=None, paper=0.0, paper_col=(0.92, 0.88, 0.78), inner_thr=3.5, burn=None, form_px=None):
     """把 _Canvas 合成进 fr[y0:, x0:]。返回 (fr, A_local)。paper>0：纸糊透光材质（背光时内部发亮、可见纤维）。
     burn=dict(prog=0..1, y0=脚底屏幕y, y1=头顶屏幕y, seed)：自下而上燃烧——烧穿处透明，焰线金红发光，焦边发黑。"""
     C = cv_.C.astype(np.float32) * (1 / 255.)
@@ -1306,6 +1360,8 @@ def _composite(fr, cv_, x0, y0, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.7, -0.7)
     inv = 1.0 / np.maximum(A, 1e-3)
     tone = C[..., 1] * inv; red = np.clip(C[..., 2] * inv, 0, 1)
     gold = np.clip(cv_.G.astype(np.float32) / 255. * inv, 0, 1)
+    fmul, fao = _form(A, cv_.D, form_px if form_px else max(3.0, rimw * 8), tuple(rim_dir))
+    tone = tone * fmul * fao
     tex = noise_tex(1024, seed=7, base=10, octaves=6)
     ts = max(1, int(round(tex_scale)))
     tt = _tile(tex, (x0 // ts) % 1024, (y0 // ts) % 1024, h_ // ts + 2, w_ // ts + 2)
