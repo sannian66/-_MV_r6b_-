@@ -7,4 +7,4 @@ for f in $(git diff --cached --name-only --diff-filter=AM); do
   [ -f "$f" ] && [ $(stat -c%s "$f") -gt 50000000 ] && git reset -q -- "$f" && echo "skip big: $f"
 done
 git diff --cached --quiet && echo "nothing new" || git -c user.name=sannian66 -c user.email=38859572+sannian66@users.noreply.github.com commit -q -m "自动同步 $(TZ=Asia/Shanghai date '+%m-%d %H:%M')"
-git pull --rebase -q origin main && git push -q origin main && git log --oneline -1
+git pull --rebase --autostash -q origin main && git push -q origin main && git log --oneline -1

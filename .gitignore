@@ -5,3 +5,5 @@ _ai_unused/
 art/
 __pycache__/
 *.video.mp4
+*.tmp.mp4
+out/c1chunks/log_*.txt

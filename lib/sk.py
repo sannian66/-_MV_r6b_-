@@ -66,7 +66,10 @@ def path_capsule_union(a, b, r1, r2):
     P = path_circle(a, r1)
     if L > 1e-6:
         n = np.array([-d[1], d[0]]) / L
-        P.addPoly(_pts([a + n * r1, b + n * r2, b - n * r2, a - n * r1]), True)
+        q = np.array([a + n * r1, b + n * r2, b - n * r2, a - n * r1])
+        ar = np.sum(q[:, 0] * np.roll(q[:, 1], -1) - np.roll(q[:, 0], -1) * q[:, 1])
+        if ar < 0: q = q[::-1]                      # 与 addCircle(kCW) 同向，避免非零环绕相消
+        P.addPoly(_pts(q), True)
         P.addCircle(float(b[0]), float(b[1]), float(max(r2, 0.15)))
     P.setFillType(skia.PathFillType.kWinding)     # 非零环绕 → 自动并集（同向绘制）
     return P
