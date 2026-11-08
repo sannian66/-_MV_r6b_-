@@ -36,7 +36,7 @@ INTRO_END = 15.21
 
 # ---------------------------------------------------------------- shan-shui night world (precomputed)
 class ShanShui:
-    def __init__(self, seed=2):
+    def __init__(self, seed=2, moon=True):
         self.M = 1.18
         self.w, self.h = int(W * self.M), int(H * self.M)
         w, h = self.w, self.h
@@ -44,8 +44,14 @@ class ShanShui:
         sky = (np.array([0.018, 0.02, 0.028]) * (1 - y) + np.array([0.09, 0.09, 0.10]) * y).astype(np.float32) * np.ones((1, w, 1), np.float32)
         c = np.clip((fbm2(h, w, seed, base=3, octaves=7) - 0.45) * 2.2, 0, 1)
         self.sky = sky + c[..., None] * 0.09
+        dawn = (np.array([0.30, 0.31, 0.34]) * (1 - y) ** 1.5 + np.array([0.95, 0.72, 0.45]) * np.exp(-((y - 0.55) / 0.22) ** 2) + 0.25 * y).astype(np.float32) * np.ones((1, w, 1), np.float32)
+        self.sky_dawn = dawn + c[..., None] * 0.08
+        self.has_moon = moon
         self.moon = (0.78 * w, 0.27 * h, 70 * self.M)
+        mx, my, mr = self.moon
         self.mtex = fbm2(h, w, 99, base=40, octaves=4) * 0.6 + fbm2(h, w, 98, base=90, octaves=3) * 0.4 - 0.5
+        self.mglow = radial_glow(h, w, mx, my, 170 * self.M)[..., None]
+        self.mdisc = disc(h, w, mx, my, mr)[..., None]
         self.layers = []
         tones = [0.24, 0.16, 0.10, 0.05, 0.012]
         for i, tn in enumerate(tones):
@@ -54,22 +60,22 @@ class ShanShui:
             m = mist(h, w * 2, seed * 20 + i, scale=2)
             band = np.exp(-((np.arange(h) - (base + 10)) / 55.0) ** 2)[:, None]
             self.layers.append((a, tn, m * band * (0.16 - i * 0.025), 0.15 + i * 0.22))
-    def render(self, cam_t, zoom, glow_amt=0.5):
+    def render(self, cam_t, zoom, glow_amt=0.5, dawn=0.0):
         w, h = self.w, self.h
-        fr = self.sky.copy()
-        mx, my, mr = self.moon
-        col = np.array([0.85, 0.12, 0.08], np.float32)
-        fr += radial_glow(h, w, mx, my, 170 * self.M)[..., None] * col * glow_amt
-        d = disc(h, w, mx, my, mr)[..., None]
-        fr = fr * (1 - d) + d * col * (0.95 + 0.25 * self.mtex[..., None])
-        for (a, tn, m, par) in self.layers:
+        fr = self.sky if dawn <= 0 else self.sky * (1 - dawn) + self.sky_dawn * dawn
+        fr = fr.copy()
+        if self.has_moon:
+            col = np.array([0.85, 0.12, 0.08], np.float32) * (1 - dawn) + np.array([1.0, 0.80, 0.5], np.float32) * dawn
+            fr += self.mglow * col * (glow_amt + 0.6 * dawn)
+            fr = fr * (1 - self.mdisc) + self.mdisc * col * (0.95 + 0.25 * self.mtex[..., None] * (1 - dawn) + 0.3 * dawn)
+        for li, (a, tn, m, par) in enumerate(self.layers):
             sx = -cam_t * 40 * par  # parallax drift
             M = np.float32([[1, 0, sx], [0, 1, 0]])
             aa = cv2.warpAffine(a, M, (w, h), borderMode=cv2.BORDER_REFLECT)
-            fr = fr * (1 - aa[..., None]) + tn * aa[..., None]
+            tone = tn * (1 + dawn * (1.4 - li * 0.25))
+            fr = fr * (1 - aa[..., None]) + tone * aa[..., None]
             off = int((cam_t * 25 * (0.5 + par)) % w)
-            fr += m[:, off:off + w][..., None] * np.array([0.95, 0.95, 1.0], np.float32)
-        # camera crop with zoom
+            fr += m[:, off:off + w][..., None] * np.array([0.95, 0.95, 1.0], np.float32) * (1 + 1.5 * dawn)
         z = zoom / self.M
         cw, ch = w * z, h * z
         M = np.float32([[W / cw, 0, -(w - cw) / 2 * W / cw], [0, H / ch, -(h - ch) / 2 * H / ch]])

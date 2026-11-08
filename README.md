@@ -28,7 +28,11 @@
 ## 2. 文件
 | 文件 | 内容 |
 |---|---|
-| `render.py` | 渲染主程序：`python3 render.py T0 T1 out.mp4`，渲染歌曲 T0–T1 秒并混入对应音频。目前只实现了前奏（`Intro`，0–15.2s） |
+| `scenes.py` | **全片**：所有场景类、歌词时间轴（从 align.json 逐字展开）、歌词版式（bottom/ink/big）、时间线 `TIMELINE`、转场（墨晕 wipe、闪白、鼓点推镜）。入口 `frame_at(t, dt, cache)` |
+| `render_full.py` | 按帧区间渲染无声视频：`python3 render_full.py F0 F1 out.mp4`（30fps，帧号=秒×30） |
+| `run_chunks.sh` | 两路并行渲染多个区间到 `chunks/`，已完成的跳过（可断点续跑） |
+| `preview.py` | 抽帧预览：`python3 preview.py out.jpg 15.5 60 120 …` 生成联系表 |
+| `render.py` | 片头 `Intro`、山水 `ShanShui`（含 dawn 黎明参数）、`InkWipe`；也可单独 `python3 render.py T0 T1 out.mp4` 渲染片段带音频 |
 | `fx.py` | 合成工具：调色、镜头、颗粒、暗角、黑边、辉光、色差、飞火 `Embers`、雨 `Rain`、刀光 `slash`、书法字 `text_layer`（逐字墨显，带字形缓存）、`comp_text`、印章 `seal`、`under_grad` |
 | `proc.py` | 程序化生成器：`fbm2/fbm1` 噪声、山水 `mountain_layer`、`mist`、`army` 军阵剪影、`hero` 刀客背影、`balance` 天平、`dao` 刀、`bricks` 城墙、`ink_bleed` 墨渗 |
 | `sf_proc.py` | 生成五张方向关键帧（输出到 `sfp/`）：片名、军阵、天平、副歌劈墙、烫刀 |
@@ -70,10 +74,15 @@
 | 副歌·终章 | 天书诏令被一刀撕开，黎明金光，山水由夜转晓 | 大字 |
 | 尾奏 | 晨雾山水，刀客小剪影远去，红日；片尾重复出品信息和印章 | 居中小字 |
 
+## 4b. 已实现的时间线（scenes.TIMELINE）
+intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → duel(雨中拔刀三闪) → throne(金阶殿堂,锋芒竖斩) → scroll0(生死簿竖排) → blade(刀渐烫) → 副歌一[blade 炽热 / dscales 暗金天平 / wall 裂缝 / wall 劈开 / wall 金光刀客 / peak 血月山巅一刀] → stamp(大局/权柄红印砸下) → pscales1 → storm(闪电) → invert(黑白颠倒, 划刀复原) → scroll1 → blade → 副歌二(同副歌一, 强度1.4) → bridge(雨夜排比叠字, 两记重击) → blade → peak(破晓) → edict(诏书撕开) → wall 金光 → peak(天亮,最后一刀) → outro(片名+全部出品信息, 淡出)
+
 ## 5. 下一步
-1. 用户确认 10 秒试做的方向。
-2. 在 `render.py` 里按第 4 节加场景类（每段一个 class，接口同 `Intro.frame(t, dt) -> (frame, ca)`），用 `align.json` 的逐字时间驱动歌词。
-3. 全片分段并行渲染（2 核，每段约 30–40 秒片长，两个进程），再用 concat 拼接后整体混音频。按每帧约 0.5 秒估算，全片约 7200 帧，约 1 小时。
+1. ~~用户确认方向~~（2026-11-08 23:30 已确认，「继续吧」）
+2. ~~场景全部实现~~（scenes.py）
+3. 全片渲染：`./run_chunks.sh 0 600 600 1200 …`（每段 600 帧，共 7241 帧），然后
+   `printf "file '%s'\n" chunks/c_*.mp4 > list.txt; ffmpeg -f concat -safe 0 -i list.txt -i song.mp3 -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart 谁定正邪_MV.mp4`
+   原计划：全片分段并行渲染（2 核，每段约 30–40 秒片长，两个进程），再用 concat 拼接后整体混音频。按每帧约 0.5 秒估算，全片约 7200 帧，约 1 小时。
 4. 交付前用 ffprobe 核对时长（应为 241.3 秒），抽帧检查文字有没有被截断。
 5. 交付：H.264 CRF 16 母版，另出一个 CRF 20 的网络版。
 
@@ -83,6 +92,9 @@
 - 马善政体没有「·」，写在书法字里会变成方块，用全角空格代替；思源宋体有。
 - `text_layer` 的 `reveal` 列表长度必须等于字符串长度（空格也算）。
 
-## 7. 状态（2026-11-08 23:30）
+## 7. 状态（2026-11-08 23:45）
+- 全片场景已写完并抽帧检查，正在分段渲染（chunks/）。
+
+### 旧状态（23:30）
 - 已完成：纯代码方向关键帧 5 张，歌词逐字对齐，前奏片头（含全部出品信息）实现并试渲染 0–10 秒。
 - 等待：用户看 10 秒试做后的反馈。
