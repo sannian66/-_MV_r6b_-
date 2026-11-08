@@ -22,7 +22,8 @@ SS = 2              # 超采样
 
 
 # ============================================================== 2D 绘制小工具（超采样画布）
-class _Fig:
+class _FigCV:
+    """旧版 cv2 光栅（保留作前后对比）。"""
     def __init__(self, wu, hu, ox, oy):
         """wu,hu 画布单位尺寸；(ox,oy)=原点（脚底中心）在画布单位坐标中的位置"""
         self.k = UNIT * SS; self.ox, self.oy = ox, oy
@@ -110,6 +111,72 @@ class _Fig:
         foot = (self.ox * UNIT - x0, self.oy * UNIT - y0)
         return dict(A=A[y0:y1, x0:x1].copy(), base=base[y0:y1, x0:x1].astype(np.float32).copy(), rim=rim[y0:y1, x0:x1].copy(),
                     anchors=anc, foot=foot)
+
+
+class _SkFig(_FigCV):
+    """skia 矢量版精灵画布：A/T/G/R 存在一张 RGBA 预乘面里（R=明暗 G=金 B=朱 A=覆盖），
+    不透明色 SrcOver = 按覆盖率逐通道 lerp；甲片纹用 SrcATop（只画在已有覆盖内）+ 路径裁剪。finish() 与旧版一致。"""
+    def __init__(self, wu, hu, ox, oy):
+        self.k = UNIT * SS; self.ox, self.oy = ox, oy
+        self.h, self.w = int(hu * self.k), int(wu * self.k)
+        self.B = np.zeros((self.h, self.w, 4), np.uint8)
+        self.cv = skia.Surface(self.B, colorType=skia.kRGBA_8888_ColorType, alphaType=skia.kPremul_AlphaType).getCanvas()
+        self.anchors = {}
+    def Pf(self, p):
+        p = np.asarray(p, float).reshape(-1, 2)
+        return np.stack([(p[:, 0] + self.ox) * self.k, (self.oy - p[:, 1]) * self.k], 1)
+    def _paint(self, tone, gold, red, atop=False, stroke=None):
+        p = skia.Paint(AntiAlias=True, Color=skia.Color(int(tone * 255 + .5), int(gold * 255 + .5), int(red * 255 + .5), 255))
+        if atop: p.setBlendMode(skia.BlendMode.kSrcATop)
+        if stroke:
+            p.setStyle(skia.Paint.kStroke_Style); p.setStrokeWidth(float(stroke)); p.setStrokeCap(skia.Paint.kRound_Cap)
+        return p
+    def poly(self, pts, tone=0.0, gold=0.0, red=0.0):
+        self.cv.drawPath(_sk.path_poly(self.Pf(pts)), self._paint(tone, gold, red))
+    def cap(self, a, b, r, tone=0.0, gold=0.0, red=0.0, r2=None):
+        r2 = r if r2 is None else r2
+        q = self.Pf([a, b])
+        self.cv.drawPath(_sk.path_capsule_union(q[0], q[1], r * self.k, r2 * self.k), self._paint(tone, gold, red))
+    def ell(self, c, ax, ang=0, tone=0.0, gold=0.0, red=0.0, a0=0, a1=360):
+        q = self.Pf(c)[0]; rx, ry = ax[0] * self.k, ax[1] * self.k
+        P = skia.Path()
+        R = skia.Rect.MakeLTRB(q[0] - rx, q[1] - ry, q[0] + rx, q[1] + ry)
+        if a1 - a0 >= 360: P.addOval(R)
+        else: P.moveTo(*q); P.arcTo(R, float(a0), float(a1 - a0), False); P.close()
+        if ang: P.transform(skia.Matrix.RotateDeg(float(-ang), skia.Point(*q)))
+        self.cv.drawPath(P, self._paint(tone, gold, red))
+    def line(self, a, b, w, tone=0.5, gold=0.0, red=0.0, cover=True):
+        self.cv.drawPath(_sk.path_poly(self.Pf([a, b]), closed=False), self._paint(tone, gold, red, atop=not cover, stroke=max(0.5, w * self.k)))
+    def lamellar(self, x0, x1, y0, y1, rows, tone=0.42, clip_poly=None, stagger=True):
+        dy = (y1 - y0) / rows
+        self.cv.save()
+        if clip_poly is not None: self.cv.clipPath(_sk.path_poly(self.Pf(clip_poly)), skia.ClipOp.kIntersect, True)
+        P = skia.Path()
+        for r in range(rows):
+            y = y1 - r * dy; off = (r % 2) * 0.5 if stagger else 0
+            n = max(2, int((x1 - x0) / 3.2))
+            for i in range(n + 1):
+                x = x0 + (i + off) * (x1 - x0) / n
+                q = self.Pf([x, y])[0]; rx, ry = 1.5 * self.k, dy * 0.55 * self.k
+                P.addArc(skia.Rect.MakeLTRB(q[0] - rx, q[1] - ry, q[0] + rx, q[1] + ry), 200, 140)
+        self.cv.drawPath(P, self._paint(tone, 0, 0, atop=True, stroke=max(0.6, 0.35 * self.k)))
+        self.cv.restore()
+    def finish(self, rim_dir=(-0.6, -0.8), rimw=1.2):
+        B = self.B.astype(np.float32) / 255.
+        self.A, self.T, self.G, self.R = B[..., 3], B[..., 0], B[..., 1], B[..., 2]
+        return _FigCV.finish(self, rim_dir, rimw)
+
+try:
+    import sk as _sk
+    skia = _sk.skia
+    BACKEND = 'skia' if _sk.HAVE_SKIA else 'cv'
+except Exception:
+    _sk = None; BACKEND = 'cv'
+_Fig = _SkFig if BACKEND == 'skia' else _FigCV
+def set_backend(name):
+    """'skia'（默认）/'cv'：影响之后新建的 Army/Kneelers 精灵。"""
+    global _Fig, BACKEND
+    BACKEND = name; _Fig = _SkFig if name == 'skia' else _FigCV
 
 
 # ============================================================== 重甲兵
