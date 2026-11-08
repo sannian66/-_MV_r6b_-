@@ -95,9 +95,9 @@ def chunks(budget=100):
     print('remaining chunks', left)
 
 
-def mux(name='sample_chorus1_v2'):
+def mux(name='sample_chorus1_v2', cdir='c1v2chunks'):
     f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
-    lst = OUT + '/c1v2chunks/list.txt'
+    lst = OUT + f'/{cdir}/list.txt'
     open(lst, 'w').write(''.join(f"file 'c_{a}.mp4'\n" for a in range(f0, f1, CH)))
     subprocess.check_call(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', lst,
                            '-ss', f'{T0:.3f}', '-t', f'{T1 - T0:.3f}', '-i', ROOT + '/song.mp3',
@@ -157,5 +157,6 @@ if __name__ == '__main__':
     elif m == 'all': all_()
     elif m == 'chunks': chunks(float(sys.argv[2]) if len(sys.argv) > 2 else 100)
     elif m == 'mux': mux()
+    elif m == 'mux3': mux('sample_chorus1_v3', 'c1v3chunks')
     elif m == 'cuts': cuts_part(int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
     elif m == 'cutsmerge': cuts_merge(sys.argv[2:])

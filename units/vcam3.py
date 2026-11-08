@@ -333,8 +333,8 @@ class FGOcc:
         q = 2
         z = st['z'] * st.get('fitk', 1.0)
         sc = z ** self.d
-        sx = -(st['x'] * z) * self.d - st['yaw'] * 42 * self.d + self.off[0]
-        sy = -(st['y'] * z) * self.d + st['pitch'] * 42 * self.d + self.off[1]
+        sx = -(st['x'] * z) * self.d - st['yaw'] * 12 * self.d + self.off[0]
+        sy = -(st['y'] * z) * self.d - st['pitch'] * 8 * self.d + self.off[1]
         if self.kind == 'reeds': sx += 14 * math.sin(t * 1.3)
         M = cv2.getRotationMatrix2D((W / 2 / q, H / 2 / q), st['rot'] * 1.3, sc)
         M[0, 2] += sx / q; M[1, 2] += sy / q
