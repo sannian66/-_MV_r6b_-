@@ -1,5 +1,5 @@
 {
- "spent": 54,
+ "spent": 72,
  "jobs": {
   "S002:back_wind": {
    "tries": [
@@ -27,9 +27,9 @@
     {
      "n": 2,
      "task_id": "7fa643c0-1099-4e57-8a1a-c8d9d6ecca68",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S003/thumb_push_try2_0.png",
      "verdict": null
     }
    ],
@@ -121,10 +121,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S014/slash_diag_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S014:sheath": {
    "tries": [
@@ -134,10 +134,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S014/sheath_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S015:hand_draw": {
    "tries": [
@@ -147,10 +147,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S015/hand_draw_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S018:turn": {
    "tries": [
@@ -170,9 +170,9 @@
     {
      "n": 1,
      "task_id": "fd9bfc54-d9a2-4b05-9a64-fc97a630f3f1",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S018/look_up_try1_0.png",
      "verdict": null
     }
    ],
@@ -183,6 +183,14 @@
     {
      "n": 1,
      "task_id": "889b99e7-fcf5-4b85-8db3-8afaea34a23c",
+     "status": "failed",
+     "pts": 3,
+     "file": null,
+     "verdict": "api:http_502"
+    },
+    {
+     "n": 2,
+     "task_id": "dbdd1725-7784-414d-af42-951d9764608c",
      "status": "running",
      "pts": 3,
      "file": null,
@@ -196,9 +204,9 @@
     {
      "n": 1,
      "task_id": "15969192-73db-429d-a0fb-0cc424cf3203",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S023/look_up_low_try1_0.png",
      "verdict": null
     }
    ],
@@ -209,9 +217,9 @@
     {
      "n": 1,
      "task_id": "0d8c52d8-122c-470c-885b-36d6c50fd2e6",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S024/fist_try1_0.png",
      "verdict": null
     }
    ],
@@ -222,6 +230,71 @@
     {
      "n": 1,
      "task_id": "c81cdb2b-fe11-4eb1-9cc4-59621ded094b",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S024/pommel_thrust_try1_0.png",
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S071:land_kneel": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "fcc9dcde-06e7-4993-b7b5-1c817773c157",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S072:rise_draw": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "b644400c-a65f-4e79-871d-16bf4f8d74f7",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S073:spin1": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "d66bff2f-b371-4cd4-b17f-a814d949056f",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S073:spin2": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S074:head_turn": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "f0b597db-dbde-4dc0-b1c4-cb9f73c87529",
      "status": "running",
      "pts": 3,
      "file": null,

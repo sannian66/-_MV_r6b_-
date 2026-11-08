@@ -48,3 +48,12 @@
 | 11-08 21:37 | S014 | RH_image2 | 4K 16:9 | 3 | 4425f923-b434-4360-b67b-431a8298d8b6 | completed | rest_cands/S014/slash_diag_try1_0.png | slash_diag try1：Diagonal downward sword stroke from upper right to |
 | 11-08 21:37 | S014 | RH_image2 | 4K 16:9 | 3 | 9265a122-2fda-45a5-8f66-9112e7dc3427 | completed | rest_cands/S014/sheath_try1_0.png | sheath try1：Calm upright stance sliding the dao back into the  |
 | 11-08 21:37 | S015 | RH_image2 | 4K 16:9 | 3 | c0e765c9-fe69-409c-aa8f-e7f685610e80 | completed | rest_cands/S015/hand_draw_try1_0.png | hand_draw try1：Close-up of his right hand gripping the black cord |
+| 11-08 21:38 | S014 | RH_image2 | 4K 16:9 | 0 | 4425f923-b434-4360-b67b-431a8298d8b6 | 采用 | assets/gen/S014/slash_diag_raw.png | slash_diag try1 采用 |
+| 11-08 21:38 | S014 | RH_image2 | 4K 16:9 | 0 | 9265a122-2fda-45a5-8f66-9112e7dc3427 | 采用 | assets/gen/S014/sheath_raw.png | sheath try1 采用 |
+| 11-08 21:38 | S015 | RH_image2 | 4K 16:9 | 0 | c0e765c9-fe69-409c-aa8f-e7f685610e80 | 采用 | assets/gen/S015/hand_draw_raw.png | hand_draw try1 采用 |
+| 11-08 21:39 | S003 | RH_image2 | 4K 16:9 | 3 | 7fa643c0-1099-4e57-8a1a-c8d9d6ecca68 | completed | rest_cands/S003/thumb_push_try2_0.png | thumb_push try2：Macro extreme close-up of ONLY a hand and sword gu |
+| 11-08 21:39 | S018 | RH_image2 | 4K 16:9 | 3 | fd9bfc54-d9a2-4b05-9a64-fc97a630f3f1 | completed | rest_cands/S018/look_up_try1_0.png | look_up try1：Face tilted upward looking up at something huge ab |
+| 11-08 21:39 | S021 | RH_image2 | 4K 16:9 | 3 | 889b99e7-fcf5-4b85-8db3-8afaea34a23c | failed None |  | finger try1 |
+| 11-08 21:39 | S023 | RH_image2 | 4K 16:9 | 3 | 15969192-73db-429d-a0fb-0cc424cf3203 | completed | rest_cands/S023/look_up_low_try1_0.png | look_up_low try1：Low-angle shot from below, standing, head tilted u |
+| 11-08 21:39 | S024 | RH_image2 | 4K 16:9 | 3 | 0d8c52d8-122c-470c-885b-36d6c50fd2e6 | completed | rest_cands/S024/fist_try1_0.png | fist try1：Raising a clenched right fist in front of his ches |
+| 11-08 21:39 | S024 | RH_image2 | 4K 16:9 | 3 | c81cdb2b-fe11-4eb1-9cc4-59621ded094b | completed | rest_cands/S024/pommel_thrust_try1_0.png | pommel_thrust try1：Thrusting the sword pommel backward over his shoul |

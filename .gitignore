@@ -9,3 +9,5 @@ __pycache__/
 out/c1chunks/log_*.txt
 
 .env.local
+out/chorus1_sprite/chunks/
+out/chorus1_sprite/chorus1_sprite_master_crf18.mp4
