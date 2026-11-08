@@ -399,3 +399,24 @@ Seedance 2.0、Seedance 2.5（含历史兼容渠道）的图片、视频和音�
 Seedance 六种模式以租户实际启用的为准：text2video（文字）、image2video_first（一张首帧）、image2video_first_last（依次首帧和尾帧）、multimodal_ref（图片/视频/音频参考）、video_edit（必须提供参考视频）、video_extend（必须提供参考视频）。Kling v3 Omni 与 RunningHub 的 first_last_frame、image_audio 等模式使用各自详情，不套用 Seedance 入参。先读 schema 再填写时长和比例：Seedance 2.5 编辑 duration=-1、aspect_ratio=adaptive；多模态参考的常规时长和比例按当前详情选择。
 
 如果返回 invalid_skill_key 或 skill_key_revoked，请提示用户重置 Skills Key；model_package_required 请改用 models 返回的可用模型；审核错误按 reason、mediaType、assetIndex 和 recovery 区分上述格式恢复、审核处理中和内容拒绝。不要靠切换兼容字段或添加顶层 media_type 来重试同一失败素材。该安装提示适用于 Codex、Claude Code、WorkBuddy、OpenClaw、Hermes 以及其他支持 Skills 调用的智能体。
+
+### Hark · 2026-11-08T19:40:58Z
+
+装好了，已调通。生图默认用 RH_image2（全能图片G2），4K 每张 3 积分，官渠版要 18。CLAUDE.md、技能规则和调用脚本已推到 GitHub。仓库是公开的，所以 Key 只存在保险库，沟通记录里也自动打码了。
+
+### Hark · 2026-11-08T19:40:58Z
+
+仓库和之前的对话里都没找到角色资产图。把刀客等角色的图直接发我好吗？收到后我先出侧脸、回头、握刀手和刀上倒影的眼睛这几张定妆图，你确认后再放进镜头。
+
+### 用户 · 2026-11-08T19:45:55Z
+
+github也同步吧 这些资产
+[file: 反派_柳传智.webp]
+[file: 反派_周齐世.webp]
+[file: 男2_影子.webp]
+[file: 男主_鬼屠.webp]
+[file: 男主师姐_丁昭.webp]
+[file: 男主师兄_谢玄洲.webp]
+[file: 男主徒弟_杨不丢.webp]
+[file: 女主_殷若.webp]
+[file: 最终boss_太上皇.webp]
