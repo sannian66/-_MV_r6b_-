@@ -1,6 +1,0 @@
-node_modules/
-frames/
-test/
-*.wav
-whisper.json
-__pycache__/
