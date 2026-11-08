@@ -69,3 +69,11 @@
 3. 搭 `src/index.html` + `src/shots/*.js`：每个镜头一个模块，导出 `{start, end, draw(t, ctx|gl)}`。
 4. 写 `render/render.mjs`：逐帧存盘到 `frames/%06d.jpg`，已存在的帧跳过，用于断点续渲；再写 `render/mux.sh` 调 ffmpeg。
 5. 每完成一步就 commit + push。
+
+## 7. 2026-11-08 23:20 状态：用户叫停
+- 用户看过 A/B 两个关键帧后的反馈：「好丑」，并且做得「不如项目里那个子 agent 做的」。用户要求回到**纯代码**：不用生图，不用人物立绘。
+- 项目「谁定正邪 MV」里的另一个 agent 已经做过纯代码关键帧，作为参考底线：
+  - 关键帧：`/workspace/work/mv/sfp/p1–p5`
+  - 风格：2.39 宽银幕，只用黑白红金，剪影，几何刀光，竖排书法
+  - 时间轴：用 demucs 分离人声后做强制对齐，结果在 `/workspace/work/mv/align.json`，比本仓库的 `segs.json` 准，应改用它
+- 随后用户说「停止吧」。项目暂停。不要继续，等用户重新发起。
