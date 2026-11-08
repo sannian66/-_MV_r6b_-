@@ -202,10 +202,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S021/finger_try2_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 2
   },
   "S023:look_up_low": {
    "tries": [
@@ -262,10 +262,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S071/land_kneel_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S072:rise_draw": {
    "tries": [
@@ -275,10 +275,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S072/rise_draw_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S073:spin1": {
    "tries": [
@@ -288,10 +288,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S073/spin1_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S073:spin2": {
    "tries": [
@@ -301,10 +301,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S073/spin2_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S074:head_turn": {
    "tries": [
@@ -314,10 +314,10 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S074/head_turn_try1_0.png",
-     "verdict": null
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S078:run": {
    "tries": [

@@ -68,3 +68,10 @@
 | 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 3 | d66bff2f-b371-4cd4-b17f-a814d949056f | completed | rest_cands/S073/spin1_try1_0.png | spin1 try1：Mid-spin, back partly to camera, sword arm extende |
 | 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 3 | b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d | completed | rest_cands/S073/spin2_try1_0.png | spin2 try1：Completing a spinning sword sweep, facing camera,  |
 | 11-08 21:41 | S074 | RH_image2 | 4K 16:9 | 3 | f0b597db-dbde-4dc0-b1c4-cb9f73c87529 | completed | rest_cands/S074/head_turn_try1_0.png | head_turn try1：Close-up of his head turning sideways in profile,  |
+| 11-08 21:41 | S021 | RH_image2 | 4K 16:9 | 0 | dbdd1725-7784-414d-af42-951d9764608c | 采用 | assets/gen/S021/finger_raw.png | finger try2 采用 |
+| 11-08 21:41 | S071 | RH_image2 | 4K 16:9 | 0 | fcc9dcde-06e7-4993-b7b5-1c817773c157 | 采用 | assets/gen/S071/land_kneel_raw.png | land_kneel try1 采用 |
+| 11-08 21:41 | S072 | RH_image2 | 4K 16:9 | 0 | b644400c-a65f-4e79-871d-16bf4f8d74f7 | 采用 | assets/gen/S072/rise_draw_raw.png | rise_draw try1 采用 |
+| 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 0 | d66bff2f-b371-4cd4-b17f-a814d949056f | 采用 | assets/gen/S073/spin1_raw.png | spin1 try1 采用 |
+| 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 0 | b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d | 采用 | assets/gen/S073/spin2_raw.png | spin2 try1 采用 |
+| 11-08 21:41 | S074 | RH_image2 | 4K 16:9 | 0 | f0b597db-dbde-4dc0-b1c4-cb9f73c87529 | 采用 | assets/gen/S074/head_turn_raw.png | head_turn try1 采用 |
+| 11-08 21:41 | S021 | - | - | 0 | - | 后处理 | assets/gen/S021/finger_raw.png | 生图多出一个全身太上皇，raw 下方 68.5% 用背景灰填掉，只留天降手指 |
