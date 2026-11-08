@@ -173,7 +173,7 @@ def moon_sprite(r, seed=4, phase=0.0):
         disc = disc * np.clip(sh * 8, 0, 1)
     rgb = np.stack([lum * 0.95, lum * 0.95, lum * 0.92], -1)
     halo = (1 / (1 + (d / r) ** 2 * 1.2)) * 0.55 + np.exp(-((d - r) / (r * 0.08)) ** 2) * 0.15
-    halo = halo * (1 - disc)
+    halo = halo * (1 - disc) * np.clip((c - d) / (r * 1.2), 0, 1) ** 2      # 光晕在精灵边缘前衰减到 0（v1 有方框台阶）
     A = np.clip(disc + halo, 0, 1)
     col = (rgb * disc[..., None] + np.array([0.75, 0.80, 0.9], np.float32) * halo[..., None]) / np.maximum(A, 1e-4)[..., None]
     return col.astype(np.float32), A.astype(np.float32)

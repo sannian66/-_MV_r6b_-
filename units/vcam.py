@@ -167,15 +167,15 @@ class VCam:
     def base(self, t):
         z, x, y, r = 1.0, 0.0, 0.0, 0.0
         for a, b, m, g in self.moves:
-            if a <= t < b:
+            if a - 1e-6 <= t < b - 1e-6:
                 c = m.at((t - a) / (b - a)); z, x, y, r = c['z'], c['x'], c['y'], c['rot']
                 break
         for (tc, v, L, no, ni) in self.whips:
             to, ti = no / FPS, ni / FPS
-            if tc - to <= t < tc:            # 甩出：加速
+            if tc - to - 1e-6 <= t < tc - 1e-6:            # 甩出：加速
                 e = expo_in((t - (tc - to)) / to) * 0.85 + quart_in((t - (tc - to)) / to) * 0.15
                 x += v[0] * L * e; y += v[1] * L * e
-            elif tc <= t < tc + ti:          # 甩入：同方向减速到位
+            elif tc - 1e-6 <= t < tc + ti - 1e-6:          # 甩入：同方向减速到位
                 e = 1 - expo_out((t - tc) / ti)
                 x -= v[0] * L * e; y -= v[1] * L * e
         return z, x, y, r

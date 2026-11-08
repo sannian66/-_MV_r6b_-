@@ -16,18 +16,34 @@ else:
 import typo as T, trans as TR
 from c1kit import *
 import c1kit as K
+import json
+import vcam as VC
+import fx2
 
 LINES = T.load_lines()
+FPS = 30
+HM = json.load(open(ROOT + '/crew/hitmap_c1.json'))          # units/hitmap.py 卡点图（鼓轨分离 + 人声字头精修）
+_WT = {}
+for _w in HM['words']: _WT[(_w['line'], _w['k'])] = _w['t']
+REAL_T = [None]          # 镜头内时间被重映射（定格/慢放）时，歌词仍按真实时间落点
+
+
+def V(t):
+    """声音时刻 → 视觉帧时刻（最近帧再提前 1 帧，感知同步）"""
+    return (round(t * FPS) - 1) / FPS
 
 
 def CT(li, k):
-    """第 li 句第 k 个可见字的时间"""
-    ts = [x for x in LINES[li]['times'] if x is not None]
-    return ts[min(k, len(ts) - 1)]
+    """第 li 句第 k 个可见字的字头时间（人声 onset 精修）"""
+    n = len([x for x in LINES[li]['times'] if x is not None])
+    k = min(k, n - 1)
+    return _WT.get((li, k), [x for x in LINES[li]['times'] if x is not None][k])
 
 
-def tprog(li, chars_idx, t, dur=0.25, lead=0.05):
-    return [clamp01((t - CT(li, k) + lead) / dur) for k in chars_idx]
+def tprog(li, chars_idx, t, dur=0.2, lead=0.0):
+    """字的进度：在字头前 dur 秒开始，恰好在「字头视觉帧」落定（=1）"""
+    tr = REAL_T[0] if REAL_T[0] is not None else t
+    return [clamp01((tr - (V(CT(li, k)) - dur)) / dur) for k in chars_idx]
 
 
 def dark_bg(seed=0, lo=0.02, hi=0.07):
@@ -132,8 +148,6 @@ class S027(Shot):
         dx, dy, dr = shake(t, 8 * u, 14, 27)
         fr = cam(fr, z / 1.2, dx, dy, dr, center=(1000, 560))
         fr = K.radial_blur(fr, (1000, 560), 0.06 * ein(u, 3))
-        if t > 59.16:       # 压暗一拍蓄力（随后 flash_white 切入副歌）
-            fr = fr * 0.22
         return fr, 0
 
 
@@ -141,10 +155,11 @@ class S027(Shot):
 # S028 59.48–60.53 ECU 血滴落刃（慢放），背景巨字「血」朱红墨晕
 class S028(Shot):
     t0, t1 = 59.48, 60.534
-    T_HIT = 59.86
+    T_HIT = V(59.70)         # 血滴落刃 = 「未」字头
     def __init__(self):
-        self.bg = dark_bg(28, 0.012, 0.045)
+        self.bg = dark_bg(28, 0.02, 0.07)
         T.glyph('血', 'xing', 700, True)
+        T.warm('未冷', 'xing', 130)
 
     def render(self, t):
         u = self.u(t)
@@ -204,7 +219,10 @@ class S028(Shot):
         fr = K.dust(fr, t, 2812, n=40, amt=0.35, size=(3, 8), blur=4, color=(0.9, 0.5, 0.4))
         z = (1.0 + 0.06 * eio(u)) * (1 + 0.06 * pulse(t, self.t0, 0.15))
         fr = cam(fr, z, 0, 0)
-        ca = 3 if 59.94 <= t < 60.04 else 0
+        ca = 3 if V(59.96) <= t < V(59.96) + 0.1 else 0
+        pr = tprog(12, [1, 2], t, 0.18)
+        fr = T.scatter_stack(fr, '未冷', pr, size=130, fname='xing', box=(1300, 640, 1780, 930), anchor=(0.8, 0.8),
+                             t_local=t - self.t0, seed=7)
         return fr, ca
 
 
@@ -219,29 +237,29 @@ class S029(Shot):
         rgb, A = K.moon_sprite(200)
         self.bg = K.paste_sprite(self.bg.copy(), rgb, A, *self.MOON)
         self.bg = cv2.GaussianBlur(self.bg, (0, 0), 14)
-        T.warm('未冷', 'xing', 160)
+        T.warm('刀', 'xing', 300)
+        self.T_DAO = V(CT(12, 3))
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
-        prog = eout((t - self.t0) / 0.6, 2) * 0.9 + 0.1 * pulse(t, 60.6, 0.2)
+        prog = eout((t - self.t0) / 0.5, 2) * 0.9 + 0.1 * pulse(t, self.T_DAO, 0.2) * (t >= self.T_DAO)
         fr = self.hand.draw(fr, 'grip', prog, t, self.MOON[0] + 20, self.MOON[1] + 170, 400, angle=-8,
                             rim_color=(0.9, 0.93, 1.0), rim_dir=(-0.2, -1.0), lift=0.35)
         fr = fr[0] if isinstance(fr, tuple) else fr
         fr = K.sparks(fr, t, 2901, (300, 760), n=55, life=0.8, speed=(600, 1300), dirc=(1, -0.25), spread=0.25,
                       grav=120, area=(200, 120), amt=1.0)
-        # 60.60「刀」白刃一闪
-        k = pulse(t, 60.60, 0.06)
+        # 「刀」字头：白刃一闪
+        k = pulse(t, self.T_DAO, 0.06) * (t >= self.T_DAO - 0.04)
         if k > 0.02:
-            fr = T._slash_light(fr, (960, 600), np.array([math.cos(-0.35), math.sin(-0.35)]), clamp01((t - 60.6) / 0.35), 2600)
+            fr = T._slash_light(fr, (960, 600), np.array([math.cos(-0.35), math.sin(-0.35)]), clamp01((t - self.T_DAO + 0.04) / 0.35), 2600)
         z = 1.05 + 0.07 * eio(u)
         dx, dy, dr = shake(t, 5 + 6 * k * 3, 1.6, 29)
         fr = cam(fr, z, dx, dy, dr)
         # 文字（屏幕层，不随镜头）
-        pr = tprog(12, [1, 2], t, 0.22)
-        pr = [max(pr[0], clamp01((t - self.t0 + 0.05) / 0.25)), max(pr[1], clamp01((t - self.t0 - 0.08) / 0.25))]
-        fr = T.scatter_stack(fr, '未冷', pr, size=160, fname='xing', box=(1250, 560, 1800, 900), anchor=(0.7, 0.7),
-                             t_local=t - self.t0, seed=7)
+        pr = tprog(12, [3], t, 0.16)
+        fr = T.scatter_stack(fr, '刀', pr, size=300, fname='xing', emph=('刀',), emph_color='red', box=(1280, 330, 1760, 860),
+                             anchor=(0.6, 0.5), t_local=t - self.T_DAO, seed=7, fill=False)
         return fr, 0
 
 
@@ -268,27 +286,25 @@ class S030(Shot):
         # 山脊（中景）
         rm = K.ridge_mask(H, W, self.ridge - crane * 0.0 + crane * 0.6)
         fr = over(fr, rm, (0.025, 0.025, 0.03))
-        ph = clamp01((t - 61.30) / 0.95)
+        ph = clamp01((t - (self.t0 + 0.05)) / 0.9)
         S = self.sw.pose('raise_sword_sky', ph, t, wind=-220)
         fy = 935 + crane * 0.6
         fr, info = self.sw.draw(fr, 905, fy, 300, rim_color=(0.85, 0.9, 1.0), rim_dir=(0.1, -1), rim=1.4)
         # 刃光一闪（刀尖指月）
-        g = pulse(t, 61.80, 0.12) * (t >= 61.8)
+        g = pulse(t, V(61.88), 0.12) * (t >= V(61.88))
         if g > 0.01:
             tx, ty = info['tip']
             x, y = K.grid()
             st = np.exp(-(np.abs(x - tx) / 3 + np.abs(y - ty) / 60)) + np.exp(-(np.abs(y - ty) / 3 + np.abs(x - tx) / 90))
             fr += (st * g * 1.6 + np.exp(-((x - tx) ** 2 + (y - ty) ** 2) / 900) * g)[..., None] * 1.0
         # 印「刀」盖在月面（落印在 61.93 拍上）
-        ps = clamp01((t - 61.75) / 0.6)
+        ps = clamp01((t - (V(61.88) - 0.18)) / 0.6)
         if ps > 0:
             fr = T.stamp_seal(fr, '刀', self.MOON[0], self.MOON[1] - crane * 0.3, 280, ps, style='yin', rot=-5, seed=30)
         # 前景草叶（虚焦，视差更大）
         gm = self.grass.mask(t, 1.2, dy=crane * 1.2, blur=10)
         fr = over(fr, gm, (0.01, 0.01, 0.012))
-        z = 1.0 + 0.08 * pulse(t, 61.93, 0.18) * (t >= 61.93)
-        fr = cam(fr, z, 0, 0)
-        pr = tprog(12, [4, 5], t, 0.25)
+        pr = tprog(12, [4, 5], t, 0.2)
         fr = T.vertical_column(fr, '不放', pr, size=90, fname='xing', box=(1080, 160, 1300, 560), anchor=(0.0, 0.0), rule=True)
         return fr, 0
 
@@ -334,8 +350,6 @@ class S031(Shot):
         self.sw.pose('stand_wind', (t * 0.3) % 1, t, wind=300)
         fr, _ = self.sw.draw(fr, 960, rg[960] + 6, 46, rim_color=(0.8, 0.85, 0.95), rim_dir=(0, -1))
         # 63.82「正」金闪 1 帧
-        if 63.82 <= t < 63.82 + 1 / 30 + 1e-3:
-            fr = fr * 0.7 + GOLD * 0.35
         fr = cam(fr, 1.0 + 0.04 * u, 0, 0)
         # 天书竖排（悬于云间，左上）
         pr = tprog(13, [0, 1, 2, 3], t, 0.3)
@@ -348,7 +362,7 @@ class S031(Shot):
 # S032 64.20–66.04 CU 正(金)/邪(朱)两印，中线一刀劈开、错位推开
 class S032(Shot):
     t0, t1 = 64.203, 66.038
-    T_CUT = 65.109
+    T_CUT = V(65.085)
     def __init__(self):
         self.pap = K.paper_dark(32)
         x, y = K.grid()
@@ -357,8 +371,8 @@ class S032(Shot):
 
     def seals(self, t):
         fr = self.pap.copy()
-        fr = T.stamp_seal(fr, '正', 640, 520, 320, clamp01((t - 63.64) / 0.6), style='yin', rot=-3, seed=321, color='gold')
-        fr = T.stamp_seal(fr, '邪', 1280, 540, 320, clamp01((t - 64.18) / 0.6), style='yin', rot=4, seed=322, color='red')
+        fr = T.stamp_seal(fr, '正', 640, 520, 320, clamp01((t - (V(CT(13, 4)) - 0.18)) / 0.6), style='yin', rot=-3, seed=321, color='gold')
+        fr = T.stamp_seal(fr, '邪', 1280, 540, 320, clamp01((t - (V(CT(13, 5)) - 0.18)) / 0.6), style='yin', rot=4, seed=322, color='red')
         return fr
 
     def render(self, t):
@@ -388,14 +402,9 @@ class S032(Shot):
         else:
             # 刀光预兆：斜光从画面外扫入
             pass
-        # 甩镜进入：左→右，带运动模糊
-        w = 1 - eout((t - self.t0) / 0.3, 3)
-        ox = -220 * w
-        dx, dy, dr = shake(t, 5 * pulse(t, 65.573, 0.1) + 2 * pulse(t, 64.36, 0.1), 18, 32)
-        fr = cam(fr, 1.04 + 0.04 * eio(u), ox + dx, dy, dr)
-        if w > 0.05: fr = K.motion_blur(fr, 120 * w, 0)
-        fr = fr * (1 - 0.25 * pulse(t, 65.573, 0.15))
-        if 64.36 <= t < 64.36 + 1 / 30 + 1e-3: fr = fr * 0.6 + RED * 0.5
+        fr = cam(fr, 1.04 + 0.04 * eio(u), 0, 0)
+        tx = V(CT(13, 5))
+        if tx <= t < tx + 1 / 30 + 1e-3: fr = fr * 0.6 + RED * 0.5
         pr = tprog(13, [6, 7], t, 0.25)
         fr = T.brush_write(fr, '一方', pr, style='h', size=110, fname='xing', color='white', box=(760, 790, 1160, 930))
         return fr, 0
@@ -480,7 +489,7 @@ class S033(Shot):
 # S034 67.87–69.76 ECU 墙砖仰拍，墙高无尽；「墙」巨字从砖缝里浮起
 class S034(Shot):
     t0, t1 = 67.872, 69.76
-    T_POP = 68.88
+    T_POP = V(68.89)
     def __init__(self):
         wall, seam = K.brick_wall(2400, 1600, 220, 92, 9, 34)
         self.wall = wall; self.seam = seam
@@ -536,7 +545,8 @@ class S034(Shot):
 # S035 69.76–71.05 MS 疾跑起跳，空中斜劈墙，裂缝炸开；「那就劈开它」被斩断
 class S035(Shot):
     t0, t1 = 69.76, 71.053
-    T_HIT = 70.02
+    T_HIT = V(70.02)
+    SH = 70.02 - V(70.02)
     def __init__(self):
         self.sw = rig.Swordsman(35, view='side')
         wall, seam = K.brick_wall(2400, 1600, 170, 72, 8, 35)
@@ -545,6 +555,7 @@ class S035(Shot):
         T.warm('那就劈开它', 'kai', 110)
 
     def chan(self, t):
+        t = t + self.SH
         if t < 69.95:
             ph = clamp01((t - 69.70) / 0.25) * 0.55
             c = rig.sample_action('leap', ph)
@@ -560,6 +571,7 @@ class S035(Shot):
         return c
 
     def xy(self, t):
+        t = t + self.SH
         x = 260 + 700 * eout((t - self.t0) / 0.4, 2) + 80 * clamp01((t - 70.1) / 0.6)
         a = clamp01((t - 69.82) / 0.75)
         y = 1000 - 330 * math.sin(math.pi * a) ** 0.8
@@ -608,13 +620,10 @@ class S035(Shot):
         # 冲击：闪白 + 抖动；速度坡度用运动模糊表现
         fl = pulse(t, self.T_HIT, 0.05) * (t >= self.T_HIT)
         fr = fr + fl * 0.8
-        dx, dy, dr = shake(t, 14 * pulse(t, self.T_HIT, 0.2) * (t >= self.T_HIT) + 5 * pulse(t, 70.147, 0.12) * (t >= 70.147) + 3, 10, 35)
-        fr = cam(fr, 1.03, dx, dy, dr)
-        if t < 69.95: fr = K.motion_blur(fr, 60 * (1 - (t - self.t0) / 0.19), 0)
-        if t > 70.30 and t < 70.6: fr = K.motion_blur(fr, 40, 0)
-        fr = fr * (1 - 0.3 * pulse(t, 70.147, 0.15) * (t >= 70.147))
-        p = clamp01((t - 69.70) / 0.9)
-        fr = T.slash_cut(fr, '那就劈开它', p, size=110, fname='kai', color='white', angle=55, cut_at=(self.T_HIT - 69.70) / 0.9,
+        fr = cam(fr, 1.03, 0, 0)
+        if t > 70.27 and t < 70.57: fr = K.motion_blur(fr, 40, 0)
+        p = clamp01((t - 69.60) / 0.9)
+        fr = T.slash_cut(fr, '那就劈开它', p, size=120, fname='kai', color='white', angle=55, cut_at=(self.T_HIT - 69.60) / 0.9,
                          emph=('劈',), emph_color='red', box=(120, 170, 900, 420), slide=0.5, seed=35)
         return fr, (3 if fl > 0.3 else 0)
 
@@ -644,7 +653,7 @@ class S036(Shot):
         x, y = K.grid()
         core = cm
         lightA = K.blur_ds(core, 4) * 2.2 + K.blur_ds(core, 30) * 1.4
-        breath = 0.85 + 0.15 * math.sin(t * 9) + 0.5 * pulse(t, 72.10, 0.15) * (t >= 72.1)
+        breath = 0.95 + 0.15 * math.sin(t * 9)
         fr = fr * 0.7 + lightA[..., None] * GOLD * breath
         fr += core[..., None] * np.array([1.0, 0.95, 0.85], np.float32) * 1.2
         rays = K.radial_blur(np.repeat(np.clip(lightA, 0, 1)[..., None], 3, -1) * GOLD, (960, 540), 0.5, n=8, scale=4)
@@ -652,10 +661,9 @@ class S036(Shot):
         fr += rays * (0.35 + 0.5 * fogm[..., None]) * 0.9
         fr = K.dust(fr, t, 3640, n=110, amt=0.7, size=(1, 4), drift=(25, -20), color=(1.0, 0.8, 0.5), blur=1.5)
         fr = cam(fr, 1.0 + 0.15 * e, 0, 0)
-        if 72.10 <= t < 72.10 + 1 / 30 + 1e-3: fr = fr + 0.25
         # 「看个」沿裂缝方向，白色墨洇（光洇）
         th = math.degrees(math.atan2(1400, 1600))
-        pr = tprog(15, [5, 6], t, 0.35)
+        pr = tprog(15, [5, 6], t, 0.25)
         P = [dict(ch='看', x=640, y=470, size=120, rot=-th * 0.0, font='xing', idx=0, emph=False),
              dict(ch='个', x=800, y=610, size=120, rot=0.0, font='xing', idx=1, emph=False)]
         fr = T.ink_bleed_in(fr, '看个', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.2))
@@ -689,8 +697,13 @@ class S037(Shot):
         x, y = K.grid()
         cr = K.crack_path((self.CX - 10, 340), (self.CX + 6, 830), 371, n=30, jag=0.04)
         cm = K.draw_crack((H, W), cr, 2.2, branches=3, seed=372)
-        fl = 0.8 + 0.2 * math.sin(t * 11) + 0.8 * pulse(t, 72.6, 0.5) * (t >= 72.6)
+        t_l = V(CT(15, 8))
+        fl = 0.9 + 0.2 * math.sin(t * 11) + 1.0 * pulse(t, t_l, 0.5) * (t >= t_l)
+        fr = fr * 0.7
         fr += (cm * 1.5 + K.blur_ds(cm, 10) * 2.2 + K.blur_ds(cm, 60) * 1.4)[..., None] * GOLD * fl
+        # 体积光：金光从缝里向天空和镜头扇形喷出（与其他砖墙镜头区分：逆光大光柱）
+        fr = fx2.god_rays(fr, (self.CX, 560), emit=np.clip(cm * 1.2 + K.blur_ds(cm, 12) * 2, 0, 1), strength=1.3 * fl,
+                          length=0.9, color=GOLD, t=t, shafts=0.7, seed=37)
         # 地面 + 地面上的金光反射
         g = (0.03 + 0.02 * K.blur_ds(cm, 80))[..., None]
         fr = fr * (1 - self.gm[..., None]) + (g + (np.exp(-np.abs(x - self.CX) / 40) * np.exp(-(y - 820) / 60) * 0.25)[..., None] * GOLD) * self.gm[..., None]
@@ -700,7 +713,7 @@ class S037(Shot):
         fr = K.fog(fr, t, 373, amt=0.45, speed=(40, 0), y0=0.68, y1=1.0, color=(0.30, 0.32, 0.36))
         e = eio(u)
         fr = cam(fr, 1.1 - 0.1 * e, 0, 40 - 70 * e, center=(self.CX, 600))
-        pb = clamp01((t - 72.0) / 1.9)
+        pb = clamp01((t - (V(CT(15, 7)) - 0.15)) / 1.9)
         fr = T.burn_in(fr, '天亮', pb, size=180, fname='xing', color='gold', box=(self.CX - 300, 140, self.CX + 300, 330),
                        mode='extinguish', split=0.55, seed=37)
         return fr, 0
@@ -714,6 +727,7 @@ class S038(Shot):
         self.sw = rig.Swordsman(38, view='side', hair=2)
         self.bg = dark_bg(38, 0.008, 0.03)
         T.glyph('血', 'xing', 620, True)
+        T.warm('未冷', 'xing', 120)
 
     def render(self, t):
         u = self.u(t)
@@ -743,7 +757,10 @@ class S038(Shot):
         hy = path[-1][1] if path else 540
         z = 1.0 + 0.06 * pulse(t, self.t0, 0.15)
         fr = cam(fr, z * 1.05, 0, (hy - 540) * 0.25 - 40 + 80 * e)
-        ca = 3 if 74.6 <= t < 74.7 else 0
+        ca = 3 if V(CT(16, 2)) <= t < V(CT(16, 2)) + 0.1 else 0
+        pr = tprog(16, [1, 2], t, 0.18)
+        fr = T.scatter_stack(fr, '未冷', pr, size=120, fname='xing', box=(620, 720, 1060, 940), anchor=(0.5, 0.8),
+                             t_local=t - self.t0, seed=38)
         return fr, ca
 
 
@@ -794,10 +811,9 @@ class S039(Shot):
         fr = K.rain(fr, t, 394, n=160, amt=0.25 * clamp01((t - self.t0) / 0.6), speed=1500, angle=10, near=0.15)
         dx, dy, dr = shake(t, 6, 1.4, 39)
         fr = cam(fr, 1.04, dx, dy, dr)
-        pr = tprog(16, [1, 2, 3, 4, 5], t, 0.3)
-        pr = [max(p, clamp01((t - self.t0 + 0.1 - i * 0.06) / 0.25)) if i < 2 else p for i, p in enumerate(pr)]
-        fr = T.scatter_stack(fr, '未冷 骨未凉', pr, size=90, fname='xing', emph=('骨',), emph_color='red',
-                             box=(1180, 160, 1820, 520), anchor=(0.8, 0.2), t_local=t - self.t0, seed=4)
+        pr = tprog(16, [3, 4, 5], t, 0.18)
+        fr = T.scatter_stack(fr, '骨未凉', pr, size=120, fname='xing', emph=('骨',), emph_color='red',
+                             box=(1200, 170, 1820, 560), anchor=(0.8, 0.2), t_local=t - self.t0, seed=4)
         return fr, 0
 
 
@@ -805,7 +821,7 @@ class S039(Shot):
 # S040 76.58–78.41 CU 四印逐拍落下拼成田字格：是/非/对/错
 class S040(Shot):
     t0, t1 = 76.579, 78.414
-    TS = (77.2, 77.6, 77.76, 78.06)
+    TS = tuple(V(CT(17, k)) for k in range(4))
     def __init__(self):
         pap = K.paper_light(40).copy()
         # 背景淡墨律令小字（宋体，权力的字）
@@ -826,9 +842,7 @@ class S040(Shot):
         z = 1.0 + 0.1 * eio(u)
         pk = sum(pulse(t, ts, 0.1) * (t >= ts) for ts in self.TS)
         z *= 1 + 0.03 * min(1, pk)
-        dx, dy, dr = shake(t, 5 * pulse(t, 77.485, 0.1) * (t >= 77.485) + 4 * min(1, pk), 16, 40)
-        fr = cam(fr, z, dx, dy, dr)
-        fr = fr * (1 - 0.18 * pulse(t, 77.485, 0.15) * (t >= 77.485))
+        fr = cam(fr, z, 0, 0)
         return fr, 0
 
 
@@ -851,11 +865,15 @@ class S041(Shot):
         u = self.u(t)
         fr = self.bg * (1 - self.wm[..., None]) + self.wall
         fl = 0.85 + 0.15 * math.sin(t * 8)
+        fr = fr * 0.75
         fr += (self.cm * 1.3 + K.blur_ds(self.cm, 12) * 1.8 + K.blur_ds(self.cm, 70) * 1.0)[..., None] * GOLD * fl
         x, y = K.grid()
         fr = fr * (1 - (y > 880)[..., None] * 0.6)
         self.sw.pose('sword_on_shoulder', (t * 0.4) % 1, t, wind=-200)
-        fr, _ = self.sw.draw(fr, 960, 1180, 720, rim_color=tuple(float(v) for v in GOLD * 0.9 + 0.1), rim_dir=(0, -1), rim=1.3, lift=0.35)
+        occ = np.zeros((H, W), np.float32)
+        fr = fx2.god_rays(fr, (950, 520), emit=np.clip(self.cm * 1.5 + K.blur_ds(self.cm, 12) * 2, 0, 1), strength=0.9,
+                          length=0.8, color=GOLD, t=t, shafts=0.8, seed=41)
+        fr, _ = self.sw.draw(fr, 900, 1330, 980, rim_color=tuple(float(v) for v in GOLD * 0.9 + 0.1), rim_dir=(0, -1), rim=1.3, lift=0.35)
         fr = K.rain(fr, t, 413, n=260, amt=0.35, speed=1800, angle=8)
         fr = K.fog(fr, t, 414, amt=0.35, speed=(25, 0), y0=0.75, y1=1.0, color=(0.25, 0.26, 0.3))
         e = eio(u)
@@ -870,7 +888,8 @@ class S041(Shot):
 # S042 80.22–82.06 ELS 月被云吞没，「天」巨字在月晕中，被一道刀光划掉
 class S042(Shot):
     t0, t1 = 80.225, 82.059
-    T_SL = 81.16
+    T_SL = V(81.14)
+    T_PAN = V(81.52)
     def __init__(self):
         self.bg = K.sky(seed=42, cloud=0.3, top=(0.01, 0.012, 0.018), bot=(0.05, 0.055, 0.065)).copy()
         rgb, A = K.moon_sprite(240)
@@ -898,13 +917,13 @@ class S042(Shot):
         fr = over(fr, cov * 0.9, (0.05 + 0.25 * lit)[..., None] * np.array([0.9, 0.93, 1.0], np.float32))
         fr = fr * (1 - 0.35 * eio(u))
         # 81.62「判」冲击
-        k = pulse(t, 81.62, 0.12) * (t >= 81.62)
+        k = pulse(t, self.T_PAN, 0.12) * (t >= self.T_PAN)
         z = (1.0 + 0.06 * eio(u)) * (1 + 0.10 * k)
         dx, dy, dr = shake(t, 12 * k, 14, 42)
         fr = cam(fr, z, dx, -30 * eio(u) + dy, 3 * eio(u) + dr)
-        if 81.62 <= t < 81.62 + 2 / 30 + 1e-3: fr = fr * 0.5 + RED * 0.6
-        if 80.88 <= t < 80.88 + 1 / 30 + 1e-3: fr = fr + 0.25
-        pr = tprog(18, [1, 2], t, 0.25)
+        if self.T_PAN <= t < self.T_PAN + 2 / 30 + 1e-3: fr = fr * 0.5 + RED * 0.6
+        if V(80.86) <= t < V(80.86) + 1 / 30 + 1e-3: fr = fr + 0.25
+        pr = tprog(18, [1, 2], t, 0.18)
         fr = T.scatter_stack(fr, '不判', pr, size=120, fname='xing', emph=('判',), emph_color='red',
                              box=(1400, 600, 1800, 900), anchor=(0.5, 0.5), seed=9)
         return fr, (4 if k > 0.4 else 0)
@@ -929,7 +948,9 @@ class S043(Shot):
                       area=(100, 100), amt=0.9)
         z = 1.0 + 0.18 * eout(u, 2)
         fr = cam(fr, z, 0, 0, center=(860, 500))
-        fr = T.stamp_seal(fr, '量', 1520, 740, 280, clamp01((t - 82.34) / 0.6), style='yin', rot=-6, seed=43)
+        pr = tprog(18, [3], t, 0.16)
+        fr = T.scatter_stack(fr, '我', pr, size=240, fname='xing', box=(1350, 520, 1750, 920), anchor=(0.6, 0.6),
+                             t_local=t - self.t0, seed=43, fill=False)
         return fr, 0
 
 
@@ -949,6 +970,9 @@ class S044(Shot):
         fr = r[0] if isinstance(r, tuple) else r
         fr = K.dust(fr, 0.0 + (t - self.t0) * 0.05, 4401, n=50, amt=0.35, size=(1, 3), blur=1.5)   # 尘埃悬停（风停）
         fr = cam(fr, 1.0 + 0.08 * eio(u), 0, 0)
+        pr = tprog(18, [4], t, 0.18)
+        fr = T.vertical_column(fr, '来', pr, size=120, fname='xing', box=(1500, 250, 1700, 450), anchor=(0.5, 0.0), rule=False)
+        fr = T.stamp_seal(fr, '量', 1600, 640, 300, clamp01((t - (V(CT(18, 5)) - 0.18)) / 0.6), style='yin', rot=-6, seed=43)
         return fr, 0
 
 
@@ -956,26 +980,28 @@ class S044(Shot):
 # S045 84.10–85.29 LS 旋身斩一圈，刀光成圆环，雨滴被斩开；「这一刀」沿圆环环绕
 class S045(Shot):
     t0, t1 = 84.10, 85.287
-    T_HIT = 84.56
+    T_HIT = V(84.50)
+    SH = 84.56 - V(84.50)
     def __init__(self):
         self.sw = rig.Swordsman(45, view=60)
-        self.bg = K.sky(seed=45, cloud=0.6, horizon=0.66).copy()
-        wall, _ = K.brick_wall(2400, 1600, 100, 42, 5, 45)
-        q = np.float32([[-200, 260], [2120, 260], [2120, 760], [-200, 760]])
-        self.wall = K.warp_quad(wall[:600, :2400], q) * 0.55
-        self.wm = np.zeros((H, W), np.float32); cv2.fillConvexPoly(self.wm, q.astype(np.int32), 1.0)
-        x, y = K.grid(); self.gm = (y >= 760).astype(np.float32)
-        T.warm('这一刀', 'xing', 120)
+        # 去掉砖墙：开阔月夜旷野（与墙镜头区分）
+        sk = K.sky(seed=45, cloud=0.55, horizon=0.72, top=(0.03, 0.035, 0.05), bot=(0.16, 0.17, 0.2)).copy()
+        rgb, A = K.moon_sprite(170)
+        sk = K.paste_sprite(sk, rgb, A, 1500, 300)
+        far = K.mountains(W, H, 760, 120, 451, 4)
+        self.bg = over(sk, far * 0.6, (0.07, 0.075, 0.09))
+        x, y = K.grid(); self.gm = (y >= 800).astype(np.float32)
+        T.warm('这一刀', 'xing', 240)
 
     def phase(self, t):
+        t = t + self.SH
         if t < 84.42: return 0.30 * clamp01((t - self.t0) / 0.32) ** 1.5 * 0.6      # 慢起 0.3x
         if t < 84.74: return 0.18 + 0.62 * (t - 84.42) / 0.32                 # 1.5x 爆发
         return 0.80 + 0.2 * clamp01((t - 84.74) / 0.4)
 
     def render(self, t):
         u = self.u(t)
-        fr = self.bg * (1 - self.wm[..., None]) + self.wall
-        fr = fr * (1 - self.gm[..., None] * 0.7)
+        fr = self.bg * (1 - self.gm[..., None] * 0.75)
         view = 60 + 30 * eio(u)           # 环绕 30°
         self.sw.view = view
         ph = self.phase(t)
@@ -985,8 +1011,8 @@ class S045(Shot):
                           n=10, step=1 / 120)
         ring_y = fy - 59 * sc / 100 - 8 * sc / 100
         # 文字绕环（后半圈在人后）
-        prog = tprog(19, [0, 1, 2], t, 0.25)
-        out, front, kw = T.text_on_ring(fr, '这一刀', cx, ring_y, 470, 110, phase=t * 2.2, size=170, fname='xing',
+        prog = tprog(19, [0, 1, 2], t, 0.16)
+        out, front, kw = T.text_on_ring(fr, '这一刀', cx, ring_y, 640, 150, phase=t * 2.2 - 0.6, size=250, fname='xing',
                                         emph=('刀',), emph_color='red', prog=prog)
         fr = out
         fr, info = self.sw.draw(fr, cx, fy, sc, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.5, -0.8), rim=1.3)
@@ -1003,14 +1029,12 @@ class S045(Shot):
         # 雨：被斩开的雨（环带附近雨丝断开并溅散）
         x, y = K.grid()
         band = 1 - np.exp(-((y - ring_y) / 18) ** 2) * (t >= self.T_HIT)
-        fr = K.rain(fr, t, 451, n=320, amt=0.4, speed=2000 if t > 84.42 else 600, angle=6, region=band)
+        fr = K.rain(fr, t, 451, n=320, amt=0.4, speed=2000 if t > 84.36 else 600, angle=6, region=band)
         if t >= self.T_HIT:
             fr = K.sparks(fr, t, 4520, (cx, ring_y), n=120, life=0.6, speed=(300, 900), dirc=(1, 0), spread=3.0, grav=900,
                           burst=True, t0=self.T_HIT, area=(500, 20), color=(0.75, 0.82, 0.95), amt=0.9)
         fr = T.ring_front(fr, front, kw)
-        k = pulse(t, self.T_HIT, 0.1) * (t >= self.T_HIT)
-        dx, dy, dr = shake(t, 6 * k, 14, 45)
-        fr = cam(fr, 1.02 + 0.05 * k, dx, dy, dr)
+        fr = cam(fr, 1.02, 0, 0)
         return fr, 0
 
 
@@ -1018,7 +1042,8 @@ class S045(Shot):
 # S046 85.29–86.19 MCU 定格：刀停在镜头前，刀身浮现「就是我的回答」，墨爆吞没
 class S046(Shot):
     t0, t1 = 85.287, 86.192
-    T_ANS = 85.90
+    T_ANS = V(CT(19, 8))      # 答
+    T_CRASH = V(85.69)       # 鼓组回归（重音镲）
     def __init__(self):
         self.bg = K.sky(seed=46, cloud=0.5).copy()
         rgb, A = K.moon_sprite(140)
@@ -1041,20 +1066,24 @@ class S046(Shot):
         # 刀身刻字
         d = np.array(p1, float) - np.array(p0, float); d /= np.linalg.norm(d); n = np.array([-d[1], d[0]])
         a0 = np.array(p0) + d * 420 - n * 10; a1 = np.array(p0) + d * 1520 - n * 10; a2 = np.array(p0) + d * 1720 - n * 10
-        pc = clamp01((t - 85.0) / 0.75)
+        pc = clamp01((t - (V(CT(19, 3)) - 0.1)) / (V(CT(19, 7)) - V(CT(19, 3)) + 0.2))
         fr = T.carved_on_blade(fr, '就是我的回', [tuple(a0), tuple(a1)], height=86, p=pc, fname='song', finish='steel', taper=(1, 1))
-        pa = clamp01((t - 85.75) / 0.2)
+        pa = clamp01((t - (self.T_ANS - 0.15)) / 0.15)
         if pa > 0:
             fr = T.carved_on_blade(fr, '答', [tuple(a1 + d * 10), tuple(a2)], height=100, p=pa, fname='song', finish='red', taper=(1, 1))
         # 定格 0.3s 后推
         z = 1.0 + 0.04 * eio(clamp01((t - self.t0 - 0.3) / 0.6))
         k = pulse(t, self.T_ANS, 0.12) * (t >= self.T_ANS)
         fr = cam(fr, z * (1 + 0.08 * k), 0, 0)
+        if self.T_CRASH <= t < self.T_CRASH + 1 / 30 + 1e-3: fr = fr * 0.4 + 0.8          # 鼓回归：闪白
         if self.T_ANS <= t < self.T_ANS + 2 / 30 + 1e-3: fr = fr * 0.6 + GOLD * 0.5
-        # 墨爆吞没
-        if t >= self.T_ANS:
-            m = K.ink_blot(clamp01((t - self.T_ANS) / 0.3), seed=46, center=(1100, 600))
-            fr = over(fr, m, (0.012, 0.012, 0.014))
+        # 朱墨爆开（不再纯黑：暗朱墨 + 金边，避免整屏死黑）
+        if t >= self.T_ANS + 1 / 30:
+            pb = clamp01((t - self.T_ANS) / 0.22)
+            m = K.ink_blot(pb, seed=46, center=(1100, 600))
+            edge = np.clip(K.blur_ds(m, 6) - m * 0.85, 0, 1)
+            fr = over(fr, m, RED * 0.22 + 0.015)
+            fr += edge[..., None] * GOLD * 1.2 * (1 - 0.5 * pb)
         return fr, (3 if k > 0.5 else 0)
 
 
@@ -1101,9 +1130,9 @@ class S047(Shot):
         e = eio(u)
         fr = cam(fr, 1.0 + 0.04 * e, 0, -40 + 40 * e)
         # 墨退
-        if t < self.t0 + 0.55:
-            m = K.ink_blot(clamp01((t - self.t0) / 0.55), seed=47, center=(960, 600), reverse=True)
-            fr = over(fr, m, (0.012, 0.012, 0.014))
+        if t < self.t0 + 0.3:
+            m = K.ink_blot(eout((t - self.t0) / 0.3, 2), seed=47, center=(960, 600), reverse=True)
+            fr = over(fr, m, RED * 0.22 + 0.015)
         pk = clamp01((t - 86.6) / 0.6)
         if pk > 0:
             fr = T.ink_bleed_in(fr, '鬼屠', [pk, clamp01(pk * 1.2 - 0.1)], style='h', size=40, fname='song', color='white',
@@ -1158,8 +1187,9 @@ class S048(Shot):
         fr = fr * (1 - m[..., None]) + inner * m[..., None] * 0.9
         fr += (rim + spec * m)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
         # 雷声闪
-        if 88.93 <= t < 88.93 + 1 / 30 + 1e-3: fr = fr * 0.5 + 0.7
-        elif t > 88.93: fr = fr * (1 + 0.6 * pulse(t, 88.97, 0.15))
+        tl = V(88.90)
+        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 0.5 + 0.7
+        elif t > tl: fr = fr * (1 + 0.6 * pulse(t, tl + 0.04, 0.15))
         return fr, 0
 
 
@@ -1167,37 +1197,139 @@ class S048(Shot):
 SHOTS = [S027, S028, S029, S030, S031, S032, S033, S034, S035, S036, S037, S038, S039, S040, S041, S042, S043, S044, S045,
          S046, S047, S048]
 
-# 切点转场：(进入镜头, 名称, pre, post, kw)  —— 'hard' = 刻意硬切（切后 2 帧冲击）
+# ---------------- v2 剪辑表：切点 = 卡点（鼓/字头）最近帧再提前 1 帧，单位：帧（30fps）
+#  S027 58.50 | S028「血」59.35 | S029 drop 重音镲 60.05 | S030 底鼓 60.97 | S031 军鼓 62.34 | S032 小节头 63.72 | S033 小节头 65.54
+#  S034 小节头 67.38 | S035 底鼓 69.67 | S036「看」/镲 70.95 | S037「天」72.11 | S038「血」74.01 | S039「骨」75.01
+#  S040 小节头 76.54 | S041「我」78.13 | S042 小节头 80.20 | S043 小节头 82.03 | S044 底鼓 82.95 | S045「这」/重音镲 84.08
+#  S046「就」84.76（鼓停·憋住）| S047 军鼓 86.16 | S048 小节头 87.53 | 89.50
+CUT_F = [1755, 1779, 1800, 1828, 1869, 1910, 1965, 2020, 2089, 2128, 2162, 2219, 2249, 2295, 2343, 2405, 2460, 2487, 2521,
+         2542, 2584, 2625, 2685]
+for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
+    _S.t0, _S.t1 = _a / FPS, _b / FPS
+SHOTS[0].t0 = 57.794           # S027 内部起点不变（窗口从 58.5 开始取）
+
+# 切点转场：(名称, pre, post, kw) —— 'hard' = 刻意硬切（切后 2 帧冲击），'whip' 由 VCam 甩镜完成（方向连贯）
 CUTS = {
-    'S028': ('flash_white', 0.10, 0.20, {}),
-    'S029': ('hard', 0, 0, {}),
-    'S030': ('match_cut', 0.12, 0.22, dict(shape='circle', center=(910, 470), radius=150)),
-    'S031': ('iris_moon', 0.10, 0.30, dict(center=(900, 330), radius=200)),
-    'S032': ('slash_wipe', 0.10, 0.25, dict(angle=78)),
+    'S028': ('hard', 0, 0, {}),                                   # 定格憋住 →「血」字头硬切
+    'S029': ('flash_white', 0.0, 0.17, {}),                       # drop 重音镲：smash cut + 闪白
+    'S030': ('whip', 0, 0, dict(dir=(0, -1), L=420)),             # 握刀 → 举刀指月：上甩
+    'S031': ('iris_moon', 0.06, 0.20, dict(center=(900, 330), radius=200)),
+    'S032': ('slash_wipe', 0.06, 0.16, dict(angle=78)),
     'S033': ('hard', 0, 0, {}),
-    'S034': ('match_cut', 0.10, 0.22, dict(shape='line', center=(960, 700), angle=0.0)),
-    'S035': ('whip_pan_blur', 0.12, 0.14, dict(direction='right')),
+    'S034': ('whip', 0, 0, dict(dir=(0, -1), L=460)),             # 墙升起 → 仰拍墙：继续上甩
+    'S035': ('whip', 0, 0, dict(dir=(1, 0), L=520)),              # → 疾跑起跳：右甩（人物向右冲）
     'S036': ('hard', 0, 0, {}),
-    'S037': ('zoom_through', 0.15, 0.22, dict(center=(960, 540))),
-    'S038': ('flash_red', 0.06, 0.14, {}),
-    'S039': ('occlusion', 0.18, 0.20, dict(kind='pillar')),
-    'S040': ('paper_tear', 0.10, 0.30, {}),
+    'S037': ('zoom_through', 0.08, 0.16, dict(center=(960, 540))),
+    'S038': ('flash_red', 0.03, 0.12, {}),
+    'S039': ('whip', 0, 0, dict(dir=(1, 0), L=400)),              # 刀面 → 战场横移：右甩（与横移同向）
+    'S040': ('paper_tear', 0.06, 0.20, {}),
     'S041': ('hard', 0, 0, {}),
-    'S042': ('whip_pan_blur', 0.12, 0.14, dict(direction='up')),
+    'S042': ('whip', 0, 0, dict(dir=(0, -1), L=460)),             # 背影 → 天：上甩
     'S043': ('hard', 0, 0, {}),
-    'S044': ('hard', 0, 0, {}),
-    'S045': ('slash_wipe', 0.10, 0.30, dict(circle=True, center=(960, 560), radius=330)),
+    'S044': ('whip', 0, 0, dict(dir=(0, 1), L=380)),              # 转头 → 手按刀：下甩
+    'S045': ('slash_wipe', 0.05, 0.18, dict(circle=True, center=(960, 560), radius=330)),
     'S046': ('hard', 0, 0, {}),
-    'S047': ('cut', 0, 0, {}),              # 墨爆 → 墨退：由两镜自身完成
-    'S048': ('zoom_through', 0.15, 0.22, dict(center=(960, 470))),
+    'S047': ('cut', 0, 0, {}),                                    # 朱墨爆 → 墨退
+    'S048': ('zoom_through', 0.08, 0.16, dict(center=(960, 470))),
 }
+
+# 基础运镜（叠加在各镜自身运动之上）：缓动 + 速度坡度
+M = VC.Move
+MOVES = {
+    'S027': M('expo_in', z=(1.0, 1.14)),                              # 军鼓滚奏：加速推进
+    'S028': M('expo_out', z=(1.08, 1.0)),                             # 慢放：冲进后缓拉
+    'S029': M('cubic_io', 'fsf', z=(1.0, 1.06), x=(40, -30)),
+    'S030': M('quint_io', y=(70, -20)),                               # 承接上甩：继续升
+    'S031': M('expo_out', z=(1.10, 1.0)),
+    'S032': M('sine_io', 'fsf', x=(-50, 50)),
+    'S033': M('cubic_io', z=(1.0, 1.08), rot=(-1.5, 0.6)),
+    'S034': M('expo_out', 'fs', y=(90, -60)),                         # 仰拍上摇，刹住
+    'S035': M('quint_io', 'fsf', x=(-70, 70)),                        # 跟拍：甩入→空中憋住→甩出
+    'S036': M('quint_io', z=(1.0, 1.10), x=(-20, 30)),
+    'S037': M('expo_out', z=(1.14, 1.0), rot=(-6, -3.5)),             # 荷兰角 + 拉开（与其他墙镜头区分）
+    'S038': M('expo_in', z=(1.0, 1.08)),
+    'S039': M('sine_io', x=(-60, 60)),
+    'S040': M('cubic_io', z=(1.05, 1.0), rot=(1.5, -1.0)),
+    'S041': M('quint_io', 'fsf', z=(1.0, 1.07), rot=(4.5, 2.0), y=(-30, 10)),   # 低机位斜构图背影
+    'S042': M('cubic_io', z=(1.0, 1.08)),
+    'S043': M('expo_out', z=(1.0, 1.06), x=(40, -20)),
+    'S044': M('expo_in', z=(1.0, 1.12)),                              # 吸气：越推越快
+    'S045': M('expo_io', z=(1.06, 1.0), rot=(-3, 3)),
+    'S046': M('sine_io', z=(1.0, 1.10)),                              # 憋住：极慢推
+    'S047': M('sine_io', z=(1.05, 1.0), y=(-30, 20)),
+    'S048': M('expo_in', z=(1.0, 1.15)),
+}
+GAIN = {'S028': 0.6, 'S034': 0.8, 'S038': 0.8, 'S043': 0.7, 'S046': 0.5, 'S047': 0.6}
+
+# 时间重映射：定格 / 慢放（憋住乐句尾）
+def _hold(t0, k):
+    return lambda t: t if t < t0 else t0 + (t - t0) * k
+REMAP = {
+    'S027': _hold(V(59.13), 0.06),     # 军鼓滚奏最后一击后定格，鼓停的静默里憋住，等「血」
+    'S041': _hold(V(79.61) + 0.12, 0.3),   # 「扛」后慢放 0.3x 憋到小节头
+    'S046': _hold(84.80, 0.2),         # 鼓停：刀身定格慢放，鼓回归前不动
+}
+
+# 段落能量包络（强弱交替 / 呼吸）：(时间, 能量)
+ENERGY = [(58.5, 0.8), (59.10, 0.9), (59.2, 0.25), (59.95, 0.3), (60.0, 1.1), (65.4, 1.0), (65.5, 0.7), (69.55, 0.75),
+          (69.65, 1.15), (73.9, 1.2), (74.0, 0.8), (76.45, 0.8), (76.5, 1.0), (80.1, 1.0), (80.15, 0.65), (83.9, 0.75),
+          (84.0, 1.3), (84.75, 1.2), (84.8, 0.0), (85.6, 0.0), (85.65, 1.4), (86.05, 1.2), (86.1, 0.45), (87.45, 0.5),
+          (87.5, 1.2), (89.5, 1.3)]
+_ET = np.array([e[0] for e in ENERGY]); _EV = np.array([e[1] for e in ENERGY])
+def energy(t): return float(np.interp(t, _ET, _EV))
+
+# 插入闪切（2–4 帧）：(起始帧, 帧数, 类型, 参数) —— 鼓点加花处
+#  'neg' 反相帧 / 'white' 闪白 / 'red' 朱红剪影帧 / ('shot', 镜头id, 内部时间) 闪回其他镜头最强帧
+INSERTS = [
+    (round(58.79 * FPS) - 1, 2, 'neg', None),           # 滚奏加花
+    (round(59.02 * FPS) - 1, 1, 'white', None),
+    (round(73.21 * FPS) - 1, 3, 'shot', ('S035', 70.05)),     # 「天亮」后的鼓加花：闪回劈墙
+    (round(73.56 * FPS) - 1, 2, 'neg', None),
+    (round(73.68 * FPS) - 1, 2, 'shot', ('S032', 65.20)),     # 正邪印劈开
+    (round(73.91 * FPS) - 1, 1, 'white', None),
+    (round(81.34 * FPS) - 1, 2, 'red', None),                 # 「判」前军鼓双击
+    (round(87.88 * FPS) - 1, 3, 'shot', ('S030', 62.05)),     # 尾段过门：闪回蒙太奇冲进主歌二
+    (round(88.22 * FPS) - 1, 3, 'shot', ('S035', 70.08)),
+    (round(88.44 * FPS) - 1, 2, 'neg', None),
+    (round(88.57 * FPS) - 1, 3, 'shot', ('S045', 84.62)),
+    (round(89.14 * FPS) - 1, 3, 'shot', ('S040', 78.0)),
+    (round(89.37 * FPS) - 1, 3, 'shot', ('S029', 60.62)),
+]
+_INS = {}
+for _f0, _n, _k, _a in INSERTS:
+    for _i in range(_n): _INS[_f0 + _i] = (_k, _a, _i, _n)
+
+FG = {'S027': ('ember', 0.6), 'S028': ('ember', 0.25), 'S029': ('ember', 0.6), 'S030': ('ash', 0.35), 'S031': ('ash', 0.35),
+      'S032': ('ember', 0.4), 'S033': ('ash', 0.5), 'S034': ('ash', 0.4), 'S035': ('ember', 0.6), 'S036': ('gold', 0.5),
+      'S037': ('gold', 0.45), 'S039': ('rain', 0.35), 'S041': ('rain', 0.4), 'S042': ('ash', 0.3), 'S043': ('ember', 0.4),
+      'S044': ('ash', 0.3), 'S045': ('rain', 0.45), 'S047': ('rain', 0.5), 'S048': ('rain', 0.4)}
+# 曝光（v1 整体偏暗）：全局 1.2，个别镜头再补
+EXPO_ALL = 1.2
+EXPO = {'S031': 1.15, 'S039': 1.1, 'S043': 1.25, 'S044': 1.3, 'S047': 1.15, 'S048': 1.3, 'S041': 1.1, 'S042': 1.15}
 
 
 class _Lazy:
-    def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None
+    def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None; self.id = cls.__name__
     def render(self, t):
         if self.obj is None: self.obj = self.cls()
-        return self.obj.render(t)
+        f = REMAP.get(self.id)
+        REAL_T[0] = t
+        try:
+            return self.obj.render(f(t) if f else t)
+        finally:
+            REAL_T[0] = None
+
+
+def build_cam():
+    cam_ = VC.VCam(ROOT + '/crew/hitmap_c1.json', energy=energy)
+    for S in SHOTS:
+        cam_.shot(max(S.t0, 58.5), S.t1, MOVES.get(S.__name__), GAIN.get(S.__name__, 1.0))
+        c = CUTS.get(S.__name__)
+        if c and c[0] == 'whip':
+            cam_.whip(S.t0, c[3]['dir'], c[3].get('L', 400))
+    cam_.hold(V(59.13), 59.267)
+    cam_.hold(84.80, V(85.69))
+    return cam_
 
 
 class Chorus1:
@@ -1206,24 +1338,29 @@ class Chorus1:
     def __init__(self):
         self.shots = [_Lazy(S) for S in SHOTS]       # 镜头按需构建（分段渲染时只初始化用到的镜头）
         self.ids = [S.__name__ for S in SHOTS]
+        self.byid = dict(zip(self.ids, self.shots))
+        self.cam = build_cam()
+        self.fg = VC.FGLayer(11, n=24)
 
     def idx(self, t):
         for i, s in enumerate(self.shots):
-            if t < s.t1: return i
+            if t < s.t1 - 1e-6: return i
         return len(self.shots) - 1
 
     def raw(self, t):
         i = self.idx(t)
         s = self.shots[i]
-        # 是否落在某切点转场窗口内
         for j in (i, i + 1):
             if j <= 0 or j >= len(self.shots): continue
             b = self.shots[j]; name, pre, post, kw = CUTS.get(self.ids[j], ('hard', 0, 0, {}))
             c = b.t0
-            if name in ('hard', 'cut') or not (c - pre <= t < c + post): continue
+            if name in ('hard', 'cut', 'whip') or not (c - pre - 1e-6 <= t < c + post - 1e-6): continue
             a = self.shots[j - 1]
-            A, ca1 = a.render(t); B, ca2 = b.render(t)
+            B, ca2 = b.render(t)
+            A, ca1 = a.render(t) if pre > 0 or t < c else (B, 0)
             p = (t - (c - pre)) / (pre + post)
+            if pre == 0:            # 切点即冲击：转场只做「切后」半程
+                p = 0.5 + 0.5 * p
             return TR.transition(name, np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw), max(ca1, ca2)
         fr, ca = s.render(t)
         name = CUTS.get(self.ids[i], ('hard',))[0]
@@ -1235,10 +1372,39 @@ class Chorus1:
                 ca = max(ca, 3 if k == 0 else 1)
         return fr, ca
 
+    def insert(self, t, ins):
+        kind, arg, i, n = ins
+        if kind == 'shot':
+            sid, ti = arg
+            fr, ca = self.byid[sid].render(ti + i / FPS * 0.5)
+            fr = cam(fr, 1.10 - 0.03 * i) * 1.25
+            return fr, 4
+        fr, ca = self.raw(t)
+        if kind == 'neg':
+            l = fr.mean(-1, keepdims=True)
+            return np.clip(1.0 - l * 1.4, 0, 1) * np.array([1.0, 0.98, 0.95], np.float32), 5
+        if kind == 'white':
+            return fr * 0.3 + 0.95, 2
+        if kind == 'red':
+            l = fr.mean(-1, keepdims=True)
+            return RED * 1.1 * (1 - np.clip(l * 2.5, 0, 1)) + 0.02, 4
+        return fr, ca
+
     def frame(self, t, dt=1 / 30):
         """返回已收尾的成片帧（调色/辉光/色差/暗角/颗粒/黑边均已做；色差已烘焙，故返回 ca=0，外部勿再 finish）。"""
-        fr, ca = self.raw(t)
-        return finish(fr, t, ca=ca), 0
+        f = int(round(t * FPS))
+        ins = _INS.get(f)
+        if ins: fr, ca = self.insert(t, ins)
+        else: fr, ca = self.raw(t)
+        sid = self.ids[self.idx(t)]
+        fr, st = self.cam.apply(np.clip(fr, 0, 4).astype(np.float32), t)
+        kind, amt = FG.get(sid, (None, 0))
+        if kind and not ins:
+            fr = self.fg.draw(fr, t, st, kind, amt)
+        fr = fr * (EXPO_ALL * EXPO.get(sid, 1.0))
+        fr = fr + 0.012 * (1 - np.clip(fr, 0, 1))        # 抬一点黑位（避免死黑）
+        ca = max(ca, int(round(4 * min(1.0, st['punch']))))
+        return finish(fr, t, ca=ca, vig=0.42), 0
 
 
 X = Chorus1
