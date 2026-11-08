@@ -98,20 +98,48 @@ def main():
         h['frame'] = frame_of(h['t'])
         h['vis_frame'] = h['frame'] - 1                # 画面早一帧
         del h['raw']
-    # 歌词字头
+    # 歌词字头：whisper 逐字时间 → 在人声轨（htdemucs vocals）onset 峰上精修（窗口 -0.15/+0.10s）
+    vox_env = None
+    vp = ROOT + '/out/c1_vocals.wav'
+    if os.path.exists(vp):
+        yv, _ = librosa.load(vp, sr=44100, mono=True)
+        yv = yv[int((A0 - 56.0) * sr):int((A1 - 56.0) * sr)]
+        Sv = np.abs(librosa.stft(yv, n_fft=2048, hop_length=256))
+        m = (f >= 150) & (f < 5000)
+        Xv = np.log1p(Sv[m] * 20)
+        vox_env = np.maximum(0, np.diff(Xv, axis=1, prepend=Xv[:, :1])).sum(0)
+        vox_env = np.convolve(vox_env, np.hanning(5) / np.hanning(5).sum(), 'same')
+        vox_env /= np.percentile(vox_env, 99.5) + 1e-9
+        vox_env = vox_env[:len(tt)]
+        vpk = librosa.util.peak_pick(vox_env, pre_max=4, post_max=4, pre_avg=10, post_avg=4, delta=0.04, wait=int(0.08 / hop_t))
+        vpk_t = tt[vpk]; vpk_v = vox_env[vpk]
+
+    def refine(t):
+        if vox_env is None: return t, 'whisper'
+        c = (vpk_t >= t - 0.15) & (vpk_t <= t + 0.10) & (vpk_v > 0.18)
+        if not c.any(): return t, 'whisper'
+        # 最近且足够强的峰（距离惩罚）
+        sc = vpk_v[c] - np.abs(vpk_t[c] - t) * 2.0
+        return float(vpk_t[c][np.argmax(sc)]), 'vocal_onset'
     import typo as T
     L = T.load_lines()
     words = []
     for li in range(12, 20):
         txt = [c for c in L[li]['text'] if c.strip()]
         ts = [x for x in L[li]['times'] if x is not None]
-        for k, (c, t) in enumerate(zip(txt, ts)):
+        for k, (c, tw) in enumerate(zip(txt, ts)):
+            t, src_ = refine(tw)
             # 重音字：落在拍上（±70ms）或句首/句尾，或是关键字
             bi = int(np.argmin(np.abs(beats - t)))
             onb = abs(t - beats[bi]) < 0.07
             key = c in '血刀谁正邪墙劈亮骨扛天判量答'
-            words.append(dict(line=li, k=k, ch=c, t=round(float(t), 3), frame=frame_of(t), vis_frame=frame_of(t) - 1,
+            words.append(dict(line=li, k=k, ch=c, t=round(float(t), 3), t_whisper=round(float(tw), 3), src=src_, frame=frame_of(t), vis_frame=frame_of(t) - 1,
                               on_beat=bool(onb), accent=bool(key or onb), beat_pos=int((bi - ph) % 4) + 1))
+    # 单调性：精修后撞车的字（两字吸到同一 onset）回退 whisper，仍撞则顺延 80ms
+    for a_, b_ in zip(words, words[1:]):
+        if b_['t'] <= a_['t'] + 0.06:
+            b_['t'] = round(b_['t_whisper'] if b_['t_whisper'] > a_['t'] + 0.06 else a_['t'] + 0.08, 3); b_['src'] = 'whisper_fallback'
+            b_['frame'] = frame_of(b_['t']); b_['vis_frame'] = b_['frame'] - 1
     # 乐句（按歌词句）
     phrases = [dict(line=li, text=L[li]['text'], start=round(float([x for x in L[li]['times'] if x][0]), 3),
                     end=round(float(L[li + 1]['times'][0]) if li < 19 else 86.19, 3)) for li in range(12, 20)]
@@ -125,10 +153,10 @@ def main():
                hits=hits, beats=beat_list, words=words, phrases=phrases)
     json.dump(out, open(ROOT + '/crew/hitmap_c1.json', 'w'), ensure_ascii=False, indent=1)
     print('hits', len(hits), cnt, 'bpm', 60 / bw, 'downbeat phase', ph)
-    plot(y, sr, tt, kick, snare, hat, out)
+    plot(y, sr, tt, kick, snare, hat, out, vox_env)
 
 
-def plot(y, sr, tt, kick, snare, hat, out):
+def plot(y, sr, tt, kick, snare, hat, out, vox=None):
     import cv2
     from PIL import Image, ImageDraw, ImageFont
     Wd, Hh = 3600, 1200
@@ -151,7 +179,7 @@ def plot(y, sr, tt, kick, snare, hat, out):
         for i in range(n):
             d.line([(60 + i, mid - mx[i] * 140), (60 + i, mid - mn[i] * 140)], fill=(90, 95, 110))
         # 包络
-        for env, col, base in ((kick, (230, 60, 50), y0 + 420), (snare, (240, 200, 110), y0 + 500), (hat, (120, 180, 255), y0 + 570)):
+        for env, col, base in ((kick, (230, 60, 50), y0 + 420), (snare, (240, 200, 110), y0 + 480), (hat, (120, 180, 255), y0 + 530)) + (((vox, (240, 240, 240), y0 + 585),) if vox is not None else ()):
             m = (tt >= a) & (tt <= b)
             pts = [(X(t), base - min(1.5, v) * 50) for t, v in zip(tt[m], env[m])]
             d.line(pts, fill=col, width=1)
