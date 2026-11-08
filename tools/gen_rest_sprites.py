@@ -13,7 +13,7 @@ ROOT = plan.ROOT
 STATE = os.path.join(ROOT, 'crew/rest_gen_state.json')
 CANDS = os.path.join(os.path.dirname(ROOT), 'rest_cands')
 LOG = os.path.join(ROOT, 'crew/genlog.md')
-BUDGET = 150
+BUDGET = 150   # 第二轮上限；第三轮（+60，用户 11-09 05:59 同意）见 tools/gen_round3.py（覆盖为 60，独立状态）
 MAXTRY = 3
 REFS = json.load(open(os.path.join(ROOT, 'assets/characters/asset_urls.json')))
 

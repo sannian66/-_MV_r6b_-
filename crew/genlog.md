@@ -127,3 +127,19 @@
 | 11-08 21:53 | S065 | RH_image2 | 4K 16:9 | 3 | 5c2b4926-6d67-413d-b42c-949550475cf5 | completed | rest_cands/S065/chin_up_try1_0.png | chin_up try1：Side three-quarter profile, slowly raising his chi |
 | 11-08 21:54 | S062 | RH_image2 | 4K 16:9 | 0 | d67a90ee-8354-4582-a3cb-a118fcac28a7 | 采用 | assets/gen/S062/puppeteer_raw.png | puppeteer try1 采用 |
 | 11-08 21:54 | S065 | RH_image2 | 4K 16:9 | 0 | 5c2b4926-6d67-413d-b42c-949550475cf5 | 采用 | assets/gen/S065/chin_up_raw.png | chin_up try1 采用 |
+| 11-09 06:04 | S021 | RH_image2 | 4K 16:9 | 0（第二轮已计 3） | 889b99e7-fcf5-4b85-8db3-8afaea34a23c | 补取回 completed | rest_cands/S021/finger_try1_0.png | finger try1：轮询 502 误判失败，实际已出图；画面=天降手指+下方多一个全身太上皇（同 try2 问题），不替换已采用的 try2 |
+| 11-08 22:05 | S099 | RH_image2 | 4K 16:9 | 3 | 6d9cfcd1-59f3-416a-bb1b-81a117277dae | completed | rest_cands/S099/point_up_try1_0.png | point_up try1：Low angle from below, his right arm raised high po |
+| 11-08 22:05 | S102 | RH_image2 | 4K 16:9 | 3 | ab718896-6c9b-4b2a-898e-f7cb20ff1cc8 | completed | rest_cands/S102/eye_open_try1_0.png | eye_open try1：Macro extreme close-up of ONLY one amber eye and i |
+| 11-08 22:06 | S098 | RH_image2 | 4K 16:9 | 3 | 47c1ec38-0e45-4361-8634-b19d64252eec | completed | rest_cands/S098/point_down_try1_0.png | point_down try1：Towering figure bending forward from the waist and |
+| 11-08 22:06 | S103 | RH_image2 | 4K 16:9 | 3 | ca92ed88-da94-450e-ab62-6a519c40c052 | completed | rest_cands/S103/slow_draw_try1_0.png | slow_draw try1：Standing upright drawing the dao slowly out of the |
+| 11-08 22:06 | S105 | RH_image2 | 4K 16:9 | 3 | d9ac0ff9-9821-4798-aa54-5e6d454b0ad0 | completed | rest_cands/S105/charge_front_try1_0.png | charge_front try1：Running straight toward the camera in a powerful c |
+| 11-08 22:06 | S045 | RH_image2 | 4K 16:9 | 3 | 167e51ac-8c3c-4ae7-9f7c-8b31c2946849 | completed | rest_cands/S045/spin_try1_0.png | spin try1：Seen squarely FROM BEHIND, his back fully to the c |
+| 11-08 22:06 | S045 | RH_image2 | 4K 16:9 | 0 | 167e51ac-8c3c-4ae7-9f7c-8b31c2946849 | 采用 | assets/gen/S045/spin_raw.png | spin try1 采用 |
+| 11-08 22:06 | S098 | RH_image2 | 4K 16:9 | 0 | 47c1ec38-0e45-4361-8634-b19d64252eec | 采用 | assets/gen/S098/point_down_raw.png | point_down try1 采用 |
+| 11-08 22:06 | S099 | RH_image2 | 4K 16:9 | 0 | 6d9cfcd1-59f3-416a-bb1b-81a117277dae | 采用 | assets/gen/S099/point_up_raw.png | point_up try1 采用 |
+| 11-08 22:06 | S102 | RH_image2 | 4K 16:9 | 0 | ab718896-6c9b-4b2a-898e-f7cb20ff1cc8 | 采用 | assets/gen/S102/eye_open_raw.png | eye_open try1 采用 |
+| 11-08 22:06 | S103 | RH_image2 | 4K 16:9 | 0 | ca92ed88-da94-450e-ab62-6a519c40c052 | 采用 | assets/gen/S103/slow_draw_raw.png | slow_draw try1 采用 |
+| 11-08 22:06 | S105 | RH_image2 | 4K 16:9 | 0 | d9ac0ff9-9821-4798-aa54-5e6d454b0ad0 | 采用 | assets/gen/S105/charge_front_raw.png | charge_front try1 采用 |
+| 11-08 22:07 | S037 | RH_image2 | 4K 16:9 | 3 | 7256241b-bbdb-4935-ae53-c61fd355e4fd | completed | rest_cands/S037/stand_try1_0.png | stand try1：Seen directly from behind (back view), standing st |
+| 11-08 22:08 | S062 | RH_image2 | 4K 16:9 | 3 | ea2fc1ea-46f4-435a-8dda-17066de8cdd6 | completed | rest_cands/S062/puppeteer_try1_0.png | puppeteer try1：ONLY his right hand and the edge of his wide sleev |
+| 11-08 22:08 | S120 | RH_image2 | 4K 16:9 | 3 | dbe6ed15-38e8-46b7-8c6c-e9f8fe38143a | completed | rest_cands/S120/plant_try1_0.png | plant try1：He has driven the dao point-down DEEP into the gro |
