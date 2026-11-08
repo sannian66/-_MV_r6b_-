@@ -151,46 +151,49 @@ class RainSheet:
         if intensity <= 0: return fr
         a = math.radians(angle); ux, uy = math.sin(a), math.cos(a)
         col = _f32(color) * (1 - red) + (RED * 1.3) * red
+        acc = np.zeros((H // 2, W // 2), np.float32)
+        if light is not None:
+            gx = np.exp(-(((np.arange(W // 2) * 2 - light[0]) / light_r) ** 2))[None, :]
+            gy = np.exp(-(((np.arange(H // 2) * 2 - light[1]) / light_r) ** 2))[:, None]
+            lg = (gx * gy).astype(np.float32); accl = np.zeros_like(acc)
         for li, d in enumerate(self.L):
             if layers is not None and li not in layers: continue
-            n = int(len(d['x']) * min(1.0, intensity)); 
+            n = int(len(d['x']) * min(1.0, intensity))
             if n == 0: continue
             k = 2 if d['blur'] < 3 else 4                     # 渲染分辨率因子
             h, w = H // k, W // k
             buf = np.zeros((h, w), np.float32)
             v = d['v'] * d['vj'][:n]
             y = (d['y'][:n] + v * t * uy - cam[1] * d['par']) % (H * 1.6) - H * 0.3
-            x = (d['x'][:n] + v * t * ux - cam[0] * d['par'] - y * 0) % (W * 1.4) - W * 0.2
+            x = (d['x'][:n] + v * t * ux - cam[0] * d['par']) % (W * 1.4) - W * 0.2
             L = d['l'][:n]
             if freeze is not None:
                 L = L * (1 - freeze) + 1.0 * freeze
             x1 = x - ux * L; y1 = y - uy * L
             br = d['br'][:n]
-            if light is not None:
-                dd = np.hypot(x - light[0], y - light[1]) / light_r
-                br = br * (1 + 2.5 * np.exp(-dd * dd))
             sc = 8.0 / k
-            P = np.stack([np.stack([x1, y1], 1), np.stack([x, y], 1)], 1) * sc
-            P = np.round(P).astype(np.int32)
+            P = np.round(np.stack([np.stack([x1, y1], 1), np.stack([x, y], 1)], 1) * sc).astype(np.int32)
             for b0, b1, val in ((0, 0.4, 0.55), (0.4, 0.75, 0.8), (0.75, 9, 1.0)):
                 m = (br >= b0) & (br < b1)
                 if m.any():
                     if freeze is not None and freeze > 0.5:
+                        rr = int(max(8, d['w'] * 10 * sc / k))
                         for (px, py) in P[m][:, 1]:
-                            cv2.circle(buf, (int(px), int(py)), int(max(8, d['w'] * 10 * sc / k)), val, -1, cv2.LINE_AA, 3)
+                            cv2.circle(buf, (int(px), int(py)), rr, val, -1, cv2.LINE_AA, 3)
                     else:
-                        cv2.polylines(buf, list(P[m]), False, val, max(1, int(round(d['w'] / k * 1.0))), cv2.LINE_AA, 3)
-            if light is not None:
-                buf2 = buf
+                        cv2.polylines(buf, list(P[m]), False, val, max(1, int(round(d['w'] / k))), cv2.LINE_AA, 3)
             if d['blur'] > 0: buf = cv2.GaussianBlur(buf, (0, 0), d['blur'] / k)
             amt = d['a'] * min(1.5, intensity) * (1.0 if d['blur'] < 3 else 1.6)
-            lay = cv2.resize(buf, (W, H), interpolation=cv2.INTER_LINEAR)
-            # 雨丝：屏幕混合（亮背景上不过曝）
-            fr += lay[..., None] * col * amt * (1.05 - np.clip(fr, 0, 1) * 0.6)
-            if light is not None:
-                lx, ly = light
-                g = np.exp(-(((np.arange(W) - lx) / light_r) ** 2))[None, :] * np.exp(-(((np.arange(H) - ly) / light_r) ** 2))[:, None]
-                fr += (lay * g.astype(np.float32))[..., None] * (WHITE_GOLD * 0.6 * amt)
+            if k != 2: buf = cv2.resize(buf, (W // 2, H // 2), interpolation=cv2.INTER_LINEAR)
+            acc += buf * amt
+            if light is not None: accl += buf * amt * lg
+        if freeze is not None and freeze > 0.5:                 # 悬停雨珠：加一圈柔光
+            acc += cv2.GaussianBlur(acc, (0, 0), 2.0) * 0.8
+        lay = cv2.resize(acc, (W, H), interpolation=cv2.INTER_LINEAR)
+        col = col * (1 + 0.9 * red)
+        fr += lay[..., None] * col * (1.05 - np.clip(fr, 0, 1) * 0.6)
+        if light is not None:
+            fr = add(fr, accl, WHITE_GOLD, 2.2)
         return fr
 
 
@@ -265,18 +268,27 @@ def _bolt(rng, p0, p1, rough, depth):
         pts = new; disp *= 0.55
     return np.array(pts)
 
+def _kink(rng, pts, p0, p1, n=9, amp=0.06):
+    """在主干上加几处折线式急转（真实闪电的“之”字感）。"""
+    L = np.hypot(*(np.array(p1) - np.array(p0))); d = (np.array(p1) - np.array(p0)) / L; nrm = np.array([-d[1], d[0]])
+    knots = np.sort(rng.uniform(0, 1, n)); off = np.cumsum(rng.normal(0, amp * L, n)) * 0.6
+    off -= np.linspace(0, off[-1], n)
+    u = ((pts - np.array(p0)) @ d) / L
+    return pts + nrm[None] * np.interp(u, np.concatenate([[0], knots, [1]]), np.concatenate([[0], off, [0]]))[:, None]
+
 class Lightning:
     """闪电：主干（中点位移分形）+ 递归分叉 + 先导生长 + 多次回击闪烁。
-    Lightning(seed, p0=(x,y) 云端, p1=(x,y) 落点, branches=7, rough=0.22, depth=7)
+    Lightning(seed, p0=(x,y) 云端, p1=(x,y) 落点, branches=7, rough=0.09, depth=8)
     env(t, t0)                    → 0..~1 亮度包络（可给角色/场景补光用）
     draw(fr, t, t0, intensity=1, color=(0.93,0.95,1.0), grow=0.05, sky=0.35, width=3.0, glow=1.0)
       t0 = 闪电主击时刻；t0-grow..t0 先导自上而下生长（暗、细、分叉多），t0 起整根贯通爆亮并按 strokes 闪烁。
     cloud_flash(fr, t, t0, center, radius, seed, intensity) 云内亮（独立函数，可单独用作“云缝预亮”）。"""
     STROKES = ((0.0, 1.0), (0.075, 0.55), (0.14, 0.85), (0.27, 0.35))
 
-    def __init__(self, seed=0, p0=(900, 60), p1=(1060, 900), branches=7, rough=0.22, depth=7, gold=False):
+    def __init__(self, seed=0, p0=(900, 60), p1=(1060, 900), branches=7, rough=0.09, depth=8, gold=False):
         rng = np.random.default_rng(seed); self.seed = seed
         main = _bolt(rng, p0, p1, rough, depth)
+        main = _kink(rng, main, p0, p1)
         self.paths = [(main, 1.0, 0.0)]                  # (pts, 粗细系数, 起点在主干上的进度)
         n = len(main)
         for b in range(branches):
@@ -347,15 +359,15 @@ def cloud_flash(fr, t, t0=None, center=(960, 150), radius=700, seed=0, intensity
     cl = cloud if cloud is not None else scroll(noise(256, seed + 11, base=3, octaves=6), t * 6, 0, h, w, 1.6)
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     d2 = ((xx * 4 - center[0]) ** 2 + (yy * 4 - center[1]) ** 2) / radius ** 2
-    L = np.exp(-d2) * (0.25 + 1.2 * np.clip(cl - 0.35, 0, 1) * 1.6) * env * intensity
+    L = np.exp(-d2) * (0.35 + 2.4 * np.clip(cl - 0.3, 0, 1) ** 1.2) * env * intensity
     L = cv2.resize(L.astype(np.float32), (W, H))
     if mask is not None: L *= mask
-    fr *= (1 + L[..., None] * 1.4)
-    return add(fr, L * 0.35, color, 1.0)
+    fr *= (1 + L[..., None] * 2.2)
+    return add(fr, L * 0.45, color, 1.0)
 
 
 # ============================================================== 体积光
-def god_rays(fr, src, emit=None, strength=1.0, length=0.6, color=GOLD, t=0.0, shafts=0.6, src_r=120, seed=0, passes=6,
+def god_rays(fr, src, emit=None, strength=1.0, length=1.0, color=GOLD, t=0.0, shafts=0.6, src_r=120, seed=0, passes=6,
              occluder=None):
     """体积光（丁达尔光柱）：从光源 src=(x,y) 向外的径向光束。
     emit     (H,W) 发光源图（如月盘、云缝、门缝的亮度）；None 则用半径 src_r 的光盘
@@ -566,8 +578,8 @@ class Embers:
                 sx = abs(math.cos(rot)) * s + 0.6; sy = s * 0.7
                 pts = cv2.ellipse2Poly((int(px / k * 4), int(py / k * 4)), (int(sx * 4 / k + 1), int(sy * 4 / k + 1)),
                                        int(math.degrees(self.ang[i])), 0, 360, 60)
-                cv2.fillPoly(ash_a, [pts], float(fade * (0.55 + 0.35 * near)), cv2.LINE_AA, 2)
-                cv2.fillPoly(ash_c, [pts], float(fade * (0.2 + 0.5 * abs(math.sin(rot)))), cv2.LINE_AA, 2)
+                cv2.fillPoly(ash_a, [pts], float(fade * (0.75 + 0.25 * near)), cv2.LINE_AA, 2)
+                cv2.fillPoly(ash_c, [pts], float(fade * (0.75 + 0.25 * near) * (0.2 + 0.8 * abs(math.sin(rot)))), cv2.LINE_AA, 2)
                 continue
             sl = 0.03 * (0.6 + near)
             qx, qy = px - vx * sl, py - vy * sl
@@ -580,12 +592,12 @@ class Embers:
                 if u < 0.45: cv2.circle(hot, (int(px / k * 8), int(py / k * 8)), max(1, w_), float(a * (1 - u / 0.45)), -1, cv2.LINE_AA, 3)
         if ash:
             A = cv2.resize(cv2.GaussianBlur(ash_a, (0, 0), 0.7), (W, H)); C = cv2.resize(cv2.GaussianBlur(ash_c, (0, 0), 0.7), (W, H))
-            col = (0.18 + 0.55 * C / np.maximum(A, 1e-3))[..., None] * np.array([1, 0.98, 0.95], np.float32)
+            col = (0.35 + 0.6 * C / np.maximum(A, 1e-3))[..., None] * np.array([1, 0.98, 0.95], np.float32)
             a3 = np.clip(A, 0, 1)[..., None] * intensity
             fr[:] = fr * (1 - a3) + col * a3
             return fr
         if self.mode == 'gold':
-            c1, c2 = color if color is not None else (GOLD, WHITE_GOLD)
+            c1, c2 = color if color is not None else (GOLD * 1.6, WHITE_GOLD)
         else:
             c1, c2 = (GOLD * 1.0 + RED * 0.6, WHITE_GOLD) if color is None else color
         g = cv2.GaussianBlur(sharp, (0, 0), 2.5)
