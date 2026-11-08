@@ -1923,7 +1923,7 @@ def blade_write(fr, text, p, places=None, style='h', size=None, fname='xing', co
     lightning=True：闪电写字（电白色、随机闪烁、整体亮闪），用于 S088。p 标量或每字列表。"""
     P = _P(text, places, style, size, fname, box, anchor, seed)
     pr = _per_char(p, len(P))
-    base = col((0.85, 0.9, 1.0)) if lightning else col(color)
+    base = col((1.0, 0.93, 0.78)) if lightning else col(color)   # 闪电刻字：金白
     out = fr.copy()
     Ls = np.zeros((H // 2, W // 2), np.float32)
     L = Layer()
