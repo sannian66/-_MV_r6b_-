@@ -18,7 +18,23 @@ from c1kit import *
 import c1kit as K
 import json
 import vcam as VC
+import vcam3 as V3
 import fx2
+import props as PR
+import lyric3 as LY
+# v3 字幕规范：思源宋多字重；宋体字形不加墨迹纹理
+for _k, _f in (('serif_r', 'Regular'), ('serif_m', 'Medium'), ('serif_sb', 'SemiBold'), ('serif_b', 'Bold'), ('serif_black', 'Black')):
+    T.FONTS[_k] = ROOT + f'/fonts/NotoSerifSC-{_f}.otf'
+_glyph0 = T.glyph
+def _glyph_v3(ch, fname='kai', size=120, texture=True):
+    return _glyph0(ch, fname, size, texture and not str(fname).startswith('serif'))
+T.glyph = _glyph_v3
+MAIN_FONT = {'墙': os.environ.get('C1_MAIN_QIANG', 'serif_black'), '天': os.environ.get('C1_MAIN_TIAN', 'serif_black')}
+
+_shake_v2 = shake
+def shake(t, amp, freq=9.0, seed=0):
+    """v3 震动克制：镜头内部的高频冲击抖（>5Hz）压到 35%，低频手持晃（≤5Hz）压到 60%"""
+    return _shake_v2(t, amp * (0.35 if freq > 5 else 0.6), freq, seed)
 
 LINES = T.load_lines()
 FPS = 30
@@ -158,7 +174,7 @@ class S028(Shot):
     T_HIT = V(59.70)         # 血滴落刃 = 「未」字头
     def __init__(self):
         self.bg = dark_bg(28, 0.02, 0.07)
-        T.glyph('血', 'xing', 700, True)
+        T.glyph('血', 'serif_black', 460, False)
         T.warm('未冷', 'xing', 130)
 
     def render(self, t):
@@ -167,7 +183,7 @@ class S028(Shot):
         # 巨字 血：墨洇显出（虚焦一点，作后景）
         p = eout((t - self.t0) / 0.35, 2)
         L = T.Layer()
-        a = T.ink_bleed_glyph('血', 'xing', 760, max(0.02, p), seed=3, bleed=1.0)
+        a = T.ink_bleed_glyph('血', 'serif_black', 460, max(0.02, p), seed=3, bleed=1.0)
         L.paste(a, 960, 470, (0.62, 0.05, 0.04))
         A = K.blur_ds(L.A, 3, 2)
         fr = over(fr, A * 0.95, np.array([0.55, 0.04, 0.03], np.float32) * (0.85 + 0.3 * K.blur_ds(L.A, 30)[..., None]))
@@ -221,8 +237,7 @@ class S028(Shot):
         fr = cam(fr, z, 0, 0)
         ca = 3 if V(59.96) <= t < V(59.96) + 0.1 else 0
         pr = tprog(12, [1, 2], t, 0.18)
-        fr = T.scatter_stack(fr, '未冷', pr, size=130, fname='xing', box=(1300, 640, 1780, 930), anchor=(0.8, 0.8),
-                             t_local=t - self.t0, seed=7)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, ca
 
 
@@ -258,8 +273,7 @@ class S029(Shot):
         fr = cam(fr, z, dx, dy, dr)
         # 文字（屏幕层，不随镜头）
         pr = tprog(12, [3], t, 0.16)
-        fr = T.scatter_stack(fr, '刀', pr, size=300, fname='xing', emph=('刀',), emph_color='red', box=(1280, 330, 1760, 860),
-                             anchor=(0.6, 0.5), t_local=t - self.T_DAO, seed=7, fill=False)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -300,12 +314,12 @@ class S030(Shot):
         # 印「刀」盖在月面（落印在 61.93 拍上）
         ps = clamp01((t - (V(61.88) - 0.18)) / 0.6)
         if ps > 0:
-            fr = T.stamp_seal(fr, '刀', self.MOON[0], self.MOON[1] - crane * 0.3, 280, ps, style='yin', rot=-5, seed=30)
+            pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         # 前景草叶（虚焦，视差更大）
         gm = self.grass.mask(t, 1.2, dy=crane * 1.2, blur=10)
         fr = over(fr, gm, (0.01, 0.01, 0.012))
         pr = tprog(12, [4, 5], t, 0.2)
-        fr = T.vertical_column(fr, '不放', pr, size=90, fname='xing', box=(1080, 160, 1300, 560), anchor=(0.0, 0.0), rule=True)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -353,8 +367,7 @@ class S031(Shot):
         fr = cam(fr, 1.0 + 0.04 * u, 0, 0)
         # 天书竖排（悬于云间，左上）
         pr = tprog(13, [0, 1, 2, 3], t, 0.3)
-        fr = T.vertical_column(fr, '谁人来定', pr, size=150, fname='xing', box=(260, 150, 520, 900), anchor=(0.5, 0.0),
-                               style_kw=dict(glow=0.5, glow_color=(0.8, 0.85, 1.0)))
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -406,7 +419,7 @@ class S032(Shot):
         tx = V(CT(13, 5))
         if tx <= t < tx + 1 / 30 + 1e-3: fr = fr * 0.6 + RED * 0.5
         pr = tprog(13, [6, 7], t, 0.25)
-        fr = T.brush_write(fr, '一方', pr, style='h', size=110, fname='xing', color='white', box=(760, 790, 1160, 930))
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -419,8 +432,10 @@ class S033(Shot):
         self.bg = K.sky(seed=33, cloud=0.55, horizon=0.62).copy()
         far = K.mountains(W, H, 690, 90, 331, 5)
         self.bg = over(self.bg, far * 0.4, (0.12, 0.13, 0.15))
-        wall, seam = K.brick_wall(2400, 1600, 120, 52, 6, 33)
-        self.wall = wall[:700, :2400].copy() * 1.25
+        # v3：换 props.CharWall 字砖（律令刻字），冷月顶光 —— 与 S034/S035/S036 材质/光区分
+        cw = PR.CharWall(seed=33, cols=16, rows=11, brick=(150, 64), fname='song')
+        y_ = np.linspace(0, 1, cw.tex.shape[0], dtype=np.float32)[:, None, None]
+        self.wall = np.ascontiguousarray(cw.tex[:700, :2400]) * (1.55 - 0.5 * y_[:700]) * np.array([0.92, 0.97, 1.08], np.float32)
         self.sw = rig.Swordsman(330, view='back3q')
         self.dust_t = K.tile(512, 332, 5, 5)
         # 地面
@@ -455,8 +470,7 @@ class S033(Shot):
             pc = clamp01((t - 66.25) / 1.0)
             if pc > 0:
                 yy = top + 110
-                fr = T.carved_on_blade(fr, '若规则是', [(560, yy), (1360, yy)], height=96, p=pc, fname='song', finish='steel',
-                                       taper=(1.0, 1.0), spacing=0.5)
+                pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         # 地裂发光
         cm = K.draw_crack((H * 4 // 4, W), self.crack, 3, branches=10, seed=336, prog=eout((t - self.t0) / 0.3))
         fr = over(fr, cm, (0.0, 0.0, 0.0))
@@ -492,8 +506,15 @@ class S034(Shot):
     T_POP = V(68.89)
     def __init__(self):
         wall, seam = K.brick_wall(2400, 1600, 220, 92, 9, 34)
-        self.wall = wall; self.seam = seam
-        L = T.giant_layer('墙', 'xing', 'white', 900, 540, 640)
+        # v3：换光 —— 左侧掠射硬光（砖面浮雕 + 砖缝投影）+ 右侧沉入冷黑，铁青色调；与 S033/S035 字砖区分
+        hgt = cv2.GaussianBlur(1 - seam, (0, 0), 3)
+        gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=5) / 16; gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=5) / 16
+        rake = np.clip(1.0 + 3.2 * gx + 0.8 * gy, 0.15, 2.2)
+        xx = np.linspace(0, 1, wall.shape[1], dtype=np.float32)[None, :]
+        fall = 1.35 * np.exp(-xx * 1.6) + 0.12
+        lum = wall.mean(-1) * rake * fall
+        self.wall = np.stack([lum * 0.86, lum * 0.95, lum * 1.12], -1).astype(np.float32); self.seam = seam
+        L = T.giant_layer('墙', MAIN_FONT['墙'], 'white', 900, 540, 440 if MAIN_FONT['墙'].startswith('serif') else 500)
         self.gA = L.A.copy()
         T.warm('铁壁铜墙', 'kai', 70)
 
@@ -536,8 +557,7 @@ class S034(Shot):
         dx, dy, dr = shake(t, 8 * pulse(t, self.T_POP, 0.25) * (t >= self.T_POP) + 2, 7, 34)
         fr = cam(fr, 1.0 + 0.05 * u, dx, dy, dr)
         pr = tprog(14, [4, 5, 6, 7], t, 0.25)
-        fr = T.vertical_column(fr, '铁壁铜墙', pr, size=72, fname='kai', box=(1560, 200, 1760, 880), anchor=(1.0, 0.1),
-                               emph=('墙',), emph_color='red')
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -549,8 +569,13 @@ class S035(Shot):
     SH = 70.02 - V(70.02)
     def __init__(self):
         self.sw = rig.Swordsman(35, view='side')
-        wall, seam = K.brick_wall(2400, 1600, 170, 72, 8, 35)
-        self.wall = wall
+        # v3：换 CharWall（大字砖、楷体刻字），底部金红火光逆打 —— 与 S033 冷月顶光区分
+        cw = PR.CharWall(seed=35, cols=16, rows=18, brick=(170, 72), fname='kai', chars_ratio=0.6,
+                         text='顾全大局理所应当规矩方圆不得僭越')
+        tex = cw.tex
+        yy = np.linspace(0, 1, tex.shape[0], dtype=np.float32)[:, None, None]
+        warm = (0.75 + 1.1 * np.clip((yy - 0.45) / 0.55, 0, 1) ** 1.5) * np.array([1.12, 0.92, 0.72], np.float32)
+        self.wall = (tex * warm).astype(np.float32)
         self.crack = K.crack_path((900, 160), (1500, 960), 351, n=50, jag=0.03)
         T.warm('那就劈开它', 'kai', 110)
 
@@ -623,8 +648,9 @@ class S035(Shot):
         fr = cam(fr, 1.03, 0, 0)
         if t > 70.27 and t < 70.57: fr = K.motion_blur(fr, 40, 0)
         p = clamp01((t - 69.60) / 0.9)
-        fr = T.slash_cut(fr, '那就劈开它', p, size=120, fname='kai', color='white', angle=55, cut_at=(self.T_HIT - 69.60) / 0.9,
-                         emph=('劈',), emph_color='red', box=(120, 170, 900, 420), slide=0.5, seed=35)
+        fr = T.slash_cut(fr, '那就劈开它', p, places=LY.places('那就劈开它', 'bottom', red=('劈',)), color=LY.WHITE, angle=12,
+                         cut_at=(self.T_HIT - 69.60) / 0.9, emph=('劈',), emph_color=LY.RED_T, slide=0.5, seed=35,
+                         style_kw=dict(LY.STYLE))
         return fr, (3 if fl > 0.3 else 0)
 
 
@@ -633,8 +659,10 @@ class S035(Shot):
 class S036(Shot):
     t0, t1 = 71.053, 72.446
     def __init__(self):
-        wall, seam = K.brick_wall(2400, 1600, 260, 110, 10, 36)
-        self.wall = wall[:1300, :2300]
+        # v3：换 CharWall 超大字砖（一砖一字，宋体律令被金缝劈过），压暗，只靠缝里金光侧照
+        cw = PR.CharWall(seed=36, cols=5, rows=7, brick=(520, 220), fname='song', chars_ratio=1.0, text='律令纲常尊卑规矩法度天理昭彰')
+        xx = np.linspace(0, 1, 2300, dtype=np.float32)[None, :, None]
+        self.wall = np.ascontiguousarray(cw.tex[:1300, :2300]) * (0.55 + 0.6 * xx) * np.array([1.05, 0.98, 0.9], np.float32)
         self.crack = K.crack_path((300, -100), (1900, 1300), 361, n=80, jag=0.025)
         cm = K.draw_crack((1300, 2300), self.crack, 7, branches=24, seed=362, prog=1.0)
         self.cm = cm
@@ -666,7 +694,7 @@ class S036(Shot):
         pr = tprog(15, [5, 6], t, 0.25)
         P = [dict(ch='看', x=640, y=470, size=120, rot=-th * 0.0, font='xing', idx=0, emph=False),
              dict(ch='个', x=800, y=610, size=120, rot=0.0, font='xing', idx=1, emph=False)]
-        fr = T.ink_bleed_in(fr, '看个', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.2))
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -713,8 +741,7 @@ class S037(Shot):
         e = eio(u)
         fr = cam(fr, 1.1 - 0.1 * e, 0, 40 - 70 * e, center=(self.CX, 600))
         pb = clamp01((t - (V(CT(15, 7)) - 0.15)) / 1.9)
-        fr = T.burn_in(fr, '天亮', pb, size=180, fname='xing', color='gold', box=(self.CX - 300, 140, self.CX + 300, 330),
-                       mode='extinguish', split=0.55, seed=37)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -725,7 +752,7 @@ class S038(Shot):
     def __init__(self):
         self.sw = rig.Swordsman(38, view='side', hair=2)
         self.bg = dark_bg(38, 0.008, 0.03)
-        T.glyph('血', 'xing', 620, True)
+        T.glyph('血', 'serif_black', 440, False)
         T.warm('未冷', 'xing', 120)
 
     def render(self, t):
@@ -733,7 +760,7 @@ class S038(Shot):
         e = eio(u)
         fr = self.bg.copy()
         # 巨字 血（左侧半出画）
-        L = T.giant_layer('血', 'xing', 'red', 160, 560, 640)
+        L = T.giant_layer('血', 'serif_black', 'red', 330, 540, 440)
         fr = T.compose(fr, L, **T.auto_style('red'))
         p0, p1 = (1520, 1180), (1150, -150)
         fr, bm = draw_blade(fr, p0, p1, 380, shine=0.6 - 0.3 * e, shine_w=0.12, return_mask=True, seed=8)
@@ -758,8 +785,7 @@ class S038(Shot):
         fr = cam(fr, z * 1.05, 0, (hy - 540) * 0.25 - 40 + 80 * e)
         ca = 3 if V(CT(16, 2)) <= t < V(CT(16, 2)) + 0.1 else 0
         pr = tprog(16, [1, 2], t, 0.18)
-        fr = T.scatter_stack(fr, '未冷', pr, size=120, fname='xing', box=(620, 720, 1060, 940), anchor=(0.5, 0.8),
-                             t_local=t - self.t0, seed=38)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, ca
 
 
@@ -811,8 +837,7 @@ class S039(Shot):
         dx, dy, dr = shake(t, 6, 1.4, 39)
         fr = cam(fr, 1.04, dx, dy, dr)
         pr = tprog(16, [3, 4, 5], t, 0.18)
-        fr = T.scatter_stack(fr, '骨未凉', pr, size=120, fname='xing', emph=('骨',), emph_color='red',
-                             box=(1200, 170, 1820, 560), anchor=(0.8, 0.2), t_local=t - self.t0, seed=4)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -878,8 +903,7 @@ class S041(Shot):
         e = eio(u)
         fr = cam(fr, 1.0 + 0.05 * e, 0, -50 + 80 * e)
         pr = tprog(17, [4, 5, 6, 7], t, 0.3)
-        fr = T.vertical_column(fr, '我自己扛', pr, size=120, fname='xing', box=(1560, 170, 1780, 900), anchor=(0.5, 0.0),
-                               emph=('扛',), emph_color='red')
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -894,7 +918,7 @@ class S042(Shot):
         rgb, A = K.moon_sprite(240)
         self.bg = K.paste_sprite(self.bg, rgb, A, 960, 520)
         self.cl = K.tile(1024, 421, 4, 6)
-        self.L = T.giant_layer('天', 'xing', (0.03, 0.03, 0.035), 960, 540, 600)
+        self.L = T.giant_layer('天', MAIN_FONT['天'], (0.03, 0.03, 0.035), 960, 540, 440 if MAIN_FONT['天'].startswith('serif') else 500)
         T.warm('不判', 'xing', 110)
 
     def render(self, t):
@@ -923,8 +947,7 @@ class S042(Shot):
         if self.T_PAN <= t < self.T_PAN + 2 / 30 + 1e-3: fr = fr * 0.5 + RED * 0.6
         if V(80.86) <= t < V(80.86) + 1 / 30 + 1e-3: fr = fr + 0.25
         pr = tprog(18, [1, 2], t, 0.18)
-        fr = T.scatter_stack(fr, '不判', pr, size=120, fname='xing', emph=('判',), emph_color='red',
-                             box=(1400, 600, 1800, 900), anchor=(0.5, 0.5), seed=9)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, (4 if k > 0.4 else 0)
 
 
@@ -948,8 +971,7 @@ class S043(Shot):
         z = 1.0 + 0.18 * eout(u, 2)
         fr = cam(fr, z, 0, 0, center=(860, 500))
         pr = tprog(18, [3], t, 0.16)
-        fr = T.scatter_stack(fr, '我', pr, size=240, fname='xing', box=(1350, 520, 1750, 920), anchor=(0.6, 0.6),
-                             t_local=t - self.t0, seed=43, fill=False)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -970,8 +992,8 @@ class S044(Shot):
         fr = K.dust(fr, 0.0 + (t - self.t0) * 0.05, 4401, n=50, amt=0.35, size=(1, 3), blur=1.5)   # 尘埃悬停（风停）
         fr = cam(fr, 1.0 + 0.08 * eio(u), 0, 0)
         pr = tprog(18, [4], t, 0.18)
-        fr = T.vertical_column(fr, '来', pr, size=120, fname='xing', box=(1500, 250, 1700, 450), anchor=(0.5, 0.0), rule=False)
-        fr = T.stamp_seal(fr, '量', 1600, 640, 300, clamp01((t - (V(CT(18, 5)) - 0.18)) / 0.6), style='yin', rot=-6, seed=43)
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
+        pass  # v3 字幕统一：此处歌词移到 lyric3 统一字幕层
         return fr, 0
 
 
@@ -1011,9 +1033,7 @@ class S045(Shot):
         ring_y = fy - 59 * sc / 100 - 8 * sc / 100
         # 文字绕环（后半圈在人后）
         prog = tprog(19, [0, 1, 2], t, 0.16)
-        out, front, kw = T.text_on_ring(fr, '这一刀', cx, ring_y, 640, 150, phase=t * 2.2 - 0.6, size=250, fname='xing',
-                                        emph=('刀',), emph_color='red', prog=prog)
-        fr = out
+        front = None   # v3 字幕统一：「这一刀」移到 lyric3 统一字幕层（右侧竖排）
         fr, info = self.sw.draw(fr, cx, fy, sc, rim_color=(0.85, 0.9, 1.0), rim_dir=(-0.5, -0.8), rim=1.3)
         if 84.3 < t < 85.0:
             fr = rig.blade_trail(fr, hist, intensity=1.5, glow=1.4, edge_color=RED)
@@ -1032,7 +1052,6 @@ class S045(Shot):
         if t >= self.T_HIT:
             fr = K.sparks(fr, t, 4520, (cx, ring_y), n=120, life=0.6, speed=(300, 900), dirc=(1, 0), spread=3.0, grav=900,
                           burst=True, t0=self.T_HIT, area=(500, 20), color=(0.75, 0.82, 0.95), amt=0.9)
-        fr = T.ring_front(fr, front, kw)
         fr = cam(fr, 1.02, 0, 0)
         return fr, 0
 
@@ -1067,10 +1086,10 @@ class S046(Shot):
         d = np.array(p1, float) - np.array(p0, float); d /= np.linalg.norm(d); n = np.array([-d[1], d[0]])
         a0 = np.array(p0) + d * 420 - n * 10; a1 = np.array(p0) + d * 1520 - n * 10; a2 = np.array(p0) + d * 1720 - n * 10
         pc = clamp01((tr - (V(CT(19, 3)) - 0.1)) / (V(CT(19, 7)) - V(CT(19, 3)) + 0.2))
-        fr = T.carved_on_blade(fr, '就是我的回', [tuple(a0), tuple(a1)], height=86, p=pc, fname='song', finish='steel', taper=(1, 1))
+        fr = T.carved_on_blade(fr, '就是我的回', [tuple(a0), tuple(a1)], height=86, p=pc, fname='serif_b', finish='steel', taper=(1, 1))
         pa = clamp01((tr - (self.T_ANS - 0.15)) / 0.15)
         if pa > 0:
-            fr = T.carved_on_blade(fr, '答', [tuple(a1 + d * 10), tuple(a2)], height=100, p=pa, fname='song', finish='red', taper=(1, 1))
+            fr = T.carved_on_blade(fr, '答', [tuple(a1 + d * 10), tuple(a2)], height=86, p=pa, fname='serif_b', finish='red', taper=(1, 1))
         # 定格 0.3s 后推
         z = 1.0 + 0.04 * eio(clamp01((tr - self.t0 - 0.3) / 0.6))
         k = pulse(tr, self.T_ANS, 0.12) * (tr >= self.T_ANS)
@@ -1135,7 +1154,7 @@ class S047(Shot):
             fr = over(fr, m, RED * 0.22 + 0.015)
         pk = clamp01((t - 86.6) / 0.6)
         if pk > 0:
-            fr = T.ink_bleed_in(fr, '鬼屠', [pk, clamp01(pk * 1.2 - 0.1)], style='h', size=40, fname='song', color='white',
+            fr = T.ink_bleed_in(fr, '鬼屠', [pk, clamp01(pk * 1.2 - 0.1)], style='h', size=34, fname='serif_r', color='white',
                                 box=(120, 830, 300, 900), style_kw=dict(shadow=0.6, glow=0.1))
             fr = T.stamp_seal(fr, '屠', 330, 865, 54, clamp01((t - 86.95) / 0.5), style='yin', seed=47)
         return fr, 0
@@ -1259,6 +1278,49 @@ MOVES = {
     'S047': M('sine_io', z=(1.05, 1.0), y=(-30, 20)),
     'S048': M('expo_in', z=(1.0, 1.15)),
 }
+# ---------------- v3 主运镜（2.5D）：每镜一条有设计的主运镜；'beat' = 小节头/重音字上加速、镜尾（乐句末）减速刹住
+#  方向衔接：S027→S029 一路向右（推轨→环绕）→ S029 末上升接上甩 → S030 摇臂升 → S031/S032 继续向右 → S033 摇臂升
+#  → 上甩 → S034 仰摇+变焦推拉 → 右甩 → S035 横移跟拍向右 → S036 沿裂缝右下 → S037 摇臂降 → S038 继续下摇 → 右甩
+#  → S039 横移向右 → S040 环绕向右 → S041 焦点转移+升 → 上甩 → S042 推 → S043 随转头向左环绕 → 下甩 → S044 推+沿刀身右移
+#  → S045 急速环绕 → S046 变焦推拉（鼓停憋住）→ S047 焦点转移+升 → S048 推进雨滴
+M3 = V3.Move3
+MOVES3 = {
+    'S027': M3('expo_in', None, z=(1.0, 1.16), x=(-30, 50), rot=(0, -3), note='推轨 dolly in 沿刃向右 + 滚转，滚奏加速'),
+    'S028': M3('expo_out', None, z=(1.12, 1.0), x=(50, 90), rot=(-3, 0), yaw=(4, 0), note='拉出 dolly out + 滚转回正，继续向右漂'),
+    'S029': M3('sine_io', 'beat', z=(1.06, 1.0), yaw=(-9, 7), x=(-40, 40), y=(0, -30), note='环绕 orbit 绕握刀手向右，末段上抬接上甩'),
+    'S030': M3('sine_io', 'beat', z=(1.0, 1.07), y=(60, -50), pitch=(-6, 2), note='摇臂升 crane up（低机位仰→平视）'),
+    'S031': M3('sine_io', 'beat', z=(1.02, 1.0), x=(-50, 50), yaw=(-7, 7), rot=(2, -1), note='环绕 orbit 向右（巨影透视转动）'),
+    'S032': M3('sine_io', 'beat', z=(1.0, 1.08), x=(-40, 40), pitch=(9, 0), note='俯摇压下 tilt + 推，继续向右；斩落在小节头加速'),
+    'S033': M3('sine_io', 'beat', z=(1.0, 1.05), y=(110, -50), pitch=(-7, 1), rot=(-1.5, 0.5), note='摇臂升 crane up 随墙升起（前景碎砖视差）'),
+    'S034': M3('sine_io', 'beat', z=(1.0, 1.10), y=(40, -40), rot=(0, -7), vtg=(0.0, 0.30), note='变焦推拉 dolly zoom ① + 仰摇 + 荷兰角滚转'),
+    'S035': M3('sine_io', 'beat', x=(-90, 90), yaw=(-4, 4), note='横移跟拍 truck 向右跟人物起跳（前景碎砖视差）'),
+    'S036': M3('sine_io', 'beat', z=(1.03, 1.10), yaw=(12, 4), pitch=(-4, 2), x=(-30, 30), note='斜角环绕 orbit 收正 + 推（侧光斜看字砖）'),
+    'S037': M3('sine_io', 'beat', z=(1.12, 1.0), y=(-50, 40), pitch=(5, -2), rot=(-6, -2), note='摇臂降 crane down + 拉开 + 荷兰角回正（前景芦苇升入）'),
+    'S038': M3('sine_io', 'beat', z=(1.0, 1.06), y=(-40, 40), rot=(2, -1), note='下摇 tilt down 跟血沿刃流'),
+    'S039': M3('sine_io', 'beat', x=(-100, 100), yaw=(-3, 3), note='横移跟拍 truck 向右（前景芦苇 2.8x 视差）'),
+    'S040': M3('sine_io', 'beat', z=(1.06, 1.0), pitch=(9, 0), yaw=(-6, 4), note='摇臂降 + 环绕压到纸面 crane/orbit'),
+    'S041': M3('sine_io', 'beat', keys=[(0.0, dict(focus=0.0, y=50, pitch=-4, rot=4.5, z=1.0)),
+                                       (0.38, dict(focus=1.0, y=25, pitch=-2.5, rot=3.6, z=1.02)),
+                                       (1.0, dict(focus=1.0, y=-30, pitch=1, rot=2.0, z=1.06))],
+               note='焦点转移 rack focus ①（前景墙角→背影）+ 摇臂升 + 荷兰角'),
+    'S042': M3('sine_io', 'beat', z=(1.0, 1.16), y=(20, -10), rot=(0, 2), note='推轨 dolly in，重拍上加速'),
+    'S043': M3('sine_io', 'beat', z=(1.0, 1.05), yaw=(9, -6), x=(40, -30), note='环绕 orbit 向左，随转头（match on action）'),
+    'S044': M3('sine_io', 'beat', z=(1.0, 1.13), x=(-50, 40), pitch=(3, 0), note='推 + 沿刀身横移（吸气）'),
+    'S045': M3('sine_io', 'beat', z=(1.06, 1.0), yaw=(-10, 8), rot=(-3, 3), x=(-30, 30), note='急速环绕 orbit + 荷兰角翻转（随旋身斩）'),
+    'S046': M3('sine_io', None, z=(1.0, 1.12), vtg=(0.0, 0.32), note='变焦推拉 dolly zoom ②（鼓停憋住，背景被拉远）'),
+    'S047': M3('sine_io', 'beat', keys=[(0.0, dict(focus=0.0, y=60, pitch=-5, z=1.05)),
+                                       (0.40, dict(focus=1.0, y=30, pitch=-2, z=1.03)),
+                                       (1.0, dict(focus=1.0, y=-40, pitch=3, z=1.0))],
+               note='焦点转移 rack focus ②（前景芦苇→插地的刀）+ 摇臂升'),
+    'S048': M3('expo_in', None, z=(1.0, 1.18), rot=(0, 3), note='推进雨滴 dolly in + 慢滚转'),
+}
+# 前景遮挡物（前中后景视差）：(kind, side, depth, rim 颜色)
+OCC = {'S033': ('rubble', 'right', 2.8, (0.7, 0.75, 0.9)), 'S035': ('rubble', 'both', 3.0, (1.0, 0.7, 0.35)),
+       'S036': ('rubble', 'left', 2.2, (1.0, 0.76, 0.4)), 'S037': ('reeds', 'both', 2.4, (1.0, 0.76, 0.4)),
+       'S039': ('reeds', 'both', 2.8, (0.75, 0.8, 0.9)), 'S041': ('post', 'left', 2.0, (1.0, 0.76, 0.4)),
+       'S047': ('reeds', 'both', 2.6, (0.7, 0.75, 0.85))}
+RACK_SIGMA = 8.0                                  # 焦点转移：场景最虚 σ
+RACK_PROTECT = {'S041': (1500, 120, 1920, 960)}   # 歌词区不参与虚焦（字是屏幕层）
 GAIN = {'S028': 0.6, 'S034': 0.8, 'S038': 0.8, 'S043': 0.7, 'S046': 0.5, 'S047': 0.6}
 
 # 时间重映射：定格 / 慢放（憋住乐句尾）
@@ -1310,6 +1372,25 @@ EXPO_ALL = 1.2
 EXPO = {'S031': 1.15, 'S039': 1.1, 'S043': 1.25, 'S044': 1.3, 'S047': 1.15, 'S048': 1.3, 'S041': 1.1, 'S042': 1.15}
 
 
+# ---------------- v3 统一字幕（units/lyric3.py）：同屏一句；版位 bottom=底部三分之一横排 / right=右侧竖排
+SL = LY.Sentence
+SENTENCES = [
+    SL('血未冷', 12, [0, 1, 2], 'right', 60.10, red='血'),
+    SL('刀不放', 12, [3, 4, 5], 'right', 61.98, red='刀'),
+    SL('谁人来定正邪一方', 13, list(range(8)), 'right', 65.12, red='邪'),
+    SL('若规则是铁壁铜墙', 14, list(range(8)), 'right', 69.25, red='墙'),
+    SL('那就劈开它', 15, [0, 1, 2, 3, 4], 'bottom', 70.62, red='劈', skip=True),   # S035 被斩开（互动版，同字体同版位）
+    SL('看个天亮', 15, [5, 6, 7, 8], 'right', 73.55, gold='天亮'),
+    SL('血未冷', 16, [0, 1, 2], 'bottom', 74.62, red='血'),
+    SL('骨未凉', 16, [3, 4, 5], 'right', 76.12, red='骨'),
+    SL('是非对错我自己扛', 17, list(range(8)), 'right', 79.85, red='扛'),
+    SL('天不判', 18, [0, 1, 2], 'bottom', 81.68, red='判'),
+    SL('我来量', 18, [3, 4, 5], 'bottom', 83.68, red='量'),
+    SL('这一刀', 19, [0, 1, 2], 'right', 84.44, red='刀'),
+    SL('就是我的回答', 19, [3, 4, 5, 6, 7, 8], 'bottom', 86.0, red='答', skip=True),  # S046 刻在刀上（互动版）
+]
+
+
 class _Lazy:
     def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None; self.id = cls.__name__
     def render(self, t):
@@ -1322,10 +1403,13 @@ class _Lazy:
             REAL_T[0] = None
 
 
-def build_cam():
-    cam_ = VC.VCam(ROOT + '/crew/hitmap_c1.json', energy=energy)
+def build_cam(v=3):
+    if v == 2:
+        cam_ = VC.VCam(ROOT + '/crew/hitmap_c1.json', energy=energy); MV = MOVES
+    else:
+        cam_ = V3.VCam3(ROOT + '/crew/hitmap_c1.json', energy=energy); MV = MOVES3
     for S in SHOTS:
-        cam_.shot(max(S.t0, 58.5), S.t1, MOVES.get(S.__name__), GAIN.get(S.__name__, 1.0))
+        cam_.shot(max(S.t0, 58.5), S.t1, MV.get(S.__name__), GAIN.get(S.__name__, 1.0))
         c = CUTS.get(S.__name__)
         if c and c[0] == 'whip':
             cam_.whip(S.t0, c[3]['dir'], c[3].get('L', 400))
@@ -1343,8 +1427,10 @@ class Chorus1:
         self.shots = [_Lazy(S) for S in SHOTS]       # 镜头按需构建（分段渲染时只初始化用到的镜头）
         self.ids = [S.__name__ for S in SHOTS]
         self.byid = dict(zip(self.ids, self.shots))
-        self.cam = build_cam()
+        self.cam = build_cam(int(os.environ.get('C1_CAM', '3')))
         self.fg = VC.FGLayer(11, n=24)
+        self.lyr = LY.LyricLayer(SENTENCES, lambda li, k: V(CT(li, k)))
+        self.occ = {k: V3.FGOcc(a, b, d, seed=int(k[1:]), rim=r) for k, (a, b, d, r) in OCC.items()}
 
     def idx(self, t):
         for i, s in enumerate(self.shots):
@@ -1372,7 +1458,7 @@ class Chorus1:
             k = int((t - s.t0) * 30 + 1e-6)
             if k < 2:
                 a = 1.0 if k == 0 else 0.45
-                fr = cam(fr, 1 + 0.05 * a) * (1 + 0.15 * a) + 0.04 * a
+                fr = cam(fr, 1 + 0.025 * a) * (1 + 0.15 * a) + 0.04 * a   # v3：切点冲击推近减半（亮度冲击保留=卡点）
                 ca = max(ca, 3 if k == 0 else 1)
         return fr, ca
 
@@ -1402,11 +1488,27 @@ class Chorus1:
         else: fr, ca = self.raw(t)
         sid = self.ids[self.idx(t)]
         fr, st = self.cam.apply(np.clip(fr, 0, 4).astype(np.float32), t)
+        foc = st.get('focus', 1.0)
+        if foc < 0.999 and not ins:                      # 焦点转移：场景虚 → 实
+            sig = RACK_SIGMA * (1 - foc) ** 1.2
+            b = V3.defocus(fr, sig)
+            pb = RACK_PROTECT.get(sid)
+            if pb:
+                m = np.ones((H, W), np.float32); m[:, pb[0]:] = 0
+                m = cv2.GaussianBlur(m, (0, 0), 40)[..., None]
+                fr = b * m + fr * (1 - m)
+            else:
+                fr = b
+        oc = self.occ.get(sid)
+        if oc is not None and not ins:
+            fr = oc.draw(fr, st, t)
         kind, amt = FG.get(sid, (None, 0))
         if kind and not ins:
             fr = self.fg.draw(fr, t, st, kind, amt)
         fr = fr * (EXPO_ALL * EXPO.get(sid, 1.0))
         fr = fr + 0.012 * (1 - np.clip(fr, 0, 1))        # 抬一点黑位（避免死黑）
+        if os.environ.get('C1_LYR', '3') == '3':
+            fr = self.lyr.draw(fr, t)                       # 统一字幕层（屏幕层，不随镜头）
         ca = max(ca, int(round(4 * min(1.0, st['punch']))))
         return finish(fr, t, ca=ca, vig=0.42), 0
 

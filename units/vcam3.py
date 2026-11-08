@@ -146,7 +146,7 @@ class VCam3(VCam):
             surges += [(a, 0.6) for a in self.accent_t if t0 - 0.02 <= a < t1 - 0.15
                        and not any(abs(a - b) < 0.1 for b, _ in surges)]
             if not any(abs(s - t0) < 0.1 for s, _ in surges): surges.append((t0, 0.7))   # 切点即加速
-            u, U = beat_warp(t0, t1, surges, k=move.k)
+            u, U = beat_warp(t0, t1, surges, tail_k=move.k)
             move.warp = (u, U)
             move.surges = sorted(s for s, _ in surges)
         self.moves.append((t0, t1, move, gain))
