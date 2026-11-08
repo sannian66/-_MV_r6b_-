@@ -1,0 +1,7 @@
+*.mp3
+*.wav
+sep/
+_ai_unused/
+art/
+__pycache__/
+*.video.mp4
