@@ -1,0 +1,19 @@
+/workspace/work/mv/units/c1kit.py:289: RuntimeWarning: invalid value encountered in power
+  edge_y = np.where(x > tipx, 1 - ((x - tipx) / (L - tipx)) ** 1.6 * 0.95, 1.0)
+1770 ins:white
+1800 cut
+1869 cut
+1965 cut
+2089 cut
+2162 cut
+2206 ins:neg
+2216 ins:white
+2249 cut
+2343 cut
+2439 ins:red
+2487 cut
+2542 cut
+2625 cut
+2646 ins:S035
+2656 ins:S045
+2680 ins:S029

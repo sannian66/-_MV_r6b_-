@@ -52,15 +52,15 @@ def contact(times=None, outp=OUT + '/chorus1_contact.jpg', cols=4):
 def all_():
     f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
     mid = (f0 + f1) // 2
-    os.makedirs(OUT + '/c1chunks', exist_ok=True)
+    os.makedirs(OUT + '/c1v2chunks', exist_ok=True)
     parts = [(f0, mid), (mid, f1)]
     procs = []
     for a, b in parts:
-        o = f'{OUT}/c1chunks/p_{a}.mp4'
+        o = f'{OUT}/c1v2chunks/p_{a}.mp4'
         procs.append(subprocess.Popen([sys.executable, __file__, 'seg', str(a), str(b), o],
-                                      stdout=open(f'{OUT}/c1chunks/log_{a}.txt', 'w'), stderr=subprocess.STDOUT))
+                                      stdout=open(f'{OUT}/c1v2chunks/log_{a}.txt', 'w'), stderr=subprocess.STDOUT))
     for p in procs: p.wait()
-    lst = OUT + '/c1chunks/list.txt'
+    lst = OUT + '/c1v2chunks/list.txt'
     open(lst, 'w').write(''.join(f"file 'p_{a}.mp4'\n" for a, b in parts))
     subprocess.check_call(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', lst, '-ss', '0', '-t', f'{T1 - T0:.3f}',
                            '-i', ROOT + '/song.mp3', '-ss', f'{T0:.3f}', '-t', f'{T1 - T0:.3f}',
@@ -75,15 +75,15 @@ CH = 90   # 每块帧数
 def chunks(budget=100):
     """分块渲染（每次调用最多跑 budget 秒，2 进程并行；已完成的块跳过），可反复调用直到全部完成。"""
     f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
-    os.makedirs(OUT + '/c1chunks', exist_ok=True)
+    os.makedirs(OUT + "/c1v2chunks", exist_ok=True)
     todo = [(a, min(a + CH, f1)) for a in range(f0, f1, CH)]
-    todo = [c for c in todo if not os.path.exists(f'{OUT}/c1chunks/c_{c[0]}.mp4')]
+    todo = [c for c in todo if not os.path.exists(f'{OUT}/c1v2chunks/c_{c[0]}.mp4')]
     st = time.time(); run = []
     while (todo or run):
         while todo and len(run) < 2 and time.time() - st < budget:
-            a, b = todo.pop(0); o = f'{OUT}/c1chunks/c_{a}.mp4'
+            a, b = todo.pop(0); o = f'{OUT}/c1v2chunks/c_{a}.mp4'
             pr = subprocess.Popen([sys.executable, __file__, 'seg', str(a), str(b), o + '.tmp.mp4'],
-                                  stdout=open(f'{OUT}/c1chunks/log_{a}.txt', 'w'), stderr=subprocess.STDOUT)
+                                  stdout=open(f'{OUT}/c1v2chunks/log_{a}.txt', 'w'), stderr=subprocess.STDOUT)
             run.append((pr, o))
         for pr, o in run[:]:
             if pr.poll() is not None:
@@ -91,19 +91,62 @@ def chunks(budget=100):
                 if pr.returncode == 0: os.replace(o + '.tmp.mp4', o)
         if not run and (not todo or time.time() - st >= budget): break
         time.sleep(1)
-    left = len([c for c in [(a, 0) for a in range(f0, f1, CH)] if not os.path.exists(f'{OUT}/c1chunks/c_{c[0]}.mp4')])
+    left = len([c for c in [(a, 0) for a in range(f0, f1, CH)] if not os.path.exists(f'{OUT}/c1v2chunks/c_{c[0]}.mp4')])
     print('remaining chunks', left)
 
 
-def mux():
+def mux(name='sample_chorus1_v2'):
     f0, f1 = int(round(T0 * FPS)), int(round(T1 * FPS))
-    lst = OUT + '/c1chunks/list.txt'
+    lst = OUT + '/c1v2chunks/list.txt'
     open(lst, 'w').write(''.join(f"file 'c_{a}.mp4'\n" for a in range(f0, f1, CH)))
     subprocess.check_call(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', lst,
                            '-ss', f'{T0:.3f}', '-t', f'{T1 - T0:.3f}', '-i', ROOT + '/song.mp3',
                            '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest',
                            '-movflags', '+faststart', OUT + '/sample_chorus1.mp4'])
     print('done', OUT + '/sample_chorus1.mp4')
+
+
+def cut_frames():
+    import chorus1 as C
+    fs = []
+    for f in C.CUT_F[1:-1]: fs.append((f, 'cut'))
+    for f0, n, k, a in C.INSERTS: fs.append((f0, 'ins:' + (k if k != 'shot' else a[0])))
+    return sorted(fs)
+
+
+def cuts_part(k, n, outp):
+    """切点联系表（分片）：每个切点/插入闪切画 [f-2, f-1 | f, f+1, f+3] 五帧"""
+    import chorus1 as C
+    from PIL import Image, ImageDraw
+    X = C.Chorus1()
+    items = cut_frames()[k::n]
+    rows = []
+    for f, lab in items:
+        ims = []
+        for d in (-2, -1, 0, 1, 3):
+            fr, _ = X.frame((f + d) / FPS)
+            im = Image.fromarray(C.to8(fr)[120:960]).resize((384, 168))
+            dr = ImageDraw.Draw(im)
+            dr.text((4, 2), f'{X.ids[X.idx((f + d) / FPS)]} f{f + d} {(f + d) / FPS:.3f}s', fill=(255, 220, 120))
+            if d == 0: dr.rectangle([0, 0, 383, 167], outline=(255, 60, 40), width=3); dr.text((4, 150), lab, fill=(255, 120, 100))
+            ims.append(im)
+        rows.append(ims)
+        print(f, lab, flush=True)
+    import pickle
+    pickle.dump([(f, [i.tobytes() for i in r]) for (f, _), r in zip(items, rows)], open(outp, 'wb'))
+
+
+def cuts_merge(parts, outp=OUT + '/chorus1_v2_cuts.jpg'):
+    import pickle
+    from PIL import Image
+    allr = []
+    for p_ in parts: allr += pickle.load(open(p_, 'rb'))
+    allr.sort()
+    S = Image.new('RGB', (384 * 5 + 16, 172 * len(allr)), (30, 30, 34))
+    for r, (f, ims) in enumerate(allr):
+        for c, b in enumerate(ims):
+            S.paste(Image.frombytes('RGB', (384, 168), b), (c * 384 + (16 if c >= 2 else 0), r * 172))
+    S.save(outp, quality=85); print(outp, len(allr))
 
 
 if __name__ == '__main__':
@@ -113,3 +156,5 @@ if __name__ == '__main__':
     elif m == 'all': all_()
     elif m == 'chunks': chunks(float(sys.argv[2]) if len(sys.argv) > 2 else 100)
     elif m == 'mux': mux()
+    elif m == 'cuts': cuts_part(int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
+    elif m == 'cutsmerge': cuts_merge(sys.argv[2:])
