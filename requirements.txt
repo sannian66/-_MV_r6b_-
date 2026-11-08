@@ -2,6 +2,7 @@ numpy
 pillow
 scipy
 opencv-python-headless
+skia-python   # 矢量绘制层（系统库：sudo apt-get install -y libegl1 libgl1）
 librosa
 soundfile
 # alignment only (optional, CPU torch):

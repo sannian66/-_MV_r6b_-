@@ -159,6 +159,7 @@ class SkCanvas:
         self._pg = skia.Paint(AntiAlias=True); self._pg.setBlendMode(skia.BlendMode.kSrc)
         self._pd = skia.Paint(AntiAlias=False); self._pd.setBlendMode(skia.BlendMode.kSrc)
         self.dcur = 0.0
+        self._g_used = False
 
     # ---- 解码视图（兼容旧代码读取）
     @property
@@ -186,10 +187,11 @@ class SkCanvas:
             p.setStyle(skia.Paint.kFill_Style)
         if a < 0.999: p.setAlphaf(a)
         self._cB.drawPath(P, p)
-        g = self._pg; g.setStyle(p.getStyle()); g.setStrokeWidth(p.getStrokeWidth()); g.setStrokeCap(skia.Paint.kRound_Cap)
-        g.setColor(skia.Color(0, 0, 0, int(gold)))
-        if a < 0.999: g.setAlphaf(g.getAlphaf())          # 细线淡化只作用于形状通道
-        self._cG.drawPath(P, g)
+        if gold or self._g_used:                          # 还没画过金饰时，写 0 是空操作 → 跳过
+            self._g_used = self._g_used or bool(gold)
+            g = self._pg; g.setStyle(p.getStyle()); g.setStrokeWidth(p.getStrokeWidth()); g.setStrokeCap(skia.Paint.kRound_Cap)
+            g.setColor(skia.Color(0, 0, 0, int(gold)))
+            self._cG.drawPath(P, g)
         if depth and not stroke:
             q = int(np.clip((self.dcur + 2048.0) * _DQ, 0, 2 ** 24 - 1))
             self._pd.setColor(skia.Color((q >> 16) & 255, (q >> 8) & 255, q & 255, 255))
@@ -250,6 +252,7 @@ class SkCanvas:
         if target == 'C':
             self._draw(P, val, 0, stroke=stroke, depth=depth); return
         if target == 'G':
+            self._g_used = self._g_used or bool(val)
             g = skia.Paint(self._pg); g.setColor(skia.Color(0, 0, 0, int(val)))
             if stroke: g.setStyle(skia.Paint.kStroke_Style); g.setStrokeWidth(float(stroke)); g.setStrokeCap(skia.Paint.kRound_Cap)
             self._cG.drawPath(P, g); return
