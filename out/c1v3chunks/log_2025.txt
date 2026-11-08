@@ -1,0 +1,3 @@
+68.00s  0.36s/f
+Fontconfig warning: "/usr/share/fontconfig/conf.avail/05-reset-dirs-sample.conf", line 6: unknown element "reset-dirs"
+70.00s  0.47s/f
