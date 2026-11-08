@@ -6,4143 +6,2127 @@
  "fps": 30,
  "bpm": 129.2,
  "beat_s": 0.4644,
- "downbeat_phase": 3,
+ "downbeat_phase": 2,
  "counts": {
-  "total": 375,
-  "kick": 196,
-  "hat": 232,
-  "snare": 222
+  "total": 132,
+  "hat": 85,
+  "snare": 40,
+  "kick": 72,
+  "crash": 4
  },
- "method": [
-  "",
-  "方法：HPSS 取打击乐分量 → STFT 频段拆分（底鼓 <150Hz、军鼓 150–4kHz 瞬态（以 1.2–4k 为主判据）、镲/hi-hat >6kHz）",
-  "→ 各频段谱通量 onset 包络 → 自适应峰值检测 → 同一时刻多频段合并分类 → 强度归一化"
- ],
+ "method": "htdemucs drums stem → 频段谱通量 + 全频 onset 峰值，按频段分类；strength 为 0.15–1 归一",
  "hits": [
   {
-   "t": 58.014,
-   "type": "kick+hat",
-   "strength": 0.755,
-   "beat": 125,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1740,
-   "vis_frame": 1739
-  },
-  {
-   "t": 58.09,
-   "type": "snare+hat",
-   "strength": 0.404,
-   "beat": 126,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1743,
-   "vis_frame": 1742
-  },
-  {
-   "t": 58.159,
-   "type": "kick+snare",
-   "strength": 0.872,
-   "beat": 126,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1745,
-   "vis_frame": 1744
-  },
-  {
-   "t": 58.194,
+   "t": 58.072,
    "type": "hat",
-   "strength": 0.758,
+   "band": {
+    "kick": 0.273,
+    "snare": 0.086,
+    "hat": 0.34
+   },
+   "strength": 0.163,
    "beat": 126,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1746,
-   "vis_frame": 1745
-  },
-  {
-   "t": 58.305,
-   "type": "kick+snare+hat",
-   "strength": 0.763,
-   "beat": 126,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1749,
-   "vis_frame": 1748
-  },
-  {
-   "t": 58.403,
-   "type": "kick+snare+hat",
-   "strength": 0.781,
-   "beat": 126,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1752,
-   "vis_frame": 1751
-  },
-  {
-   "t": 58.537,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 127,
    "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1756,
-   "vis_frame": 1755
-  },
-  {
-   "t": 58.647,
-   "type": "kick+snare+hat",
-   "strength": 0.718,
-   "beat": 127,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1759,
-   "vis_frame": 1758
-  },
-  {
-   "t": 58.763,
-   "type": "kick+snare+hat",
-   "strength": 0.866,
-   "beat": 127,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1763,
-   "vis_frame": 1762
-  },
-  {
-   "t": 58.879,
-   "type": "kick+snare+hat",
-   "strength": 0.828,
-   "beat": 127,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1766,
-   "vis_frame": 1765
-  },
-  {
-   "t": 58.99,
-   "type": "kick+snare+hat",
-   "strength": 0.744,
-   "beat": 128,
-   "beat_pos": 2,
    "on_beat": false,
    "sub": -0.5,
-   "frame": 1770,
-   "vis_frame": 1769
+   "frame": 1742,
+   "vis_frame": 1741
   },
   {
-   "t": 59.077,
-   "type": "snare+hat",
-   "strength": 0.57,
-   "beat": 128,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1772,
-   "vis_frame": 1771
-  },
-  {
-   "t": 59.158,
-   "type": "kick",
-   "strength": 0.653,
-   "beat": 128,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1775,
-   "vis_frame": 1774
-  },
-  {
-   "t": 59.199,
-   "type": "snare",
-   "strength": 0.251,
-   "beat": 128,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1776,
-   "vis_frame": 1775
-  },
-  {
-   "t": 59.268,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 128,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1778,
-   "vis_frame": 1777
-  },
-  {
-   "t": 59.326,
-   "type": "kick+hat",
-   "strength": 0.869,
-   "beat": 128,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1780,
-   "vis_frame": 1779
-  },
-  {
-   "t": 59.512,
+   "t": 58.142,
    "type": "hat",
-   "strength": 0.335,
-   "beat": 129,
-   "beat_pos": 3,
+   "band": {
+    "kick": 0.306,
+    "snare": 0.183,
+    "hat": 0.315
+   },
+   "strength": 0.15,
+   "beat": 126,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 1785,
-   "vis_frame": 1784
+   "frame": 1744,
+   "vis_frame": 1743
   },
   {
-   "t": 59.558,
+   "t": 58.218,
    "type": "snare",
-   "strength": 0.442,
-   "beat": 129,
-   "beat_pos": 3,
+   "band": {
+    "kick": 0.113,
+    "snare": 0.376,
+    "hat": 0.571
+   },
+   "strength": 0.374,
+   "beat": 126,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1787,
-   "vis_frame": 1786
+   "frame": 1747,
+   "vis_frame": 1746
   },
   {
-   "t": 59.68,
-   "type": "kick+snare",
+   "t": 58.334,
+   "type": "hat",
+   "band": {
+    "kick": 0.129,
+    "snare": 0.271,
+    "hat": 0.457
+   },
+   "strength": 0.27,
+   "beat": 126,
+   "beat_pos": 1,
+   "on_beat": false,
+   "sub": 0.25,
+   "frame": 1750,
+   "vis_frame": 1749
+  },
+  {
+   "t": 58.45,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.335,
+    "snare": 0.236,
+    "hat": 0.418
+   },
    "strength": 0.378,
-   "beat": 129,
-   "beat_pos": 3,
+   "beat": 126,
+   "beat_pos": 1,
    "on_beat": false,
-   "sub": 0.25,
-   "frame": 1790,
-   "vis_frame": 1789
+   "sub": 0.5,
+   "frame": 1754,
+   "vis_frame": 1753
   },
   {
-   "t": 59.767,
-   "type": "snare+hat",
-   "strength": 0.272,
-   "beat": 129,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1793,
-   "vis_frame": 1792
-  },
-  {
-   "t": 59.86,
-   "type": "kick+hat",
-   "strength": 0.217,
-   "beat": 130,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1796,
-   "vis_frame": 1795
-  },
-  {
-   "t": 59.93,
-   "type": "snare",
-   "strength": 0.24,
-   "beat": 130,
-   "beat_pos": 4,
+   "t": 58.56,
+   "type": "hat",
+   "band": {
+    "kick": 0.301,
+    "snare": 0.233,
+    "hat": 0.344
+   },
+   "strength": 0.167,
+   "beat": 127,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 1798,
-   "vis_frame": 1797
+   "frame": 1757,
+   "vis_frame": 1756
   },
   {
-   "t": 60.029,
-   "type": "kick+hat",
-   "strength": 1.0,
+   "t": 58.676,
+   "type": "hat",
+   "band": {
+    "kick": 0.216,
+    "snare": 0.143,
+    "hat": 0.324
+   },
+   "strength": 0.15,
+   "beat": 127,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1760,
+   "vis_frame": 1759
+  },
+  {
+   "t": 58.786,
+   "type": "snare",
+   "band": {
+    "kick": 0.226,
+    "snare": 0.31,
+    "hat": 0.458
+   },
+   "strength": 0.271,
+   "beat": 127,
+   "beat_pos": 2,
+   "on_beat": false,
+   "sub": 0.25,
+   "frame": 1764,
+   "vis_frame": 1763
+  },
+  {
+   "t": 58.902,
+   "type": "hat",
+   "band": {
+    "kick": 0.118,
+    "snare": 0.228,
+    "hat": 0.346
+   },
+   "strength": 0.168,
+   "beat": 127,
+   "beat_pos": 2,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 1767,
+   "vis_frame": 1766
+  },
+  {
+   "t": 59.019,
+   "type": "snare",
+   "band": {
+    "kick": 0.15,
+    "snare": 0.357,
+    "hat": 0.539
+   },
+   "strength": 0.345,
+   "beat": 128,
+   "beat_pos": 3,
+   "on_beat": false,
+   "sub": -0.25,
+   "frame": 1771,
+   "vis_frame": 1770
+  },
+  {
+   "t": 59.135,
+   "type": "snare",
+   "band": {
+    "kick": 0.165,
+    "snare": 0.37,
+    "hat": 0.553
+   },
+   "strength": 0.358,
+   "beat": 128,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1774,
+   "vis_frame": 1773
+  },
+  {
+   "t": 60.046,
+   "type": "kick+snare+crash",
+   "band": {
+    "kick": 0.523,
+    "snare": 0.357,
+    "hat": 0.575
+   },
+   "strength": 0.672,
    "beat": 130,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
    "frame": 1801,
    "vis_frame": 1800
   },
   {
-   "t": 60.098,
-   "type": "snare",
-   "strength": 0.23,
-   "beat": 130,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1803,
-   "vis_frame": 1802
-  },
-  {
-   "t": 60.174,
+   "t": 60.505,
    "type": "kick+hat",
-   "strength": 0.322,
-   "beat": 130,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1805,
-   "vis_frame": 1804
-  },
-  {
-   "t": 60.238,
-   "type": "hat",
-   "strength": 0.292,
-   "beat": 130,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1807,
-   "vis_frame": 1806
-  },
-  {
-   "t": 60.301,
-   "type": "snare+hat",
-   "strength": 0.254,
-   "beat": 130,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1809,
-   "vis_frame": 1808
-  },
-  {
-   "t": 60.394,
-   "type": "snare",
-   "strength": 0.213,
+   "band": {
+    "kick": 0.589,
+    "snare": 0.318,
+    "hat": 0.422
+   },
+   "strength": 0.774,
    "beat": 131,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1812,
-   "vis_frame": 1811
-  },
-  {
-   "t": 60.481,
-   "type": "hat",
-   "strength": 0.527,
-   "beat": 131,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1814,
-   "vis_frame": 1813
+   "frame": 1815,
+   "vis_frame": 1814
   },
   {
-   "t": 60.586,
-   "type": "kick+snare",
-   "strength": 0.394,
-   "beat": 131,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1818,
-   "vis_frame": 1817
-  },
-  {
-   "t": 60.679,
-   "type": "snare+hat",
-   "strength": 0.342,
-   "beat": 131,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1820,
-   "vis_frame": 1819
-  },
-  {
-   "t": 60.748,
-   "type": "kick+snare",
-   "strength": 0.481,
-   "beat": 131,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1822,
-   "vis_frame": 1821
-  },
-  {
-   "t": 60.865,
-   "type": "kick",
-   "strength": 0.863,
-   "beat": 132,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1826,
-   "vis_frame": 1825
-  },
-  {
-   "t": 60.94,
-   "type": "snare+hat",
-   "strength": 0.878,
-   "beat": 132,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 1828,
-   "vis_frame": 1827
-  },
-  {
-   "t": 61.062,
-   "type": "snare",
-   "strength": 0.265,
-   "beat": 132,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1832,
-   "vis_frame": 1831
-  },
-  {
-   "t": 61.161,
-   "type": "hat",
-   "strength": 0.313,
-   "beat": 132,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1835,
-   "vis_frame": 1834
-  },
-  {
-   "t": 61.224,
-   "type": "snare",
-   "strength": 0.239,
-   "beat": 132,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1837,
-   "vis_frame": 1836
-  },
-  {
-   "t": 61.288,
-   "type": "hat",
-   "strength": 0.507,
-   "beat": 133,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1839,
-   "vis_frame": 1838
-  },
-  {
-   "t": 61.387,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 133,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1842,
-   "vis_frame": 1841
-  },
-  {
-   "t": 61.468,
-   "type": "hat",
-   "strength": 0.285,
-   "beat": 133,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1844,
-   "vis_frame": 1843
-  },
-  {
-   "t": 61.544,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 133,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1846,
-   "vis_frame": 1845
-  },
-  {
-   "t": 61.602,
-   "type": "hat",
-   "strength": 0.357,
-   "beat": 133,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1848,
-   "vis_frame": 1847
-  },
-  {
-   "t": 61.712,
-   "type": "hat",
-   "strength": 0.245,
-   "beat": 134,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1851,
-   "vis_frame": 1850
-  },
-  {
-   "t": 61.753,
-   "type": "snare",
-   "strength": 0.261,
-   "beat": 134,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1853,
-   "vis_frame": 1852
-  },
-  {
-   "t": 61.857,
+   "t": 60.969,
    "type": "kick+hat",
-   "strength": 0.701,
-   "beat": 134,
+   "band": {
+    "kick": 0.549,
+    "snare": 0.232,
+    "hat": 0.394
+   },
+   "strength": 0.712,
+   "beat": 132,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1829,
+   "vis_frame": 1828
+  },
+  {
+   "t": 61.422,
+   "type": "snare",
+   "band": {
+    "kick": 0.228,
+    "snare": 0.521,
+    "hat": 0.581
+   },
+   "strength": 0.533,
+   "beat": 133,
    "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1843,
+   "vis_frame": 1842
+  },
+  {
+   "t": 61.88,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.726,
+    "snare": 0.172,
+    "hat": 0.401
+   },
+   "strength": 0.989,
+   "beat": 134,
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
    "frame": 1856,
    "vis_frame": 1855
   },
   {
-   "t": 61.991,
+   "t": 62.339,
    "type": "kick+snare",
-   "strength": 0.258,
-   "beat": 134,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1860,
-   "vis_frame": 1859
-  },
-  {
-   "t": 62.078,
-   "type": "hat",
-   "strength": 0.255,
-   "beat": 134,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1862,
-   "vis_frame": 1861
-  },
-  {
-   "t": 62.118,
-   "type": "kick+snare",
-   "strength": 0.326,
-   "beat": 134,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1864,
-   "vis_frame": 1863
-  },
-  {
-   "t": 62.171,
-   "type": "hat",
-   "strength": 0.324,
+   "band": {
+    "kick": 0.805,
+    "snare": 0.453,
+    "hat": 0.738
+   },
+   "strength": 1.0,
    "beat": 135,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1865,
-   "vis_frame": 1864
-  },
-  {
-   "t": 62.316,
-   "type": "snare+hat",
-   "strength": 0.84,
-   "beat": 135,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1869,
-   "vis_frame": 1868
+   "frame": 1870,
+   "vis_frame": 1869
   },
   {
-   "t": 62.426,
-   "type": "kick+snare+hat",
-   "strength": 0.497,
-   "beat": 135,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1873,
-   "vis_frame": 1872
-  },
-  {
-   "t": 62.531,
-   "type": "kick+snare",
-   "strength": 0.403,
-   "beat": 135,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1876,
-   "vis_frame": 1875
-  },
-  {
-   "t": 62.577,
-   "type": "hat",
-   "strength": 0.252,
-   "beat": 135,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1877,
-   "vis_frame": 1876
-  },
-  {
-   "t": 62.647,
-   "type": "snare",
-   "strength": 0.241,
+   "t": 62.798,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.687,
+    "snare": 0.187,
+    "hat": 0.398
+   },
+   "strength": 0.927,
    "beat": 136,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1879,
-   "vis_frame": 1878
-  },
-  {
-   "t": 62.774,
-   "type": "kick+snare+hat",
-   "strength": 0.824,
-   "beat": 136,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 1883,
-   "vis_frame": 1882
-  },
-  {
-   "t": 62.92,
-   "type": "kick",
-   "strength": 0.405,
-   "beat": 136,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1888,
-   "vis_frame": 1887
-  },
-  {
-   "t": 62.972,
-   "type": "snare+hat",
-   "strength": 0.355,
-   "beat": 136,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1889,
-   "vis_frame": 1888
-  },
-  {
-   "t": 63.076,
-   "type": "hat",
-   "strength": 0.217,
-   "beat": 137,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1892,
-   "vis_frame": 1891
-  },
-  {
-   "t": 63.227,
-   "type": "kick+snare+hat",
-   "strength": 0.963,
-   "beat": 137,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1897,
-   "vis_frame": 1896
-  },
-  {
-   "t": 63.343,
-   "type": "kick+snare",
-   "strength": 0.37,
-   "beat": 137,
    "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1900,
-   "vis_frame": 1899
+   "frame": 1884,
+   "vis_frame": 1883
   },
   {
-   "t": 63.396,
+   "t": 63.018,
    "type": "hat",
-   "strength": 0.21,
-   "beat": 137,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1902,
-   "vis_frame": 1901
-  },
-  {
-   "t": 63.477,
-   "type": "snare",
-   "strength": 0.77,
-   "beat": 137,
+   "band": {
+    "kick": 0.165,
+    "snare": 0.104,
+    "hat": 0.397
+   },
+   "strength": 0.216,
+   "beat": 136,
    "beat_pos": 3,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 1904,
-   "vis_frame": 1903
+   "frame": 1891,
+   "vis_frame": 1890
   },
   {
-   "t": 63.61,
+   "t": 63.25,
    "type": "kick+snare",
-   "strength": 0.325,
+   "band": {
+    "kick": 0.405,
+    "snare": 0.356,
+    "hat": 0.561
+   },
+   "strength": 0.487,
+   "beat": 137,
+   "beat_pos": 4,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1898,
+   "vis_frame": 1897
+  },
+  {
+   "t": 63.715,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.573,
+    "snare": 0.315,
+    "hat": 0.489
+   },
+   "strength": 0.75,
    "beat": 138,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1908,
-   "vis_frame": 1907
-  },
-  {
-   "t": 63.686,
-   "type": "hat",
-   "strength": 0.493,
-   "beat": 138,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
    "frame": 1911,
    "vis_frame": 1910
   },
   {
-   "t": 63.738,
-   "type": "kick+hat",
-   "strength": 0.399,
+   "t": 63.784,
+   "type": "hat",
+   "band": {
+    "kick": 0.066,
+    "snare": 0.102,
+    "hat": 0.347
+   },
+   "strength": 0.17,
    "beat": 138,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1912,
-   "vis_frame": 1911
-  },
-  {
-   "t": 63.773,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 138,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1913,
-   "vis_frame": 1912
-  },
-  {
-   "t": 63.848,
-   "type": "kick",
-   "strength": 0.396,
-   "beat": 138,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1915,
-   "vis_frame": 1914
+   "frame": 1914,
+   "vis_frame": 1913
   },
   {
    "t": 63.924,
-   "type": "snare+hat",
-   "strength": 0.353,
+   "type": "hat",
+   "band": {
+    "kick": 0.034,
+    "snare": 0.095,
+    "hat": 0.413
+   },
+   "strength": 0.23,
    "beat": 138,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": 0.5,
    "frame": 1918,
    "vis_frame": 1917
   },
   {
-   "t": 63.976,
-   "type": "kick",
-   "strength": 0.308,
+   "t": 64.168,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.452,
+    "snare": 0.323,
+    "hat": 0.579
+   },
+   "strength": 0.56,
    "beat": 139,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1919,
-   "vis_frame": 1918
-  },
-  {
-   "t": 64.098,
-   "type": "kick+hat",
-   "strength": 0.613,
-   "beat": 139,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1923,
-   "vis_frame": 1922
-  },
-  {
-   "t": 64.15,
-   "type": "snare",
-   "strength": 0.654,
-   "beat": 139,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
    "frame": 1925,
    "vis_frame": 1924
   },
   {
-   "t": 64.208,
+   "t": 64.4,
+   "type": "hat",
+   "band": {
+    "kick": 0.139,
+    "snare": 0.164,
+    "hat": 0.307
+   },
+   "strength": 0.15,
+   "beat": 139,
+   "beat_pos": 2,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 1932,
+   "vis_frame": 1931
+  },
+  {
+   "t": 64.626,
    "type": "kick+hat",
-   "strength": 0.358,
-   "beat": 139,
-   "beat_pos": 1,
+   "band": {
+    "kick": 0.631,
+    "snare": 0.272,
+    "hat": 0.517
+   },
+   "strength": 0.84,
+   "beat": 140,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1926,
-   "vis_frame": 1925
+   "frame": 1939,
+   "vis_frame": 1938
   },
   {
-   "t": 64.359,
-   "type": "kick+snare+hat",
-   "strength": 0.715,
-   "beat": 139,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1931,
-   "vis_frame": 1930
-  },
-  {
-   "t": 64.469,
-   "type": "kick",
-   "strength": 0.281,
+   "t": 64.858,
+   "type": "hat",
+   "band": {
+    "kick": 0.069,
+    "snare": 0.119,
+    "hat": 0.466
+   },
+   "strength": 0.279,
    "beat": 140,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1934,
-   "vis_frame": 1933
-  },
-  {
-   "t": 64.574,
-   "type": "snare+hat",
-   "strength": 0.451,
-   "beat": 140,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1937,
-   "vis_frame": 1936
-  },
-  {
-   "t": 64.615,
-   "type": "kick",
-   "strength": 0.876,
-   "beat": 140,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1938,
-   "vis_frame": 1937
-  },
-  {
-   "t": 64.702,
-   "type": "snare",
-   "strength": 0.231,
-   "beat": 140,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1941,
-   "vis_frame": 1940
-  },
-  {
-   "t": 64.76,
-   "type": "kick",
-   "strength": 0.2,
-   "beat": 140,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1943,
-   "vis_frame": 1942
-  },
-  {
-   "t": 64.835,
-   "type": "snare+hat",
-   "strength": 0.526,
-   "beat": 140,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1945,
-   "vis_frame": 1944
-  },
-  {
-   "t": 64.87,
-   "type": "kick",
-   "strength": 0.548,
-   "beat": 140,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
    "sub": 0.5,
    "frame": 1946,
    "vis_frame": 1945
   },
   {
-   "t": 64.945,
-   "type": "snare+hat",
-   "strength": 0.279,
+   "t": 65.085,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.516,
+    "snare": 0.244,
+    "hat": 0.408
+   },
+   "strength": 0.661,
    "beat": 141,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1948,
-   "vis_frame": 1947
+   "beat_pos": 4,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1953,
+   "vis_frame": 1952
   },
   {
-   "t": 65.067,
+   "t": 65.543,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.655,
+    "snare": 0.219,
+    "hat": 0.501
+   },
+   "strength": 0.877,
+   "beat": 142,
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 1966,
+   "vis_frame": 1965
+  },
+  {
+   "t": 65.764,
    "type": "hat",
-   "strength": 0.618,
-   "beat": 141,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1952,
-   "vis_frame": 1951
-  },
-  {
-   "t": 65.131,
-   "type": "kick+hat",
-   "strength": 0.703,
-   "beat": 141,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1954,
-   "vis_frame": 1953
-  },
-  {
-   "t": 65.195,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 141,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1956,
-   "vis_frame": 1955
-  },
-  {
-   "t": 65.265,
-   "type": "hat",
-   "strength": 0.4,
-   "beat": 141,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1958,
-   "vis_frame": 1957
-  },
-  {
-   "t": 65.334,
-   "type": "kick+hat",
-   "strength": 0.232,
-   "beat": 141,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 1960,
-   "vis_frame": 1959
-  },
-  {
-   "t": 65.381,
-   "type": "snare",
-   "strength": 0.235,
+   "band": {
+    "kick": 0.235,
+    "snare": 0.131,
+    "hat": 0.47
+   },
+   "strength": 0.282,
    "beat": 142,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1961,
-   "vis_frame": 1960
-  },
-  {
-   "t": 65.503,
-   "type": "kick+snare+hat",
-   "strength": 0.571,
-   "beat": 142,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1965,
-   "vis_frame": 1964
-  },
-  {
-   "t": 65.613,
-   "type": "kick+snare+hat",
-   "strength": 0.445,
-   "beat": 142,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1968,
-   "vis_frame": 1967
-  },
-  {
-   "t": 65.729,
-   "type": "kick+hat",
-   "strength": 0.515,
-   "beat": 142,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1972,
-   "vis_frame": 1971
-  },
-  {
-   "t": 65.822,
-   "type": "snare+hat",
-   "strength": 0.224,
-   "beat": 143,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 1975,
-   "vis_frame": 1974
-  },
-  {
-   "t": 65.868,
-   "type": "kick",
-   "strength": 0.349,
-   "beat": 143,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 1976,
-   "vis_frame": 1975
-  },
-  {
-   "t": 65.985,
-   "type": "kick+snare+hat",
-   "strength": 0.887,
-   "beat": 143,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1980,
-   "vis_frame": 1979
-  },
-  {
-   "t": 66.048,
-   "type": "snare",
-   "strength": 0.265,
-   "beat": 143,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 1981,
-   "vis_frame": 1980
-  },
-  {
-   "t": 66.112,
-   "type": "kick+hat",
-   "strength": 0.376,
-   "beat": 143,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 1983,
-   "vis_frame": 1982
-  },
-  {
-   "t": 66.234,
-   "type": "snare",
-   "strength": 0.36,
-   "beat": 143,
    "beat_pos": 1,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 1987,
-   "vis_frame": 1986
+   "frame": 1973,
+   "vis_frame": 1972
   },
   {
-   "t": 66.408,
-   "type": "snare+hat",
-   "strength": 0.596,
-   "beat": 144,
+   "t": 65.927,
+   "type": "hat",
+   "band": {
+    "kick": 0.016,
+    "snare": 0.161,
+    "hat": 0.326
+   },
+   "strength": 0.151,
+   "beat": 143,
    "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 1992,
-   "vis_frame": 1991
+   "frame": 1978,
+   "vis_frame": 1977
   },
   {
-   "t": 66.449,
-   "type": "kick",
-   "strength": 0.763,
+   "t": 66.461,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.645,
+    "snare": 0.211,
+    "hat": 0.477
+   },
+   "strength": 0.862,
    "beat": 144,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1993,
-   "vis_frame": 1992
+   "frame": 1994,
+   "vis_frame": 1993
   },
   {
-   "t": 66.495,
+   "t": 66.548,
    "type": "hat",
-   "strength": 0.201,
+   "band": {
+    "kick": 0.112,
+    "snare": 0.074,
+    "hat": 0.336
+   },
+   "strength": 0.16,
    "beat": 144,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1995,
-   "vis_frame": 1994
+   "frame": 1996,
+   "vis_frame": 1995
   },
   {
-   "t": 66.559,
+   "t": 66.687,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.568,
+    "snare": 0.259,
+    "hat": 0.392
+   },
+   "strength": 0.741,
+   "beat": 144,
+   "beat_pos": 3,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2001,
+   "vis_frame": 2000
+  },
+  {
+   "t": 66.919,
    "type": "kick+snare",
-   "strength": 0.715,
-   "beat": 144,
-   "beat_pos": 2,
+   "band": {
+    "kick": 0.358,
+    "snare": 0.408,
+    "hat": 0.569
+   },
+   "strength": 0.412,
+   "beat": 145,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 1997,
-   "vis_frame": 1996
+   "frame": 2008,
+   "vis_frame": 2007
   },
   {
-   "t": 66.658,
-   "type": "kick+hat",
-   "strength": 0.95,
-   "beat": 144,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2000,
-   "vis_frame": 1999
-  },
-  {
-   "t": 66.751,
-   "type": "snare+hat",
-   "strength": 0.299,
+   "t": 67.146,
+   "type": "hat",
+   "band": {
+    "kick": 0.257,
+    "snare": 0.262,
+    "hat": 0.458
+   },
+   "strength": 0.271,
    "beat": 145,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2003,
-   "vis_frame": 2002
-  },
-  {
-   "t": 66.85,
-   "type": "kick+hat",
-   "strength": 0.79,
-   "beat": 145,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2005,
-   "vis_frame": 2004
-  },
-  {
-   "t": 66.89,
-   "type": "snare",
-   "strength": 0.487,
-   "beat": 145,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2007,
-   "vis_frame": 2006
-  },
-  {
-   "t": 66.954,
-   "type": "kick",
-   "strength": 0.312,
-   "beat": 145,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2009,
-   "vis_frame": 2008
-  },
-  {
-   "t": 67.059,
-   "type": "kick+snare+hat",
-   "strength": 0.489,
-   "beat": 145,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2012,
-   "vis_frame": 2011
-  },
-  {
-   "t": 67.128,
-   "type": "snare",
-   "strength": 0.241,
-   "beat": 145,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2014,
    "vis_frame": 2013
   },
   {
-   "t": 67.244,
-   "type": "kick+hat",
-   "strength": 0.41,
+   "t": 67.262,
+   "type": "hat",
+   "band": {
+    "kick": 0.28,
+    "snare": 0.238,
+    "hat": 0.416
+   },
+   "strength": 0.233,
    "beat": 146,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2017,
-   "vis_frame": 2016
+   "frame": 2018,
+   "vis_frame": 2017
   },
   {
-   "t": 67.355,
-   "type": "snare",
-   "strength": 0.514,
+   "t": 67.378,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.658,
+    "snare": 0.174,
+    "hat": 0.369
+   },
+   "strength": 0.882,
    "beat": 146,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2021,
    "vis_frame": 2020
   },
   {
-   "t": 67.418,
-   "type": "hat",
-   "strength": 0.337,
-   "beat": 146,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2023,
-   "vis_frame": 2022
-  },
-  {
-   "t": 67.488,
-   "type": "snare+hat",
-   "strength": 0.287,
-   "beat": 146,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2025,
-   "vis_frame": 2024
-  },
-  {
-   "t": 67.593,
-   "type": "kick+hat",
-   "strength": 0.286,
-   "beat": 146,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2028,
-   "vis_frame": 2027
-  },
-  {
-   "t": 67.674,
-   "type": "hat",
-   "strength": 0.226,
+   "t": 67.836,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.406,
+    "snare": 0.413,
+    "hat": 0.502
+   },
+   "strength": 0.487,
    "beat": 147,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2030,
-   "vis_frame": 2029
-  },
-  {
-   "t": 67.749,
-   "type": "snare",
-   "strength": 0.25,
-   "beat": 147,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2032,
-   "vis_frame": 2031
-  },
-  {
-   "t": 67.807,
-   "type": "hat",
-   "strength": 0.495,
-   "beat": 147,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2034,
-   "vis_frame": 2033
-  },
-  {
-   "t": 67.848,
-   "type": "kick",
-   "strength": 0.292,
-   "beat": 147,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2035,
    "vis_frame": 2034
   },
   {
-   "t": 67.894,
-   "type": "snare+hat",
-   "strength": 0.296,
+   "t": 68.069,
+   "type": "hat",
+   "band": {
+    "kick": 0.151,
+    "snare": 0.125,
+    "hat": 0.385
+   },
+   "strength": 0.204,
    "beat": 147,
-   "beat_pos": 1,
+   "beat_pos": 2,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2042,
+   "vis_frame": 2041
+  },
+  {
+   "t": 68.295,
+   "type": "kick",
+   "band": {
+    "kick": 0.606,
+    "snare": 0.142,
+    "hat": 0.298
+   },
+   "strength": 0.801,
+   "beat": 148,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2037,
-   "vis_frame": 2036
+   "frame": 2049,
+   "vis_frame": 2048
   },
   {
-   "t": 68.04,
-   "type": "kick+snare+hat",
-   "strength": 0.328,
-   "beat": 147,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2041,
-   "vis_frame": 2040
-  },
-  {
-   "t": 68.156,
-   "type": "snare+hat",
-   "strength": 0.225,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2045,
-   "vis_frame": 2044
-  },
-  {
-   "t": 68.272,
-   "type": "snare+hat",
-   "strength": 0.764,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2048,
-   "vis_frame": 2047
-  },
-  {
-   "t": 68.341,
-   "type": "kick+hat",
-   "strength": 0.404,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2050,
-   "vis_frame": 2049
-  },
-  {
-   "t": 68.423,
-   "type": "snare",
-   "strength": 0.208,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2053,
-   "vis_frame": 2052
-  },
-  {
-   "t": 68.463,
-   "type": "kick",
-   "strength": 0.348,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2054,
-   "vis_frame": 2053
-  },
-  {
-   "t": 68.51,
-   "type": "snare+hat",
-   "strength": 0.718,
-   "beat": 148,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2055,
-   "vis_frame": 2054
-  },
-  {
-   "t": 68.574,
-   "type": "kick",
-   "strength": 0.31,
+   "t": 68.748,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.402,
+    "snare": 0.312,
+    "hat": 0.555
+   },
+   "strength": 0.482,
    "beat": 149,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2057,
-   "vis_frame": 2056
-  },
-  {
-   "t": 68.643,
-   "type": "snare+hat",
-   "strength": 0.202,
-   "beat": 149,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2059,
-   "vis_frame": 2058
-  },
-  {
-   "t": 68.73,
-   "type": "kick",
-   "strength": 0.755,
-   "beat": 149,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2062,
    "vis_frame": 2061
   },
   {
-   "t": 68.783,
-   "type": "snare",
-   "strength": 0.201,
-   "beat": 149,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2063,
-   "vis_frame": 2062
-  },
-  {
-   "t": 68.858,
-   "type": "kick",
-   "strength": 0.2,
-   "beat": 149,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2066,
-   "vis_frame": 2065
-  },
-  {
-   "t": 68.928,
-   "type": "hat",
-   "strength": 0.53,
-   "beat": 149,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2068,
-   "vis_frame": 2067
-  },
-  {
    "t": 68.997,
-   "type": "snare",
-   "strength": 0.449,
+   "type": "hat",
+   "band": {
+    "kick": 0.082,
+    "snare": 0.106,
+    "hat": 0.403
+   },
+   "strength": 0.221,
    "beat": 149,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2070,
    "vis_frame": 2069
   },
   {
-   "t": 69.055,
-   "type": "hat",
-   "strength": 0.243,
-   "beat": 150,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2072,
-   "vis_frame": 2071
-  },
-  {
-   "t": 69.148,
-   "type": "snare",
-   "strength": 0.225,
-   "beat": 150,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2074,
-   "vis_frame": 2073
-  },
-  {
-   "t": 69.189,
+   "t": 69.206,
    "type": "kick+hat",
-   "strength": 0.788,
+   "band": {
+    "kick": 0.744,
+    "snare": 0.239,
+    "hat": 0.521
+   },
+   "strength": 1.0,
    "beat": 150,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2076,
    "vis_frame": 2075
   },
   {
-   "t": 69.259,
-   "type": "snare+hat",
-   "strength": 0.428,
-   "beat": 150,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2078,
-   "vis_frame": 2077
-  },
-  {
-   "t": 69.34,
-   "type": "kick",
-   "strength": 0.338,
-   "beat": 150,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2080,
-   "vis_frame": 2079
-  },
-  {
    "t": 69.421,
-   "type": "snare+hat",
-   "strength": 0.613,
+   "type": "hat",
+   "band": {
+    "kick": 0.142,
+    "snare": 0.06,
+    "hat": 0.387
+   },
+   "strength": 0.206,
    "beat": 150,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2083,
    "vis_frame": 2082
   },
   {
-   "t": 69.497,
-   "type": "snare+hat",
-   "strength": 0.265,
+   "t": 69.665,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.494,
+    "snare": 0.295,
+    "hat": 0.486
+   },
+   "strength": 0.626,
    "beat": 151,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2085,
-   "vis_frame": 2084
-  },
-  {
-   "t": 69.648,
-   "type": "kick+snare+hat",
-   "strength": 0.774,
-   "beat": 151,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2089,
-   "vis_frame": 2088
-  },
-  {
-   "t": 69.729,
-   "type": "kick+snare+hat",
-   "strength": 0.395,
-   "beat": 151,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2092,
-   "vis_frame": 2091
+   "frame": 2090,
+   "vis_frame": 2089
   },
   {
-   "t": 69.822,
-   "type": "snare+hat",
-   "strength": 0.479,
-   "beat": 151,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2095,
-   "vis_frame": 2094
+   "t": 70.124,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.698,
+    "snare": 0.144,
+    "hat": 0.336
+   },
+   "strength": 0.945,
+   "beat": 152,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2104,
+   "vis_frame": 2103
   },
   {
-   "t": 69.874,
-   "type": "kick",
-   "strength": 0.551,
-   "beat": 151,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2096,
-   "vis_frame": 2095
-  },
-  {
-   "t": 69.996,
+   "t": 70.576,
    "type": "kick+snare",
-   "strength": 0.214,
-   "beat": 152,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2100,
-   "vis_frame": 2099
-  },
-  {
-   "t": 70.071,
-   "type": "snare+hat",
-   "strength": 0.612,
-   "beat": 152,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2102,
-   "vis_frame": 2101
-  },
-  {
-   "t": 70.112,
-   "type": "kick",
-   "strength": 0.27,
-   "beat": 152,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2103,
-   "vis_frame": 2102
-  },
-  {
-   "t": 70.216,
-   "type": "snare+hat",
-   "strength": 0.236,
-   "beat": 152,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2106,
-   "vis_frame": 2105
-  },
-  {
-   "t": 70.286,
-   "type": "kick+hat",
-   "strength": 0.373,
-   "beat": 152,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2109,
-   "vis_frame": 2108
-  },
-  {
-   "t": 70.402,
-   "type": "kick+snare+hat",
-   "strength": 0.336,
+   "band": {
+    "kick": 0.408,
+    "snare": 0.414,
+    "hat": 0.571
+   },
+   "strength": 0.492,
    "beat": 153,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2112,
-   "vis_frame": 2111
-  },
-  {
-   "t": 70.518,
-   "type": "kick+hat",
-   "strength": 0.68,
-   "beat": 153,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2116,
-   "vis_frame": 2115
-  },
-  {
-   "t": 70.559,
-   "type": "snare",
-   "strength": 0.437,
-   "beat": 153,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2117,
    "vis_frame": 2116
   },
   {
-   "t": 70.629,
-   "type": "kick+snare+hat",
-   "strength": 0.415,
-   "beat": 153,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2119,
-   "vis_frame": 2118
-  },
-  {
-   "t": 70.756,
-   "type": "snare+hat",
-   "strength": 0.274,
-   "beat": 153,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2123,
-   "vis_frame": 2122
-  },
-  {
-   "t": 70.797,
-   "type": "kick",
-   "strength": 0.236,
-   "beat": 153,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2124,
-   "vis_frame": 2123
-  },
-  {
-   "t": 70.884,
-   "type": "kick+snare+hat",
-   "strength": 0.355,
-   "beat": 154,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2127,
-   "vis_frame": 2126
-  },
-  {
-   "t": 70.988,
+   "t": 70.954,
    "type": "hat",
-   "strength": 0.603,
+   "band": {
+    "kick": 0.112,
+    "snare": 0.072,
+    "hat": 0.331
+   },
+   "strength": 0.155,
    "beat": 154,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2130,
-   "vis_frame": 2129
-  },
-  {
-   "t": 71.105,
-   "type": "kick+snare+hat",
-   "strength": 0.572,
-   "beat": 154,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2133,
-   "vis_frame": 2132
-  },
-  {
-   "t": 71.232,
-   "type": "kick+hat",
-   "strength": 0.413,
-   "beat": 154,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2137,
-   "vis_frame": 2136
-  },
-  {
-   "t": 71.29,
-   "type": "snare",
-   "strength": 0.285,
-   "beat": 155,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2139,
-   "vis_frame": 2138
-  },
-  {
-   "t": 71.343,
-   "type": "kick+hat",
-   "strength": 0.489,
-   "beat": 155,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2140,
-   "vis_frame": 2139
-  },
-  {
-   "t": 71.447,
-   "type": "kick+snare+hat",
-   "strength": 0.669,
-   "beat": 155,
    "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2143,
-   "vis_frame": 2142
+   "frame": 2129,
+   "vis_frame": 2128
   },
   {
-   "t": 71.546,
-   "type": "snare+hat",
-   "strength": 0.345,
-   "beat": 155,
+   "t": 71.041,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.642,
+    "snare": 0.203,
+    "hat": 0.39
+   },
+   "strength": 0.857,
+   "beat": 154,
    "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2146,
-   "vis_frame": 2145
+   "frame": 2131,
+   "vis_frame": 2130
   },
   {
-   "t": 71.61,
-   "type": "kick",
-   "strength": 0.35,
-   "beat": 155,
+   "t": 71.163,
+   "type": "hat",
+   "band": {
+    "kick": 0.328,
+    "snare": 0.137,
+    "hat": 0.31
+   },
+   "strength": 0.15,
+   "beat": 154,
    "beat_pos": 1,
    "on_beat": false,
    "sub": 0.25,
-   "frame": 2148,
-   "vis_frame": 2147
+   "frame": 2135,
+   "vis_frame": 2134
   },
   {
-   "t": 71.702,
-   "type": "kick+snare+hat",
-   "strength": 0.835,
+   "t": 71.383,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.492,
+    "snare": 0.173,
+    "hat": 0.365
+   },
+   "strength": 0.622,
    "beat": 155,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2151,
-   "vis_frame": 2150
-  },
-  {
-   "t": 71.836,
-   "type": "kick+snare",
-   "strength": 0.272,
-   "beat": 156,
    "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2155,
-   "vis_frame": 2154
+   "frame": 2141,
+   "vis_frame": 2140
   },
   {
-   "t": 71.935,
+   "t": 71.499,
    "type": "snare",
-   "strength": 0.208,
-   "beat": 156,
+   "band": {
+    "kick": 0.11,
+    "snare": 0.427,
+    "hat": 0.672
+   },
+   "strength": 0.466,
+   "beat": 155,
    "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2158,
-   "vis_frame": 2157
+   "frame": 2145,
+   "vis_frame": 2144
   },
   {
-   "t": 72.028,
+   "t": 71.72,
    "type": "kick+hat",
-   "strength": 0.295,
-   "beat": 156,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2161,
-   "vis_frame": 2160
-  },
-  {
-   "t": 72.144,
-   "type": "snare+hat",
-   "strength": 0.519,
-   "beat": 156,
+   "band": {
+    "kick": 0.663,
+    "snare": 0.1,
+    "hat": 0.301
+   },
+   "strength": 0.891,
+   "beat": 155,
    "beat_pos": 2,
    "on_beat": false,
-   "sub": 0.25,
-   "frame": 2164,
-   "vis_frame": 2163
+   "sub": 0.5,
+   "frame": 2152,
+   "vis_frame": 2151
   },
   {
    "t": 72.184,
-   "type": "kick",
-   "strength": 0.934,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.675,
+    "snare": 0.173,
+    "hat": 0.468
+   },
+   "strength": 0.909,
    "beat": 156,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2166,
    "vis_frame": 2165
   },
   {
-   "t": 72.295,
-   "type": "kick+hat",
-   "strength": 0.857,
+   "t": 72.417,
+   "type": "snare",
+   "band": {
+    "kick": 0.266,
+    "snare": 0.38,
+    "hat": 0.55
+   },
+   "strength": 0.355,
    "beat": 157,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2169,
-   "vis_frame": 2168
-  },
-  {
-   "t": 72.376,
-   "type": "kick+snare",
-   "strength": 0.843,
-   "beat": 157,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2171,
-   "vis_frame": 2170
-  },
-  {
-   "t": 72.434,
-   "type": "hat",
-   "strength": 0.228,
-   "beat": 157,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2173,
    "vis_frame": 2172
   },
   {
-   "t": 72.533,
-   "type": "kick",
-   "strength": 0.218,
-   "beat": 157,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2176,
-   "vis_frame": 2175
-  },
-  {
-   "t": 72.608,
-   "type": "snare+hat",
-   "strength": 0.244,
-   "beat": 157,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2178,
-   "vis_frame": 2177
-  },
-  {
-   "t": 72.666,
-   "type": "kick",
-   "strength": 0.719,
-   "beat": 157,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2180,
-   "vis_frame": 2179
-  },
-  {
-   "t": 72.707,
-   "type": "snare+hat",
-   "strength": 0.251,
+   "t": 72.759,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.406,
+    "snare": 0.187,
+    "hat": 0.308
+   },
+   "strength": 0.489,
    "beat": 158,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2181,
-   "vis_frame": 2180
-  },
-  {
-   "t": 72.771,
-   "type": "kick",
-   "strength": 0.352,
-   "beat": 158,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
    "frame": 2183,
    "vis_frame": 2182
   },
   {
-   "t": 72.846,
-   "type": "snare+hat",
-   "strength": 0.665,
+   "t": 72.869,
+   "type": "hat",
+   "band": {
+    "kick": 0.203,
+    "snare": 0.261,
+    "hat": 0.54
+   },
+   "strength": 0.346,
    "beat": 158,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2185,
-   "vis_frame": 2184
-  },
-  {
-   "t": 72.91,
-   "type": "kick+snare",
-   "strength": 0.239,
-   "beat": 158,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2187,
-   "vis_frame": 2186
+   "frame": 2186,
+   "vis_frame": 2185
   },
   {
-   "t": 72.985,
-   "type": "hat",
-   "strength": 0.2,
+   "t": 73.101,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.619,
+    "snare": 0.161,
+    "hat": 0.382
+   },
+   "strength": 0.822,
    "beat": 158,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2190,
-   "vis_frame": 2189
-  },
-  {
-   "t": 73.026,
-   "type": "kick",
-   "strength": 0.237,
-   "beat": 158,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2191,
-   "vis_frame": 2190
-  },
-  {
-   "t": 73.078,
-   "type": "snare+hat",
-   "strength": 0.634,
-   "beat": 158,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2192,
-   "vis_frame": 2191
-  },
-  {
-   "t": 73.148,
-   "type": "kick",
-   "strength": 0.222,
-   "beat": 159,
    "beat_pos": 1,
    "on_beat": false,
-   "sub": -0.5,
-   "frame": 2194,
-   "vis_frame": 2193
+   "sub": 0.5,
+   "frame": 2193,
+   "vis_frame": 2192
   },
   {
-   "t": 73.194,
-   "type": "snare+hat",
-   "strength": 0.717,
+   "t": 73.212,
+   "type": "snare",
+   "band": {
+    "kick": 0.173,
+    "snare": 0.392,
+    "hat": 0.641
+   },
+   "strength": 0.438,
    "beat": 159,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": false,
-   "sub": -0.5,
+   "sub": -0.25,
    "frame": 2196,
    "vis_frame": 2195
   },
   {
-   "t": 73.287,
-   "type": "snare+hat",
-   "strength": 0.302,
-   "beat": 159,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2199,
-   "vis_frame": 2198
-  },
-  {
-   "t": 73.328,
+   "t": 73.334,
    "type": "kick",
-   "strength": 0.764,
+   "band": {
+    "kick": 0.361,
+    "snare": 0.113,
+    "hat": 0.285
+   },
+   "strength": 0.418,
    "beat": 159,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2200,
    "vis_frame": 2199
   },
   {
-   "t": 73.427,
-   "type": "kick+snare+hat",
-   "strength": 0.606,
+   "t": 73.56,
+   "type": "snare",
+   "band": {
+    "kick": 0.125,
+    "snare": 0.473,
+    "hat": 0.848
+   },
+   "strength": 0.627,
    "beat": 159,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2203,
-   "vis_frame": 2202
-  },
-  {
-   "t": 73.537,
-   "type": "snare+hat",
-   "strength": 0.892,
-   "beat": 159,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2206,
-   "vis_frame": 2205
-  },
-  {
-   "t": 73.612,
-   "type": "kick+snare+hat",
-   "strength": 0.32,
-   "beat": 160,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2208,
-   "vis_frame": 2207
-  },
-  {
-   "t": 73.728,
-   "type": "kick+snare",
-   "strength": 0.422,
-   "beat": 160,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2212,
-   "vis_frame": 2211
-  },
-  {
-   "t": 73.769,
-   "type": "hat",
-   "strength": 0.539,
-   "beat": 160,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2213,
-   "vis_frame": 2212
-  },
-  {
-   "t": 73.874,
-   "type": "kick+snare+hat",
-   "strength": 0.58,
-   "beat": 160,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2216,
-   "vis_frame": 2215
-  },
-  {
-   "t": 73.995,
-   "type": "kick+snare+hat",
-   "strength": 0.812,
-   "beat": 160,
    "beat_pos": 2,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2220,
-   "vis_frame": 2219
+   "frame": 2207,
+   "vis_frame": 2206
   },
   {
-   "t": 74.117,
-   "type": "kick+snare+hat",
-   "strength": 0.439,
-   "beat": 161,
+   "t": 73.682,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.422,
+    "snare": 0.125,
+    "hat": 0.338
+   },
+   "strength": 0.513,
+   "beat": 160,
    "beat_pos": 3,
+   "on_beat": false,
+   "sub": -0.25,
+   "frame": 2210,
+   "vis_frame": 2209
+  },
+  {
+   "t": 73.786,
+   "type": "hat",
+   "band": {
+    "kick": 0.148,
+    "snare": 0.264,
+    "hat": 0.435
+   },
+   "strength": 0.25,
+   "beat": 160,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2214,
+   "vis_frame": 2213
+  },
+  {
+   "t": 73.908,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.438,
+    "snare": 0.19,
+    "hat": 0.4
+   },
+   "strength": 0.538,
+   "beat": 160,
+   "beat_pos": 3,
+   "on_beat": false,
+   "sub": 0.25,
+   "frame": 2217,
+   "vis_frame": 2216
+  },
+  {
+   "t": 74.019,
+   "type": "snare",
+   "band": {
+    "kick": 0.18,
+    "snare": 0.497,
+    "hat": 0.736
+   },
+   "strength": 0.524,
+   "beat": 160,
+   "beat_pos": 3,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2221,
+   "vis_frame": 2220
+  },
+  {
+   "t": 74.141,
+   "type": "kick",
+   "band": {
+    "kick": 0.379,
+    "snare": 0.13,
+    "hat": 0.264
+   },
+   "strength": 0.445,
+   "beat": 161,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": -0.25,
    "frame": 2224,
    "vis_frame": 2223
   },
   {
-   "t": 74.222,
+   "t": 74.245,
    "type": "snare",
-   "strength": 0.573,
+   "band": {
+    "kick": 0.112,
+    "snare": 0.307,
+    "hat": 0.499
+   },
+   "strength": 0.308,
    "beat": 161,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": true,
-   "sub": -0.25,
+   "sub": 0.0,
    "frame": 2227,
    "vis_frame": 2226
   },
   {
-   "t": 74.274,
-   "type": "kick",
-   "strength": 0.484,
+   "t": 74.361,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.37,
+    "snare": 0.192,
+    "hat": 0.316
+   },
+   "strength": 0.431,
    "beat": 161,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2228,
-   "vis_frame": 2227
-  },
-  {
-   "t": 74.326,
-   "type": "snare+hat",
-   "strength": 0.569,
-   "beat": 161,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2230,
-   "vis_frame": 2229
-  },
-  {
-   "t": 74.384,
-   "type": "kick",
-   "strength": 0.266,
-   "beat": 161,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": 0.25,
-   "frame": 2232,
-   "vis_frame": 2231
+   "frame": 2231,
+   "vis_frame": 2230
   },
   {
-   "t": 74.454,
-   "type": "snare+hat",
-   "strength": 0.507,
+   "t": 74.477,
+   "type": "snare",
+   "band": {
+    "kick": 0.26,
+    "snare": 0.398,
+    "hat": 0.512
+   },
+   "strength": 0.372,
    "beat": 161,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
-   "sub": 0.25,
+   "sub": 0.5,
    "frame": 2234,
    "vis_frame": 2233
   },
   {
-   "t": 74.506,
-   "type": "kick",
-   "strength": 0.384,
-   "beat": 161,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2235,
-   "vis_frame": 2234
-  },
-  {
-   "t": 74.564,
-   "type": "snare+hat",
-   "strength": 0.47,
-   "beat": 162,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2237,
-   "vis_frame": 2236
-  },
-  {
-   "t": 74.64,
-   "type": "kick+snare",
-   "strength": 0.398,
-   "beat": 162,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2239,
-   "vis_frame": 2238
-  },
-  {
-   "t": 74.68,
+   "t": 74.593,
    "type": "hat",
-   "strength": 0.368,
+   "band": {
+    "kick": 0.276,
+    "snare": 0.331,
+    "hat": 0.424
+   },
+   "strength": 0.24,
    "beat": 162,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2240,
-   "vis_frame": 2239
-  },
-  {
-   "t": 74.785,
-   "type": "kick+snare",
-   "strength": 0.241,
-   "beat": 162,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2244,
-   "vis_frame": 2243
-  },
-  {
-   "t": 74.855,
-   "type": "hat",
-   "strength": 0.261,
-   "beat": 162,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2246,
-   "vis_frame": 2245
-  },
-  {
-   "t": 74.959,
-   "type": "kick+snare",
-   "strength": 0.448,
-   "beat": 162,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2249,
-   "vis_frame": 2248
-  },
-  {
-   "t": 75.029,
-   "type": "hat",
-   "strength": 0.216,
-   "beat": 163,
    "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2251,
-   "vis_frame": 2250
+   "frame": 2238,
+   "vis_frame": 2237
   },
   {
-   "t": 75.139,
-   "type": "kick+snare+hat",
-   "strength": 0.86,
-   "beat": 163,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2254,
-   "vis_frame": 2253
-  },
-  {
-   "t": 75.191,
-   "type": "hat",
-   "strength": 0.222,
-   "beat": 163,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2256,
-   "vis_frame": 2255
-  },
-  {
-   "t": 75.267,
-   "type": "kick",
-   "strength": 0.47,
-   "beat": 163,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2258,
-   "vis_frame": 2257
-  },
-  {
-   "t": 75.354,
-   "type": "snare+hat",
-   "strength": 0.328,
-   "beat": 163,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2261,
-   "vis_frame": 2260
-  },
-  {
-   "t": 75.406,
-   "type": "kick",
-   "strength": 0.263,
-   "beat": 163,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2262,
-   "vis_frame": 2261
-  },
-  {
-   "t": 75.476,
-   "type": "snare",
-   "strength": 0.206,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2264,
-   "vis_frame": 2263
-  },
-  {
-   "t": 75.557,
-   "type": "kick+snare",
-   "strength": 0.415,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2267,
-   "vis_frame": 2266
-  },
-  {
-   "t": 75.598,
-   "type": "hat",
-   "strength": 0.666,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2268,
-   "vis_frame": 2267
-  },
-  {
-   "t": 75.696,
-   "type": "kick+snare",
-   "strength": 0.484,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2271,
-   "vis_frame": 2270
-  },
-  {
-   "t": 75.812,
+   "t": 74.709,
    "type": "kick+hat",
-   "strength": 0.605,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2274,
-   "vis_frame": 2273
+   "band": {
+    "kick": 0.472,
+    "snare": 0.133,
+    "hat": 0.404
+   },
+   "strength": 0.592,
+   "beat": 162,
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2241,
+   "vis_frame": 2240
   },
   {
-   "t": 75.859,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 164,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2276,
-   "vis_frame": 2275
-  },
-  {
-   "t": 76.021,
-   "type": "kick+snare+hat",
-   "strength": 0.76,
-   "beat": 165,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2281,
-   "vis_frame": 2280
-  },
-  {
-   "t": 76.207,
+   "t": 75.162,
    "type": "kick+snare",
-   "strength": 0.442,
-   "beat": 165,
+   "band": {
+    "kick": 0.621,
+    "snare": 0.474,
+    "hat": 0.48
+   },
+   "strength": 0.825,
+   "beat": 163,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2255,
+   "vis_frame": 2254
+  },
+  {
+   "t": 75.621,
+   "type": "kick",
+   "band": {
+    "kick": 0.657,
+    "snare": 0.116,
+    "hat": 0.297
+   },
+   "strength": 0.881,
+   "beat": 164,
    "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2286,
-   "vis_frame": 2285
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2269,
+   "vis_frame": 2268
   },
   {
-   "t": 76.259,
-   "type": "hat",
-   "strength": 0.318,
+   "t": 76.079,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.7,
+    "snare": 0.416,
+    "hat": 0.659
+   },
+   "strength": 0.948,
    "beat": 165,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2288,
-   "vis_frame": 2287
-  },
-  {
-   "t": 76.364,
-   "type": "hat",
-   "strength": 0.224,
-   "beat": 166,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2291,
-   "vis_frame": 2290
-  },
-  {
-   "t": 76.41,
-   "type": "snare",
-   "strength": 0.269,
-   "beat": 166,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2292,
-   "vis_frame": 2291
-  },
-  {
-   "t": 76.515,
-   "type": "kick+hat",
-   "strength": 0.744,
-   "beat": 166,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2295,
-   "vis_frame": 2294
-  },
-  {
-   "t": 76.579,
-   "type": "snare+hat",
-   "strength": 0.316,
-   "beat": 166,
    "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2297,
-   "vis_frame": 2296
+   "frame": 2282,
+   "vis_frame": 2281
   },
   {
-   "t": 76.666,
-   "type": "kick",
-   "strength": 0.781,
+   "t": 76.538,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.627,
+    "snare": 0.361,
+    "hat": 0.625
+   },
+   "strength": 0.834,
    "beat": 166,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2300,
-   "vis_frame": 2299
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2296,
+   "vis_frame": 2295
   },
   {
-   "t": 76.718,
-   "type": "snare+hat",
-   "strength": 0.416,
+   "t": 76.77,
+   "type": "hat",
+   "band": {
+    "kick": 0.101,
+    "snare": 0.06,
+    "hat": 0.414
+   },
+   "strength": 0.231,
    "beat": 166,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2302,
-   "vis_frame": 2301
-  },
-  {
-   "t": 76.793,
-   "type": "kick+hat",
-   "strength": 0.367,
-   "beat": 166,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2304,
-   "vis_frame": 2303
+   "frame": 2303,
+   "vis_frame": 2302
   },
   {
-   "t": 76.834,
-   "type": "snare",
-   "strength": 0.411,
+   "t": 76.898,
+   "type": "hat",
+   "band": {
+    "kick": 0.017,
+    "snare": 0.05,
+    "hat": 0.32
+   },
+   "strength": 0.15,
    "beat": 167,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2305,
-   "vis_frame": 2304
-  },
-  {
-   "t": 76.904,
-   "type": "kick",
-   "strength": 0.368,
-   "beat": 167,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
    "frame": 2307,
    "vis_frame": 2306
   },
   {
-   "t": 76.968,
-   "type": "kick+snare+hat",
-   "strength": 0.798,
+   "t": 76.991,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.519,
+    "snare": 0.354,
+    "hat": 0.602
+   },
+   "strength": 0.666,
    "beat": 167,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2309,
-   "vis_frame": 2308
+   "frame": 2310,
+   "vis_frame": 2309
   },
   {
-   "t": 77.084,
-   "type": "snare+hat",
-   "strength": 0.535,
+   "t": 77.223,
+   "type": "hat",
+   "band": {
+    "kick": 0.135,
+    "snare": 0.12,
+    "hat": 0.379
+   },
+   "strength": 0.199,
    "beat": 167,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2313,
-   "vis_frame": 2312
-  },
-  {
-   "t": 77.159,
-   "type": "kick",
-   "strength": 0.273,
-   "beat": 167,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2315,
-   "vis_frame": 2314
-  },
-  {
-   "t": 77.2,
-   "type": "snare",
-   "strength": 0.476,
-   "beat": 167,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2316,
-   "vis_frame": 2315
+   "frame": 2317,
+   "vis_frame": 2316
   },
   {
-   "t": 77.258,
-   "type": "kick+hat",
-   "strength": 0.355,
+   "t": 77.455,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.723,
+    "snare": 0.405,
+    "hat": 0.563
+   },
+   "strength": 0.984,
    "beat": 168,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2318,
-   "vis_frame": 2317
-  },
-  {
-   "t": 77.322,
-   "type": "snare",
-   "strength": 0.207,
-   "beat": 168,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2320,
-   "vis_frame": 2319
-  },
-  {
-   "t": 77.409,
-   "type": "kick+hat",
-   "strength": 0.665,
-   "beat": 168,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2322,
-   "vis_frame": 2321
-  },
-  {
-   "t": 77.542,
-   "type": "kick+hat",
-   "strength": 0.343,
-   "beat": 168,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2326,
-   "vis_frame": 2325
+   "frame": 2324,
+   "vis_frame": 2323
   },
   {
-   "t": 77.664,
-   "type": "snare+hat",
-   "strength": 0.719,
+   "t": 77.682,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.622,
+    "snare": 0.239,
+    "hat": 0.495
+   },
+   "strength": 0.827,
    "beat": 168,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2330,
    "vis_frame": 2329
   },
   {
-   "t": 77.786,
-   "type": "snare",
-   "strength": 0.248,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2334,
-   "vis_frame": 2333
-  },
-  {
-   "t": 77.833,
+   "t": 77.775,
    "type": "hat",
-   "strength": 0.51,
+   "band": {
+    "kick": 0.118,
+    "snare": 0.11,
+    "hat": 0.301
+   },
+   "strength": 0.15,
    "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2335,
-   "vis_frame": 2334
-  },
-  {
-   "t": 77.879,
-   "type": "kick",
-   "strength": 0.605,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2336,
-   "vis_frame": 2335
-  },
-  {
-   "t": 77.943,
-   "type": "hat",
-   "strength": 0.23,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2338,
-   "vis_frame": 2337
-  },
-  {
-   "t": 77.983,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2339,
-   "vis_frame": 2338
-  },
-  {
-   "t": 78.024,
-   "type": "kick+hat",
-   "strength": 0.217,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2341,
-   "vis_frame": 2340
-  },
-  {
-   "t": 78.111,
-   "type": "snare+hat",
-   "strength": 0.409,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2343,
-   "vis_frame": 2342
-  },
-  {
-   "t": 78.163,
-   "type": "hat",
-   "strength": 0.239,
-   "beat": 169,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2345,
-   "vis_frame": 2344
-  },
-  {
-   "t": 78.204,
-   "type": "kick+snare",
-   "strength": 0.453,
-   "beat": 170,
    "beat_pos": 4,
    "on_beat": false,
    "sub": -0.5,
-   "frame": 2346,
-   "vis_frame": 2345
+   "frame": 2333,
+   "vis_frame": 2332
   },
   {
-   "t": 78.314,
-   "type": "kick+snare",
-   "strength": 0.475,
-   "beat": 170,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2349,
-   "vis_frame": 2348
-  },
-  {
-   "t": 78.349,
-   "type": "hat",
-   "strength": 0.631,
-   "beat": 170,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2350,
-   "vis_frame": 2349
-  },
-  {
-   "t": 78.436,
-   "type": "snare",
-   "strength": 0.219,
-   "beat": 170,
+   "t": 77.908,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.333,
+    "snare": 0.258,
+    "hat": 0.506
+   },
+   "strength": 0.375,
+   "beat": 169,
    "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2353,
-   "vis_frame": 2352
+   "frame": 2337,
+   "vis_frame": 2336
   },
   {
-   "t": 78.477,
-   "type": "kick",
-   "strength": 0.425,
+   "t": 78.367,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.727,
+    "snare": 0.271,
+    "hat": 0.535
+   },
+   "strength": 0.989,
    "beat": 170,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2354,
-   "vis_frame": 2353
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2351,
+   "vis_frame": 2350
   },
   {
-   "t": 78.57,
-   "type": "snare+hat",
-   "strength": 0.385,
+   "t": 78.599,
+   "type": "hat",
+   "band": {
+    "kick": 0.03,
+    "snare": 0.079,
+    "hat": 0.383
+   },
+   "strength": 0.203,
    "beat": 170,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2357,
-   "vis_frame": 2356
-  },
-  {
-   "t": 78.61,
-   "type": "kick",
-   "strength": 0.27,
-   "beat": 170,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": false,
    "sub": 0.5,
    "frame": 2358,
    "vis_frame": 2357
   },
   {
-   "t": 78.715,
-   "type": "kick",
-   "strength": 0.287,
+   "t": 78.825,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.466,
+    "snare": 0.264,
+    "hat": 0.479
+   },
+   "strength": 0.581,
    "beat": 171,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2361,
-   "vis_frame": 2360
-  },
-  {
-   "t": 78.808,
-   "type": "snare+hat",
-   "strength": 0.709,
-   "beat": 171,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2364,
-   "vis_frame": 2363
+   "frame": 2365,
+   "vis_frame": 2364
   },
   {
-   "t": 78.86,
-   "type": "kick",
-   "strength": 0.633,
-   "beat": 171,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2366,
-   "vis_frame": 2365
-  },
-  {
-   "t": 78.988,
-   "type": "kick+snare",
-   "strength": 0.402,
-   "beat": 171,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2370,
-   "vis_frame": 2369
-  },
-  {
-   "t": 79.034,
+   "t": 79.057,
    "type": "hat",
-   "strength": 0.439,
+   "band": {
+    "kick": 0.095,
+    "snare": 0.131,
+    "hat": 0.452
+   },
+   "strength": 0.265,
    "beat": 171,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2371,
-   "vis_frame": 2370
+   "frame": 2372,
+   "vis_frame": 2371
   },
   {
-   "t": 79.092,
-   "type": "kick",
-   "strength": 0.444,
+   "t": 79.284,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.664,
+    "snare": 0.237,
+    "hat": 0.545
+   },
+   "strength": 0.891,
    "beat": 172,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2373,
-   "vis_frame": 2372
-  },
-  {
-   "t": 79.15,
-   "type": "hat",
-   "strength": 0.58,
-   "beat": 172,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2374,
-   "vis_frame": 2373
-  },
-  {
-   "t": 79.237,
-   "type": "kick+snare+hat",
-   "strength": 0.606,
-   "beat": 172,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2377,
-   "vis_frame": 2376
-  },
-  {
-   "t": 79.365,
-   "type": "snare+hat",
-   "strength": 0.352,
-   "beat": 172,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2381,
-   "vis_frame": 2380
+   "frame": 2379,
+   "vis_frame": 2378
   },
   {
-   "t": 79.406,
-   "type": "kick",
-   "strength": 0.297,
+   "t": 79.51,
+   "type": "hat",
+   "band": {
+    "kick": 0.114,
+    "snare": 0.115,
+    "hat": 0.408
+   },
+   "strength": 0.226,
    "beat": 172,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
-   "sub": 0.25,
-   "frame": 2382,
-   "vis_frame": 2381
-  },
-  {
-   "t": 79.487,
-   "type": "snare+hat",
-   "strength": 0.438,
-   "beat": 172,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
+   "sub": 0.5,
    "frame": 2385,
    "vis_frame": 2384
   },
   {
-   "t": 79.533,
-   "type": "kick+hat",
-   "strength": 0.466,
-   "beat": 172,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2386,
-   "vis_frame": 2385
-  },
-  {
-   "t": 79.597,
-   "type": "snare",
-   "strength": 0.49,
-   "beat": 173,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2388,
-   "vis_frame": 2387
-  },
-  {
-   "t": 79.713,
-   "type": "kick+snare+hat",
-   "strength": 0.682,
-   "beat": 173,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2391,
-   "vis_frame": 2390
-  },
-  {
-   "t": 79.876,
-   "type": "kick+snare+hat",
-   "strength": 0.519,
-   "beat": 173,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2396,
-   "vis_frame": 2395
-  },
-  {
-   "t": 79.986,
+   "t": 79.742,
    "type": "kick+snare",
-   "strength": 0.424,
+   "band": {
+    "kick": 0.617,
+    "snare": 0.494,
+    "hat": 0.713
+   },
+   "strength": 0.818,
    "beat": 173,
+   "beat_pos": 4,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2392,
+   "vis_frame": 2391
+  },
+  {
+   "t": 80.201,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.669,
+    "snare": 0.207,
+    "hat": 0.463
+   },
+   "strength": 0.9,
+   "beat": 174,
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2406,
+   "vis_frame": 2405
+  },
+  {
+   "t": 80.433,
+   "type": "hat",
+   "band": {
+    "kick": 0.066,
+    "snare": 0.067,
+    "hat": 0.345
+   },
+   "strength": 0.168,
+   "beat": 174,
+   "beat_pos": 1,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2413,
+   "vis_frame": 2412
+  },
+  {
+   "t": 80.66,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.684,
+    "snare": 0.491,
+    "hat": 0.582
+   },
+   "strength": 0.922,
+   "beat": 175,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2420,
+   "vis_frame": 2419
+  },
+  {
+   "t": 81.118,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.615,
+    "snare": 0.102,
+    "hat": 0.435
+   },
+   "strength": 0.815,
+   "beat": 176,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2434,
+   "vis_frame": 2433
+  },
+  {
+   "t": 81.345,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.512,
+    "snare": 0.353,
+    "hat": 0.602
+   },
+   "strength": 0.654,
+   "beat": 176,
    "beat_pos": 3,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2400,
-   "vis_frame": 2399
-  },
-  {
-   "t": 80.033,
-   "type": "hat",
-   "strength": 0.207,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2401,
-   "vis_frame": 2400
-  },
-  {
-   "t": 80.178,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2405,
-   "vis_frame": 2404
-  },
-  {
-   "t": 80.236,
-   "type": "hat",
-   "strength": 0.245,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2407,
-   "vis_frame": 2406
-  },
-  {
-   "t": 80.317,
-   "type": "kick",
-   "strength": 0.471,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2410,
-   "vis_frame": 2409
-  },
-  {
-   "t": 80.404,
-   "type": "kick+hat",
-   "strength": 0.363,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2412,
-   "vis_frame": 2411
-  },
-  {
-   "t": 80.456,
-   "type": "snare",
-   "strength": 0.226,
-   "beat": 174,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2414,
-   "vis_frame": 2413
-  },
-  {
-   "t": 80.526,
-   "type": "hat",
-   "strength": 0.2,
-   "beat": 175,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2416,
-   "vis_frame": 2415
-  },
-  {
-   "t": 80.613,
-   "type": "kick+snare+hat",
-   "strength": 0.581,
-   "beat": 175,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2418,
-   "vis_frame": 2417
-  },
-  {
-   "t": 80.689,
-   "type": "snare+hat",
-   "strength": 0.29,
-   "beat": 175,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2421,
-   "vis_frame": 2420
-  },
-  {
-   "t": 80.758,
-   "type": "kick",
-   "strength": 0.336,
-   "beat": 175,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2423,
-   "vis_frame": 2422
-  },
-  {
-   "t": 80.828,
-   "type": "snare+hat",
-   "strength": 0.807,
-   "beat": 175,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2425,
-   "vis_frame": 2424
-  },
-  {
-   "t": 80.927,
-   "type": "snare+hat",
-   "strength": 0.247,
-   "beat": 176,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2428,
-   "vis_frame": 2427
-  },
-  {
-   "t": 81.072,
-   "type": "kick+snare+hat",
-   "strength": 0.635,
-   "beat": 176,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2432,
-   "vis_frame": 2431
-  },
-  {
-   "t": 81.17,
-   "type": "snare",
-   "strength": 0.217,
-   "beat": 176,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2435,
-   "vis_frame": 2434
-  },
-  {
-   "t": 81.246,
-   "type": "kick",
-   "strength": 0.374,
-   "beat": 176,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2437,
-   "vis_frame": 2436
-  },
-  {
-   "t": 81.327,
-   "type": "snare+hat",
-   "strength": 0.668,
-   "beat": 176,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
    "frame": 2440,
    "vis_frame": 2439
   },
   {
-   "t": 81.379,
-   "type": "kick+snare+hat",
-   "strength": 0.26,
-   "beat": 176,
-   "beat_pos": 2,
+   "t": 81.565,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.356,
+    "snare": 0.431,
+    "hat": 0.58
+   },
+   "strength": 0.415,
+   "beat": 177,
+   "beat_pos": 4,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2447,
+   "vis_frame": 2446
+  },
+  {
+   "t": 81.815,
+   "type": "hat",
+   "band": {
+    "kick": 0.113,
+    "snare": 0.12,
+    "hat": 0.404
+   },
+   "strength": 0.222,
+   "beat": 177,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2441,
-   "vis_frame": 2440
-  },
-  {
-   "t": 81.542,
-   "type": "kick+snare+hat",
-   "strength": 0.646,
-   "beat": 177,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2446,
-   "vis_frame": 2445
-  },
-  {
-   "t": 81.687,
-   "type": "kick+snare+hat",
-   "strength": 0.457,
-   "beat": 177,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2451,
-   "vis_frame": 2450
-  },
-  {
-   "t": 81.786,
-   "type": "kick+hat",
-   "strength": 0.341,
-   "beat": 177,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
    "frame": 2454,
    "vis_frame": 2453
   },
   {
-   "t": 82.006,
-   "type": "snare+hat",
-   "strength": 0.618,
+   "t": 82.035,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.637,
+    "snare": 0.292,
+    "hat": 0.532
+   },
+   "strength": 0.849,
    "beat": 178,
-   "beat_pos": 4,
+   "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2460,
-   "vis_frame": 2459
+   "frame": 2461,
+   "vis_frame": 2460
   },
   {
-   "t": 82.122,
-   "type": "snare",
-   "strength": 0.26,
-   "beat": 178,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2464,
-   "vis_frame": 2463
+   "t": 82.488,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.34,
+    "snare": 0.27,
+    "hat": 0.462
+   },
+   "strength": 0.386,
+   "beat": 179,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2475,
+   "vis_frame": 2474
   },
   {
-   "t": 82.221,
+   "t": 82.726,
    "type": "hat",
-   "strength": 0.29,
-   "beat": 178,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2467,
-   "vis_frame": 2466
-  },
-  {
-   "t": 82.268,
-   "type": "kick+snare",
-   "strength": 0.284,
-   "beat": 178,
-   "beat_pos": 4,
+   "band": {
+    "kick": 0.244,
+    "snare": 0.114,
+    "hat": 0.33
+   },
+   "strength": 0.154,
+   "beat": 179,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2468,
-   "vis_frame": 2467
+   "frame": 2482,
+   "vis_frame": 2481
   },
   {
-   "t": 82.32,
-   "type": "hat",
-   "strength": 0.233,
-   "beat": 179,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2470,
-   "vis_frame": 2469
-  },
-  {
-   "t": 82.389,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 179,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2472,
-   "vis_frame": 2471
-  },
-  {
-   "t": 82.465,
+   "t": 82.947,
    "type": "kick+hat",
-   "strength": 0.774,
-   "beat": 179,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2474,
-   "vis_frame": 2473
-  },
-  {
-   "t": 82.581,
-   "type": "kick+snare+hat",
-   "strength": 0.296,
-   "beat": 179,
-   "beat_pos": 1,
+   "band": {
+    "kick": 0.787,
+    "snare": 0.297,
+    "hat": 0.441
+   },
+   "strength": 1.0,
+   "beat": 180,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2477,
-   "vis_frame": 2476
-  },
-  {
-   "t": 82.697,
-   "type": "kick+snare+hat",
-   "strength": 0.421,
-   "beat": 179,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2481,
-   "vis_frame": 2480
-  },
-  {
-   "t": 82.802,
-   "type": "hat",
-   "strength": 0.246,
-   "beat": 180,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2484,
-   "vis_frame": 2483
-  },
-  {
-   "t": 82.842,
-   "type": "kick",
-   "strength": 0.2,
-   "beat": 180,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2485,
-   "vis_frame": 2484
-  },
-  {
-   "t": 82.918,
-   "type": "snare+hat",
-   "strength": 0.582,
-   "beat": 180,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.25,
    "frame": 2488,
    "vis_frame": 2487
   },
   {
-   "t": 82.982,
-   "type": "kick",
-   "strength": 0.302,
-   "beat": 180,
-   "beat_pos": 2,
+   "t": 83.405,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.417,
+    "snare": 0.324,
+    "hat": 0.462
+   },
+   "strength": 0.506,
+   "beat": 181,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2489,
-   "vis_frame": 2488
-  },
-  {
-   "t": 83.074,
-   "type": "kick+snare",
-   "strength": 0.311,
-   "beat": 180,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2492,
-   "vis_frame": 2491
-  },
-  {
-   "t": 83.156,
-   "type": "snare+hat",
-   "strength": 0.476,
-   "beat": 180,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2495,
-   "vis_frame": 2494
-  },
-  {
-   "t": 83.289,
-   "type": "snare",
-   "strength": 0.256,
-   "beat": 181,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2499,
-   "vis_frame": 2498
-  },
-  {
-   "t": 83.388,
-   "type": "kick+hat",
-   "strength": 0.823,
-   "beat": 181,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
    "frame": 2502,
    "vis_frame": 2501
   },
   {
-   "t": 83.55,
-   "type": "snare",
-   "strength": 0.328,
-   "beat": 181,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2506,
-   "vis_frame": 2505
-  },
-  {
-   "t": 83.609,
-   "type": "hat",
-   "strength": 0.35,
-   "beat": 181,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2508,
-   "vis_frame": 2507
-  },
-  {
-   "t": 83.707,
-   "type": "snare+hat",
-   "strength": 0.319,
+   "t": 83.864,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.675,
+    "snare": 0.257,
+    "hat": 0.504
+   },
+   "strength": 0.909,
    "beat": 182,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2511,
-   "vis_frame": 2510
-  },
-  {
-   "t": 83.835,
-   "type": "kick+snare+hat",
-   "strength": 0.685,
-   "beat": 182,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2515,
-   "vis_frame": 2514
-  },
-  {
-   "t": 83.957,
-   "type": "kick+snare",
-   "strength": 0.236,
-   "beat": 182,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2519,
-   "vis_frame": 2518
-  },
-  {
-   "t": 84.021,
-   "type": "hat",
-   "strength": 0.578,
-   "beat": 182,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2521,
-   "vis_frame": 2520
-  },
-  {
-   "t": 84.073,
-   "type": "snare",
-   "strength": 0.578,
-   "beat": 182,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2522,
-   "vis_frame": 2521
-  },
-  {
-   "t": 84.166,
-   "type": "kick+snare+hat",
-   "strength": 0.466,
-   "beat": 183,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2525,
-   "vis_frame": 2524
-  },
-  {
-   "t": 84.299,
-   "type": "kick+snare+hat",
-   "strength": 0.997,
-   "beat": 183,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2529,
-   "vis_frame": 2528
-  },
-  {
-   "t": 84.392,
-   "type": "hat",
-   "strength": 0.214,
-   "beat": 183,
    "beat_pos": 1,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2532,
-   "vis_frame": 2531
+   "frame": 2516,
+   "vis_frame": 2515
   },
   {
-   "t": 84.427,
-   "type": "kick",
-   "strength": 0.582,
-   "beat": 183,
+   "t": 84.096,
+   "type": "kick+snare+crash",
+   "band": {
+    "kick": 0.528,
+    "snare": 0.318,
+    "hat": 0.574
+   },
+   "strength": 0.678,
+   "beat": 182,
    "beat_pos": 1,
    "on_beat": false,
-   "sub": 0.25,
-   "frame": 2533,
-   "vis_frame": 2532
+   "sub": 0.5,
+   "frame": 2523,
+   "vis_frame": 2522
   },
   {
-   "t": 84.526,
-   "type": "kick+snare+hat",
-   "strength": 0.582,
+   "t": 84.201,
+   "type": "hat",
+   "band": {
+    "kick": 0.292,
+    "snare": 0.117,
+    "hat": 0.304
+   },
+   "strength": 0.15,
    "beat": 183,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2536,
-   "vis_frame": 2535
-  },
-  {
-   "t": 84.642,
-   "type": "kick+snare+hat",
-   "strength": 0.591,
-   "beat": 184,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2539,
-   "vis_frame": 2538
-  },
-  {
-   "t": 84.752,
-   "type": "kick+snare+hat",
-   "strength": 0.818,
-   "beat": 184,
    "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
+   "frame": 2526,
+   "vis_frame": 2525
+  },
+  {
+   "t": 84.323,
+   "type": "hat",
+   "band": {
+    "kick": 0.246,
+    "snare": 0.27,
+    "hat": 0.404
+   },
+   "strength": 0.221,
+   "beat": 183,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2530,
+   "vis_frame": 2529
+  },
+  {
+   "t": 84.555,
+   "type": "hat",
+   "band": {
+    "kick": 0.325,
+    "snare": 0.103,
+    "hat": 0.387
+   },
+   "strength": 0.206,
+   "beat": 183,
+   "beat_pos": 2,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2537,
+   "vis_frame": 2536
+  },
+  {
+   "t": 84.781,
+   "type": "hat",
+   "band": {
+    "kick": 0.145,
+    "snare": 0.247,
+    "hat": 0.456
+   },
+   "strength": 0.269,
+   "beat": 184,
+   "beat_pos": 3,
+   "on_beat": true,
+   "sub": 0.0,
    "frame": 2543,
    "vis_frame": 2542
   },
   {
-   "t": 84.862,
-   "type": "kick+snare",
-   "strength": 0.504,
-   "beat": 184,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2546,
-   "vis_frame": 2545
-  },
-  {
-   "t": 84.938,
-   "type": "hat",
-   "strength": 0.585,
-   "beat": 184,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2548,
-   "vis_frame": 2547
-  },
-  {
-   "t": 84.996,
-   "type": "kick+snare",
-   "strength": 0.34,
-   "beat": 184,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2550,
-   "vis_frame": 2549
-  },
-  {
-   "t": 85.118,
-   "type": "hat",
-   "strength": 0.259,
-   "beat": 185,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2554,
-   "vis_frame": 2553
-  },
-  {
-   "t": 85.153,
-   "type": "kick",
-   "strength": 0.324,
-   "beat": 185,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2555,
-   "vis_frame": 2554
-  },
-  {
-   "t": 85.24,
-   "type": "snare",
-   "strength": 0.301,
-   "beat": 185,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2557,
-   "vis_frame": 2556
-  },
-  {
-   "t": 85.373,
-   "type": "snare",
-   "strength": 0.311,
-   "beat": 185,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2561,
-   "vis_frame": 2560
-  },
-  {
-   "t": 85.46,
-   "type": "hat",
-   "strength": 0.516,
-   "beat": 185,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2564,
-   "vis_frame": 2563
-  },
-  {
-   "t": 85.518,
-   "type": "snare+hat",
-   "strength": 0.522,
+   "t": 85.693,
+   "type": "kick+snare+crash",
+   "band": {
+    "kick": 0.703,
+    "snare": 0.396,
+    "hat": 0.614
+   },
+   "strength": 0.952,
    "beat": 186,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2566,
-   "vis_frame": 2565
-  },
-  {
-   "t": 85.669,
-   "type": "kick+snare+hat",
-   "strength": 0.892,
-   "beat": 186,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2570,
-   "vis_frame": 2569
-  },
-  {
-   "t": 85.733,
-   "type": "snare+hat",
-   "strength": 0.28,
-   "beat": 186,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2572,
-   "vis_frame": 2571
-  },
-  {
-   "t": 85.82,
-   "type": "hat",
-   "strength": 0.248,
-   "beat": 186,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2575,
-   "vis_frame": 2574
-  },
-  {
-   "t": 85.907,
-   "type": "kick+snare",
-   "strength": 0.736,
-   "beat": 186,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2577,
-   "vis_frame": 2576
-  },
-  {
-   "t": 85.954,
-   "type": "hat",
-   "strength": 0.267,
-   "beat": 186,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2579,
-   "vis_frame": 2578
-  },
-  {
-   "t": 86.023,
-   "type": "snare",
-   "strength": 0.699,
-   "beat": 187,
    "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2571,
+   "vis_frame": 2570
+  },
+  {
+   "t": 86.041,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.486,
+    "snare": 0.21,
+    "hat": 0.304
+   },
+   "strength": 0.613,
+   "beat": 187,
+   "beat_pos": 2,
    "on_beat": false,
    "sub": -0.25,
    "frame": 2581,
    "vis_frame": 2580
   },
   {
-   "t": 86.11,
-   "type": "kick+snare+hat",
-   "strength": 0.701,
+   "t": 86.157,
+   "type": "snare",
+   "band": {
+    "kick": 0.135,
+    "snare": 0.453,
+    "hat": 0.575
+   },
+   "strength": 0.444,
    "beat": 187,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2583,
-   "vis_frame": 2582
-  },
-  {
-   "t": 86.215,
-   "type": "kick+snare",
-   "strength": 0.353,
-   "beat": 187,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2586,
-   "vis_frame": 2585
+   "frame": 2585,
+   "vis_frame": 2584
   },
   {
-   "t": 86.337,
-   "type": "kick+snare+hat",
-   "strength": 0.585,
-   "beat": 187,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2590,
-   "vis_frame": 2589
-  },
-  {
-   "t": 86.453,
-   "type": "kick+snare+hat",
-   "strength": 0.368,
-   "beat": 188,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2594,
-   "vis_frame": 2593
-  },
-  {
-   "t": 86.586,
+   "t": 86.383,
    "type": "kick+hat",
-   "strength": 0.241,
-   "beat": 188,
+   "band": {
+    "kick": 0.657,
+    "snare": 0.228,
+    "hat": 0.387
+   },
+   "strength": 0.881,
+   "beat": 187,
    "beat_pos": 2,
    "on_beat": false,
-   "sub": -0.25,
-   "frame": 2598,
-   "vis_frame": 2597
+   "sub": 0.5,
+   "frame": 2591,
+   "vis_frame": 2590
   },
   {
-   "t": 86.703,
-   "type": "snare+hat",
-   "strength": 0.616,
+   "t": 86.726,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.714,
+    "snare": 0.246,
+    "hat": 0.399
+   },
+   "strength": 0.97,
    "beat": 188,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2601,
-   "vis_frame": 2600
-  },
-  {
-   "t": 86.755,
-   "type": "kick",
-   "strength": 0.328,
-   "beat": 188,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
    "sub": 0.25,
-   "frame": 2603,
-   "vis_frame": 2602
+   "frame": 2602,
+   "vis_frame": 2601
   },
   {
-   "t": 86.795,
-   "type": "snare+hat",
-   "strength": 0.307,
+   "t": 86.813,
+   "type": "hat",
+   "band": {
+    "kick": 0.129,
+    "snare": 0.105,
+    "hat": 0.354
+   },
+   "strength": 0.176,
    "beat": 188,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": false,
    "sub": 0.25,
    "frame": 2604,
    "vis_frame": 2603
   },
   {
-   "t": 86.935,
-   "type": "kick+snare+hat",
-   "strength": 0.645,
+   "t": 86.958,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.641,
+    "snare": 0.341,
+    "hat": 0.568
+   },
+   "strength": 0.855,
    "beat": 189,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2608,
-   "vis_frame": 2607
+   "frame": 2609,
+   "vis_frame": 2608
   },
   {
-   "t": 87.051,
-   "type": "snare+hat",
-   "strength": 0.96,
+   "t": 87.068,
+   "type": "hat",
+   "band": {
+    "kick": 0.123,
+    "snare": 0.291,
+    "hat": 0.508
+   },
+   "strength": 0.317,
    "beat": 189,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2612,
    "vis_frame": 2611
   },
   {
-   "t": 87.121,
-   "type": "kick+snare",
-   "strength": 0.481,
+   "t": 87.3,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.626,
+    "snare": 0.162,
+    "hat": 0.303
+   },
+   "strength": 0.833,
    "beat": 189,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2614,
-   "vis_frame": 2613
-  },
-  {
-   "t": 87.277,
-   "type": "kick+snare+hat",
-   "strength": 0.855,
-   "beat": 189,
-   "beat_pos": 3,
+   "beat_pos": 4,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2618,
-   "vis_frame": 2617
+   "frame": 2619,
+   "vis_frame": 2618
   },
   {
-   "t": 87.364,
-   "type": "snare",
-   "strength": 0.229,
+   "t": 87.527,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.445,
+    "snare": 0.305,
+    "hat": 0.501
+   },
+   "strength": 0.549,
    "beat": 190,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2621,
-   "vis_frame": 2620
-  },
-  {
-   "t": 87.509,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 190,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2625,
-   "vis_frame": 2624
-  },
-  {
-   "t": 87.62,
-   "type": "kick+snare+hat",
-   "strength": 0.999,
-   "beat": 190,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2629,
-   "vis_frame": 2628
-  },
-  {
-   "t": 87.718,
-   "type": "snare",
-   "strength": 0.2,
-   "beat": 190,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2632,
-   "vis_frame": 2631
-  },
-  {
-   "t": 87.852,
-   "type": "snare+hat",
-   "strength": 0.731,
-   "beat": 191,
    "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2626,
+   "vis_frame": 2625
+  },
+  {
+   "t": 87.875,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.616,
+    "snare": 0.328,
+    "hat": 0.491
+   },
+   "strength": 0.817,
+   "beat": 191,
+   "beat_pos": 2,
    "on_beat": false,
-   "sub": -0.5,
+   "sub": -0.25,
    "frame": 2636,
    "vis_frame": 2635
   },
   {
-   "t": 87.939,
-   "type": "kick+snare+hat",
-   "strength": 0.874,
+   "t": 87.985,
+   "type": "hat",
+   "band": {
+    "kick": 0.217,
+    "snare": 0.247,
+    "hat": 0.423
+   },
+   "strength": 0.239,
    "beat": 191,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2638,
-   "vis_frame": 2637
-  },
-  {
-   "t": 88.055,
-   "type": "kick+hat",
-   "strength": 0.739,
-   "beat": 191,
-   "beat_pos": 1,
+   "beat_pos": 2,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2642,
-   "vis_frame": 2641
+   "frame": 2640,
+   "vis_frame": 2639
   },
   {
-   "t": 88.194,
-   "type": "kick+snare+hat",
-   "strength": 0.602,
-   "beat": 191,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2646,
-   "vis_frame": 2645
-  },
-  {
-   "t": 88.282,
-   "type": "hat",
-   "strength": 0.2,
-   "beat": 192,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2648,
-   "vis_frame": 2647
-  },
-  {
-   "t": 88.38,
+   "t": 88.218,
    "type": "kick",
-   "strength": 0.418,
-   "beat": 192,
+   "band": {
+    "kick": 0.564,
+    "snare": 0.143,
+    "hat": 0.28
+   },
+   "strength": 0.735,
+   "beat": 191,
    "beat_pos": 2,
    "on_beat": false,
-   "sub": -0.25,
-   "frame": 2651,
-   "vis_frame": 2650
+   "sub": 0.5,
+   "frame": 2647,
+   "vis_frame": 2646
   },
   {
-   "t": 88.427,
-   "type": "snare+hat",
-   "strength": 0.833,
+   "t": 88.444,
+   "type": "snare",
+   "band": {
+    "kick": 0.215,
+    "snare": 0.333,
+    "hat": 0.467
+   },
+   "strength": 0.288,
    "beat": 192,
-   "beat_pos": 2,
+   "beat_pos": 3,
    "on_beat": true,
    "sub": 0.0,
    "frame": 2653,
    "vis_frame": 2652
   },
   {
-   "t": 88.491,
+   "t": 88.572,
    "type": "kick",
-   "strength": 0.338,
+   "band": {
+    "kick": 0.664,
+    "snare": 0.179,
+    "hat": 0.284
+   },
+   "strength": 0.891,
    "beat": 192,
-   "beat_pos": 2,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2655,
-   "vis_frame": 2654
-  },
-  {
-   "t": 88.537,
-   "type": "snare+hat",
-   "strength": 0.495,
-   "beat": 192,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2656,
-   "vis_frame": 2655
-  },
-  {
-   "t": 88.63,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 192,
-   "beat_pos": 2,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2659,
-   "vis_frame": 2658
-  },
-  {
-   "t": 88.769,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 193,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": -0.25,
-   "frame": 2663,
-   "vis_frame": 2662
-  },
-  {
-   "t": 88.879,
-   "type": "snare+hat",
-   "strength": 1.0,
-   "beat": 193,
-   "beat_pos": 3,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2666,
-   "vis_frame": 2665
-  },
-  {
-   "t": 88.996,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 193,
    "beat_pos": 3,
    "on_beat": false,
    "sub": 0.25,
-   "frame": 2670,
-   "vis_frame": 2669
+   "frame": 2657,
+   "vis_frame": 2656
   },
   {
-   "t": 89.112,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
+   "t": 88.787,
+   "type": "hat",
+   "band": {
+    "kick": 0.318,
+    "snare": 0.249,
+    "hat": 0.495
+   },
+   "strength": 0.305,
    "beat": 193,
-   "beat_pos": 3,
-   "on_beat": false,
-   "sub": 0.5,
-   "frame": 2673,
-   "vis_frame": 2672
-  },
-  {
-   "t": 89.228,
-   "type": "kick+snare+hat",
-   "strength": 1.0,
-   "beat": 194,
    "beat_pos": 4,
    "on_beat": false,
    "sub": -0.25,
-   "frame": 2677,
-   "vis_frame": 2676
+   "frame": 2664,
+   "vis_frame": 2663
   },
   {
-   "t": 89.338,
-   "type": "kick+snare+hat",
-   "strength": 0.781,
-   "beat": 194,
-   "beat_pos": 4,
-   "on_beat": true,
-   "sub": -0.25,
-   "frame": 2680,
-   "vis_frame": 2679
-  },
-  {
-   "t": 89.402,
-   "type": "hat",
-   "strength": 0.388,
-   "beat": 194,
+   "t": 88.903,
+   "type": "snare+crash",
+   "band": {
+    "kick": 0.197,
+    "snare": 0.594,
+    "hat": 0.896
+   },
+   "strength": 0.67,
+   "beat": 193,
    "beat_pos": 4,
    "on_beat": true,
    "sub": 0.0,
-   "frame": 2682,
-   "vis_frame": 2681
+   "frame": 2667,
+   "vis_frame": 2666
   },
   {
-   "t": 89.466,
-   "type": "kick",
-   "strength": 0.887,
-   "beat": 194,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2684,
-   "vis_frame": 2683
-  },
-  {
-   "t": 89.501,
+   "t": 89.019,
    "type": "hat",
-   "strength": 0.313,
-   "beat": 194,
+   "band": {
+    "kick": 0.278,
+    "snare": 0.224,
+    "hat": 0.349
+   },
+   "strength": 0.172,
+   "beat": 193,
    "beat_pos": 4,
    "on_beat": false,
    "sub": 0.25,
-   "frame": 2685,
-   "vis_frame": 2684
+   "frame": 2671,
+   "vis_frame": 2670
   },
   {
-   "t": 89.559,
-   "type": "kick+snare",
-   "strength": 0.399,
-   "beat": 194,
-   "beat_pos": 4,
-   "on_beat": false,
-   "sub": 0.25,
-   "frame": 2687,
-   "vis_frame": 2686
-  },
-  {
-   "t": 89.628,
-   "type": "hat",
-   "strength": 0.268,
-   "beat": 194,
+   "t": 89.135,
+   "type": "kick+hat",
+   "band": {
+    "kick": 0.368,
+    "snare": 0.173,
+    "hat": 0.425
+   },
+   "strength": 0.428,
+   "beat": 193,
    "beat_pos": 4,
    "on_beat": false,
    "sub": 0.5,
-   "frame": 2689,
-   "vis_frame": 2688
+   "frame": 2674,
+   "vis_frame": 2673
   },
   {
-   "t": 89.675,
-   "type": "kick+snare",
-   "strength": 0.33,
-   "beat": 195,
-   "beat_pos": 1,
-   "on_beat": false,
-   "sub": -0.5,
-   "frame": 2690,
-   "vis_frame": 2689
-  },
-  {
-   "t": 89.797,
-   "type": "snare+hat",
-   "strength": 0.754,
-   "beat": 195,
+   "t": 89.251,
+   "type": "hat",
+   "band": {
+    "kick": 0.15,
+    "snare": 0.277,
+    "hat": 0.38
+   },
+   "strength": 0.2,
+   "beat": 194,
    "beat_pos": 1,
    "on_beat": false,
    "sub": -0.25,
+   "frame": 2678,
+   "vis_frame": 2677
+  },
+  {
+   "t": 89.367,
+   "type": "kick",
+   "band": {
+    "kick": 0.47,
+    "snare": 0.151,
+    "hat": 0.298
+   },
+   "strength": 0.589,
+   "beat": 194,
+   "beat_pos": 1,
+   "on_beat": true,
+   "sub": 0.0,
+   "frame": 2681,
+   "vis_frame": 2680
+  },
+  {
+   "t": 89.588,
+   "type": "hat",
+   "band": {
+    "kick": 0.11,
+    "snare": 0.21,
+    "hat": 0.352
+   },
+   "strength": 0.174,
+   "beat": 194,
+   "beat_pos": 1,
+   "on_beat": false,
+   "sub": 0.5,
+   "frame": 2688,
+   "vis_frame": 2687
+  },
+  {
+   "t": 89.814,
+   "type": "kick+snare",
+   "band": {
+    "kick": 0.723,
+    "snare": 0.398,
+    "hat": 0.524
+   },
+   "strength": 0.984,
+   "beat": 195,
+   "beat_pos": 2,
+   "on_beat": true,
+   "sub": 0.0,
    "frame": 2694,
    "vis_frame": 2693
-  },
-  {
-   "t": 89.849,
-   "type": "kick+hat",
-   "strength": 0.376,
-   "beat": 195,
-   "beat_pos": 1,
-   "on_beat": true,
-   "sub": 0.0,
-   "frame": 2695,
-   "vis_frame": 2694
   }
  ],
  "beats": [
@@ -4150,433 +2134,433 @@
    "i": 125,
    "t": 57.794,
    "frame": 1734,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 126,
    "t": 58.259,
    "frame": 1748,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 127,
    "t": 58.7,
    "frame": 1761,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 128,
    "t": 59.164,
    "frame": 1775,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 129,
    "t": 59.606,
    "frame": 1788,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 130,
    "t": 60.07,
    "frame": 1802,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 131,
    "t": 60.534,
    "frame": 1816,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 132,
    "t": 60.999,
    "frame": 1830,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 133,
    "t": 61.463,
    "frame": 1844,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 134,
    "t": 61.928,
    "frame": 1858,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 135,
    "t": 62.369,
    "frame": 1871,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 136,
    "t": 62.833,
    "frame": 1885,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 137,
    "t": 63.298,
    "frame": 1899,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 138,
    "t": 63.739,
    "frame": 1912,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 139,
    "t": 64.203,
    "frame": 1926,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 140,
    "t": 64.668,
    "frame": 1940,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 141,
    "t": 65.109,
    "frame": 1953,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 142,
    "t": 65.573,
    "frame": 1967,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 143,
    "t": 66.038,
    "frame": 1981,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 144,
    "t": 66.502,
    "frame": 1995,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 145,
    "t": 66.943,
    "frame": 2008,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 146,
    "t": 67.408,
    "frame": 2022,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 147,
    "t": 67.872,
    "frame": 2036,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 148,
    "t": 68.336,
    "frame": 2050,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 149,
    "t": 68.778,
    "frame": 2063,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 150,
    "t": 69.242,
    "frame": 2077,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 151,
    "t": 69.706,
    "frame": 2091,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 152,
    "t": 70.147,
    "frame": 2104,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 153,
    "t": 70.612,
    "frame": 2118,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 154,
    "t": 71.053,
    "frame": 2132,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 155,
    "t": 71.517,
    "frame": 2146,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 156,
    "t": 71.982,
    "frame": 2159,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 157,
    "t": 72.446,
    "frame": 2173,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 158,
    "t": 72.911,
    "frame": 2187,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 159,
    "t": 73.375,
    "frame": 2201,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 160,
    "t": 73.816,
    "frame": 2214,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 161,
    "t": 74.281,
    "frame": 2228,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 162,
    "t": 74.745,
    "frame": 2242,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 163,
    "t": 75.186,
    "frame": 2256,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 164,
    "t": 75.651,
    "frame": 2270,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 165,
    "t": 76.115,
    "frame": 2283,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 166,
    "t": 76.579,
    "frame": 2297,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 167,
    "t": 77.021,
    "frame": 2311,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 168,
    "t": 77.485,
    "frame": 2325,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 169,
    "t": 77.949,
    "frame": 2338,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 170,
    "t": 78.414,
    "frame": 2352,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 171,
    "t": 78.855,
    "frame": 2366,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 172,
    "t": 79.319,
    "frame": 2380,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 173,
    "t": 79.784,
    "frame": 2394,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 174,
    "t": 80.225,
    "frame": 2407,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 175,
    "t": 80.689,
    "frame": 2421,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 176,
    "t": 81.154,
    "frame": 2435,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 177,
    "t": 81.618,
    "frame": 2449,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 178,
    "t": 82.059,
    "frame": 2462,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 179,
    "t": 82.524,
    "frame": 2476,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 180,
    "t": 82.988,
    "frame": 2490,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 181,
    "t": 83.453,
    "frame": 2504,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 182,
    "t": 83.894,
    "frame": 2517,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 183,
    "t": 84.358,
    "frame": 2531,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 184,
    "t": 84.822,
    "frame": 2545,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 185,
    "t": 85.287,
    "frame": 2559,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 186,
    "t": 85.728,
    "frame": 2572,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 187,
    "t": 86.192,
    "frame": 2586,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 188,
    "t": 86.657,
    "frame": 2600,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 189,
    "t": 87.098,
    "frame": 2613,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 190,
    "t": 87.562,
    "frame": 2627,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 191,
    "t": 88.027,
    "frame": 2641,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 192,
    "t": 88.468,
    "frame": 2654,
-   "pos": 2
+   "pos": 3
   },
   {
    "i": 193,
    "t": 88.932,
    "frame": 2668,
-   "pos": 3
+   "pos": 4
   },
   {
    "i": 194,
    "t": 89.397,
    "frame": 2682,
-   "pos": 4
+   "pos": 1
   },
   {
    "i": 195,
    "t": 89.861,
    "frame": 2696,
-   "pos": 1
+   "pos": 2
   },
   {
    "i": 196,
    "t": 90.302,
    "frame": 2709,
-   "pos": 2
+   "pos": 3
   }
  ],
  "words": [
@@ -4589,7 +2573,7 @@
    "vis_frame": 1783,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 12,
@@ -4600,7 +2584,7 @@
    "vis_frame": 1791,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 12,
@@ -4611,7 +2595,7 @@
    "vis_frame": 1797,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 12,
@@ -4622,7 +2606,7 @@
    "vis_frame": 1817,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 12,
@@ -4633,7 +2617,7 @@
    "vis_frame": 1835,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 12,
@@ -4644,7 +2628,7 @@
    "vis_frame": 1844,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 13,
@@ -4655,7 +2639,7 @@
    "vis_frame": 1875,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 13,
@@ -4666,7 +2650,7 @@
    "vis_frame": 1884,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 13,
@@ -4677,7 +2661,7 @@
    "vis_frame": 1893,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 13,
@@ -4688,7 +2672,7 @@
    "vis_frame": 1902,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 13,
@@ -4699,7 +2683,7 @@
    "vis_frame": 1914,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 13,
@@ -4710,7 +2694,7 @@
    "vis_frame": 1930,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 13,
@@ -4721,7 +2705,7 @@
    "vis_frame": 1954,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 13,
@@ -4732,7 +2716,7 @@
    "vis_frame": 1957,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 14,
@@ -4743,7 +2727,7 @@
    "vis_frame": 1987,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 14,
@@ -4754,7 +2738,7 @@
    "vis_frame": 1994,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 14,
@@ -4765,7 +2749,7 @@
    "vis_frame": 2004,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 14,
@@ -4776,7 +2760,7 @@
    "vis_frame": 2011,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 14,
@@ -4787,7 +2771,7 @@
    "vis_frame": 2017,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 14,
@@ -4798,7 +2782,7 @@
    "vis_frame": 2031,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 14,
@@ -4809,7 +2793,7 @@
    "vis_frame": 2052,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 14,
@@ -4820,7 +2804,7 @@
    "vis_frame": 2065,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 15,
@@ -4831,7 +2815,7 @@
    "vis_frame": 2092,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 15,
@@ -4842,7 +2826,7 @@
    "vis_frame": 2092,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 15,
@@ -4853,7 +2837,7 @@
    "vis_frame": 2100,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 15,
@@ -4864,7 +2848,7 @@
    "vis_frame": 2107,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 15,
@@ -4875,7 +2859,7 @@
    "vis_frame": 2114,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 15,
@@ -4886,7 +2870,7 @@
    "vis_frame": 2125,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 15,
@@ -4897,7 +2881,7 @@
    "vis_frame": 2141,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 15,
@@ -4908,7 +2892,7 @@
    "vis_frame": 2162,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 15,
@@ -4919,7 +2903,7 @@
    "vis_frame": 2177,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 16,
@@ -4930,7 +2914,7 @@
    "vis_frame": 2222,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 16,
@@ -4941,7 +2925,7 @@
    "vis_frame": 2230,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 16,
@@ -4952,7 +2936,7 @@
    "vis_frame": 2237,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 16,
@@ -4963,7 +2947,7 @@
    "vis_frame": 2247,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 16,
@@ -4974,7 +2958,7 @@
    "vis_frame": 2272,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 16,
@@ -4985,7 +2969,7 @@
    "vis_frame": 2285,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 17,
@@ -4996,7 +2980,7 @@
    "vis_frame": 2315,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 17,
@@ -5007,7 +2991,7 @@
    "vis_frame": 2318,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 17,
@@ -5018,7 +3002,7 @@
    "vis_frame": 2327,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 17,
@@ -5029,7 +3013,7 @@
    "vis_frame": 2332,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 17,
@@ -5040,7 +3024,7 @@
    "vis_frame": 2341,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 17,
@@ -5051,7 +3035,7 @@
    "vis_frame": 2356,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 17,
@@ -5062,7 +3046,7 @@
    "vis_frame": 2371,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 17,
@@ -5073,7 +3057,7 @@
    "vis_frame": 2386,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 18,
@@ -5084,7 +3068,7 @@
    "vis_frame": 2425,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 18,
@@ -5095,7 +3079,7 @@
    "vis_frame": 2434,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 18,
@@ -5106,7 +3090,7 @@
    "vis_frame": 2448,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 18,
@@ -5117,7 +3101,7 @@
    "vis_frame": 2466,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 18,
@@ -5128,7 +3112,7 @@
    "vis_frame": 2490,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 18,
@@ -5139,7 +3123,7 @@
    "vis_frame": 2502,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 19,
@@ -5150,7 +3134,7 @@
    "vis_frame": 2522,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 19,
@@ -5161,7 +3145,7 @@
    "vis_frame": 2529,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 19,
@@ -5172,7 +3156,7 @@
    "vis_frame": 2536,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 1
+   "beat_pos": 2
   },
   {
    "line": 19,
@@ -5183,7 +3167,7 @@
    "vis_frame": 2541,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 19,
@@ -5194,7 +3178,7 @@
    "vis_frame": 2545,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 19,
@@ -5205,7 +3189,7 @@
    "vis_frame": 2548,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 2
+   "beat_pos": 3
   },
   {
    "line": 19,
@@ -5216,7 +3200,7 @@
    "vis_frame": 2557,
    "on_beat": true,
    "accent": true,
-   "beat_pos": 3
+   "beat_pos": 4
   },
   {
    "line": 19,
@@ -5227,7 +3211,7 @@
    "vis_frame": 2565,
    "on_beat": false,
    "accent": false,
-   "beat_pos": 4
+   "beat_pos": 1
   },
   {
    "line": 19,
@@ -5238,7 +3222,7 @@
    "vis_frame": 2576,
    "on_beat": false,
    "accent": true,
-   "beat_pos": 4
+   "beat_pos": 1
   }
  ],
  "phrases": [

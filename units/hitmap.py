@@ -18,76 +18,66 @@ def frame_of(t): return int(round(t * FPS))
 
 
 def main():
-    import librosa
-    y, sr = librosa.load(ROOT + '/song.mp3', sr=44100, mono=True, offset=A0, duration=A1 - A0)
-    D = librosa.stft(y, n_fft=2048, hop_length=256)
-    H_, P_ = librosa.decompose.hpss(D, margin=(1.0, 2.0))
-    S = np.abs(P_)
+    import librosa, os
+    drums = ROOT + '/out/c1_drums.wav'          # units/c1_sep.py（htdemucs）分离出的鼓轨，56–92s
+    if os.path.exists(drums):
+        y, sr = librosa.load(drums, sr=44100, mono=True); base = 56.0
+        y = y[int((A0 - base) * sr):int((A1 - base) * sr)]
+        S = np.abs(librosa.stft(y, n_fft=2048, hop_length=256)); src = 'htdemucs drums stem'
+    else:
+        y, sr = librosa.load(ROOT + '/song.mp3', sr=44100, mono=True, offset=A0, duration=A1 - A0)
+        D = librosa.stft(y, n_fft=2048, hop_length=256)
+        S = np.abs(librosa.decompose.hpss(D, margin=(1.0, 2.0))[1]); src = 'HPSS percussive'
     f = librosa.fft_frequencies(sr=sr, n_fft=2048)
     hop_t = 256 / sr
     tt = A0 + np.arange(S.shape[1]) * hop_t
 
-    def band_flux(lo, hi, log=True):
+    def band_flux(lo, hi):
         m = (f >= lo) & (f < hi)
-        X = S[m]
-        if log: X = np.log1p(X * 10)
+        X = np.log1p(S[m] * 20)
         fl = np.maximum(0, np.diff(X, axis=1, prepend=X[:, :1])).sum(0)
-        fl = np.convolve(fl, np.hanning(5) / np.hanning(5).sum(), 'same')
-        return fl / (np.percentile(fl, 99.5) + 1e-9)
+        return fl / (np.percentile(fl, 99.7) + 1e-9)
 
     def band_energy(lo, hi):
         m = (f >= lo) & (f < hi)
-        e = (S[m] ** 2).sum(0)
+        e = np.log1p((S[m] ** 2).sum(0))
         return e / (np.percentile(e, 99.5) + 1e-9)
 
     kick = band_flux(30, 150)
     snare = band_flux(150, 4000) * 0.4 + band_flux(1200, 4000) * 0.6
     hat = band_flux(6000, 16000)
-    full = librosa.onset.onset_strength(y=y, sr=sr, hop_length=256)
-    full = full[:len(tt)] / (np.percentile(full, 99.5) + 1e-9)
-    e_kick = band_energy(30, 150)
-
-    def peaks(env, thr, wait_s, delta):
-        p = librosa.util.peak_pick(env, pre_max=3, post_max=3, pre_avg=12, post_avg=6, delta=delta,
-                                   wait=int(wait_s / hop_t))
-        return [int(i) for i in p if env[i] >= thr]
-
-    pk = {'kick': peaks(kick, 0.28, 0.11, 0.08), 'snare': peaks(snare, 0.30, 0.09, 0.07), 'hat': peaks(hat, 0.25, 0.06, 0.05)}
+    e_kick = band_energy(30, 150); e_hi = band_energy(5000, 16000)
+    full = librosa.onset.onset_strength(y=y, sr=sr, hop_length=256)[:len(tt)]
+    full = full / (np.percentile(full, 99.5) + 1e-9)
+    on = librosa.util.peak_pick(full, pre_max=3, post_max=3, pre_avg=10, post_avg=5, delta=0.05, wait=int(0.055 / hop_t))
+    hits = []
+    for i in on:
+        t = float(tt[i])
+        if not (W0 <= t <= W1): continue
+        w = slice(max(0, i - 2), i + 3)
+        kn, sn, hn = kick[w].max(), snare[w].max(), hat[w].max()
+        typ = []
+        if kn > 0.33: typ.append('kick')
+        # 鼓轨里军鼓 = 中频体 + 宽带响弦（高频也很强）；纯 hi-hat 中频很弱
+        if (sn >= 0.30 and hn >= 0.45) or sn > 0.5: typ.append('snare')
+        if hn > 0.30 and 'snare' not in typ: typ.append('hat')
+        if not typ: continue
+        # 吊镲/重音镲：高频能量在 300ms 后仍高
+        crash = e_hi[min(len(e_hi) - 1, i + int(0.3 / hop_t))] > 0.80 and hn > 0.55
+        if crash: typ.append('crash')
+        j = i
+        while j > 0 and full[j - 1] > full[i] * 0.5 and i - j < 5: j -= 1
+        hits.append(dict(t=round(float(tt[j]), 3), type='+'.join(typ),
+                         band=dict(kick=round(float(kn), 3), snare=round(float(sn), 3), hat=round(float(hn), 3)),
+                         raw=float(max(kn * 1.2 if 'kick' in typ else 0, sn if 'snare' in typ else 0, hn * 0.7))))
+    v = np.array([h['raw'] for h in hits]); lo, hi = np.percentile(v, 5), np.percentile(v, 98)
+    for h in hits:
+        h['strength'] = round(float(np.clip((h['raw'] - lo) / (hi - lo + 1e-9), 0, 1)) * 0.85 + 0.15, 3)
+    pk = {'kick': 1, 'snare': 1, 'hat': 1}
     an = np.load(ROOT + '/analysis.npz')
     beats = an['beats']
     bw = float(np.median(np.diff(beats)))
 
-    hits = []
-    for typ, idx in pk.items():
-        env = {'kick': kick, 'snare': snare, 'hat': hat}[typ]
-        for i in idx:
-            t = float(tt[i])
-            if not (W0 <= t <= W1): continue
-            # 回溯到瞬态起点（峰前包络上升沿 50%）
-            j = i
-            while j > 0 and env[j - 1] > env[i] * 0.5 and i - j < 6: j -= 1
-            t_on = float(tt[j])
-            hits.append(dict(t=round(t_on, 3), type=typ, raw=float(env[i])))
-    # 各类型内强度归一（分位数）→ 0–1
-    for typ in pk:
-        v = np.array([h['raw'] for h in hits if h['type'] == typ])
-        if len(v) == 0: continue
-        lo, hi = np.percentile(v, 5), np.percentile(v, 98)
-        for h in hits:
-            if h['type'] == typ: h['strength'] = round(float(np.clip((h['raw'] - lo) / (hi - lo + 1e-9), 0, 1)) * 0.8 + 0.2, 3)
-    # 军鼓 / 底鼓 去串扰：同一 35ms 内若底鼓更强，则军鼓标记为 kick+snare（合击）
-    hits.sort(key=lambda h: h['t'])
-    merged = []
-    for h in hits:
-        if merged and abs(h['t'] - merged[-1]['t']) < 0.035 and h['type'] != merged[-1]['type']:
-            m = merged[-1]
-            types = sorted(set(m['type'].split('+')) | {h['type']})
-            m['type'] = '+'.join(t for t in ('kick', 'snare', 'hat') if t in types)
-            m['strength'] = round(max(m['strength'], h['strength']), 3)
-            m['t'] = round(min(m['t'], h['t']), 3)
-            continue
-        merged.append(dict(h))
-    hits = merged
     # 拍网格信息
     bsel = beats[(beats >= W0 - 1) & (beats <= W1 + 1)]
     # 强拍相位：在每 4 拍相位上累加底鼓强度，取最大者为小节第 1 拍
@@ -131,7 +121,7 @@ def main():
     for h in hits:
         for ty in h['type'].split('+'): cnt[ty] = cnt.get(ty, 0) + 1
     out = dict(window=[W0, W1], fps=FPS, bpm=round(60 / bw, 2), beat_s=round(bw, 4), downbeat_phase=int(ph),
-               counts=dict(total=len(hits), **cnt), method=__doc__.strip().splitlines()[2:5],
+               counts=dict(total=len(hits), **cnt), method=src + ' → 频段谱通量 + 全频 onset 峰值，按频段分类；strength 为 0.15–1 归一',
                hits=hits, beats=beat_list, words=words, phrases=phrases)
     json.dump(out, open(ROOT + '/crew/hitmap_c1.json', 'w'), ensure_ascii=False, indent=1)
     print('hits', len(hits), cnt, 'bpm', 60 / bw, 'downbeat phase', ph)
@@ -174,7 +164,7 @@ def plot(y, sr, tt, kick, snare, hat, out):
         for h in out['hits']:
             if not (a <= h['t'] <= b): continue
             x = X(h['t']); s = h['strength']
-            for ty, col, yy in (('kick', (230, 60, 50), 300), ('snare', (240, 200, 110), 330), ('hat', (120, 180, 255), 355)):
+            for ty, col, yy in (('kick', (230, 60, 50), 300), ('snare', (240, 200, 110), 330), ('hat', (120, 180, 255), 355), ('crash', (255, 255, 255), 380)):
                 if ty in h['type']:
                     rr = 3 + 8 * s
                     d.ellipse([x - rr, y0 + yy - rr, x + rr, y0 + yy + rr], fill=col)
