@@ -185,7 +185,7 @@ def soldier_sprite(phase=0.0, arm=0.0, kneel=0.0, bow=0.0, weapon='spear', view=
     """单个重甲兵精灵。phase 齐步相位 0..1（None=立定）；arm 举兵器 0..1；level 平枪/前指 0..1；kneel 跪 0..1；bow 低头 0..1。
     view='front'（正对镜头）/'side'（侧面朝右，冲锋）。"""
     r = np.random.default_rng(seed)
-    F = _Fig(150, 205, 75, 200)
+    F = _Fig(150, 236, 75, 230)
     if view == 'side':
         return _soldier_side(F, phase, arm, level, rim_dir, weapon, tassel)
     ph = 0 if phase is None else phase
