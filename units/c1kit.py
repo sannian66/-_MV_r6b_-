@@ -45,7 +45,7 @@ def fbm(h, w, seed, base=4, octaves=6, persist=0.55):
 
 @lru_cache(None)
 def tile(n=1024, seed=0, base=6, octaves=5):
-    import rig
+    rig = sys.modules.get('rig') or __import__('rig')
     return rig.noise_tex(n, seed, base, octaves)
 
 

@@ -7,7 +7,13 @@ ROOT = '/workspace/work/mv'
 for p in (ROOT, ROOT + '/lib', ROOT + '/units'):
     if p not in sys.path: sys.path.insert(0, p)
 import numpy as np, cv2
-import rig, typo as T, trans as TR
+import os
+if os.environ.get('C1_RIG', 'frozen') == 'frozen':      # 样片交件期间冻结角色库（角色组正在把 lib/rig.py 迁到 Skia）
+    import c1_rig_frozen as rig
+    sys.modules['rig'] = rig
+else:
+    import rig
+import typo as T, trans as TR
 from c1kit import *
 import c1kit as K
 

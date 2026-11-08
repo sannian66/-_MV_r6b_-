@@ -651,7 +651,9 @@ class Swordsman:
         return S
 
 # ---------------------------------------------------- 渲染工具（局部画布，uint8 4 通道：覆盖/色调/朱红/金属）
-class _Canvas:
+class _CanvasCV:
+    """旧版 cv2 光栅化画布（保留作对比/回退）。"""
+    backend = 'cv'
     def __init__(self, h, w):
         self.C = np.zeros((h, w, 4), np.uint8)       # A, tone, red, metal（预乘）
         self.M = np.zeros((h, w, 3), np.uint8)       # 刀身细节：钢色、刃线、热
@@ -716,6 +718,34 @@ class _Canvas:
             cv2.fillConvexPoly(self.C, p, cols[k], cv2.LINE_AA, SH)
             cv2.fillConvexPoly(self.G, p, 0, cv2.LINE_AA, SH)
             cv2.fillConvexPoly(self.D, p, self.dcur, cv2.LINE_8, SH)
+
+    # 与 sk.SkCanvas 对齐的通用接口
+    def fill(self, target, pts, val, depth=False):
+        p = _ip(pts).reshape(-1, 1, 2); arr = getattr(self, target)
+        cv2.fillPoly(arr, [p], val if np.ndim(val) else float(val) if arr.dtype != np.uint8 else int(val), cv2.LINE_AA, SH)
+        if depth: cv2.fillPoly(self.D, [p], self.dcur, cv2.LINE_8, SH)
+    def stroke(self, target, pts, val, width, closed=False):
+        cv2.polylines(getattr(self, target), [_ip(pts).reshape(-1, 1, 2)], closed, val, max(1, int(width + 0.5)), cv2.LINE_AA, SH)
+    def fill_ell(self, target, c, ax, ang, val):
+        cv2.ellipse(getattr(self, target), tuple(int(v) for v in _ip(c)), (int(ax[0] * SHF) + 1, int(ax[1] * SHF)), ang, 0, 360, val,
+                    -1, cv2.LINE_AA, SH)
+
+
+# ---- 绘制后端：默认 skia 矢量（sk.SkCanvas），无 skia 时回退 cv2。rig.set_backend('cv'|'skia') 可切换做前后对比。
+try:
+    import sk as _sk
+except Exception:
+    try:
+        from . import sk as _sk
+    except Exception:
+        _sk = None
+BACKEND = 'skia' if (_sk is not None and _sk.HAVE_SKIA) else 'cv'
+_Canvas = _sk.SkCanvas if BACKEND == 'skia' else _CanvasCV
+def set_backend(name):
+    """'skia'（默认，矢量路径）或 'cv'（旧 cv2 光栅）。影响之后所有 draw 调用。"""
+    global BACKEND, _Canvas
+    if name == 'skia' and (_sk is None or not _sk.HAVE_SKIA): raise RuntimeError('skia-python 不可用')
+    BACKEND = name; _Canvas = _sk.SkCanvas if name == 'skia' else _CanvasCV
 
 def _upsample(p, k):
     """Catmull-Rom 加密折线点"""
@@ -951,23 +981,19 @@ def _sw_draw(self, fr, x, y, scale, flip=None, rim_color=(0.80, 0.86, 1.0), rim_
         else:
             bdep = DP(S['guard'] + S['bd'] * 12)
             def swfn():
-                p = _ip(outline).reshape(-1, 1, 2)
-                cv2.fillPoly(cv_.C, [p], (255, 0, 0, 255), cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.G, [p], 0, cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.D, [p], cv_.dcur, cv2.LINE_8, SH)
-                cv2.fillPoly(cv_.M, [p], (120, 0, 90), cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.M, [_ip(shin).reshape(-1, 1, 2)], (62, 0, 40), cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.M, [_ip(ha).reshape(-1, 1, 2)], (190, 0, 255), cv2.LINE_AA, SH)
-                cv2.polylines(cv_.M, [_ip(edge_line).reshape(-1, 1, 2)], False, (255, 255, 255), max(1, int(0.35 * sc + 0.5)),
-                              cv2.LINE_AA, SH)
+                cv_.fill('C', outline, (255, 0, 0, 255), depth=True)
+                cv_.fill('G', outline, 0)
+                cv_.fill('M', outline, (120, 0, 90))
+                cv_.fill('M', shin, (62, 0, 40))
+                cv_.fill('M', ha, (190, 0, 255))
+                cv_.stroke('M', edge_line, (255, 255, 255), max(0.6, 0.35 * sc))
                 # 柄 + 镡 + 柄头
                 cv_.cap(g2, pm, 1.3 * sc, 1.2 * sc, _col(55))
                 for u in np.linspace(0.08, 0.92, 7):
                     c0 = g2 + (pm - g2) * u; cv_.line(c0 - n2 * 1.15 * sc, c0 + n2 * 1.15 * sc + (pm - g2) * 0.05, .35 * sc, _col(120))
                 cv_.cap(pm, pm + (pm - g2) * 0.05, 1.4 * sc, 1.4 * sc, _col(170), gold=230)
                 cv_.ell(g2, (0.55 * sc, 2.7 * sc), math.degrees(math.atan2(dirv[1], dirv[0])), _col(170))
-                cv2.ellipse(cv_.G, tuple(int(v) for v in _ip(g2)), (int(0.55 * sc * SHF) + 1, int(2.7 * sc * SHF)),
-                            math.degrees(math.atan2(dirv[1], dirv[0])), 0, 360, 200, -1, cv2.LINE_AA, SH)
+                cv_.fill_ell('G', g2, (0.55 * sc + 0.12, 2.7 * sc), math.degrees(math.atan2(dirv[1], dirv[0])), 200)
             E.append((bdep, swfn))
     # ---- 头 + 头发
     Rh, Hc = S['Rh'], S['Hc']
@@ -1132,6 +1158,81 @@ Swordsman.draw = _sw_draw
 
 # ============================================================== 刀光拖尾
 def blade_trail(fr, history, color=(1.0, 0.95, 0.88), intensity=1.0, glow=1.0, sub=6, inner=0.28, mode='light',
+                edge_color=None, scale_hint=None):
+    """刀光（接口不变）。skia 后端：扫掠面用带逐顶点颜色的三角网格一次画成（新→旧、柄→尖的强度连续插值，
+    无 cv2 版逐块拼接的条纹缝），刃尖轨迹为渐细的贝塞尔描边，辉光用 MaskFilter 高斯模糊。cv 后端走旧实现。"""
+    if BACKEND != 'skia' or len(history) < 2:
+        return _blade_trail_cv(fr, history, color, intensity, glow, sub, inner, mode, edge_color, scale_hint)
+    skia = _sk.skia
+    Hh, Ww = fr.shape[:2]
+    lines = []
+    for k in range(len(history) - 1):
+        g0, t0 = np.array(history[k][0], float), np.array(history[k][1], float)
+        g1, t1 = np.array(history[k + 1][0], float), np.array(history[k + 1][1], float)
+        v0, v1 = t0 - g0, t1 - g1
+        a0, a1 = math.atan2(v0[1], v0[0]), math.atan2(v1[1], v1[0])
+        da = (a1 - a0 + math.pi) % (2 * math.pi) - math.pi
+        l0, l1 = np.hypot(*v0), np.hypot(*v1)
+        for i in range(sub):
+            u = i / sub
+            g = g0 + (g1 - g0) * u; a = a0 + da * u; l = l0 + (l1 - l0) * u
+            lines.append((g, g + np.array([math.cos(a), math.sin(a)]) * l))
+    lines.append((np.array(history[-1][0], float), np.array(history[-1][1], float)))
+    pts = np.array([[g, t] for g, t in lines]).reshape(-1, 2)
+    ds = 2
+    x0 = int(max(0, pts[:, 0].min() - 60)); x1 = int(min(Ww, pts[:, 0].max() + 60))
+    y0 = int(max(0, pts[:, 1].min() - 60)); y1 = int(min(Hh, pts[:, 1].max() + 60))
+    if x1 - x0 < 4 or y1 - y0 < 4: return fr
+    h, w = (y1 - y0) // ds + 1, (x1 - x0) // ds + 1
+    off = np.array([x0, y0], float)
+    n = len(lines); ns = 10
+    rs = np.random.default_rng(len(history)).random(ns + 1) * 0.35 + 0.8           # 径向条纹（顶点级，平滑）
+    S = np.linspace(inner, 1, ns + 1)
+    P = np.zeros((n, ns + 1, 2)); V = np.zeros((n, ns + 1)); Vo = np.zeros((n, ns + 1))
+    for i in range(n):
+        age = 1 - i / (n - 1); fa = (1 - age) ** 2.2
+        g, tp = (lines[i][0] - off) / ds, (lines[i][1] - off) / ds
+        P[i] = g[None] + (tp - g)[None] * S[:, None]
+        rad = ((S - inner) / (1 - inner) * 0.85 + 0.15) ** 1.8 * rs
+        V[i] = fa * rad; Vo[i] = (1 - age) ** 0.7 * rad * (1 - fa)
+    idx = []
+    for i in range(n - 1):
+        for j in range(ns):
+            a, b, c, d = i * (ns + 1) + j, i * (ns + 1) + j + 1, (i + 1) * (ns + 1) + j + 1, (i + 1) * (ns + 1) + j
+            idx += [a, b, c, a, c, d]
+    F = _sk.FloatSurface(h, w)
+    Pv = P.reshape(-1, 2)
+    def mesh(vals):
+        F.clear(); v = np.clip(vals.reshape(-1), 0, 1)
+        F.mesh(Pv, np.stack([v, v, v, np.ones_like(v)], 1), idx, blend='plus')
+        return F.buf[..., 0].copy()
+    L = mesh(V); Lo = mesh(Vo)
+    # 刃尖轨迹：渐细描边（多段，越新越粗越亮）+ 最新刀身亮线
+    F.clear()
+    tips = np.array([(l[1] - off) / ds for l in lines])
+    for i in range(n - 1):
+        age = 1 - (i + 0.5) / (n - 1)
+        Pp = skia.Path(); Pp.moveTo(*tips[i]); Pp.lineTo(*tips[i + 1])
+        F.path(Pp, color=(1, 1, 1), alpha=float((1 - age) ** 1.2), stroke=0.6 + 1.6 * (1 - age), blend='plus')
+    gN, tN = (lines[-1][0] - off) / ds, (lines[-1][1] - off) / ds
+    Pp = skia.Path(); Pp.moveTo(*(gN + (tN - gN) * inner)); Pp.lineTo(*tN)
+    F.path(Pp, color=(1, 1, 1), alpha=1.0, stroke=2.2, blend='plus')
+    Ed = np.clip(F.buf[..., 0], 0, 1.5).copy()
+    span = max(np.hypot(*(pts.max(0) - pts.min(0))), 50)
+    core = cv2.GaussianBlur(L, (0, 0), 1.0) * 1.1 + cv2.GaussianBlur(Ed, (0, 0), 0.6) * 1.3
+    old_ = cv2.GaussianBlur(Lo, (0, 0), 2.5) * 0.55
+    bloom = _blur_ds(L + Ed * 0.6, max(3, span / ds * 0.035)) * 1.2
+    lay = cv2.resize(core, (x1 - x0, y1 - y0)); bl = cv2.resize(bloom + old_, (x1 - x0, y1 - y0))
+    col = np.asarray(color, np.float32); ec = col if edge_color is None else np.asarray(edge_color, np.float32)
+    reg = fr[y0:y1, x0:x1]
+    if mode == 'ink':
+        a = np.clip(lay * 1.2 + bl * 0.3, 0, 1)[..., None] * intensity
+        fr[y0:y1, x0:x1] = reg * (1 - a) + INK * a
+    else:
+        fr[y0:y1, x0:x1] = reg + (lay[..., None] * col + bl[..., None] * ec * glow) * intensity
+    return fr
+
+def _blade_trail_cv(fr, history, color=(1.0, 0.95, 0.88), intensity=1.0, glow=1.0, sub=6, inner=0.28, mode='light',
                 edge_color=None, scale_hint=None):
     """history: [(guard_xy, tip_xy), ...] 旧→新（每帧一条，取自 Swordsman.draw 返回的 info['guard'], info['tip']）。
     在相邻两帧之间按“绕护手转角+长度插值”细分成弧，填充扫掠面：新→旧渐隐、近柄弱→刀尖强，
@@ -1320,13 +1421,10 @@ class HandCU:
                 cv_.poly(P([[-46, -19], [-40, -19], [-40, 19], [-46, 19]]), _col(150), gold=200)      # 镡（侧）
                 cv_.poly(P([[-52, -8], [-46, -8.5], [-46, 8.5], [-52, 8]]), _col(180), gold=255)     # habaki
                 bl = P([[-52, -7.5], [-200, -6.0], [-205, 7.5], [-52, 7.5]])
-                p = _ip(bl).reshape(-1, 1, 2)
-                cv2.fillPoly(cv_.C, [p], (255, 0, 0, 255), cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.M, [p], (120, 0, 120), cv2.LINE_AA, SH)
-                cv2.polylines(cv_.M, [_ip(P([[-52, 7.0], [-205, 7.0]])).reshape(-1, 1, 2)], False, (255, 255, 255),
-                              max(1, int(0.6 * k)), cv2.LINE_AA, SH)
-                cv2.fillPoly(cv_.M, [_ip(P([[-52, -7.5], [-200, -6.0], [-200, -2.0], [-52, -2.5]])).reshape(-1, 1, 2)],
-                             (60, 0, 40), cv2.LINE_AA, SH)
+                cv_.fill('C', bl, (255, 0, 0, 255))
+                cv_.fill('M', bl, (120, 0, 120))
+                cv_.stroke('M', P([[-52, 7.0], [-205, 7.0]]), (255, 255, 255), max(0.6, 0.6 * k))
+                cv_.fill('M', P([[-52, -7.5], [-200, -6.0], [-200, -2.0], [-52, -2.5]]), (60, 0, 40))
                 hx = 20.0
             else:
                 # 鞘（黑漆）+ 鲤口金环 + 镡 + 柄
