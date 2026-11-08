@@ -8,7 +8,7 @@ for p in (ROOT, ROOT + '/lib', ROOT + '/units'):
     if p not in sys.path: sys.path.insert(0, p)
 import numpy as np, cv2
 import os
-if os.environ.get('C1_RIG', 'frozen') == 'frozen':      # 样片交件期间冻结角色库（角色组正在把 lib/rig.py 迁到 Skia）
+if os.environ.get('C1_RIG', 'live') == 'frozen':      # 默认用共享库 lib/rig.py（Skia）；C1_RIG=frozen 回退冻结版
     import c1_rig_frozen as rig
     sys.modules['rig'] = rig
 else:
