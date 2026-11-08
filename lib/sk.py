@@ -247,6 +247,53 @@ class SkCanvas:
                           b + e - normals[k + 1] * widths[k + 1], a - e - normals[k] * widths[k]])
             self._draw(path_poly(q), cols[k], 0)
 
+    # ---- v2：并集多边形 / 渐变网格 / 内绘（只画在已有覆盖内，不改轮廓与深度）
+    def polys(self, polys, col, gold=0, smooth=False, depth=True):
+        """多个闭合多边形的并集一次上色（躯干 loft、头部多块凸包）→ 无内部接缝。"""
+        P = skia.Path(); P.setFillType(skia.PathFillType.kWinding)
+        for q in polys:
+            q = np.asarray(q, np.float64).reshape(-1, 2)
+            if len(q) < 3: continue
+            ar = np.sum(q[:, 0] * np.roll(q[:, 1], -1) - np.roll(q[:, 0], -1) * q[:, 1])
+            if ar < 0: q = q[::-1]
+            P.addPath(path_poly(q, smooth=smooth))
+        self._draw(P, col, gold, depth=depth)
+
+    def path(self, P, col, gold=0, depth=True):
+        self._draw(P, col, gold, depth=depth)
+
+    def mesh_tone(self, pos, tones, idx, red=0, outline=None, depth=True):
+        """逐顶点色调的三角网格（布料平滑明暗/褶皱）。outline: 可选外轮廓多边形，先以均值色 AA 填充，消除网格锯齿边。"""
+        pos = np.asarray(pos, np.float64).reshape(-1, 2); tones = np.clip(np.asarray(tones, np.float64).reshape(-1), 0, 255)
+        reds = np.broadcast_to(np.asarray(red, np.float64), tones.shape)
+        if outline is not None:
+            self._draw(path_poly(outline), (255, float(tones.mean()), float(reds.mean()), 0), 0, depth=depth)
+        cols = [skia.Color(int(t + .5), int(r + .5), 0, 255) for t, r in zip(tones, reds)]
+        V = skia.Vertices(skia.Vertices.kTriangles_VertexMode, _pts(pos), None, cols, [int(i) for i in idx])
+        p = skia.Paint(AntiAlias=True)
+        self._cB.drawVertices(V, p, skia.BlendMode.kDst)
+        if self._g_used:
+            Vg = skia.Vertices(skia.Vertices.kTriangles_VertexMode, _pts(pos), None, None, [int(i) for i in idx])
+            g = skia.Paint(self._pg); g.setColor(skia.Color(0, 0, 0, 0)); self._cG.drawVertices(Vg, g)
+        if depth:
+            q = int(np.clip((self.dcur + 2048.0) * _DQ, 0, 2 ** 24 - 1))
+            Vd = skia.Vertices(skia.Vertices.kTriangles_VertexMode, _pts(pos), None, None, [int(i) for i in idx])
+            self._pd.setColor(skia.Color((q >> 16) & 255, (q >> 8) & 255, q & 255, 255))
+            self._cD.drawVertices(Vd, self._pd)
+
+    def paint_in(self, P, col, alpha=1.0, blur=0.0, stroke=None):
+        """在已有覆盖内部作画（SrcATop）：褶皱阴影、眼窝、发束高光等，不改变轮廓 A 与深度。col=(tone, red, metal)。"""
+        p = skia.Paint(AntiAlias=True)
+        p.setColor(skia.Color(int(np.clip(col[0], 0, 255)), int(np.clip(col[1] if len(col) > 1 else 0, 0, 255)),
+                              int(np.clip(col[2] if len(col) > 2 else 0, 0, 255)), 255))
+        p.setAlphaf(float(np.clip(alpha, 0, 1)))
+        p.setBlendMode(skia.BlendMode.kSrcATop)
+        if blur > 0: p.setMaskFilter(skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, float(blur)))
+        if stroke:
+            p.setStyle(skia.Paint.kStroke_Style); p.setStrokeWidth(float(stroke))
+            p.setStrokeCap(skia.Paint.kRound_Cap); p.setStrokeJoin(skia.Paint.kRound_Join)
+        self._cB.drawPath(P, p)
+
     # ---- 通用：对任意通道填充 / 描边
     def _tgt(self, target, P, val, stroke=None, depth=False):
         if target == 'C':
@@ -331,6 +378,48 @@ def linear_gradient(p0, p1, colors, stops=None):
 def radial_gradient(c, r, colors, stops=None):
     cs = [skia.Color4f(*map(float, cc)).toColor() for cc in colors]
     return skia.GradientShader.MakeRadial(skia.Point(*map(float, c)), float(r), cs, None if stops is None else [float(s) for s in stops])
+
+
+def path_limb(pts, radii, k=4, cap=True):
+    """可变半径肢体外形：沿折线（Catmull 加密）两侧按半径偏移 + 两端半圆帽 → 平滑闭合路径（关节过渡自然）。"""
+    pts = np.asarray(pts, np.float64); r = np.asarray(radii, np.float64)
+    if len(pts) >= 3:
+        P = _upsample(pts, k); rr = np.interp(np.linspace(0, len(pts) - 1, len(P)), np.arange(len(pts)), r)
+    else:
+        P = pts; rr = r
+    d = np.gradient(P, axis=0); L = np.linalg.norm(d, axis=1, keepdims=True) + 1e-9; d = d / L
+    n = np.stack([-d[:, 1], d[:, 0]], 1)
+    left = P + n * rr[:, None]; right = P - n * rr[:, None]
+    out = [left]
+    if cap:
+        a1 = math.atan2(n[-1, 1], n[-1, 0]); out.append(np.stack([P[-1, 0] + rr[-1] * np.cos(a1 - np.linspace(0, math.pi, 7)[1:-1]),
+                                                                  P[-1, 1] + rr[-1] * np.sin(a1 - np.linspace(0, math.pi, 7)[1:-1])], 1))
+    out.append(right[::-1])
+    if cap:
+        a0 = math.atan2(-n[0, 1], -n[0, 0]); out.append(np.stack([P[0, 0] + rr[0] * np.cos(a0 - np.linspace(0, math.pi, 7)[1:-1]),
+                                                                 P[0, 1] + rr[0] * np.sin(a0 - np.linspace(0, math.pi, 7)[1:-1])], 1))
+    poly = np.vstack(out)
+    Pth = path_poly(poly, smooth=True); Pth.setFillType(skia.PathFillType.kWinding)
+    return Pth, poly
+
+
+def path_union(polys, smooth=False):
+    P = skia.Path(); P.setFillType(skia.PathFillType.kWinding)
+    for q in polys:
+        q = np.asarray(q, np.float64).reshape(-1, 2)
+        if len(q) < 3: continue
+        ar = np.sum(q[:, 0] * np.roll(q[:, 1], -1) - np.roll(q[:, 0], -1) * q[:, 1])
+        if ar < 0: q = q[::-1]
+        P.addPath(path_poly(q, smooth=smooth))
+    return P
+
+
+def path_and(a, b):
+    """路径求交（虹膜裁进眼白等）。"""
+    try:
+        return skia.Op(a, b, skia.PathOp.kIntersect_PathOp)
+    except Exception:
+        return a
 
 
 def mask(h, w, paths, blur=0.0, stroke=None):
