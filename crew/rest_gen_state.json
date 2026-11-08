@@ -610,26 +610,26 @@
     {
      "n": 1,
      "task_id": "d67a90ee-8354-4582-a3cb-a118fcac28a7",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S062/puppeteer_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S065:chin_up": {
    "tries": [
     {
      "n": 1,
      "task_id": "5c2b4926-6d67-413d-b42c-949550475cf5",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S065/chin_up_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S098:point_down": {
    "tries": [],

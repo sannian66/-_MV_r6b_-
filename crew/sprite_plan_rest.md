@@ -171,3 +171,14 @@
 | S136 | 234.13–237.33 | ELS | — | 代码 | 0 | — |  |
 | S137 | 237.33–239.17 | CU | 鬼屠 | 复用 S135:sheath_hand | 0 | — |  |
 | S138 | 239.17–241.34 | ELS | — | 代码 | 0 | — |  |
+
+## 进度（11-09 05:55 CST，预算 150 积分用完即停）
+- 生图 50 次（150 积分，RH_image2 4K 16:9，报价 3/张），采用 46 个姿势，重抽 4 次：S003 thumb_push（出正脸）、S018 look_up（马尾缺失）、S024 pommel_thrust（马尾被裁）、S021 finger（轮询时 HTTP 502 被判失败，task 889b99e7 实际可能已出图）。
+- 素材：`assets/gen/<镜号>/<姿势>_raw.png` + `_cut.png`（2560 宽 RGBA，tools/cutout.py 灰底流程）；联系表 `assets/gen/_sheet_<段落>.jpg`。
+- 未做（预算到顶）：bridge 段 S098 point_down、S099 point_up、S102 eye_open、S103 slow_draw、S105 charge_front。
+- 已知问题（合成时处理）：
+  - 手部/局部 CU 模型常把脸也画进来：S015 hand_draw、S083 sash、S135 sheath_hand、S051 grip_scepter、S056 palm_open/palm_fist —— 合成时裁到手/腰带区域。S003 是 ECU 满画面，几乎没有灰底，抠图意义小，可直接整帧用。
+  - 头顶贴边：S024 pommel_thrust、S090 wind_up、S121 wind_sash、S123 front、S125 stare、S056 两张、S051（发簪）马尾/发髻顶端贴画框或略裁，镜头里放低一点即可。
+  - S021 finger：生图多出一个全身太上皇，raw 下 68.5% 已用背景灰填掉，只保留天降手指。S062 puppeteer 出的是全身（右手举高、指尖贴顶），需裁手或整身压剪影。
+  - 姿势偏差：S120 plant 刀尖只是触地不是插地；S084 knock_back 更像防守架势；S073 spin1 是正面不是背身；S018 turn 没有明显回头。
+  - S073 spin2 抠图左侧有一条细竖线残留；发丝边缘在深色底上有少量亮灰点，属 rim 光，可接受。

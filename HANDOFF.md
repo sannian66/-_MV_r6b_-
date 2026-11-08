@@ -186,3 +186,5 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - `units/sprite.py` 改动：`fit()`（按 alpha 包围盒高度缩放 + 脚底锚点）、`top`（最高点）、保色遮罩 `red_mask()`（色相比例取暗红，红领/红穗/血不去饱和）、`alpha/defocus/rotblur` 参数。`units/c1kit.finish(..., red_keep=)`：SPRITE_MODE 下按色相比例保住暗红（修试点「去饱和吃掉暗红内领」）。
 - 渲染：`units/c1sprite_render.sh`（帧 1784–2586 = 59.47–86.20s，2 进程 × 90 帧分块写 /tmp 再拷 `out/chorus1_sprite/chunks/`，断点续跑；混 `audio/谁定正邪.mp3`）→ `out/chorus1_sprite/chorus1_sprite_master_crf18.mp4`（不入库）+ `out/chorus1_sprite/chorus1_sprite_crf23.mp4`。联系表 `lib/rig_test/c1_sprite_contact.py` → `lib/rig_test/c1_sprite_contact.jpg`。
 - 新沙箱注意：skia 需要系统库 `sudo apt-get install -y libegl1 libgl1`（否则 props.CharWall 报 skia None）。
+- 产出（05:52）：`out/chorus1_sprite/chorus1_sprite_master_crf18.mp4`（26.73s，1920×1080 30fps + AAC，55.9MB，不入库）、`out/chorus1_sprite/chorus1_sprite_crf23.mp4`（入库）、`lib/rig_test/c1_sprite_contact.jpg`。
+- 自评仍待改：S037 远景背影太小太暗，几乎看不见；S045 旋斩中间姿势（84.30–84.47）角向+方向模糊后成一团糊影，读不出转身；S035 斜劈落地的代码弧形刀光与精灵手里的刀不完全对位；S039 缓行只是整张图横移+起伏，脚不动（近看像滑行）；S044 / S029 构图满屏没有景深层次，略像贴图；S043 仍沿用试点图（马尾顶被裁）；S046 人物在刀后虚焦，OK。

@@ -123,3 +123,7 @@
 | 11-08 21:51 | S056 | RH_image2 | 4K 16:9 | 0 | b6c65de4-f4c6-45ef-8c45-f2f4f5253d6a | 采用 | assets/gen/S056/palm_open_raw.png | palm_open try1 采用 |
 | 11-08 21:51 | S056 | RH_image2 | 4K 16:9 | 0 | 27006fb2-f304-4539-8814-f8a9b10147d4 | 采用 | assets/gen/S056/palm_fist_raw.png | palm_fist try1 采用 |
 | 11-08 21:51 | S057 | RH_image2 | 4K 16:9 | 0 | 0a896734-d003-4782-8175-a036a2a06d2c | 采用 | assets/gen/S057/grab_turn_raw.png | grab_turn try1 采用 |
+| 11-08 21:53 | S062 | RH_image2 | 4K 16:9 | 3 | d67a90ee-8354-4582-a3cb-a118fcac28a7 | completed | rest_cands/S062/puppeteer_try1_0.png | puppeteer try1：His hand at top of frame, palm down, long fingers  |
+| 11-08 21:53 | S065 | RH_image2 | 4K 16:9 | 3 | 5c2b4926-6d67-413d-b42c-949550475cf5 | completed | rest_cands/S065/chin_up_try1_0.png | chin_up try1：Side three-quarter profile, slowly raising his chi |
+| 11-08 21:54 | S062 | RH_image2 | 4K 16:9 | 0 | d67a90ee-8354-4582-a3cb-a118fcac28a7 | 采用 | assets/gen/S062/puppeteer_raw.png | puppeteer try1 采用 |
+| 11-08 21:54 | S065 | RH_image2 | 4K 16:9 | 0 | 5c2b4926-6d67-413d-b42c-949550475cf5 | 采用 | assets/gen/S065/chin_up_raw.png | chin_up try1 采用 |
