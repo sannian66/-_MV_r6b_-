@@ -10,4 +10,4 @@
 | 11-08 19:51 | S029 | RH_image2 | 4K 16:9 | 3 | b6c5a0e8-92a5-46aa-a00c-0dedfb66d3c0 | completed | out/gen/hero_cu/S029_grip_hand_0.png | Extreme close-up of his right hand gripping a long dao sword |
 | 11-08 19:51 | S038 | RH_image2 | 4K 16:9 | 3 | 4e21225a-cd68-409c-858e-32957c021014 | completed | out/gen/hero_cu/S038_eye_on_blade_0.png | Extreme close-up of a polished sword blade held horizontally |
 | 11-08 19:51 | S043 | RH_image2 | 4K 16:9 | 3 | 5b8063d7-241f-4990-9b8b-3848ac642bc7 | completed | out/gen/hero_cu/S043_turn_head_0.png | Close-up, the swordsman seen from behind over his shoulder,  |
-| 11-09 05:20 | S043 | RH_image2 | 4K 16:9 | 3 | 050acd06-447d-4fc7-a287-0676e1b0ddb6 | completed | assets/gen/hero/S043_try1_0.png | sprite 试点 #1：参考图生图，肩后回头 3/4 侧脸，纯中性灰背景，后方冷月轮廓光 |
+| 11-09 05:20 | S043 | RH_image2 | 4K 16:9 | 3 | 050acd06-447d-4fc7-a287-0676e1b0ddb6 | completed | assets/gen/hero/S043_raw.png | sprite 试点 #1：参考图生图，肩后回头 3/4 侧脸，纯中性灰背景，后方冷月轮廓光 |

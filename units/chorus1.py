@@ -975,6 +975,64 @@ class S043(Shot):
         return fr, 0
 
 
+# -------------------------------------------------------------------------------------
+# S043 生图精灵版（SPRITE_MODE=1 才启用；默认仍是上面的代码人物）。人物 = assets/gen/hero/S043_cut.png，
+# 场景/雾/雨/火星/运镜/字幕仍为代码。SPRITE_EXT="t0,t1" 可把镜头拉长到试点窗口（单镜试渲用，不影响剪辑表）。
+SPRITE_MODE = os.environ.get('SPRITE_MODE', '0') == '1'
+class S043Sprite(Shot):
+    t0, t1 = 82.059, 82.988
+    PNG = ROOT + '/assets/gen/hero/S043_cut.png'
+    FACE = (0.556, 0.478)                       # 精灵内脸中心（归一化）
+    EYES = ((0.5175, 0.4256), (0.597, 0.420))   # 两眼（画面左/右）
+    def __init__(self):
+        import sprite as SP
+        self.sp = SP.layer(self.PNG)
+        self.bg = dark_bg(43, 0.02, 0.07)
+        ext = os.environ.get('SPRITE_EXT')
+        self.win = tuple(float(x) for x in ext.split(',')) if ext else None
+        self.T_GLINT = 82.62
+
+    def render(self, t):
+        a, b = self.win or (self.t0, self.t1)
+        u = clamp01((t - a) / (b - a))
+        tt = t - a                                       # 镜内秒
+        # --- 背景（远）：暗底 + 背后冷月光晕（rim 光的来源）+ 远雾 + 远雨，推得慢（视差）
+        fr = self.bg.copy()
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        glow = np.exp(-(((xx - 560) / 620) ** 2 + ((yy - 230) / 420) ** 2))
+        fr = fr + glow[..., None] * np.array([0.10, 0.12, 0.16], np.float32)
+        fr = K.fog(fr, t, 431, amt=0.32, speed=(60, 0), y0=0.15, y1=1.0, color=(0.2, 0.21, 0.24))
+        fr = K.rain(fr, t, seed=4303, n=380, speed=1500, angle=10, length=(20, 50), amt=0.16, near=0.0)
+        fr = cam(fr, 1.0 + 0.03 * eio(u), 10 * eio(u), 0)
+        # --- 人物：转头动势（前 0.25s 从右侧甩入 + 方向模糊）→ 静止慢推；推得比背景快 = 2.5D
+        k = eout(clamp01(tt / 0.26), 3)
+        dx = 110 * (1 - k); rot = -2.5 * (1 - k)
+        z = 0.95 * (1.0 + 0.09 * eout(u, 2))
+        cx = 1010 + dx - 30 * eio(u); cy = 470 + 6 * eio(u)
+        mb = (60 * (1 - k) if tt < 0.26 else 0.0, 0.0)
+        s = z * W / self.sp.w * 1.0
+        fr, Aw = self.sp.draw(fr, t, self.FACE, (cx, cy), s * self.sp.w / self.sp.w, rot=rot, mblur=mb)
+        # --- 眼中寒光（代码画的星芒，落在「我」后乐句上）
+        g = math.exp(-((t - self.T_GLINT) / 0.10) ** 2) + 0.25 * clamp01((t - self.T_GLINT) / 0.1)
+        if g > 0.02:
+            ang = math.radians(rot)
+            L = np.zeros((H, W), np.float32)
+            for ex, ey in self.EYES[1:]:
+                px = cx + (ex - self.FACE[0]) * self.sp.w * s; py = cy + (ey - self.FACE[1]) * self.sp.h * s
+                p = (int(px), int(py))
+                cv2.line(L, (p[0] - 38, p[1] + 2), (p[0] + 38, p[1] - 2), 0.35, 1, cv2.LINE_AA)
+                cv2.line(L, (p[0], p[1] - 12), (p[0], p[1] + 12), 0.25, 1, cv2.LINE_AA)
+                cv2.circle(L, p, 2, 1.0, -1, cv2.LINE_AA)
+            L = cv2.GaussianBlur(L, (0, 0), 1.0) + cv2.GaussianBlur(L, (0, 0), 6) * 0.9
+            fr = fr + L[..., None] * g * np.array([0.8, 0.9, 1.0], np.float32)
+        # --- 前景（近）：火星 + 近雨丝（压在人物上 = 人物在场景里）
+        fr = K.sparks(fr, t, 4301, (200, 900), n=40, life=0.9, speed=(300, 800), dirc=(1, -0.6), spread=0.4, grav=80,
+                      area=(100, 100), amt=0.9)
+        fr = K.rain(fr, t, seed=4304, n=70, speed=2600, angle=12, length=(60, 140), amt=0.22, near=0.6)
+        return fr, 0
+S043Sprite.__name__ = 'S043'          # 剪辑/运镜/前景/曝光表沿用 S043 的键
+
+
 # =====================================================================================
 # S044 82.99–84.10 CU 手按刀柄，拇指推刀，鞘口一线光（吸气停顿）
 class S044(Shot):
@@ -1213,7 +1271,8 @@ class S048(Shot):
 
 
 # =====================================================================================
-SHOTS = [S027, S028, S029, S030, S031, S032, S033, S034, S035, S036, S037, S038, S039, S040, S041, S042, S043, S044, S045,
+SHOTS = [S027, S028, S029, S030, S031, S032, S033, S034, S035, S036, S037, S038, S039, S040, S041, S042,
+         S043Sprite if SPRITE_MODE else S043, S044, S045,
          S046, S047, S048]
 
 # ---------------- v2 剪辑表：切点 = 卡点（鼓/字头）最近帧再提前 1 帧，单位：帧（30fps）
