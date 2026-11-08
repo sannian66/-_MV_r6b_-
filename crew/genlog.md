@@ -25,3 +25,26 @@
 | 11-08 21:30 | S045 | RH_image2 | 4K 16:9 | 3 | 9ef77595-bc8b-45c0-85d4-e2f3f727c366 | completed | gen_cands/S045/spin_try1_0.png | c1sprite spin try1: Wide shot, full body, he is in the middle of a fast spinning slash, bo |
 | 11-08 21:31 | S045 | RH_image2 | 4K 16:9 | 3 | 6b9967fa-bcc1-45fe-8f9a-e896652928d6 | completed | gen_cands/S045/windup_try1_0.png | c1sprite windup try1: Wide shot, full body, three-quarter view, he coils his body for a spin |
 | 11-08 21:31 | S046 | RH_image2 | 4K 16:9 | 3 | e21a6634-e967-4284-977e-b32f318d95c3 | completed | gen_cands/S046/stare_try1_0.png | c1sprite stare try1: Medium close-up, head and shoulders, front three-quarter view, he look |
+| 11-08 21:31 | S045 | RH_image2 | 4K 16:9 | 3 | 8a4246f5-314c-45e5-a9ef-3c77799c1a96 | completed | gen_cands/S045/finish_try1_0.png | c1sprite finish try1: Wide shot, full body, facing the camera in a low wide stance just afte |
+| 11-08 21:33 | S002 | RH_image2 | 4K 16:9 | 3 | 8948e101-627d-4966-bda8-2cd512fd8d9a | completed | rest_cands/S002/back_wind_try1_0.png | back_wind try1：Seen from behind, standing still facing away, robe |
+| 11-08 21:33 | S044 | RH_image2 | 4K 16:9 | 3 | d6b1c770-441b-4ae8-8032-0143b4c34f15 | completed | gen_cands/S044/thumb2_try2_0.png | c1sprite thumb2 try2: Close-up, side view of the sheathed dao worn horizontally at his left  |
+| 11-08 21:33 | S003 | RH_image2 | 4K 16:9 | 3 | 30f49529-d62c-4041-ac99-c89646fd1709 | completed | rest_cands/S003/thumb_push_try1_0.png | thumb_push try1：Extreme close-up of his left hand: thumb pushing t |
+| 11-08 21:34 | S004 | RH_image2 | 4K 16:9 | 3 | 7b151b20-c744-4331-9176-bde8ed5c8175 | completed | rest_cands/S004/profile_try1_0.png | profile try1：Pure side profile facing right, eyes half closed,  |
+| 11-08 21:34 | S004 | RH_image2 | 4K 16:9 | 3 | ca4cc3ea-a14a-4e6d-8e40-f426ab206a78 | completed | rest_cands/S004/profile_open_try1_0.png | profile_open try1：Pure side profile facing right, eyes snapped open  |
+| 11-08 21:34 | S010 | RH_image2 | 4K 16:9 | 3 | 112536e9-8f04-46c3-9764-953b3f9858aa | completed | rest_cands/S010/walk_try1_0.png | walk try1：Walking toward the right in three-quarter view, sw |
+| 11-08 21:34 | S010 | RH_image2 | 4K 16:9 | 3 | 9118cf0d-5ef7-4fcc-923f-960335a85dac | completed | rest_cands/S010/draw_try1_0.png | draw try1：Mid-draw: right hand pulling the dao out of the sc |
+| 11-08 21:35 | S010 | RH_image2 | 4K 16:9 | 0 | 9118cf0d-5ef7-4fcc-923f-960335a85dac | 采用 | assets/gen/S010/draw_raw.png | draw try1 采用 |
+| 11-08 21:35 | S002 | RH_image2 | 4K 16:9 | 0 | 8948e101-627d-4966-bda8-2cd512fd8d9a | 采用 | assets/gen/S002/back_wind_raw.png | back_wind try1 采用 |
+| 11-08 21:35 | S004 | RH_image2 | 4K 16:9 | 0 | ca4cc3ea-a14a-4e6d-8e40-f426ab206a78 | 采用 | assets/gen/S004/profile_open_raw.png | profile_open try1 采用 |
+| 11-08 21:35 | S010 | RH_image2 | 4K 16:9 | 0 | 112536e9-8f04-46c3-9764-953b3f9858aa | 采用 | assets/gen/S010/walk_raw.png | walk try1 采用 |
+| 11-08 21:35 | S004 | RH_image2 | 4K 16:9 | 0 | 7b151b20-c744-4331-9176-bde8ed5c8175 | 采用 | assets/gen/S004/profile_raw.png | profile try1 采用 |
+| 11-08 21:35 | S003 | RH_image2 | 4K 16:9 | 0 | 30f49529-d62c-4041-ac99-c89646fd1709 | 重抽 |  | thumb_push try1 判废：出现正脸，非拇指推刀特写 |
+| 11-08 21:35 | S010 | RH_image2 | 4K 16:9 | 3 | 95489d1c-3e52-4ce2-9554-62a51a6dcf91 | completed | rest_cands/S010/slash_h_try1_0.png | slash_h try1：Follow-through of a horizontal sword sweep, blade  |
+| 11-08 21:36 | S011 | RH_image2 | 4K 16:9 | 3 | d8fc8d71-ebfa-45d7-abf3-6f975375c414 | completed | rest_cands/S011/backlit_try1_0.png | backlit try1：Low-angle view, standing tall and still, facing ca |
+| 11-08 21:36 | S018 | RH_image2 | 4K 16:9 | 3 | ebe8616e-ffc6-42b7-9033-5c97458566e5 | completed | rest_cands/S018/turn_try1_0.png | turn try1：Head turning over his shoulder, three-quarter view |
+| 11-08 21:37 | S010 | RH_image2 | 4K 16:9 | 0 | 95489d1c-3e52-4ce2-9554-62a51a6dcf91 | 采用 | assets/gen/S010/slash_h_raw.png | slash_h try1 采用 |
+| 11-08 21:37 | S011 | RH_image2 | 4K 16:9 | 0 | d8fc8d71-ebfa-45d7-abf3-6f975375c414 | 采用 | assets/gen/S011/backlit_raw.png | backlit try1 采用 |
+| 11-08 21:37 | S018 | RH_image2 | 4K 16:9 | 0 | ebe8616e-ffc6-42b7-9033-5c97458566e5 | 采用 | assets/gen/S018/turn_raw.png | turn try1 采用 |
+| 11-08 21:37 | S014 | RH_image2 | 4K 16:9 | 3 | 4425f923-b434-4360-b67b-431a8298d8b6 | completed | rest_cands/S014/slash_diag_try1_0.png | slash_diag try1：Diagonal downward sword stroke from upper right to |
+| 11-08 21:37 | S014 | RH_image2 | 4K 16:9 | 3 | 9265a122-2fda-45a5-8f66-9112e7dc3427 | completed | rest_cands/S014/sheath_try1_0.png | sheath try1：Calm upright stance sliding the dao back into the  |
+| 11-08 21:37 | S015 | RH_image2 | 4K 16:9 | 3 | c0e765c9-fe69-409c-aa8f-e7f685610e80 | completed | rest_cands/S015/hand_draw_try1_0.png | hand_draw try1：Close-up of his right hand gripping the black cord |

@@ -38,6 +38,14 @@ class SpriteLayer:
         self.ring = cv2.GaussianBlur(np.clip(ring, 0, 1), (0, 0), 1.5)
         gy, gx = np.mgrid[0:self.h, 0:self.w].astype(np.float32)
         self.gx, self.gy = gx, gy
+        ys, xs = np.nonzero(self.A > 0.5)
+        self.bbox = (xs.min() / self.w, ys.min() / self.h, xs.max() / self.w, ys.max() / self.h) if len(xs) else (0, 0, 1, 1)
+        self.top = (xs[ys.argmin()] / self.w, ys.min() / self.h) if len(xs) else (0.5, 0)   # 最高点（举刀=刀尖）
+
+    def fit(self, target_h, foot=None, ref='bbox'):
+        """按 alpha 包围盒高度缩放：返回 (anchor_src=脚底中点, scale)。"""
+        x0, y0, x1, y1 = self.bbox
+        return ((x0 + x1) / 2, y1), target_h / ((y1 - y0) * self.h)
 
     # ---- 风吹：分区网格（粗网格 sin 位移 → 放大 → remap）
     def wind(self, t, amp=7.0, wdir=(-1.0, 0.15), freq=0.9):
@@ -60,12 +68,15 @@ class SpriteLayer:
 
     def draw(self, fr, t, anchor_src, anchor_dst, scale, rot=0.0, breathe=0.005, wind_amp=7.0,
              grade=dict(expo=0.66, sat=0.55, tint=(0.90, 0.96, 1.06), lift=0.0, gamma=1.25),
-             rim=dict(col=(0.62, 0.74, 1.0), amt=1.6, dir=(-0.8, -0.6)), wrap=0.35, mblur=(0.0, 0.0), extra_A=None, shade=(700, 1600, 0.30, 650, 0.45)):
+             rim=dict(col=(0.62, 0.74, 1.0), amt=1.6, dir=(-0.8, -0.6)), wrap=0.35, mblur=(0.0, 0.0), extra_A=None, shade=(700, 1600, 0.30, 650, 0.45), keep_red=1.0, alpha=1.0, defocus=0.0, rotblur=0.0):
         """anchor_src：精灵内归一化锚点（如脸中心）；anchor_dst：画面像素位置；scale：精灵宽 → 画面像素 的倍率。"""
         F, A, R = self.wind(t, wind_amp)
         # 调色匹配：压暗、去饱和一部分、偏冷
         lum = (F * np.array([0.3, 0.59, 0.11], np.float32)).sum(-1, keepdims=True)
-        F = np.clip(lum + (F - lum) * grade['sat'], 0, 1) ** grade.get('gamma', 1.0) * grade['expo'] * np.array(grade['tint'], np.float32) + grade['lift']
+        red = red_mask(F)[..., None] * keep_red                     # 保色遮罩：暗红内领、红穗、血保留饱和度
+        sat = grade['sat'] * (1 - red) + 1.25 * red
+        tint = np.array(grade['tint'], np.float32) * (1 - red) + np.array([1.08, 0.96, 0.96], np.float32) * red
+        F = np.clip(lum + (F - lum) * sat, 0, 1) ** grade.get('gamma', 1.0) * grade['expo'] * tint + grade['lift']
         # 冷色 rim：轮廓环带 × 背光方向（法线 · 光向）
         gx = cv2.Sobel(A, cv2.CV_32F, 1, 0, ksize=5); gy = cv2.Sobel(A, cv2.CV_32F, 0, 1, ksize=5)
         n = np.sqrt(gx * gx + gy * gy) + 1e-4
@@ -91,7 +102,17 @@ class SpriteLayer:
             yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
             r = np.clip((xx - shade[0]) / (shade[1] - shade[0]), 0, 1) * shade[2] + np.clip((yy - shade[3]) / (H - shade[3]), 0, 1) * shade[4]
             Fw = Fw * (1 - r)[..., None]
+        if rotblur:                                                # 旋斩：绕锚点的角向模糊（几张旋转副本平均）
+            acc_F = Fw * Aw[..., None]; acc_A = Aw.copy(); n = 5
+            for i in range(1, n):
+                Mr = cv2.getRotationMatrix2D(tuple(map(float, anchor_dst)), rotblur * i / n, 1.0)
+                acc_F += cv2.warpAffine(Fw * Aw[..., None], Mr, (W, H)); acc_A += cv2.warpAffine(Aw, Mr, (W, H))
+            Aw = acc_A / n; Fw = (acc_F / n) / np.clip(Aw[..., None], 1e-3, None)
+        if defocus > 0.3:                                          # 景深虚化（前景刀在焦时人物在后）
+            Fw = cv2.GaussianBlur(Fw * Aw[..., None], (0, 0), defocus); Aw = cv2.GaussianBlur(Aw, (0, 0), defocus)
+            Fw = Fw / np.clip(Aw[..., None], 1e-3, None)
         if extra_A is not None: Aw = Aw * extra_A
+        Aw = Aw * alpha
         # 光包裹：背景模糊光渗进人物边缘（去贴纸感）
         bgb = cv2.GaussianBlur(fr, (0, 0), 18)
         edge = np.clip(Aw - cv2.GaussianBlur(Aw, (0, 0), 6) * 0.0, 0, 1)
@@ -100,6 +121,13 @@ class SpriteLayer:
         Fw = Fw + bgb * wrap_m
         a3 = Aw[..., None]
         return fr * (1 - a3) + Fw * a3, Aw
+
+
+def red_mask(F):
+    """按色相比例取暗红（与亮度无关）：r 明显高于 g/b，排除肤色、金、棕皮革。"""
+    r = F[..., 0]; mx = np.maximum(F[..., 1], F[..., 2])
+    ratio = (r - mx) / (r + 1e-3)
+    return (_sstep(0.38, 0.62, ratio) * _sstep(0.03, 0.09, r)).astype(np.float32)
 
 
 _CACHE = {}

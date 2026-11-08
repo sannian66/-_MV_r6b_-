@@ -488,13 +488,17 @@ def _grain(k):
     return cv2.GaussianBlur(r.standard_normal((H // 2, W // 2)).astype(np.float32), (0, 0), 0.7)
 
 
-def finish(fr, t, ca=0, grain=0.04, vig=0.5, bloom_amt=0.35, grade=True):
+def finish(fr, t, ca=0, grain=0.04, vig=0.5, bloom_amt=0.35, grade=True, red_keep=0.0):
     """统一调色收尾：冷灰底 + 保留朱/金、辉光、色差、暗角、颗粒、上下黑边。"""
     fr = np.clip(fr, 0, 4)
     if grade:
         r, g, b = fr[..., 0], fr[..., 1], fr[..., 2]
         lum = 0.3 * r + 0.59 * g + 0.11 * b
         sat = np.clip((np.maximum(r, np.maximum(g, b)) - np.minimum(r, np.minimum(g, b))) * 3.0, 0, 1)
+        if red_keep:   # SPRITE_MODE：暗红按色相比例保色（暗红内领/红穗/血），不被冷灰去饱和吃掉
+            ratio = (r - np.maximum(g, b)) / (r + 1e-3)
+            rk = np.clip((ratio - 0.38) / 0.24, 0, 1) * np.clip((r - 0.03) / 0.06, 0, 1)
+            sat = np.maximum(sat, rk * red_keep)
         mono = np.stack([lum * 0.96, lum * 0.99, lum * 1.05], -1)
         fr = mono * (1 - sat[..., None]) + fr * sat[..., None]
     if bloom_amt > 0: fr = bloom(fr, 0.72, bloom_amt, 26)

@@ -43,6 +43,9 @@ JOBS = {
  'S044/thumb': "Close-up of the sheathed dao at his left hip: his left hand grips the black scabbard just below the guard and his thumb pushes the round sword guard forward, "
                "revealing a thin sliver of bright steel between the guard and the scabbard mouth. Black cord-wrapped hilt, red tassel hanging from the scabbard, "
                "a bit of black robe and leather sash. The hand and guard are in the center of the frame. " + HAND,
+ 'S044/thumb2': "Close-up, side view of the sheathed dao worn horizontally at his left hip. His left hand wraps around the top of the black scabbard and his left THUMB presses "
+                "flat against the back of the round metal sword guard, pushing it forward so a thin sliver of bright polished steel shows between the guard and the scabbard mouth. "
+                "The thumb is clearly visible on the guard. Black cord-wrapped hilt to the left, red tassel hanging, a bit of black robe and leather sash. Hand and guard in the center. " + HAND,
  'S045/windup': "Wide shot, full body, three-quarter view, he coils his body for a spinning slash: torso twisted away, knees bent low, the dao drawn back horizontally behind him "
                 "at waist height, eyes looking over his shoulder. Dynamic action pose. " + FULL,
  'S045/spin': "Wide shot, full body, he is in the middle of a fast spinning slash, body turned with his back partly to the camera, right arm extended and the dao swung horizontally "

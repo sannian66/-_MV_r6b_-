@@ -1274,6 +1274,14 @@ class S048(Shot):
 SHOTS = [S027, S028, S029, S030, S031, S032, S033, S034, S035, S036, S037, S038, S039, S040, S041, S042,
          S043Sprite if SPRITE_MODE else S043, S044, S045,
          S046, S047, S048]
+# SPRITE_MODE=1：副歌一全部人物镜头换成生图精灵（units/chorus1_sprites.py；2026-11-09 05:25 用户确认）。
+# SPRITE_SHOTS 可限定镜号（逗号分隔），默认全部；S031 远景一粒黑点保留代码 rig。
+if SPRITE_MODE:
+    import chorus1_sprites as _CS
+    _SPR = _CS.install(globals())
+    _only = os.environ.get('SPRITE_SHOTS')
+    _only = set(_only.split(',')) if _only else None
+    SHOTS = [(_SPR[S.__name__] if S.__name__ in _SPR and (_only is None or S.__name__ in _only) else S) for S in SHOTS]
 
 # ---------------- v2 剪辑表：切点 = 卡点（鼓/字头）最近帧再提前 1 帧，单位：帧（30fps）
 #  S027 58.50 | S028「血」59.35 | S029 drop 重音镲 60.05 | S030 底鼓 60.97 | S031 军鼓 62.34 | S032 小节头 63.72 | S033 小节头 65.54
@@ -1569,7 +1577,7 @@ class Chorus1:
         if os.environ.get('C1_LYR', '3') == '3':
             fr = self.lyr.draw(fr, t)                       # 统一字幕层（屏幕层，不随镜头）
         ca = max(ca, int(round(4 * min(1.0, st['punch']))))
-        return finish(fr, t, ca=ca, vig=0.42), 0
+        return finish(fr, t, ca=ca, vig=0.42, red_keep=1.0 if SPRITE_MODE else 0.0), 0
 
 
 X = Chorus1
