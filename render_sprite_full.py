@@ -68,22 +68,35 @@ def shot_times():
     return sorted(out, key=lambda x: x[1])
 
 
-def contact(outp, only=None):
+def tiles(only):
+    """把指定镜头各渲一帧存 /tmp/ctiles/<镜号>.png（每组一个进程，避免场景缓存累积撑爆内存）。"""
+    from PIL import Image
+    os.makedirs('/tmp/ctiles', exist_ok=True)
+    items = [x for x in shot_times() if x[0] in only]
+    for sid, t in items:
+        cache = {}
+        Image.fromarray(frame(int(round(t * FPS)), cache)).resize((480, 270), Image.LANCZOS).save(f'/tmp/ctiles/{sid}.png')
+        print(sid, round(t, 2), flush=True)
+
+
+def contact(outp, only=None, group=10):
     from PIL import Image, ImageDraw, ImageFont
     items = shot_times()
     if only: items = [x for x in items if x[0] in only]
+    ids = [s for s, _ in items]
+    for i in range(0, len(ids), group):          # 分组子进程渲染
+        todo = [s for s in ids[i:i + group] if not os.path.exists(f'/tmp/ctiles/{s}.png')]
+        if todo: subprocess.run([sys.executable, __file__, 'tiles', ','.join(todo)], check=False)
     cols = 6; tw, th = 480, 270
     rows = (len(items) + cols - 1) // cols
     sheet = Image.new('RGB', (cols * tw, rows * (th + 28)), (12, 12, 12))
     d = ImageDraw.Draw(sheet)
     fnt = ImageFont.truetype(ROOT + '/fonts/NotoSerifSC-Bold.otf', 20)
-    cache = {}
     for k, (sid, t) in enumerate(items):
-        im = Image.fromarray(frame(int(round(t * FPS)), cache)).resize((tw, th), Image.LANCZOS)
         x, y = (k % cols) * tw, (k // cols) * (th + 28)
-        sheet.paste(im, (x, y))
+        p = f'/tmp/ctiles/{sid}.png'
+        if os.path.exists(p): sheet.paste(Image.open(p), (x, y))
         d.text((x + 6, y + th + 2), f'{sid}  {t:.2f}s', fill=(240, 220, 120), font=fnt)
-        print(sid, round(t, 2), flush=True)
     sheet.save(outp, quality=88)
     print(outp)
 
@@ -94,4 +107,5 @@ if __name__ == '__main__':
     elif c == 'frame':
         from PIL import Image
         Image.fromarray(frame(int(round(float(sys.argv[2]) * FPS)), {})).save(sys.argv[3])
+    elif c == 'tiles': tiles(sys.argv[2].split(','))
     elif c == 'contact': contact(sys.argv[2], sys.argv[3].split(',') if len(sys.argv) > 3 else None)
