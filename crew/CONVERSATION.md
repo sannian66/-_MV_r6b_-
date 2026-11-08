@@ -420,3 +420,7 @@ github也同步吧 这些资产
 [file: 男主徒弟_杨不丢.webp]
 [file: 女主_殷若.webp]
 [file: 最终boss_太上皇.webp]
+
+### Hark · 2026-11-08T19:47:28Z
+
+9 张角色资产已经同步到 GitHub 的 assets/characters。现在用鬼屠的设定图生成 4 张 4K 定妆特写：回头、握刀手、拇指推刀、刀上的眼睛，一共约 12 积分。

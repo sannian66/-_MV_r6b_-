@@ -89,7 +89,10 @@ def download(urls, out_dir, stem):
     for i, u in enumerate(urls):
         ext = os.path.splitext(u.split('?')[0])[1] or '.png'
         p = os.path.join(out_dir, '%s_%d%s' % (stem, i, ext))
-        urllib.request.urlretrieve(u, p); paths.append(p)
+        import subprocess
+        for _ in range(5):  # CDN 偶发 SSL EOF / 502，curl 重试
+            if subprocess.run(['curl', '-sSf', '--retry', '3', '-o', p, u]).returncode == 0: break
+        paths.append(p)
     return paths
 
 
