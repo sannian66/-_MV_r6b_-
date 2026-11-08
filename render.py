@@ -30,6 +30,7 @@ CREDITS = [  # (start, end, role, names) — times land on bar downbeats (~129 B
 ]
 TITLE_HIT = 7.85          # title slam
 MUSIC_CREDIT = (9.68, 11.40, '音乐', '西几王')
+POST_CREDIT = (11.52, 13.25, '后期总监', '沉溺')   # 2026-11-09 用户补充
 TITLE_SHEEN = 11.52
 TITLE_OUT = 13.35
 INTRO_END = 15.21
@@ -143,6 +144,7 @@ class Intro:
         for (a, b, role, names) in CREDITS:
             fr = credit_block(fr, t, a, b, role, names)
         fr = credit_block(fr, t, *MUSIC_CREDIT, pos=(0.30, 0.78)) if t >= MUSIC_CREDIT[0] else fr
+        fr = credit_block(fr, t, *POST_CREDIT, pos=(0.30, 0.78)) if t >= POST_CREDIT[0] else fr
         # title
         if t >= TITLE_HIT - 0.12:
             fr = self.title(fr, t, dt, hit)

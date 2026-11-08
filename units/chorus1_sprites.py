@@ -126,7 +126,7 @@ def install(G):
             elif t < self.T_HIT:                                          # 腾空（升到高点）
                 k = clamp01((t - self.T_LEAP) / (self.T_HIT - self.T_LEAP))
                 fr = speed_lines(fr, t, 352, 0.6, 0.35)
-                fr, _ = put(fr, self.leap, t, 760, (860 + 80 * k, 930 - 160 * eout(k)), rim=rim, grade=gr, mblur=(24, -16), shade=None)
+                fr, _ = put(fr, self.leap, t, 600, (860 + 80 * k, 960 - 110 * eout(k)), rim=rim, grade=gr, mblur=(24, -16), shade=None)
             else:                                                         # 斜劈落地（慢放随势）
                 a = t - self.T_HIT
                 k = eout(clamp01(a / 0.12), 2)

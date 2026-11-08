@@ -642,7 +642,7 @@ class Edict:
         return fr, (4 if k < 0.4 else 1)
 
 class Outro:
-    ROLES = [('出品人', '西几王传媒'), ('编剧 / 导演', '苏打'), ('美术设计', 'Cait'), ('AI画师', '沉溺　雪晴　索恩'), ('音乐', '西几王')]
+    ROLES = [('出品人', '西几王传媒'), ('编剧 / 导演', '苏打'), ('美术设计', 'Cait'), ('AI画师', '沉溺　雪晴　索恩'), ('后期总监', '沉溺'), ('音乐', '西几王')]
     def __init__(self, peak): self.peak = peak
     def frame(self, t, dt, P, s0, s1):
         fr, ca = self.peak.frame(t, dt, {'dawn': 1.0}, s0, s1)
@@ -657,7 +657,7 @@ class Outro:
         b = ease((t - 229.4) / 1.0) * (1 - ease((t - 238.0) / 1.2))
         if b > 0:
             for j, (role, name) in enumerate(self.ROLES):
-                y = 0.27 + j * 0.115
+                y = 0.25 + j * 0.105
                 rgb, al = text_layer(role, F_SERIF, 30, [b] * len(role), spacing=0.3, pos=(0.58, y), color=(0.82, 0.79, 0.74), scale_in=0, blur_in=3)
                 fr = comp_text(fr, rgb, al, shadow=0.6)
                 rgb, al = text_layer(name, F_BRUSH, 58, [b] * len(name), spacing=0.08, pos=(0.76, y), scale_in=0, blur_in=4)

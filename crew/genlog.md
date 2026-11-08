@@ -87,3 +87,21 @@
 | 11-08 21:44 | S079 | RH_image2 | 4K 16:9 | 0 | 816c9d12-820a-4c35-a65d-c8cffd22c7a0 | 采用 | assets/gen/S079/leap_slash_up_raw.png | leap_slash_up try1 采用 |
 | 11-08 21:44 | S082 | RH_image2 | 4K 16:9 | 0 | b7d59ec0-ae6d-49e7-a612-13bce4976447 | 采用 | assets/gen/S082/walk_front_raw.png | walk_front try1 采用 |
 | 11-08 21:44 | S083 | RH_image2 | 4K 16:9 | 0 | e754c2b2-6ea5-410c-8712-e4cd96b97c2d | 采用 | assets/gen/S083/sash_raw.png | sash try1 采用 |
+| 11-08 21:45 | S084 | RH_image2 | 4K 16:9 | 3 | 0f188728-384a-4787-84a6-ffbdb165989a | completed | rest_cands/S084/knock_back_try1_0.png | knock_back try1：Staggering backward, one foot sliding, arm raised  |
+| 11-08 21:45 | S087 | RH_image2 | 4K 16:9 | 3 | 67b90a44-4edb-425d-a5c8-247fd4707436 | completed | rest_cands/S087/brace_overhead_try1_0.png | brace_overhead try1：Holding the dao horizontally above his head with b |
+| 11-08 21:45 | S090 | RH_image2 | 4K 16:9 | 3 | 361f0415-4402-49e7-a03a-cff76affd89d | completed | rest_cands/S090/wind_up_try1_0.png | wind_up try1：Drawing the sword back behind his body for a big s |
+| 11-08 21:45 | S112 | RH_image2 | 4K 16:9 | 3 | fbfa31d6-bf32-431f-b46b-14e2847bc229 | completed | rest_cands/S112/sword_sky_try1_0.png | sword_sky try1：Standing tall raising the dao straight up to the s |
+| 11-08 21:45 | S120 | RH_image2 | 4K 16:9 | 3 | fa7d026e-523d-4350-ab6d-f448b1f0adf8 | completed | rest_cands/S120/plant_try1_0.png | plant try1：Driving the dao point-down into the ground with bo |
+| 11-08 21:45 | S121 | RH_image2 | 4K 16:9 | 3 | 784dc4c1-cc94-4929-9ba0-f7acbd4b7ecb | completed | rest_cands/S121/wind_sash_try1_0.png | wind_sash try1：Three-quarter back view, ponytail and red sash whi |
+| 11-08 21:46 | S084 | RH_image2 | 4K 16:9 | 0 | 0f188728-384a-4787-84a6-ffbdb165989a | 采用 | assets/gen/S084/knock_back_raw.png | knock_back try1 采用 |
+| 11-08 21:46 | S087 | RH_image2 | 4K 16:9 | 0 | 67b90a44-4edb-425d-a5c8-247fd4707436 | 采用 | assets/gen/S087/brace_overhead_raw.png | brace_overhead try1 采用 |
+| 11-08 21:46 | S090 | RH_image2 | 4K 16:9 | 0 | 361f0415-4402-49e7-a03a-cff76affd89d | 采用 | assets/gen/S090/wind_up_raw.png | wind_up try1 采用 |
+| 11-08 21:46 | S112 | RH_image2 | 4K 16:9 | 0 | fbfa31d6-bf32-431f-b46b-14e2847bc229 | 采用 | assets/gen/S112/sword_sky_raw.png | sword_sky try1 采用 |
+| 11-08 21:46 | S120 | RH_image2 | 4K 16:9 | 0 | fa7d026e-523d-4350-ab6d-f448b1f0adf8 | 采用 | assets/gen/S120/plant_raw.png | plant try1 采用 |
+| 11-08 21:46 | S121 | RH_image2 | 4K 16:9 | 0 | 784dc4c1-cc94-4929-9ba0-f7acbd4b7ecb | 采用 | assets/gen/S121/wind_sash_raw.png | wind_sash try1 采用 |
+| 11-08 21:47 | S123 | RH_image2 | 4K 16:9 | 3 | da4487e9-bdf8-4ce2-881d-306f4ba89072 | completed | rest_cands/S123/front_try1_0.png | front try1：Facing camera straight on, calm, steady gaze, swor |
+| 11-08 21:47 | S125 | RH_image2 | 4K 16:9 | 3 | 624158e3-b1e3-4613-8bd3-5f820f9eb88d | completed | rest_cands/S125/stare_try1_0.png | stare try1：Head turned to look directly into camera, piercing |
+| 11-08 21:47 | S128 | RH_image2 | 4K 16:9 | 3 | fe1bcd6e-b166-4496-af99-0f560d291c38 | completed | rest_cands/S128/blade_level_try1_0.png | blade_level try1：Holding the dao horizontally in front of his chest |
+| 11-08 21:47 | S132 | RH_image2 | 4K 16:9 | 3 | ce11d6e9-bdf5-4eaf-821d-8487a558d9e2 | completed | rest_cands/S132/back_walk_try1_0.png | back_walk try1：Seen from behind walking away, sword sheathed at h |
+| 11-08 21:47 | S135 | RH_image2 | 4K 16:9 | 3 | 7395222f-90b7-4ce8-ae61-d6c065cff3a6 | completed | rest_cands/S135/sheath_hand_try1_0.png | sheath_hand try1：Close-up of his hand sliding the dao back into the |
+| 11-08 21:47 | S050 | RH_image2 | 4K 16:9 | 3 | aa247105-b294-4bfd-91f6-77b9f28b670e | completed | rest_cands/S050/scepter_try1_0.png | scepter try1：Standing in three-quarter view holding a tall dark |
