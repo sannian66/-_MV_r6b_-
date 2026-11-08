@@ -1,0 +1,79 @@
+<html><head><style>
+@font-face{font-family:SR;src:url(../fonts/NotoSerifSC.ttf)}
+@font-face{font-family:MS;src:url(../fonts/MaShanZheng-Regular.ttf)}
+body{margin:0;background:#000}</style></head><body><canvas id=c width=1920 height=1080></canvas>
+<script src="common.js"></script><script>
+const W=1920,H=1080,cv=document.getElementById('c'),ctx=cv.getContext('2d');let body;
+(async()=>{body=await loadImg('../assets/guitu_body.png');await document.fonts.load('900 200px SR');await document.fonts.load('100px MS');window.ready=true;})();
+function off(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function wallTex(w,h,seed){const c=off(w,h),g=c.getContext('2d'),R=mulberry(seed);
+ // base iron
+ const im=g.createImageData(w,h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const n=fbm(x/160,y/160,5),s=fbm(x/12,y/40,2);const v=24+n*40+s*10;const i=(y*w+x)*4;im.data[i]=v*.82;im.data[i+1]=v*.95;im.data[i+2]=v*1.08;im.data[i+3]=255;}
+ g.putImageData(im,0,0);
+ // plates + rivets
+ for(let py=0;py<h;py+=180)for(let px=0;px<w;px+=300){g.strokeStyle='rgba(0,0,0,.7)';g.lineWidth=5;g.strokeRect(px+3,py+3,294,174);g.strokeStyle='rgba(160,180,190,.18)';g.lineWidth=2;g.strokeRect(px+7,py+7,286,166);
+  for(const [rx,ry] of [[18,18],[282,18],[18,162],[282,162]]){g.fillStyle='rgba(0,0,0,.6)';g.beginPath();g.arc(px+rx+2,py+ry+2,7,0,7);g.fill();g.fillStyle='rgba(150,165,175,.5)';g.beginPath();g.arc(px+rx,py+ry,6,0,7);g.fill();}}
+ // engraved law text columns
+ const words='律令刑罚罪规正邪生死善恶天命权柄大局牺牲'.split('');g.font='900 52px SR';g.textBaseline='top';
+ for(let py=0;py<h;py+=180)for(let px=0;px<w;px+=300){for(let k=0;k<6;k++){const ch=words[(R()*words.length)|0];const x=px+40+k*40,y=py+40+ (k%2)*50;
+  g.fillStyle='rgba(0,0,0,.65)';g.fillText(ch,x+2,y+2);g.fillStyle='rgba(180,195,205,.16)';g.fillText(ch,x-1,y-1);g.fillStyle='rgba(12,14,17,.9)';g.fillText(ch,x,y);}}
+ // rust streaks
+ for(let k=0;k<120;k++){const x=R()*w,y=R()*h,L=60+R()*300;const gr=g.createLinearGradient(x,y,x,y+L);gr.addColorStop(0,'rgba(90,40,25,.25)');gr.addColorStop(1,'rgba(90,40,25,0)');g.fillStyle=gr;g.fillRect(x,y,2+R()*6,L);}
+ return c;}
+let tex=null;
+// perspective projection of a wall half: draw vertical strips
+function drawHalf(src,sx0,sx1,quad){ // quad: x at left/right, top/bottom y at each side
+ const N=240;for(let i=0;i<N;i++){const u0=i/N,u1=(i+1)/N;
+  // perspective-correct u
+  const z0=quad.zl+(quad.zr-quad.zl)*u0,z1=quad.zl+(quad.zr-quad.zl)*u1;
+  const su0=(u0/z0)/((1-u0)/quad.zl+u0/quad.zr)*(1/quad.zl)*quad.zl, su1=(u1/z1)/((1-u1)/quad.zl+u1/quad.zr)*(1/quad.zl)*quad.zl;
+  const x0=quad.xl+(quad.xr-quad.xl)*u0,x1=quad.xl+(quad.xr-quad.xl)*u1;
+  const t0=quad.tl+(quad.tr-quad.tl)*u0,b0=quad.bl+(quad.br-quad.bl)*u0;
+  const tsx=sx0+(sx1-sx0)*su0,tsw=(sx1-sx0)*(su1-su0);
+  ctx.drawImage(src,tsx,0,Math.max(1,tsw),src.height,x0,t0,x1-x0+1,b0-t0);
+  // depth shading
+  const sh=quad.shade(u0);ctx.fillStyle=`rgba(4,6,9,${sh})`;ctx.fillRect(x0,t0,x1-x0+1,b0-t0);}}
+window.draw=function(t){
+ if(!tex)tex=wallTex(2400,1440,11);
+ const R=mulberry(5);
+ ctx.fillStyle='#07090c';ctx.fillRect(0,0,W,H);
+ // light behind crack
+ const cx=1000,gap=300;
+ const lg=ctx.createRadialGradient(cx,560,0,cx,560,700);lg.addColorStop(0,'rgba(255,220,200,1)');lg.addColorStop(.08,'rgba(255,90,60,.95)');lg.addColorStop(.35,'rgba(194,26,26,.45)');lg.addColorStop(1,'rgba(194,26,26,0)');ctx.fillStyle=lg;ctx.fillRect(0,0,W,H);
+ // left wall half: big near-camera edge at left
+ drawHalf(tex,0,1200,{xl:-120,xr:cx-gap/2,tl:-260,bl:H+300,tr:150,br:960,zl:1,zr:2.1,shade:u=>.55-.45*u});
+ drawHalf(tex,1200,2400,{xl:cx+gap/2,xr:W+80,tl:170,bl:940,tr:-180,br:H+240,zl:2.3,zr:1,shade:u=>.15+.5*u});
+ // red rim on crack edges (jagged)
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ for(const side of [-1,1]){ctx.beginPath();let y=140;ctx.moveTo(cx+side*gap/2,y);while(y<960){y+=18+R()*24;ctx.lineTo(cx+side*(gap/2+(R()-.5)*16),y);}
+  ctx.strokeStyle='rgba(255,120,80,.9)';ctx.lineWidth=3;ctx.stroke();ctx.filter='blur(10px)';ctx.strokeStyle='rgba(220,40,30,.7)';ctx.lineWidth=18;ctx.stroke();ctx.filter='none';}
+ ctx.restore();
+ // engraved huge lyric on left wall (perspective-ish skew)
+ ctx.save();ctx.translate(120,140);ctx.transform(1,.13,0,1,0,0);ctx.font='900 190px SR';ctx.textBaseline='top';
+ const L=['铁','壁','铜','墙'];L.forEach((ch,k)=>{const x=(k%2)*230,y=Math.floor(k/2)*230;
+  ctx.fillStyle='rgba(214,220,224,.28)';ctx.fillText(ch,x+3,y+4);ctx.fillStyle='rgba(0,0,0,.9)';ctx.fillText(ch,x-3,y-4);ctx.fillStyle='#0c0f12';ctx.fillText(ch,x,y);
+  // red light catching inner edge
+  });
+ ctx.restore();
+ // character silhouette in the crack, backlit
+ const bh=980,bw=body.width*bh/body.height,bx=cx-bw/2+10,by=110;
+ const bc=off(bw,bh),b=bc.getContext('2d');b.drawImage(body,0,0,bw,bh);
+ b.globalCompositeOperation='source-atop';const sg=b.createLinearGradient(0,0,bw,0);sg.addColorStop(0,'rgba(5,6,8,.9)');sg.addColorStop(.5,'rgba(5,6,8,.55)');sg.addColorStop(1,'rgba(5,6,8,.9)');b.fillStyle=sg;b.fillRect(0,0,bw,bh);
+ // rim
+ ctx.save();ctx.filter='blur(6px)';ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.9;
+ const rc=off(bw,bh),r=rc.getContext('2d');r.drawImage(body,0,0,bw,bh);r.globalCompositeOperation='source-in';r.fillStyle='#ff6a4a';r.fillRect(0,0,bw,bh);
+ ctx.drawImage(rc,bx-4,by-3);ctx.drawImage(rc,bx+4,by-3);ctx.restore();
+ ctx.drawImage(bc,bx,by);
+ // floor reflection / wet ground
+ const fg=ctx.createLinearGradient(0,880,0,H);fg.addColorStop(0,'rgba(7,9,12,0)');fg.addColorStop(.4,'rgba(40,10,10,.55)');fg.addColorStop(1,'rgba(7,9,12,.95)');ctx.fillStyle=fg;ctx.fillRect(0,880,W,H-880);
+ ctx.save();ctx.globalAlpha=.18;ctx.translate(0,2*1070);ctx.scale(1,-1);ctx.filter='blur(4px)';ctx.drawImage(bc,bx,by);ctx.restore();
+ // rain foreground streaks
+ ctx.save();ctx.globalCompositeOperation='lighter';for(let k=0;k<900;k++){const x=R()*W,y=R()*H,L=20+R()*70,near=R();
+  ctx.strokeStyle=`rgba(${180+near*60|0},${195+near*40|0},${210},${.05+near*.22})`;ctx.lineWidth=.6+near*1.6;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-L*.18,y+L);ctx.stroke();}ctx.restore();
+ // sparks from crack
+ ctx.save();ctx.globalCompositeOperation='lighter';for(let k=0;k<260;k++){const y=150+R()*800,side=R()<.5?-1:1,len=R()*R()*260;const x=cx+side*(gap/2+len);ctx.fillStyle=`rgba(255,${130+R()*90|0},70,${R()*.8})`;ctx.fillRect(x,y+len*.3,1+R()*2.5,1+R()*2.5);}ctx.restore();
+ // small vertical credit-style line in safe area
+ ctx.fillStyle='rgba(214,220,224,.7)';ctx.font='300 28px SR';ctx.letterSpacing='18px';ctx.fillText('若规则是铁壁铜墙',1350,1010);
+ bloom(ctx,W,H,160,.9,12);vignette(ctx,W,H,.7);grain(ctx,W,H,16,9);
+};
+</script></body></html>
