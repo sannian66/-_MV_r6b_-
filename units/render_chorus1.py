@@ -102,8 +102,9 @@ def mux(name='sample_chorus1_v2'):
     subprocess.check_call(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', lst,
                            '-ss', f'{T0:.3f}', '-t', f'{T1 - T0:.3f}', '-i', ROOT + '/song.mp3',
                            '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest',
-                           '-movflags', '+faststart', OUT + '/sample_chorus1.mp4'])
-    print('done', OUT + '/sample_chorus1.mp4')
+                           '-movflags', '+faststart', f'/tmp/{name}.mp4'])     # faststart 在 juicefs 上写尾会 I/O error：先写 /tmp
+    import shutil; shutil.copy(f'/tmp/{name}.mp4', OUT + f'/{name}.mp4')
+    print('done', OUT + f'/{name}.mp4')
 
 
 def cut_frames():
