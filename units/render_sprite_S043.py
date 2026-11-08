@@ -21,7 +21,7 @@ assert type(S).__qualname__ == 'S043Sprite'
 def frame(t):
     fr, ca = S.render(t)
     u = (t - WIN[0]) / (WIN[1] - WIN[0])
-    tc = S.t0 + 0.12 + u * (S.t1 - S.t0 - 0.14)          # 避开切点冲击帧
+    tc = S.t0 + 0.12 + u * (S.t1 - S.t0 - 0.26)          # 避开首尾切点冲击/甩镜帧
     shut = 0.5 * (S.t1 - S.t0) / (WIN[1] - WIN[0])       # 镜头被拉长 → 快门按比例缩短，运动模糊与原节奏一致
     fr, st = c.cam.apply(np.clip(fr, 0, 4).astype(np.float32), tc, shutter=shut)
     fr = c.fg.draw(fr, t, st, 'ember', 0.4)

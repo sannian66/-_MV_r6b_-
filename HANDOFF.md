@@ -164,3 +164,11 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 对比：`python lib/rig_test/v4_cmp.py [front|profile|turn3q|calm|wind|c1|all]` → `lib/rig_test/v4_cmp_*.jpg`；速度 `lib/rig_test/v4_speed.json`。`ONLY=v4` 只渲新版到 /tmp 快速迭代。注意 units/typo 硬编码 `/workspace/work/mv`，沙箱需 `ln -s <repo> /workspace/work/mv`。
 - 速度（单帧，2 核沙箱，同时有 autosync 干扰）：特写 v3 0.93–1.18s → v4 1.04–1.27s；全身 v3 0.31s → v4 0.31–0.42s。`rig.HAIR_DETAIL`（默认 1.0，可 0.5/0.3）只降细丝数：CU 1.25→1.07s，全身基本不变——瓶颈是 `_comp2` 全画布合成（距离场/模糊），不是发丝。要进一步提速需给 `_comp2` 做降采样明暗，未做。
 - 仍待改：脸轮廓仍偏几何（凸包）、肤色整体偏灰；侧脸后脑发盖有硬边暗块；正面马尾/乱发在头两侧仍有大弧；全身尺度马尾丝很细读作一束；特写超 1.0s/帧。
+
+## 15. 人物精灵试点 S043（生图 + 抠图 → 代码管线，2026-11-09 05:15– CST）
+- 用户提议：代码人物太丑（见 v4 对比）→ 试「生图 + 抠图」，场景/字幕/卡点/运镜/粒子仍代码。**仅试点，开关控制；默认（SPRITE_MODE=0）全片仍是纯代码人物，第 0 节规则未改，等用户看试点后定。**
+- 生图：1 张 RH_image2 4K 16:9（3 积分，task 050acd06…，记录 crew/genlog.md），参考图 = 男主_鬼屠.webp，纯中性灰背景、后方冷月轮廓光。原图 `assets/gen/hero/S043_raw.png`。
+- 抠图：`tools/cutout.py`（rembg isnet-general-use 粗蒙版 → 蒙版外拟合二次曲面背景板 → 边缘带内按背景色差做差值抠像 → 前景反混合去灰边 → alpha 收缩 + 0.6px 羽化）→ `assets/gen/hero/S043_cut.png`（2560 宽 RGBA）。绿幕可加 `--green`（色键 + despill）。
+- 合成：`units/sprite.py` SpriteLayer（发区/轮廓距离权重的分区网格风吹 remap、呼吸 0.5%、去饱和压暗偏冷 + gamma、屏幕空间主光衰减、按法线·光向的冷色 rim、背景光包裹、甩入方向模糊）。`units/chorus1.py` 新增 `S043Sprite`（`SPRITE_MODE=1` 时替换 S043；背后月光晕 + 远雾远雨（慢推）+ 人物（快推 = 视差）+ 眼中星芒 + 近景火星/雨丝；剪辑/运镜/FG/曝光/字幕表沿用 S043 键）。`SPRITE_EXT=t0,t1` 可把镜头拉长单独试渲。
+- 产出：`out/pilot/S043_sprite.mp4`（`units/render_sprite_S043.py video …`，82.06–85.56 共 3.5s 拉长版 + 原曲音频，相机按比例映射 vcam3 的 S043 运动、快门同比缩短）；对比 `lib/rig_test/sprite_vs_v4_S043.jpg`（`lib/rig_test/sprite_vs_v4.py 82.70`，正常剪辑时间线同一帧）。
+- 局限：一张静帧做不出真正的转头（现用 0.26s 甩入 + 模糊代替）；头顶马尾被生图裁掉；finish 的去饱和吃掉了暗红内领。
