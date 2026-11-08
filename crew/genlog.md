@@ -143,3 +143,12 @@
 | 11-08 22:07 | S037 | RH_image2 | 4K 16:9 | 3 | 7256241b-bbdb-4935-ae53-c61fd355e4fd | completed | rest_cands/S037/stand_try1_0.png | stand try1：Seen directly from behind (back view), standing st |
 | 11-08 22:08 | S062 | RH_image2 | 4K 16:9 | 3 | ea2fc1ea-46f4-435a-8dda-17066de8cdd6 | completed | rest_cands/S062/puppeteer_try1_0.png | puppeteer try1：ONLY his right hand and the edge of his wide sleev |
 | 11-08 22:08 | S120 | RH_image2 | 4K 16:9 | 3 | dbe6ed15-38e8-46b7-8c6c-e9f8fe38143a | completed | rest_cands/S120/plant_try1_0.png | plant try1：He has driven the dao point-down DEEP into the gro |
+| 11-08 22:08 | S037 | RH_image2 | 4K 16:9 | 0 | 7256241b-bbdb-4935-ae53-c61fd355e4fd | 采用 | assets/gen/S037/stand_raw.png | stand try1 采用 |
+| 11-08 22:08 | S062 | RH_image2 | 4K 16:9 | 0 | ea2fc1ea-46f4-435a-8dda-17066de8cdd6 | 采用 | assets/gen/S062/puppeteer_raw.png | puppeteer try1 采用 |
+| 11-08 22:08 | S120 | RH_image2 | 4K 16:9 | 0 | dbe6ed15-38e8-46b7-8c6c-e9f8fe38143a | 采用 | assets/gen/S120/plant_raw.png | plant try1 采用 |
+| 11-08 22:09 | S084 | RH_image2 | 4K 16:9 | 3 | fb84e5a2-d843-490c-beb4-dff31dd73960 | completed | rest_cands/S084/knock_back_try1_0.png | knock_back try1：Thrown backward by a powerful impact: upper body b |
+| 11-08 22:09 | S073 | RH_image2 | 4K 16:9 | 3 | 109e32d9-b371-476b-8fa1-61a3f78dc96b | completed | rest_cands/S073/spin1_try1_0.png | spin1 try1：Seen FROM BEHIND with his back to the camera, mid- |
+| 11-08 22:09 | S018 | RH_image2 | 4K 16:9 | 3 | 05c8e7eb-62ae-4a4b-8985-9cb35b03e01c | completed | rest_cands/S018/turn_try1_0.png | turn try1：His body and shoulders face AWAY from the camera,  |
+| 11-08 22:09 | S084 | RH_image2 | 4K 16:9 | 0 | fb84e5a2-d843-490c-beb4-dff31dd73960 | 采用 | assets/gen/S084/knock_back_raw.png | knock_back try1 采用 |
+| 11-08 22:09 | S073 | RH_image2 | 4K 16:9 | 0 | 109e32d9-b371-476b-8fa1-61a3f78dc96b | 采用 | assets/gen/S073/spin1_raw.png | spin1 try1 采用 |
+| 11-08 22:09 | S018 | RH_image2 | 4K 16:9 | 0 | 05c8e7eb-62ae-4a4b-8985-9cb35b03e01c | 采用 | assets/gen/S018/turn_raw.png | turn try1 采用 |

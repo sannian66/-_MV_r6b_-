@@ -90,6 +90,7 @@ def zoom_img(img, z, cx=0.5, cy=0.5, dx=0.0, dy=0.0, rot=0.0):
     return cv2.warpAffine(img, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
 def put_hero(fr, Hm, rim=0.35, rimcol=(1, 1, 1), body=0.008, blade_glow=0.6):
+    if SPR is not None and SPR.hide_hero(_CUR[0], _CUR[1]): return fr   # SPRITE_MODE：代码人物让位给精灵
     Bh, Sh, Kh = Hm
     fr = fr * (1 - Bh[..., None]) + body * Bh[..., None]
     fr = fr * (1 - Sh[..., None]) + RED * 0.75 * Sh[..., None]
@@ -328,6 +329,7 @@ class Scroll:
         if pb > 0:
             m = self.blot * np.clip((pb * 1.5 - self.blotf) * 5, 0, 1) * (0.75 + 0.25 * self.blottex)
             fr = fr * (1 - m[..., None]) + RED * 0.95 * m[..., None]
+        fr = spr_hook(fr, t)          # SPRITE_MODE：精灵在竖排字之下
         cols = self.columns(P['lines'])
         nc = len(cols)
         step = 0.078
@@ -576,6 +578,7 @@ class Bridge:
         if fl > 0.2: fr += cv2.resize(self.bolt, (W, H))[..., None] * fl
         fr = put_hero(fr, self.hero, rim=0.3 + 1.0 * fl)
         fr = fr * 0.85 + 0.0
+        fr = spr_hook(fr, t)          # SPRITE_MODE：精灵在排比叠字之下
         ca = 2 if fl > 0.3 else 0
         if last is None:
             act = [li for li in P['stack'] if LINES[li]['d0'] <= t]
@@ -647,6 +650,7 @@ class Outro:
     def frame(self, t, dt, P, s0, s1):
         fr, ca = self.peak.frame(t, dt, {'dawn': 1.0}, s0, s1)
         fr = fr * (1 - 0.35 * ease((t - s0) / 2.0))
+        fr = spr_hook(fr, t)          # SPRITE_MODE：精灵在片名/署名之下
         a = ease((t - (s0 + 0.8)) / 1.0) * (1 - ease((t - 228.6) / 0.8))
         if a > 0:
             # 主标题「鬼屠 · 第三季」，副标题「主题曲《谁定正邪》」（与片头一致）
@@ -749,11 +753,26 @@ def run_scene(i, t, dt, cache):
     s0 = TIMELINE[i][0]; s1 = TIMELINE[i + 1][0] if i + 1 < len(TIMELINE) else SONG_END
     key, style, P = TIMELINE[i][1], TIMELINE[i][2], TIMELINE[i][3]
     sc = make_scene(key, cache)
+    _CUR[0], _CUR[1] = t, key; _HOOKED[0] = False
     if key == 'intro':
         fr, ca = sc.frame(t, dt)
     else:
         fr, ca = sc.frame(t, dt, P, s0, s1)
+    fr = spr_hook(fr, t)          # 没在场景内部挂过的，在场景帧之后、字幕之前合成精灵
     return fr, ca, style, P, s0
+
+# ---- SPRITE_MODE=1（2026-11-09 05:25 用户确认：人物 = 生图 + 抠图精灵）：副歌一以外的精灵镜头，见 units/rest_sprites.py
+SPRITE_MODE = os.environ.get('SPRITE_MODE', '0') == '1'
+SPR = None
+_CUR = [0.0, None]; _HOOKED = [False]
+def spr_hook(fr, t):
+    if SPR is None or _HOOKED[0]: return fr
+    _HOOKED[0] = True
+    return SPR.apply(fr, t, _CUR[1])
+if SPRITE_MODE:
+    import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/units')
+    import rest_sprites as SPR
+    R.SPR_HOOK = spr_hook
 
 _wipes = {}
 def frame_at(t, dt, cache):

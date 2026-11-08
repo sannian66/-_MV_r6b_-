@@ -31,6 +31,7 @@ CREDITS = [  # (start, end, role, names, pos) — times land on bar downbeats (~
     (4.21, 5.90, '音乐', '西几王', (0.30, 0.64)),
     (5.97, 7.75, 'AI画师', '沉溺　雪晴　索恩', (0.30, 0.46)),
 ]
+SPR_HOOK = None           # scenes.py 在 SPRITE_MODE=1 时挂上 rest_sprites 合成
 TITLE_HIT = 7.85          # title slam
 TITLE_SHEEN = 11.52
 TA_X, TDOT_X, TB_X = 0.255, 0.418, 0.61   # 主标题两段与间隔点的横向中心
@@ -142,6 +143,7 @@ class Intro:
             M = np.float32([[1, 0, random.uniform(-sh, sh)], [0, 1, random.uniform(-sh, sh)]])
             fr = cv2.warpAffine(fr, M, (W, H), borderMode=cv2.BORDER_REFLECT)
         fr = self.emb.draw(fr, t, dt, 0.55 + 0.4 * low, energy=low)
+        if SPR_HOOK: fr = SPR_HOOK(fr, t)   # SPRITE_MODE：人物精灵在署名/片名之下（units/rest_sprites.py）
         # credits
         for (a, b, role, names, pos) in CREDITS:
             fr = credit_block(fr, t, a, b, role, names, pos=pos)

@@ -68,7 +68,7 @@ class SpriteLayer:
 
     def draw(self, fr, t, anchor_src, anchor_dst, scale, rot=0.0, breathe=0.005, wind_amp=7.0,
              grade=dict(expo=0.66, sat=0.55, tint=(0.90, 0.96, 1.06), lift=0.0, gamma=1.25),
-             rim=dict(col=(0.62, 0.74, 1.0), amt=1.6, dir=(-0.8, -0.6)), wrap=0.35, mblur=(0.0, 0.0), extra_A=None, shade=(700, 1600, 0.30, 650, 0.45), keep_red=1.0, alpha=1.0, defocus=0.0, rotblur=0.0):
+             rim=dict(col=(0.62, 0.74, 1.0), amt=1.6, dir=(-0.8, -0.6)), wrap=0.35, mblur=(0.0, 0.0), extra_A=None, shade=(700, 1600, 0.30, 650, 0.45), keep_red=1.0, alpha=1.0, defocus=0.0, rotblur=0.0, look=None):
         """anchor_src：精灵内归一化锚点（如脸中心）；anchor_dst：画面像素位置；scale：精灵宽 → 画面像素 的倍率。"""
         F, A, R = self.wind(t, wind_amp)
         # 调色匹配：压暗、去饱和一部分、偏冷
@@ -83,6 +83,8 @@ class SpriteLayer:
         facing = np.clip(-(gx * rim['dir'][0] + gy * rim['dir'][1]) / n, 0, 1)
         rimm = (R * (0.25 + 0.75 * facing))[..., None] * A[..., None]
         F = F + rimm * np.array(rim['col'], np.float32) * rim['amt'] * 0.25
+        if look:                                                   # 2026-11-09 全片整合：复用镜头的变体（剪影/水墨/纸/负片/投影）
+            F, A = _look(F, A, rimm, rim, red, look)
         # 呼吸 + 2.5D 摆放（仿射：缩放/旋转/平移；源锚点 → 目标）
         s = scale * (1 + breathe * math.sin(2 * math.pi * t / 3.4))
         ax, ay = anchor_src[0] * self.w, anchor_src[1] * self.h
@@ -121,6 +123,25 @@ class SpriteLayer:
         Fw = Fw + bgb * wrap_m
         a3 = Aw[..., None]
         return fr * (1 - a3) + Fw * a3, Aw
+
+
+def _look(F, A, rimm, rim, red, look):
+    lum = (F * np.array([0.3, 0.59, 0.11], np.float32)).sum(-1, keepdims=True)
+    if look == 'sil':        # 背光剪影：几乎全黑 + 轮廓光
+        F = F * 0.10 + rimm * np.array(rim['col'], np.float32) * rim['amt'] * 0.45
+    elif look == 'ink':      # 宣纸水墨：灰阶墨色，暗红保留为朱色
+        ink = np.clip(0.06 + 0.75 * np.clip(lum * 1.6, 0, 1) ** 0.9, 0, 1) * np.array([1.0, 0.96, 0.88], np.float32)
+        F = ink * (1 - red) + red * np.array([0.62, 0.10, 0.07], np.float32)
+        A = A * 0.94
+    elif look == 'paper':    # 纸糊巨影：暖白半透，边缘透光
+        F = np.array([0.92, 0.84, 0.66], np.float32) * (0.45 + 0.6 * lum) + rimm * 1.2
+        A = A * 0.72
+    elif look == 'neg':      # 负片世界
+        F = np.clip(1.0 - F * 1.1, 0, 1)
+    elif look == 'shadow':   # 烛光投影：纯暗影
+        F = F * 0.0 + np.array([0.05, 0.03, 0.02], np.float32)
+        A = A * 0.7
+    return F, A
 
 
 def red_mask(F):

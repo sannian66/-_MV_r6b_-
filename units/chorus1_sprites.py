@@ -159,8 +159,8 @@ def install(G):
             super().__init__(); self.sp = L('S037/stand')
             self.sw.draw = self._draw
         def _draw(self, fr, x, y, sc, **kw):
-            return put(fr, self.sp, self._t, 230, (x, y + 10), rim=dict(col=tuple(float(v) for v in GOLD), amt=3.2, dir=(0, -1)),
-                       grade=dict(expo=0.45, sat=0.5, tint=(0.95, 0.95, 1.0), lift=0.0, gamma=1.3), wrap=0.6, shade=None, wind_amp=5)
+            return put(fr, self.sp, self._t, 340, (x, y + 14), rim=dict(col=tuple(float(v) for v in GOLD), amt=4.2, dir=(0, -1)),   # 11-09 重抽：亮背影 + 放大
+                       grade=dict(expo=0.68, sat=0.5, tint=(0.98, 0.96, 1.0), lift=0.015, gamma=1.15), wrap=0.8, shade=None, wind_amp=5)
         def render(self, t):
             self._t = t; return super().render(t)
 
@@ -272,7 +272,7 @@ def install(G):
                 fr, _ = put(fr, self.w1, t, 660, (cx - 20, fy), rim=rim, grade=gr, shade=None, rot=-2 * k)
             elif t < self.T_HIT:
                 k = clamp01((t - self.T_SPIN) / (self.T_HIT - self.T_SPIN))
-                fr, _ = put(fr, self.w2, t, 660, (cx, fy), rim=rim, grade=gr, shade=None, rotblur=-3, mblur=(-40, 0))
+                fr, _ = put(fr, self.w2, t, 660, (cx, fy), rim=dict(col=(0.8, 0.88, 1.0), amt=2.6, dir=(0.5, -0.8)), grade=gr, shade=None, mblur=(-10 * (1 - k), 0))   # 11-09 重抽：清楚的背身转体，不靠模糊
                 fr = arc_trail(fr, (cx, ring_y), 560, 130, 200, 200 + 300 * k, 1.0, 1.0, w=12)
             else:
                 a = t - self.T_HIT
