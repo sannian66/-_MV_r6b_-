@@ -107,3 +107,5 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 歌曲与歌词原文已入库：`audio/谁定正邪.mp3`、`audio/谁定正邪.txt`（渲染时复制为根目录 `song.mp3`）。
 - 自动同步：`./autosync.sh` 把所有改动（含半成品）提交推送，跳过 >50MB 文件；每 3 分钟跑一次。
 - 下一步：用户审副歌一样片 → 点头后各段摄制组并行铺开全片 → 剪辑质检 `crew/qa.md` → 渲染交付。
+- 02:02 副歌一样片完成：`out/sample_chorus1.mp4`（31s/22镜，CRF18，66.6MB 未入库）、网络版 `out/sample_chorus1_web.mp4`（CRF24，已入库）。代码 `units/chorus1.py`、`units/c1kit.py`、`units/render_chorus1.py`；角色库冻结在 `units/c1_rig_frozen.py`（`C1_RIG=live` 切回共享库）。frame() 已含调色/黑边，组装时不要再 finish。
+- 样片待改：6 镜砖墙同质、手部特写偏平、S043 回头发丝乱、S038 刀上眼睛示意化、S048 雨滴倒影小、85.9–86.5 近全黑、光环字小、整体偏暗；歌词/刀光/裂缝/光束换 Skia。等用户审片意见。
