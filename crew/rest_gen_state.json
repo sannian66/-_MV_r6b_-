@@ -1,5 +1,5 @@
 {
- "spent": 90,
+ "spent": 108,
  "jobs": {
   "S002:back_wind": {
    "tries": [
@@ -178,13 +178,13 @@
     {
      "n": 2,
      "task_id": "a8efaa9f-e64b-4525-816d-fea2b3b73145",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S018/look_up_try2_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 2
   },
   "S021:finger": {
    "tries": [
@@ -246,13 +246,13 @@
     {
      "n": 2,
      "task_id": "3d57f41c-11b0-4b6c-a978-886c86bb0174",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S024/pommel_thrust_try2_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 2
   },
   "S071:land_kneel": {
    "tries": [
@@ -324,32 +324,58 @@
     {
      "n": 1,
      "task_id": "f13672b0-b5d0-4f72-9671-8231c707e9cd",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S078/run_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S079:leap_slash_up": {
    "tries": [
     {
      "n": 1,
      "task_id": "816c9d12-820a-4c35-a65d-c8cffd22c7a0",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null,
-     "verdict": null
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S079/leap_slash_up_try1_0.png",
+     "verdict": "ok"
     }
    ],
-   "accepted": null
+   "accepted": 1
   },
   "S082:walk_front": {
    "tries": [
     {
      "n": 1,
      "task_id": "b7d59ec0-ae6d-49e7-a612-13bce4976447",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S082/walk_front_try1_0.png",
+     "verdict": "ok"
+    }
+   ],
+   "accepted": 1
+  },
+  "S083:sash": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "e754c2b2-6ea5-410c-8712-e4cd96b97c2d",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/056c9682-39b0-4dca-a3b4-ab19434e714b/work/rest_cands/S083/sash_try1_0.png",
+     "verdict": "ok"
+    }
+   ],
+   "accepted": 1
+  },
+  "S084:knock_back": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "0f188728-384a-4787-84a6-ffbdb165989a",
      "status": "running",
      "pts": 3,
      "file": null,
@@ -358,11 +384,63 @@
    ],
    "accepted": null
   },
-  "S083:sash": {
+  "S087:brace_overhead": {
    "tries": [
     {
      "n": 1,
-     "task_id": "e754c2b2-6ea5-410c-8712-e4cd96b97c2d",
+     "task_id": "67b90a44-4edb-425d-a5c8-247fd4707436",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S090:wind_up": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "361f0415-4402-49e7-a03a-cff76affd89d",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S112:sword_sky": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "fbfa31d6-bf32-431f-b46b-14e2847bc229",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S120:plant": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "fa7d026e-523d-4350-ab6d-f448b1f0adf8",
+     "status": "running",
+     "pts": 3,
+     "file": null,
+     "verdict": null
+    }
+   ],
+   "accepted": null
+  },
+  "S121:wind_sash": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "784dc4c1-cc94-4929-9ba0-f7acbd4b7ecb",
      "status": "running",
      "pts": 3,
      "file": null,

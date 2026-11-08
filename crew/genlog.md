@@ -75,3 +75,15 @@
 | 11-08 21:41 | S073 | RH_image2 | 4K 16:9 | 0 | b7ec0dd2-50c1-4e94-a504-c3dbd51ee25d | 采用 | assets/gen/S073/spin2_raw.png | spin2 try1 采用 |
 | 11-08 21:41 | S074 | RH_image2 | 4K 16:9 | 0 | f0b597db-dbde-4dc0-b1c4-cb9f73c87529 | 采用 | assets/gen/S074/head_turn_raw.png | head_turn try1 采用 |
 | 11-08 21:41 | S021 | - | - | 0 | - | 后处理 | assets/gen/S021/finger_raw.png | 生图多出一个全身太上皇，raw 下方 68.5% 用背景灰填掉，只留天降手指 |
+| 11-08 21:42 | S018 | RH_image2 | 4K 16:9 | 3 | a8efaa9f-e64b-4525-816d-fea2b3b73145 | completed | rest_cands/S018/look_up_try2_0.png | look_up try2：High ponytail clearly visible on top of the head,  |
+| 11-08 21:42 | S024 | RH_image2 | 4K 16:9 | 3 | 3d57f41c-11b0-4b6c-a978-886c86bb0174 | completed | rest_cands/S024/pommel_thrust_try2_0.png | pommel_thrust try2：Camera pulled back enough that the whole head and  |
+| 11-08 21:42 | S078 | RH_image2 | 4K 16:9 | 3 | f13672b0-b5d0-4f72-9671-8231c707e9cd | completed | rest_cands/S078/run_try1_0.png | run try1：Running fast to the left in side view, sword held  |
+| 11-08 21:43 | S079 | RH_image2 | 4K 16:9 | 3 | 816c9d12-820a-4c35-a65d-c8cffd22c7a0 | completed | rest_cands/S079/leap_slash_up_try1_0.png | leap_slash_up try1：Leaping in the air, sword sweeping upward from low |
+| 11-08 21:43 | S082 | RH_image2 | 4K 16:9 | 3 | b7d59ec0-ae6d-49e7-a612-13bce4976447 | completed | rest_cands/S082/walk_front_try1_0.png | walk_front try1：Walking straight toward camera, sword in right han |
+| 11-08 21:43 | S083 | RH_image2 | 4K 16:9 | 3 | e754c2b2-6ea5-410c-8712-e4cd96b97c2d | completed | rest_cands/S083/sash_try1_0.png | sash try1：Close-up of his waist: the long dark red sash whip |
+| 11-08 21:44 | S018 | RH_image2 | 4K 16:9 | 0 | a8efaa9f-e64b-4525-816d-fea2b3b73145 | 采用 | assets/gen/S018/look_up_raw.png | look_up try2 采用 |
+| 11-08 21:44 | S024 | RH_image2 | 4K 16:9 | 0 | 3d57f41c-11b0-4b6c-a978-886c86bb0174 | 采用 | assets/gen/S024/pommel_thrust_raw.png | pommel_thrust try2 采用 |
+| 11-08 21:44 | S078 | RH_image2 | 4K 16:9 | 0 | f13672b0-b5d0-4f72-9671-8231c707e9cd | 采用 | assets/gen/S078/run_raw.png | run try1 采用 |
+| 11-08 21:44 | S079 | RH_image2 | 4K 16:9 | 0 | 816c9d12-820a-4c35-a65d-c8cffd22c7a0 | 采用 | assets/gen/S079/leap_slash_up_raw.png | leap_slash_up try1 采用 |
+| 11-08 21:44 | S082 | RH_image2 | 4K 16:9 | 0 | b7d59ec0-ae6d-49e7-a612-13bce4976447 | 采用 | assets/gen/S082/walk_front_raw.png | walk_front try1 采用 |
+| 11-08 21:44 | S083 | RH_image2 | 4K 16:9 | 0 | e754c2b2-6ea5-410c-8712-e4cd96b97c2d | 采用 | assets/gen/S083/sash_raw.png | sash try1 采用 |
