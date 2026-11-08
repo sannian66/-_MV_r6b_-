@@ -135,7 +135,7 @@ def soldier_sprite(phase=0.0, arm=0.0, kneel=0.0, bow=0.0, weapon='spear', view=
         knee = (cx + sx * (7 + 2 * kneel), (25 + 6 * lift) * (1 - kL) + 5 * kL + (24 - 25) * (kneel if sx > 0 else 0))
         ank = (cx + sx * 7, 3 + 5 * lift * (1 - kneel))
         if sx > 0 and kneel > 0: knee = (cx + 10, 25 - 1 * kneel)
-        F.cap(hip, knee, 4.6, 0.06, r2=4.0); F.cap(knee, ank, 4.0, 0.05, r2=3.2)
+        F.cap(hip, knee, 5.6, 0.06, r2=4.8); F.cap(knee, ank, 4.8, 0.05, r2=3.8)
         F.poly([(ank[0] - 3.4 * 1, ank[1] + 1.5), (ank[0] + 3.6, ank[1] + 1.5), (ank[0] + 4.5 * sx * 0.3 + 4, ank[1] - 3.5),
                 (ank[0] - 4.2, ank[1] - 3.5)], 0.08)
         F.ell((knee[0], knee[1] + 1), (3.6, 3.0), tone=0.35)        # 护膝
@@ -463,11 +463,17 @@ class Army:
         f = cam.get('f', 1500); s = f / bd / k         # 像素/米
         x0, yb, yt = px[0] / k, py[0] / k, py[1] / k
         fd = 1 - math.exp(-bd / fog_dist)
-        pole = np.zeros_like(bufA)
-        cv2.line(pole, (int(x0 * 8), int(yb * 8)), (int(x0 * 8), int((yt - 0.3 * s) * 8)), 1.0, max(1, int(0.07 * s * 1.0) + 1), cv2.LINE_AA, 3)
-        cv2.circle(pole, (int(x0 * 8), int((yt - 0.3 * s) * 8)), int(max(1, 0.1 * s) * 8), 1.0, -1, cv2.LINE_AA, 3)
-        a = pole[..., None]
-        bufC[:] = bufC * (1 - a) + (INK * (1 - fd) + fogc * fd) * a; bufA[:] = bufA * (1 - pole) + pole
+        hb, wb = bufA.shape
+        xa, xb = int(max(0, x0 - 0.3 * s - 3)), int(min(wb, x0 + 0.3 * s + 4))
+        ya, yb2 = int(max(0, yt - 0.5 * s - 3)), int(min(hb, yb + 3))
+        if xb > xa and yb2 > ya:
+            pole = np.zeros((yb2 - ya, xb - xa), np.float32)
+            cv2.line(pole, (int((x0 - xa) * 8), int((yb - ya) * 8)), (int((x0 - xa) * 8), int((yt - 0.3 * s - ya) * 8)), 1.0,
+                     max(1, int(0.07 * s) + 1), cv2.LINE_AA, 3)
+            cv2.circle(pole, (int((x0 - xa) * 8), int((yt - 0.3 * s - ya) * 8)), int(max(1, 0.1 * s) * 8), 1.0, -1, cv2.LINE_AA, 3)
+            a = pole[..., None]
+            bufC[ya:yb2, xa:xb] = bufC[ya:yb2, xa:xb] * (1 - a) + (INK * (1 - fd) + fogc * fd) * a
+            bufA[ya:yb2, xa:xb] = bufA[ya:yb2, xa:xb] * (1 - pole) + pole
         nu, nv = 14, 4
         u = np.linspace(0, 1, nu + 1); v = np.linspace(0, 1, nv + 1)
         ww, hh = b['w'] * s, b['hh'] * s
