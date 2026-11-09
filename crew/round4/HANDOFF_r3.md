@@ -72,4 +72,4 @@
 - B 第三棒未完：V18 107.58 白闪、P08/V16 smoke_through 灰雾、V20 whip 糊黑（改 split_slide）、V22 glitch 偏灰；出 B_contact_v4/keys_v4；补 B_storyboard 第 7 节与本文件 B 组一节；然后送评。
 - C 第三棒未完：C_keys_v3 只渲到第 47 张（续：V4_FORCE=c_pre2_chorus2 tools/cpu_slot.sh python3 tools/c_contact.py keys out/round4/C_keys_v3.jpg）；C_contact_v4 未看；补 C_storyboard 与本文件 C 组一节；然后送评。
 - E 第二轮评审失败：read_file 读 1920×2960 以上的联系表返回 image unavailable。下次评审先把联系表切成 ≤1920×1400 的块再看，且只给格式模板、不给上轮评审内容。
-- D 第二轮评审进行中（critic_D_r2.md）。
+- D 第二轮评审 81（critic_D_r2.md）：各项过 70%，总分差 4。P0：S08「当」印（170.6–170.93s）整方压顶、朱底白字停 ≥8 帧、去中央黑墨；P1：S21/S25/S28/S29 白宋体左侧版式雷同、S20 与副歌一 73.5s 撞画面、S29 刻字镜像、S18 slash_wipe「我的的刀」、S11 脸不一致。该评审看到了上轮评分，独立性存疑。
