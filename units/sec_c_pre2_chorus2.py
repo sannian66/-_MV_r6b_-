@@ -1642,41 +1642,52 @@ class C36(Shot):
 
 
 class C37(Shot):
-    """闪电写字：巨字「判」由电光逐笔亮起（156.70），随即一道朱红横刀把它当中斩断。"""
+    """第五棒重做（评审 P1：「判」大字 ≈ 副歌一 S042「天」大字；开头空画面）：雷雨里一块御赐大匾（实物：黑漆描金龙框，生图 C5/c37_plaque）
+    挂在铁链上摇晃——开场「天不」从上一镜带进来、在匾上方碎裂；156.70 一道闪电照亮，匾心泥金「判」字被电光逐笔描亮；
+    156.94 第二道雷正劈匾心，匾沿锯齿裂缝一分为二、两半翻落，金屑和木屑迸散。"""
+    def __init__(self):
+        Z = np.zeros((H, W, 3), np.float32)
+        self.Z = Z
+        r = np.random.default_rng(37)
+        xs = 960 + np.cumsum(r.normal(0, 14, 40)); xs -= xs.mean() - 960
+        self.crack = np.stack([xs, np.linspace(BAR - 40, H - BAR + 40, 40)], 1).astype(np.int32)
     def render(self, t):
         u = self.u(t)
         tp = V(156.70); ts = tp + 0.24
-        fl = bolt_env(t, tp) * 1.2
-        fr = storm(t, 37, horizon=1300, flash=0.12 + 0.45 * fl, fc=(960, 400), ground=False) * 0.8
-        if t >= tp - 0.38:
-            a = T.glyph('判', 'serif_black', 680, False)
-            g = a.shape[0]
-            edge = np.clip(a - cv2.erode(a, np.ones((9, 9), np.uint8)), 0, 1)
-            nz = cv2.resize(np.random.default_rng(int(t * 30)).random((g // 12, g // 12)).astype(np.float32), (g, g))
-            core = np.clip(edge * (0.6 + 0.8 * nz), 0, 1) * 0.9 + a * 0.45
-            prog = sm(tp - 0.38, tp + 0.04, t)
-            if not hasattr(self, 'field'):          # 电光逐笔：随机分形场 + 自上而下偏置，像电流沿笔画爬
-                fld = cv2.GaussianBlur(np.random.default_rng(37).random((g, g)).astype(np.float32), (0, 0), g / 30)
-                fld = (fld - fld.min()) / (fld.max() - fld.min() + 1e-6)
-                yy = np.linspace(0, 1, g, dtype=np.float32)[:, None]
-                self.field = fld * 0.45 + yy * 0.55
-            rev = np.clip((prog * 1.08 - self.field) * 25, 0, 1)
-            front = np.clip(1 - np.abs(prog * 1.08 - self.field) * 18, 0, 1) * (prog < 1)
-            core = core * rev + a * front * 1.5
-            L = T.Layer(); L.paste(core, 960, 530, (0.92, 0.95, 1.0))
-            if t > ts:
-                q = sm(ts, ts + 0.35, t)
-                A2 = L.A.copy(); L.A[:] = 0
-                yyf = np.arange(H)[:, None]
-                for sgn in (-1, 1):
-                    msk = ((yyf < 530) if sgn < 0 else (yyf >= 530)).astype(np.float32)
-                    M = np.float32([[1, 0, -sgn * 40 * q], [0, 1, sgn * 70 * q]])
-                    L.A[:] = np.maximum(L.A, cv2.warpAffine(A2 * msk, M, (W, H)))
-            fr = T.compose(fr, L, shadow=0.5, shadow_sigma=20, glow=0.9, glow_sigma=14, glow_color=(0.6, 0.75, 1.0))
-            fr = T.compose(fr, L, shadow=0, glow=0.25, glow_sigma=50, glow_color=(0.5, 0.6, 1.0))
-        fr = slash_streak(fr, (160, 560), (1760, 500), (t - ts) / 0.4, width=10, col=(1.0, 0.25, 0.15), amt=2.2)
+        fl = bolt_env(t, tp) * 1.1 + bolt_env(t, ts) * 1.3
+        fr = storm(t, 37, horizon=1300, flash=0.15 + 0.5 * fl, fc=(960, 160), ground=False) * 0.85
+        sw = 2.2 * math.sin((t - self.t0) * 3.2)
+        # 匾（独立层：先在黑底上合成，再按裂缝分两半）
+        P, A = put(self.Z.copy(), t, 'C5/c37_plaque', 960, 560, 560, anchor='src', src=(0.5, 0.5), rot=sw, rim=COLD, rim_amt=1.4,
+                   rim_dir=(-0.5, -0.9), flash=0.5 * fl, expo=0.95 + 0.4 * fl, sat=0.85, tint=(1.0, 0.98, 0.94), wind=0, breathe=0.0)
+        if t >= tp - 0.30:                      # 泥金「判」：电光逐笔描亮（自上而下）
+            prog = sm(tp - 0.30, tp + 0.04, t)
+            L = T.Layer(); T.place(L, '判', 960, 560, 300, (1.0, 0.78, 0.36), 'serif_black', rot=sw, texture=False)
+            yy = np.arange(H, dtype=np.float32)[:, None]
+            L.A *= np.clip((lerp(380, 760, prog) - yy) / 30, 0, 1)
+            P = T.compose(P, L, shadow=0.5, shadow_sigma=8, glow=0.7 + 0.8 * pulse(t, tp, 0.2), glow_sigma=16, glow_color=(1.0, 0.6, 0.2))
+        for x in (700, 1220):                    # 铁链
+            fr = red_line(fr, (x + 30, BAR - 10), (x + sw * 8, 330), w=3, amt=0.25)
+        if t < ts:
+            fr = fr * (1 - A[..., None]) + P
+        else:
+            q = t - ts
+            msk = np.zeros((H, W), np.float32)
+            poly = np.concatenate([[[0, 0]], self.crack, [[0, H]]]).astype(np.int32)
+            cv2.fillPoly(msk, [poly], 1.0)
+            for sg, m_ in ((-1, msk), (1, 1 - msk)):
+                ang = sg * 26 * q * q * 6 + sw
+                M = cv2.getRotationMatrix2D((960 + sg * 300, 560), ang, 1.0); M[0, 2] += sg * 220 * q; M[1, 2] += 1500 * q * q
+                Am = cv2.warpAffine(A * m_, M, (W, H)); Pm = cv2.warpAffine(P * m_[..., None], M, (W, H))
+                fr = fr * (1 - Am[..., None]) + Pm
+            edge = np.zeros((H // 2, W // 2), np.float32)
+            cv2.polylines(edge, [self.crack // 2], False, 1.0, 2, cv2.LINE_AA)
+            fr = fr + cv2.resize(cv2.GaussianBlur(edge, (0, 0), 3), (W, H))[..., None] * np.array([1.0, 0.7, 0.35], np.float32) * 2.0 * pulse(t, ts, 0.15)
+            fr = sparks(fr, t, 371, (960, 560), n=160, life=0.7, speed=(300, 1200), dirc=(0, -0.3), spread=3.0, grav=1300, t0=ts, burst=True,
+                        color=(1.0, 0.75, 0.35), area=(30, 300))
+        fr = bolt(fr, t, ts, 372, (1000, 40), (960, 560), inten=1.2, width=4)
         fr = rain(fr, t, 370, inten=0.8, angle=10)
-        self.ca = 6 if 0 <= t - tp < 0.12 else 0
+        self.ca = 6 if (0 <= t - tp < 0.1 or 0 <= t - ts < 0.1) else 0
         return fr
 
 
