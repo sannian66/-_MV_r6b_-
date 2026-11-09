@@ -323,7 +323,8 @@ class C02(Shot):
         oy = lerp(70, -40, eio(u))
         fr = candle_room(t, glow_c=(960, 120), amt=1.3) * 0.8
         fr = fog(fr, t, 3, density=0.35, y0=200, y1=900, color=(0.30, 0.22, 0.15), speed=(12, -4))
-        hand_y = 70 - oy * 0.6
+        tug = sum(pulse(t, V(b), 0.18) for b in (119.10, 119.57, 120.03))          # 第五棒：逐拍提线（手往上一拽，字被拽起）
+        hand_y = 70 - oy * 0.6 - 26 * tug
         tips = [(830, hand_y + 300), (900, hand_y + 330), (980, hand_y + 340), (1060, hand_y + 320), (1120, hand_y + 280), (790, hand_y + 250)]  # 第四棒：字 72→104px、挂低、画在手前
         bg0 = fr.copy()
         fr, A0 = put(fr, t, 'S062/puppeteer', 960, hand_y, 640, anchor='src', src=(0.5, 0.06), rim=WARM, rim_amt=2.2, rim_dir=(0, -1),
@@ -337,9 +338,9 @@ class C02(Shot):
         s = Sent(28, [5, 6, 7, 8, 9, 10], 0, 0, size=70, mode='type', red='', glitch='剧本')
         for i, x in enumerate(self.XS):
             ti = s.tin[i]
-            sw = 9 * math.sin(t * 2.2 + i * 1.3) + 22 * pulse(t, ti, 0.25) * (1 if i % 2 else -1)
+            sw = 14 * math.sin(t * 3.0 + i * 1.3) + 22 * pulse(t, ti, 0.25) * (1 if i % 2 else -1)
             ly = 690 + 70 * math.sin(i * 1.7) - oy * 0.4
-            jerk = -40 * pulse(t, ti, 0.12)
+            jerk = -40 * pulse(t, ti, 0.12) - 34 * tug
             end = (x + sw, ly + jerk - 50)
             fr = red_line(fr, tips[i], end, w=2, amt=0.9)
             if t >= ti:
@@ -1305,18 +1306,58 @@ class C25(Shot):
 
 
 class C26(Shot):
-    """崩塌：字墙从中间炸开，字砖朝镜头飞来（慢放），缺口后面是惨白的电光天。"""
-    def __init__(self): self.wall = PR.CharWall(seed=26, cols=16, rows=16, brick=(150, 64))
+    """第五棒重做（评审：程序字砖 + 黑方块碎屑）：崩塌——C22–C24 同一面生图城墙的局部，从劈痕中心炸开成上百块真实石片
+    朝镜头飞来（慢放、翻转、越近越大），石片断面被缺口后惨白的电光天逆照勾边。"""
+    def __init__(self):
+        r = np.random.default_rng(26)
+        S = 2; w, h = W // S, H // S
+        pts = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+        for _ in range(110):
+            a = r.uniform(0, 6.283); d = (r.random() ** 0.7) * 620
+            pts.append((min(w - 1, max(0, w / 2 + math.cos(a) * d * 1.2)), min(h - 1, max(0, h / 2 + 20 + math.sin(a) * d * 0.75))))
+        for x in np.linspace(0, w - 1, 9):
+            pts += [(x, 0), (x, h - 1)]
+        for y in np.linspace(0, h - 1, 6):
+            pts += [(0, y), (w - 1, y)]
+        sd = cv2.Subdiv2D((0, 0, w, h))
+        for p_ in pts: sd.insert((float(p_[0]), float(p_[1])))
+        tris = []
+        for tr in sd.getTriangleList():
+            q = tr.reshape(3, 2)
+            if (q < -1).any() or (q[:, 0] > w + 1).any() or (q[:, 1] > h + 1).any(): continue
+            c = q.mean(0); d = math.hypot(c[0] - w / 2, (c[1] - h / 2 - 20) / 0.75)
+            tris.append((q.astype(np.float32), c, d, r.uniform(-1, 1), r.uniform(0.6, 1.3)))
+        self.tris = tris; self.S = S
+        self.wall = cv2.resize(plate_view('C5/c22_wall', 0.5, 0.62, 2.0), (w, h))
     def render(self, t):
         u = self.u(t)
-        tr = self.t0 + (t - self.t0) * 0.4
-        fl = 0.55 + 0.45 * math.sin(t * 13) ** 2
-        fr = storm(t, 26, horizon=1100, flash=fl, fc=(960, 500), ground=False)
-        fr = fr + 0.08
-        fr, _ = self.wall.draw(fr, tr, x0=-250, y0=-200, x1=2170, y1=1150, tilt=0.15, collapse=0.08 + 0.75 * eout(u, 2),
-                               collapse_center=(0.5, 0.55), light_color=COLD, rim=1.0, dust=1.5)
+        k = (t - self.t0) * 0.55 + 0.04                         # 慢放
+        fl = 0.6 + 0.4 * math.sin(t * 13) ** 2
+        S = self.S; w, h = W // S, H // S
+        sky = storm(t, 26, horizon=1100, flash=0.9 + fl, fc=(960, 520), ground=False)
+        sky = cv2.resize(sky, (w, h)) + 0.15
+        out = sky.copy()
+        for q, c, d, sp, sz in sorted(self.tris, key=lambda z: -z[2]):          # 先远（外圈，动得少）后近（中心，飞得最快）
+            delay = d / 900.0 * 0.25
+            e = max(0.0, k - delay)
+            fly = e * (2.6 - d / 500.0) * sz
+            sc = 1 + 1.6 * fly * fly
+            dirv = np.array([c[0] - w / 2, c[1] - h / 2 - 20], np.float32); dirv /= (np.linalg.norm(dirv) + 1e-3)
+            mv = dirv * (fly * 260 + fly * fly * 300)
+            M = cv2.getRotationMatrix2D((float(c[0]), float(c[1])), sp * 160 * fly, sc); M[:, 2] += mv
+            m = np.zeros((h, w), np.float32); cv2.fillConvexPoly(m, q.astype(np.int32), 1.0, cv2.LINE_AA)
+            x0, y0 = q.min(0).astype(int); x1, y1 = q.max(0).astype(int) + 2
+            if fly <= 0.002:
+                sub = (slice(max(0, y0), min(h, y1)), slice(max(0, x0), min(w, x1)))
+                mm = m[sub][..., None]; out[sub] = out[sub] * (1 - mm) + self.wall[sub] * mm
+                continue
+            Am = cv2.warpAffine(m, M, (w, h)); Pm = cv2.warpAffine(self.wall * m[..., None], M, (w, h))
+            edge = np.clip(Am - cv2.erode(Am, np.ones((3, 3), np.uint8)), 0, 1)[..., None]
+            shade = 1.0 - 0.35 * min(1.0, fly)
+            out = out * (1 - Am[..., None]) + Pm * shade + edge * np.array([0.8, 0.85, 1.0], np.float32) * 0.6 * fl
+        fr = cv2.resize(out, (W, H))
         fr = dust(fr, t, 261, n=200, amt=0.6, drift=(0, 160), region=(0, BAR, W, H - BAR))
-        fr = rain(fr, tr, 260, inten=0.8, angle=6)
+        fr = rain(fr, self.t0 + (t - self.t0) * 0.4, 260, inten=0.8, angle=6)
         return fr
 
 
@@ -1436,9 +1477,18 @@ class C29(Shot):
             x = r.choice([r.uniform(220, 640), r.uniform(1280, 1700)]); ph = r.random(); sz = r.uniform(18, 52)
             y = BAR - 60 + ((t * r.uniform(700, 1100) + ph * 900) % 1000)
             ang = (t * r.uniform(-300, 300)) % 360
-            box = cv2.boxPoints(((x, y), (sz, sz * 0.7), ang)).astype(np.int32)
-            cv2.fillPoly(fr, [box], (0.025, 0.025, 0.03), cv2.LINE_AA)
-            cv2.polylines(fr, [box[:2]], False, tuple(float(v) for v in COLD * (0.35 + 0.8 * fl)), 2, cv2.LINE_AA)
+            # 第五棒（评审：黑方块碎屑）→ 不规则碎石：随机多边形 + 城墙石纹采样 + 顶面冷光、底面暗
+            nv = 7; aa = np.sort(r.uniform(0, 6.283, nv)) + math.radians(ang)
+            rr_ = sz * r.uniform(0.55, 1.0, nv)
+            poly = np.stack([x + np.cos(aa) * rr_, y + np.sin(aa) * rr_ * 0.8], 1).astype(np.int32)
+            m_ = np.zeros((H, W), np.float32); cv2.fillPoly(m_, [poly], 1.0, cv2.LINE_AA)
+            x0_, y0_ = max(0, int(x - sz - 2)), max(0, int(y - sz - 2)); x1_, y1_ = min(W, int(x + sz + 2)), min(H, int(y + sz + 2))
+            if x1_ <= x0_ or y1_ <= y0_: continue
+            tex = plate('C5/c22_wall')[200 + i * 37:200 + i * 37 + (y1_ - y0_), 300 + i * 53:300 + i * 53 + (x1_ - x0_)]
+            if tex.shape[:2] != (y1_ - y0_, x1_ - x0_): continue
+            sh_ = np.clip(1.2 - (np.arange(y0_, y1_)[:, None] - (y - sz)) / (2 * sz), 0.25, 1.2)[..., None]
+            mm = m_[y0_:y1_, x0_:x1_, None]
+            fr[y0_:y1_, x0_:x1_] = fr[y0_:y1_, x0_:x1_] * (1 - mm) + mm * (tex * 0.5 * sh_ + COLD * 0.25 * fl * sh_)
         fr = dust(fr, t, 291, n=140, amt=0.5, drift=(0, 120))
         fr = rain(fr, t, 290, inten=0.9, angle=6, light=(960, 300))
         return fr
@@ -1888,7 +1938,7 @@ BREATH = {'C16': 3, 'C07': 2}      # 进副歌 / 进「我不低头」前压暗�
 
 # 每镜运镜（叠加在镜头内运动上）：z 推拉、x/y 平移、rot 滚转、hh 手持幅度、ease
 MOV = {
-    'C01': dict(z=(1.0, 1.04)), 'C02': dict(z=(1.02, 1.0), hh=3), 'C03': dict(z=(1.0, 1.06), rot=(-2, 1), hh=3),
+    'C01': dict(z=(1.0, 1.04)), 'C02': dict(z=(1.0, 1.06), hh=4), 'C03': dict(z=(1.0, 1.06), rot=(-2, 1), hh=3),
     'C04': dict(z=(1.0, 1.08), x=(-30, 30)), 'C05': dict(), 'C06': dict(z=(1.0, 1.05)),
     'C07': dict(z=(1.0, 1.08), hh=5), 'C08': dict(z=(1.0, 1.05), hh=3), 'C09': dict(z=(1.04, 1.0), y=(30, -30), rot=(3, 1), hh=6),
     'C10': dict(z=(1.0, 1.05), x=(0, 40)), 'C11': dict(z=(1.0, 1.03)), 'C12': dict(z=(1.0, 1.08), rot=(0, -2)),
