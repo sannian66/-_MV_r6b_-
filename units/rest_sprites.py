@@ -212,7 +212,7 @@ S = {
  'S003': dict(poses=[(None, 'S003/thumb_push|raw')], full=True, move=dict(z=0.06, dx=-20), fx=['sheen', 'bokeh', 'credit_shade'], grade=dict(expo=0.82, sat=0.6, tint=(0.92, 0.96, 1.04), lift=0.0, gamma=1.1)),
  'S004': dict(poses=[(None, 'S004/profile'), (7.60, 'S004/profile_open')], at=(1380, 1010), h=900, anc=(0.5, 1.0), move=dict(z=0.04), rim=COLD,
               fx=['flash', 'eye', 'bokeh'], eye=(0.80, 0.28)),
- 'S007': dict(poses=[(None, 'S011/backlit')], at=(1300, 1040), h=980, look='sil', rim=GOLD, rim_amt=4.5, alpha=0.62, defocus=2, move=dict(z=0.03), fx=['halo']),
+ 'S007': dict(poses=[(None, 'S011/backlit')], at=(1500, 1060), h=860, look='sil', rim=GOLD, rim_amt=5.5, alpha=0.86, defocus=1, move=dict(z=0.03), fx=['halo']),   # 11-09 第四任：缩小露出头顶、背靠血月、提高不透明度（原 h=980 alpha=0.62 糊成一团）
  # ---------------- verse1
  'S010': dict(poses=[(None, 'S010/walk'), (20.80, 'S010/draw'), (21.20, 'S010/slash_h')], at=(760, 1015), h=700, move=dict(dx=120), bob=7,
               rim=COLD, fx=['flash', 'slash', 'fog_feet', 'sparks_tip'], slash=dict(sweep=170, dir=-1, squash=0.28)),
@@ -234,13 +234,14 @@ S = {
  'S051': dict(poses=[(None, 'S051/grip_scepter|crop=0,0,0.36,1')], at=(820, 1080), h=1000, look='ink', move=dict(z=0.06)),
  'S054': dict(poses=[(None, 'S054/rise')], at=(960, 960), h=420, look='ink', move=dict(z=0.55), wind=3),
  'S055': dict(poses=[(None, 'S055/walk_look_up')], at=(1150, 1020), h=680, move=dict(dx=-160), bob=8, rim=COLD, fx=['rain', 'fog_feet', 'rain_near']),
- 'S056': dict(poses=[(None, 'S056/palm_open|crop=0,0.32,0.40,1'), (107.6, 'S056/palm_fist|crop=0.56,0.08,1,0.95')], at=(960, 560), anc=(0.5, 0.5), h=820,
-              rim=COLD, fx=['flash', 'rain_near', 'splash', 'bokeh'], move=dict(z=0.05)),
+ 'S056': dict(poses=[(None, 'S056/palm_open|crop=0,0.32,0.40,1'), (107.6, 'S056/palm_fist|crop=0.66,0.04,0.92,0.62')], at=(980, 560), anc=(0.5, 0.5), h=800,
+              rim=COLD, rim_amt=3.2, grade=dict(expo=0.84, sat=0.6, tint=(0.92, 0.97, 1.05), lift=0.0, gamma=1.1),
+              fx=['backglow', 'flash', 'rain_near', 'splash', 'bokeh'], move=dict(z=0.05)),   # 11-09 第四任：拳头裁紧不顶头、提亮 + 背后冷光（原发闷）
  'S057': dict(poses=[(None, 'S057/grab_turn')], at=(980, 1090), h=880, rim=COLD, fx=['rain_near', 'whip'], move=dict(z=0.05)),
  'S058': dict(poses=[(None, 'S010/slash_h|flip')], at=(960, 980), h=560, look='neg', fx=['reflect'], move=dict(dx=40)),
  'S059': dict(poses=[(None, 'S010/slash_h')], at=(900, 1010), h=700, rim=COLD, fx=['slash', 'flash'], slash_t=113.2, slash=dict(sweep=170, dir=-1, squash=0.28)),
  # ---------------- pre2（宣纸）
- 'S062': dict(poses=[(None, 'S062/puppeteer')], at=(760, 40), anc=(0.5, 0.0), h=700, look='ink', fx=['strings'], move=dict(dy=40), wind=1),
+ 'S062': dict(poses=[(None, 'S062/puppeteer|crop=0,0,1,0.86')], at=(760, 30), anc=(0.5, 0.0), h=760, look='ink', fx=['strings'], move=dict(dy=40), wind=1),   # 11-09 第四任：tools/recut_flat.py 重抠（旧抠图把手背抠穿、袖口成马赛克）
  'S065': dict(poses=[(None, 'S065/chin_up')], at=(620, 1080), h=920, look='ink', move=dict(z=0.05, dy=-15), wind=4),
  'S066': dict(poses=[(None, 'S079/leap_slash_up|flip')], at=(600, 900), h=660, look='ink', move=dict(dy=-60), fx=['slash_red'], slash=dict(sweep=130, dir=-1)),
  'S069': dict(poses=[(None, 'S079/leap_slash_up')], at=(960, 560), h=280, look='sil', rim=COLD, rim_amt=3.5, fx=['bolt'], move=dict(dy=-30)),
@@ -264,14 +265,14 @@ S = {
  'S090': dict(poses=[(None, 'S090/wind_up')], at=(1080, 1090), h=870, rim=GOLD, fx=['embers_fg'], move=dict(z=0.06, dx=30)),
  # ---------------- bridge（雨夜排比叠字之前；文字在精灵之上）
  'S095': dict(poses=[(None, 'S082/walk_front|flip')], at=(960, 1000), h=560, move=dict(z=0.10), bob=5, rim=COLD, grade=dict(expo=0.55, sat=0.4, tint=(0.9, 0.95, 1.05), lift=0.0, gamma=1.2), fx=['fog_feet']),
- 'S098': dict(poses=[(None, 'S098/point_down')], at=(1280, 1100), h=1000, look='sil', rim=(0.9, 0.9, 0.95), rim_amt=4.0, move=dict(z=0.06), fx=['whitesky']),
+ 'S098': dict(poses=[(None, 'S098/point_down')], at=(1560, 1075), h=820, look='sil', rim=(0.9, 0.9, 0.95), rim_amt=4.0, move=dict(z=0.06), fx=['whitesky']),   # 11-09 第四任：整身入画、右移让开歌词（原 h=1000 顶出画框挡字）
  'S099': dict(poses=[(None, 'S099/point_up')], at=(1060, 1100), h=1010, rim=COLD, fx=['tipstar'], move=dict(z=0.05)),
  'S102': dict(poses=[(None, 'S102/eye_open|raw')], full=True, move=dict(z=0.08), fx=['embers_fg', 'eyefire'], grade=dict(expo=1.0, sat=0.7, tint=(1.0, 0.96, 0.92), lift=0.0, gamma=1.15)),
  'S103': dict(poses=[(None, 'S103/slow_draw')], at=(960, 1010), h=720, rim=COLD, fx=['sheen_blade', 'fog_feet'], move=dict(z=0.05)),
  'S105': dict(poses=[(None, 'S105/charge_front')], at=(960, 1010), h=560, move=dict(z=0.75, ease='in'), bob=8, rim=COLD, fx=['speed_radial', 'flash_end']),
  'S107': dict(poses=[(None, 'S010/slash_h|flip')], at=(1000, 1000), h=600, rim=REDR, fx=['slash_red', 'flash'], slash_t=186.62, slash=dict(sweep=170, dir=1, squash=0.28)),
  'S109': dict(poses=[(None, 'S073/spin1|flip'), (190.40, 'S073/spin2|flip')], at=(960, 1000), h=640, rim=GOLD, fx=['flash', 'slash_gold', 'gold_burst'], slash=dict(sweep=260, dir=-1, squash=0.25)),
- 'S110': dict(poses=[(None, 'S112/sword_sky')], at=(960, 1010), h=660, rim=GOLD, fx=['beam'], move=dict(z=0.05)),
+ 'S110': dict(poses=[(None, 'S112/sword_sky')], at=(960, 1080), h=880, rim=GOLD, rim_amt=3.0, grade=dict(expo=0.9, sat=0.6, tint=(1.02, 0.98, 0.92), lift=0.0, gamma=1.12), fx=['backglow', 'beam'], move=dict(z=0.05)),   # 11-09 第四任：放大提亮（原 h=660 又小又暗）
  # ---------------- chorus3
  'S112': dict(poses=[(None, 'S112/sword_sky|flip')], at=(960, 1010), h=640, rim=GOLD, rim_amt=2.4, fx=['rays', 'tipstar'], move=dict(z=0.05), grade=G_GOLD),
  'S116': dict(poses=[(None, 'S011/backlit')], at=(960, 1080), h=930, look='paper', rim=GOLD, move=dict(z=0.04)),
@@ -362,6 +363,7 @@ def apply(fr, t, scene_key=None):
     if 'credit_shade' in fxs:                                    # 署名区压暗，保证片头字可读
         xx = np.arange(W, dtype=np.float32)[None, :, None]
         shade_m = np.clip(1 - (xx - 380) / 700, 0, 1) * 0.6
+    if 'backglow' in fxs: fr = fx_glow(fr, (c['at'][0], c['at'][1] - (c['h'] * 0.55 if c.get('anc', (0.5, 1.0))[1] > 0.9 else 0)), c['h'] * 0.5, 0.32, (0.7, 0.78, 0.92))   # 人物背后柔光，暗底上分离轮廓
     if 'halo' in fxs: fr = fx_glow(fr, (c['at'][0], c['at'][1] - c['h'] * 0.85), 260, 0.55, GOLD)
     if 'halo_s' in fxs: fr = fx_glow(fr, (c['at'][0], c['at'][1] - 120), 120, 0.35, (0.8, 0.85, 1.0))
     if 'rays' in fxs: fr = fx_rays(fr, (c['at'][0], c['at'][1] - c['h'] * 1.05), t, 0.55)
