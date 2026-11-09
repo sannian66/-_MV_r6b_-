@@ -1268,8 +1268,8 @@ class V23(Shot):
 class V24(Shot):
     def __init__(self):
         self.sp = spr('drag_blade')
-        sk = night_sky(6801, top=(0.02, 0.022, 0.03), bot=(0.13, 0.13, 0.15), horizon=0.6)
-        wl, wm = city_wall_far(6802, 300, 420, tone=0.06)
+        sk = night_sky(6801, top=(0.03, 0.032, 0.04), bot=(0.20, 0.19, 0.20), horizon=0.6)
+        wl, wm = city_wall_far(6802, 300, 420, tone=0.09)
         wl = K.blur_ds(wl, 3); wm = K.blur_ds(wm, 3)
         x, y = K.grid()
         self.gm = sstep(410, 440, y)
@@ -1297,10 +1297,10 @@ class V24(Shot):
                     wind_amp=6, shade=None, wrap=0.2)
         # 「出方」立在刀痕两侧（远近两处，近大远小），随刀痕到达时燃起
         pr = prs(27, [8, 9], t)
-        for i, (ch, pc, Zc, Xs) in enumerate(zip('出方', pr, (24.0, 42.0), (5.0, 6.5))):
+        for i, (ch, pc, Zc, Xs) in enumerate(zip('出方', pr, (18.0, 40.0), (3.5, 9.0))):
             if pc <= 0: continue
             sx_ = 960 + FF * (X0 + AX * Zc + Xs) / Zc; sy_ = HOR + FF * CH / Zc
-            sz = (210, 160)[i]
+            sz = (210, 170)[i]
             L = T.Layer(); T.place(L, ch, sx_, sy_ - sz * 0.45, sz, color=(0.98, 0.22, 0.08), fname='xing', alpha=min(1, pc * 2), sy=0.8)
             fr = T.compose(fr, L, shadow=0.6, glow=0.7, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=10)
