@@ -174,15 +174,16 @@ class S03_TypeSlam(Shot):
         hits = []
         for ch, x, y, s, on in self.CH:
             th = V(on)
-            if t < th - 0.2: continue
-            q = cl((t - (th - 0.2)) / 0.2); hits.append(th)
-            yy = lerp(y - 1000, y, ei(q, 2))
-            sc = 1.25 - 0.25 * q
+            ws = min(th - 0.2, self.t0 - 0.01)          # [r4] 切入那一帧铅字已在画内下坠（去掉 5 帧空纸）
+            if t < ws: continue
+            q = cl((t - ws) / (th - ws)); hits.append(th)
+            yy = lerp(y - 560, y, ei(q, 2))
+            sc = 1.6 - 0.6 * ei(q, 2)
             # 厚度（铅字块侧面）
             depth = [(ch, x + 2.2 * k, yy - 1.4 * k, s, 1.0, sc, 0.0, (0.28 + 0.01 * k,) * 3) for k in range(16, 0, -1)]
             Ld = D.text_layer(depth, fname='serif_black')
             # 地面投影
-            if q > 0.3:
+            if q > 0.0:
                 Ls = D.text_layer([(ch, x + 60, y + s * 0.5, s, 1.0, 1.0)], fname='serif_black')
                 A = Ls.A; M = np.float32([[1, -1.2, 0], [0, 0.22, 0]]); M[1, 2] = (y + s * 0.5) * (1 - 0.22); M[0, 2] = 1.2 * (y + s * 0.5)
                 A = cv2.GaussianBlur(cv2.warpAffine(A, M, (W, H)), (0, 0), 10) * 0.45 * q
@@ -622,7 +623,7 @@ class S12_Pierce(Shot):
         fr = D.paper(20).copy()
         fr = D.wash(fr, 0.45, 0.2, 1.1, seed=29)
         tc = V(O[42][14])
-        tipy = lerp(930, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
+        tipy = lerp(720, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
         # 刀在纸上的投影（暖光从左上）
         fr = D.fall_chars(fr, t, '罪状', 120, density=4, sizes=(16, 40), alpha=0.35, near_blur=3, emph={'罪': tuple(CINNABAR)})
         Fw, Aw = D.warp(self.sp, t, self.TIP, (975 + 40, tipy + 30), 1.75, rot=-3, wind=0)
@@ -1413,16 +1414,16 @@ SHOTS = [S01_Drop, S02_Steles, S03_TypeSlam, S04_Snow, S05_Ren, S06_Scale, S07_H
 # 入点转场：镜头名 → (转场, 切前秒, 切后秒, 参数)
 CUTS = {
     'S02_Steles': ('match_cut', 0, 0.35, dict(shape='circle', center=(960, 560), radius=60, glow=np.array([0.9, 0.2, 0.1], np.float32))),
-    'S03_TypeSlam': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, impact=0.06, flash=0.0)),
+    'S03_TypeSlam': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, impact=0.08, flash=0.0)),
     'S04_Snow': ('smoke_through', 0.12, 0.2, dict(color=(0.93, 0.91, 0.86), seed=4)),
     'S05_Ren': ('ink_bleed_hd', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
     'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(680, 600), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
     'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1270, 580))),
-    'S08_Seals': ('whip_pan_blur', 0.08, 0.12, dict(direction='down')),
+    'S08_Seals': ('seal_iris', 0.1, 0.14, dict(center=(760, 400), ch='理')),
     'S09_Brush': ('ink_bleed_hd', 0.001, 0.28, dict(seed=9, center=(1560, 260))),
     'S10_Giant': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
     'S11_Answer': ('match_cut', 0, 0.2, dict(shape='line', center=(1300, 760), angle=-35, mode='cut')),
-    'S12_Pierce': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
+    'S12_Pierce': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.0, impact=0.08)),
     'S13_PaperCut': ('paper_tear', 0.1, 0.3, dict(seed=12, angle=6)),
     'S14_Burn': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S15_Hole': ('flash_red', 0.04, 0.1, dict(one_frame=True)),
@@ -1442,6 +1443,29 @@ CUTS = {
     'S29_Thrust': ('gold_beam', 0.08, 0.14, dict(x0=960)),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
 }
+
+
+def seal_iris(A, B, p, center=(760, 400), ch='理', rot=-7.0):
+    """[r4] 印框转场（替代 S08 入点的 whip 糊条）：一方朱印的方框从高处砸下罩住上一镜（框内先压暗、朱边收拢），
+    落定瞬间框内换成下一镜，方框随即外扩出画——中间帧同时有上一镜、下一镜和朱印边。"""
+    x, y = K.grid()
+    th = math.radians(rot)
+    rx = (x - center[0]) * math.cos(th) + (y - center[1]) * math.sin(th)
+    ry = -(x - center[0]) * math.sin(th) + (y - center[1]) * math.cos(th)
+    d = np.maximum(np.abs(rx), np.abs(ry))
+    if p < 0.5:
+        q = ei(p / 0.5, 2)
+        half = lerp(1500, 150, q)
+        inside = np.clip((half - d) / 4, 0, 1)
+        out = A * (1 - 0.35 * q * inside[..., None])
+    else:
+        q = eo((p - 0.5) / 0.5, 2)
+        half = lerp(150, 1700, q)
+        inside = np.clip((half - d) / 4, 0, 1)
+        out = A * (1 - inside[..., None]) + B * inside[..., None]
+    edge = np.clip(1 - np.abs(d - half) / (10 + 8 * (1 - abs(p - 0.5) * 2)), 0, 1)
+    out = out * (1 - edge[..., None]) + edge[..., None] * CINNABAR * 1.05
+    return out
 
 
 def gold_beam(A, B, p, x0=960, seed=0):
@@ -1517,7 +1541,9 @@ class Bridge:
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
             kw2 = dict(kw)
-            if name == 'gold_beam':
+            if name == 'seal_iris':
+                out = seal_iris(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
+            elif name == 'gold_beam':
                 out = gold_beam(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             elif name == 'ink_bleed_hd':
                 out = ink_bleed_hd(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)

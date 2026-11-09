@@ -293,7 +293,7 @@ class V02(Shot):
         neck = np.exp(-((x - cx) / (8 + 0.04 * Rz)) ** 2) * (y < cy - Rz * 0.9) * (y > cy - Rz * 1.6) * (1 - u)
         fr = fr * (1 - m[..., None]) + inner * m[..., None] * 0.92
         fr += (rim + spec * m + neck * 0.3)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
-        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 0.5 + 0.7
+        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 1.9 + COLDC * 0.04          # 第四棒：雷光照亮（乘性），不再抬白
         elif t > tl: fr = fr * (1 + 0.5 * pulse(t, tl + 0.04, 0.15))
         return fr, (3 if abs(t - tl) < 0.04 else 0)
 
@@ -781,9 +781,9 @@ class V12(Shot):
         # 运动拖影：前 3 个时刻的半透明残影
         for k, dt in enumerate((0.09, 0.05, 0.0)):
             px, py, h, tl, cd, q = self.pose(t - dt)
-            wet = 0.45 * clamp01(q * 1.2)
+            wet = 0.25 + 0.6 * clamp01(q * 1.2)                # 第四棒：雨打湿更重（墨晕开）、整体压暗冷调，去「奶油色纸板」感
             fr = self.fig.draw(fr, px, py, h, tilt=tl, card=cd, light='back', wet=wet, alpha=(0.15, 0.25, 1.0)[k], blur=(6, 3, 0.6)[k] + 1.2 * q,
-                               rim_col=(0.75, 0.82, 1.0), ink_k=1.0)
+                               rim_col=(0.80, 0.86, 1.0), ink_k=1.2, grade=(0.62, 0.62, 0.64))
         pr = prs(23, [0, 1, 2, 3, 4], t, 0.22)
         P = [dict(ch=c, x=1360, y=250 + i * 128 + 60 * eio(u), size=112, rot=0, font='kai', idx=i, emph=c in '牺牲') for i, c in enumerate('被牺牲的人')]
         fr = fr * (1 - 0.4 * K.blur_ds(((np.abs(x - 1360) < 90) & (y > 180) & (y < 960)).astype(np.float32), 30)[..., None])
@@ -832,7 +832,7 @@ class V13(Shot):
         pr = prs(23, [5, 6, 7, 8, 9], t)
         P = [dict(ch=c, x=1480 + (i % 2) * 40, y=250 + i * 120, size=104, rot=0, font='kai', idx=i, emph=False) for i, c in enumerate('可曾有机会')]
         fr = T.ink_bleed_in(fr, '可曾有机会', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.12))
-        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 0.6 + 0.5
+        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 1.45 + COLDC * 0.03         # 第四棒：落地冲击改乘性提亮，不抬白
         e = eio(u)
         fr = cam(fr, 1.0 + 0.18 * e, 0, -60 * e)
         return fr, (3 if abs(t - tl) < 0.04 else 0)
