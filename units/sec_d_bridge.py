@@ -1601,16 +1601,16 @@ SHOTS = [S01_Drop, S02_Steles, S03_TypeSlam, S04_Snow, S05_Ren, S06_Scale, S07_H
 # 入点转场：镜头名 → (转场, 切前秒, 切后秒, 参数)
 CUTS = {
     'S02_Steles': ('match_cut', 0, 0.35, dict(shape='circle', center=(960, 560), radius=60, glow=np.array([0.9, 0.2, 0.1], np.float32))),
-    'S03_TypeSlam': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, impact=0.08, flash=0.0)),
+    'S03_TypeSlam': ('hard_cut_x', 0, 0.07, dict(impact=0.08, tint=(0.10, 0.09, 0.09), amt=0.45, ca=7, jolt=(0, 16))),   # [r6] 纸面镜头不白闪：墨压暗 + 色散 + 下顿
     'S04_Snow': ('smoke_through', 0.12, 0.2, dict(color=(0.93, 0.91, 0.86), seed=4)),
     'S05_Ren': ('ink_bleed_hd', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
     'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(680, 600), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
     'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1270, 580))),
     'S08_Seals': ('seal_iris', 0.1, 0.14, dict(center=(760, 400), ch='理')),
     'S09_Brush': ('ink_bleed_hd', 0.001, 0.28, dict(seed=9, center=(1560, 260))),
-    'S10_Giant': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
+    'S10_Giant': ('hard_cut_x', 0, 0.07, dict(impact=0.07, tint=(0.05, 0.05, 0.06), amt=0.5, ca=6, jolt=(0, 20))),
     'S11_Answer': ('match_cut', 0, 0.2, dict(shape='line', center=(1300, 760), angle=-35, mode='cut')),
-    'S12_Pierce': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.0, impact=0.08)),
+    'S12_Pierce': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.55, 0.68, 0.95), amt=0.35, ca=9, jolt=(0, -22))),   # [r6] 冷钢色偏 + 色散 + 上顶（刀从下刺上）
     'S13_PaperCut': ('paper_tear', 0.1, 0.3, dict(seed=12, angle=6)),
     'S14_Burn': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S15_Hole': ('flash_red', 0.04, 0.1, dict(one_frame=True)),
@@ -1619,13 +1619,13 @@ CUTS = {
     'S18_Draw': ('slash_wipe', 0.05, 0.2, dict(angle=-12, center=(960, 860))),
     'S19_Forge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S20_Wall': ('occlusion', 0.1, 0.15, dict(kind='pillar', direction=-1)),   # [r5] 柱从右侧入画：先遮「张」的右半「长」，不再露出错字
-    'S21_Charge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
+    'S21_Charge': ('hard_cut_x', 0, 0.07, dict(impact=0.08, tint=(1.0, 0.72, 0.38), amt=0.3, ca=7, jolt=(-18, 0))),
     'S22_Chuang': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.2)),
     'S23_Eye': ('shatter', 0.04, 0.14, dict(center=(1060, 560), seed=23, n=60)),
     'S24_Defy': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.25)),
     'S25_Leap': ('slash_wipe', 0.05, 0.2, dict(angle=-40)),
     'S26_Judge': ('match_cut', 0, 0.25, dict(shape='line', center=(1080, 420), angle=-37, mode='grow', glow=np.array([1.0, 0.3, 0.2], np.float32))),
-    'S27_Bullet': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.0)),
+    'S27_Bullet': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.62, 0.76, 1.0), amt=0.4, ca=8, jolt=(0, 18))),   # [r6] 冷白雨光闪 + 色散 + 下顿
     'S28_Spin': ('freeze_glitch_keep', 0.12, 0.10, dict(seed=28)),
     'S29_Thrust': ('gold_beam', 0.08, 0.14, dict(x0=960)),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
@@ -1652,6 +1652,29 @@ def seal_iris(A, B, p, center=(760, 400), ch='理', rot=-7.0):
         out = A * (1 - inside[..., None]) + B * inside[..., None]
     edge = np.clip(1 - np.abs(d - half) / (10 + 8 * (1 - abs(p - 0.5) * 2)), 0, 1)
     out = out * (1 - edge[..., None]) + edge[..., None] * np.array([0.08, 0.07, 0.07], np.float32)   # [r5] 墨框（不再是朱印框）
+    return out
+
+
+def hard_cut_x(A, B, dt, impact=0.08, tint=(1, 1, 1), amt=0.3, ca=6, jolt=(0, 0)):
+    """[r6] 落拍硬切的冲击帧（critic_D_r3：S12/S27 硬切 flash=0 冲击弱）。切点第 1 帧全量、第 2 帧一半：
+    放大 impact + 朝 tint 色偏（暗 tint = 墨压，亮 tint = 冷/暖闪）+ 横向 RGB 色散 ca px + 机位顿挫 jolt px。
+    纸面镜头用暗 tint，避免第二轮被扣的「白闪」。"""
+    if dt < 0: return A.copy()
+    kf = int(round(dt * 30))
+    if kf >= 2: return B.copy()
+    a = 1.0 if kf == 0 else 0.45
+    out = TR._zoom(B, 1 + impact * a)
+    Mj = np.float32([[1, 0, jolt[0] * a], [0, 1, jolt[1] * a]])
+    out = cv2.warpAffine(out, Mj, (W, H), borderMode=cv2.BORDER_REFLECT)
+    tc = np.array(tint, np.float32)
+    if tc.mean() < 0.3:
+        out = out * (1 - amt * a) + tc * amt * a
+    else:
+        out = out * (1 - 0.5 * amt * a) + out * tc * (1.6 * amt * a) + tc * 0.12 * amt * a
+    d = int(round(ca * a))
+    if d:
+        out = out.copy()
+        out[..., 0] = np.roll(out[..., 0], d, 1); out[..., 2] = np.roll(out[..., 2], -d, 1)
     return out
 
 
@@ -1739,6 +1762,8 @@ class Bridge:
                 A0, _ = S27.render(min(t, SHOTS[j - 1].t1 - 1e-3), text=False)
                 out = TR.transition('freeze_glitch', np.clip(A0, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
                 if p < 0.8: out = S27.text_only(out, t)
+            elif name == 'hard_cut_x':
+                out = hard_cut_x(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), t - c, **kw2)
             elif name == 'gold_tip':
                 out = gold_tip(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             else:
