@@ -82,46 +82,50 @@ class E01(Shot):   # S111 ECU 刃口迎日：日光沿刃口扫过，巨字「�
         return self.l2.draw(fr, t)
 
 
-class E02(Shot):   # S112 低机位大仰拍（第三棒重做）：人物占画面 3/4 高、偏右，冷灰蓝黎明天（次色调）；刀尖指日，「刀不放」朱印盖在日上；前景虚化草叶/飞灰
-    GR = dict(expo=0.78, sat=0.55, tint=(0.94, 0.98, 1.06), lift=0.0, gamma=1.12)
+class E02(Shot):   # S112（第六棒重做，去和副歌一 S030「背影举刀指月」撞构图）：正面极低机位 3/4，刀扛在右肩、刀身向后；
+    #  日在画外右上，只给轮廓光与一束斜入体积光；冷灰蓝黎明天。「刀」「不」「放」三方小朱印随唱逐个盖在握刀的拳与护臂上（只用朱印一种，不再有灰字）
+    GR = dict(expo=0.80, sat=0.58, tint=(0.96, 0.98, 1.04), lift=0.0, gamma=1.10)
+    FIST = (0.305, 0.375)
 
     def __init__(self):
         self.sky = E.dawn_sky(112, horizon=0.98, top=(0.025, 0.03, 0.055), mid=(0.16, 0.20, 0.28), hor=(0.62, 0.56, 0.52), cloud=0.9, sun=None)
         r = np.random.default_rng(112)
-        self.grass = [(r.uniform(-80, 520) if i % 2 else r.uniform(1500, 2000), r.uniform(0.7, 1.5), r.uniform(-0.5, 0.5)) for i in range(30)]
+        self.grass = [(r.uniform(-80, 420) if i % 2 else r.uniform(1600, 2000), r.uniform(0.7, 1.5), r.uniform(-0.5, 0.5)) for i in range(26)]
+        self.tm = [CT(48, 3) + 0.02, CT(48, 4), CT(48, 5)]
 
     def render(self, t):
         u = self.u(t)
         fr = self.sky.copy()
-        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S112/sword_sky|flip', (1150, 1460 + 20 * u), h=1220, anc=(0.5, 1.0),
-                      rim=(1.0, 0.86, 0.62), rim_amt=3.4, rim_dir=(-0.2, -1.0), grade=self.GR, wind=10)
-        tip = info['top']; self.tip = tip
-        sun = (tip[0], tip[1] - 6 - 24 * eio(u))
-        fr = E.sun_disc(fr, sun, 46, amt=1.0, core=(1.0, 0.98, 0.94))
-        fr = fx2.god_rays(fr, sun, strength=0.7, length=1.0, t=t, occluder=info['A'])
-        a = info['A'][..., None]
-        fr = fr * (1 - a) + z * a
-        p = (t - (CT(48, 5) + 0.08)) / 0.22                               # 第五棒：三字随唱沿刀身自下而上烧出，「放」落定后才凝成朱印
-        if p > 0: fr = T.stamp_seal(fr, '刀不放', sun[0] - 6, sun[1] + 40, 210, min(1, p), style='yin', rot=-6, seed=4, alpha=0.95)
-        self.seal_p = p
+        yy, xx = E.grid()
+        glow = np.exp(-(((xx - 2000) / 900) ** 2 + ((yy + 50) / 520) ** 2))         # 画外右上日：天角暖晕
+        fr = fr + glow[..., None] * np.array([0.9, 0.62, 0.36], np.float32) * 0.55
+        fr = fx2.god_rays(fr, (2050, -60), strength=0.55, length=1.0, t=t, src_r=220)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/shoulder_low', (1180 - 30 * u, 1075), h=930, anc=(0.5, 1.0),
+                      rim=(1.0, 0.84, 0.6), rim_amt=3.0, rim_dir=(0.7, -0.7), grade=self.GR, wind=8)
+        C, A = sprite_clean(z, info['A'], erode=2, rim_col=(1.0, 0.8, 0.55), rim_amt=1.2, rim_dir=(0.7, -0.7), cool_amt=0.25)
+        f = (np.clip((0.92 - A) / 0.6, 0, 1) * (A > 0.03))[..., None]          # 逆光飞丝：灰白 → 暖金透光（同画外右上日光）
+        C = C * (1 - f) + C * np.array([1.25, 0.92, 0.6], np.float32) * f
+        fr = fr * (1 - A[..., None]) + C * A[..., None]
+        self.fist = info['to_scr'](self.FIST)
         G = np.zeros((H // 2, W // 2), np.float32)                         # 前景：贴镜头的草叶（强虚化、压暗）
         for (x, s_, lean) in self.grass:
             x0 = (x + 60 * u) / 2
             cv2.line(G, (int(x0), H // 2 - BAR // 2 + 30), (int(x0 + (lean + 0.12 * math.sin(t * 2.3 + x)) * 120 * s_), int(H // 2 - BAR // 2 - 95 * s_)), 1.0, 6, cv2.LINE_AA)
         G = cv2.resize(cv2.GaussianBlur(G, (0, 0), 7), (W, H))
         fr = fr * (1 - np.clip(G * 1.3, 0, 1)[..., None] * 0.92)
-        fr = E.dust_motes(fr, t, 1121, n=36, amt=0.5, drift=(30, -40), size=(3, 9), blur=4, col=(0.9, 0.85, 0.8))
-        return bloom(fr, 0.8, 0.45)
+        fr = E.dust_motes(fr, t, 1121, n=36, amt=0.5, drift=(-30, -40), size=(3, 9), blur=4, col=(0.9, 0.85, 0.8))
+        return bloom(fr, 0.8, 0.4)
 
     def text(self, fr, t):
-        if not hasattr(self, 'tip'): return fr
-        if not hasattr(self, 'col'):
-            x = self.tip[0] - 230
-            self.col = LyrO([('刀', x, 380, 170, 'serif_black', REDT, CT(48, 3) + 0.03), ('不', x, 580, 150, 'serif_black', WHITE_T, CT(48, 4)),
-                             ('放', x, 770, 150, 'serif_black', WHITE_T, CT(48, 5))], None, seed=12, outline=5, plate_amt=0.35, glow=0.35,
-                            direction=(0.0, -1.0))
-        a = 1 - c01(getattr(self, 'seal_p', 0) / 0.8)
-        return self.col.draw(fr, t, alpha=a, dy=-30 * (1 - a)) if a > 0 else fr
+        if not hasattr(self, 'fist'): return fr
+        fx, fy = self.fist
+        spots = [(fx - 20, fy - 10, 128, -8), (fx - 70, fy + 150, 118, 5), (fx - 40, fy + 300, 132, -3)]
+        for k, ch in enumerate('刀不放'):
+            p = (t - (self.tm[k] - 0.09)) / 0.6
+            if p > 0:
+                x, y, sz, rt = spots[k]
+                fr = T.stamp_seal(fr, ch, x, y, sz, min(1, p), style='yin', rot=rt, seed=40 + k, alpha=0.95)
+        return fr
 
 
 class E03(Shot):   # S113（第三棒重做）一点透视碑林：两列刻满律令的「天理」碑沿纵深排开，冷灰蓝晨雾，尽头门洞白光；推轨前进 + 前景碑擦镜虚化。
@@ -1464,7 +1468,7 @@ CUSTOM = {'blade_sweep': R5.blade_sweep, 'fog_wall': R5.fog_wall, 'blade_black':
 # 运镜：(缓动, z0, z1, x0, x1, y0, y1, rot0, rot1)
 MOVE = {
     'E01': ('expo_out', 1.08, 1.0, 40, -40, 0, 0, -1.5, 0),
-    'E02': ('sine', 1.0, 1.06, 0, 0, 60, -40, 0, 0),           # 摇臂升
+    'E02': ('sine', 1.02, 1.08, 0, 0, 40, -30, 0.8, -0.6),      # 第六棒：低机位缓升推
     'E03': ('sine', 1.03, 1.0, 0, 0, -20, 30, 0, 0),
     'E04': ('expo_in', 1.0, 1.12, 0, 0, 0, 0, 0, 0),           # 推进匾
     'E05': ('sine', 1.04, 1.10, -30, 30, 0, 0, -2, 2),
