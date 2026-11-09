@@ -885,8 +885,6 @@ class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼�
         p = c01((q - 0.25) / 0.6)
         if p > 0:
             L = T.Layer()
-            for ch, x in (('鬼', 600, ), ('屠', 790)), (('第', 1110), ('三', 1300), ('季', 1490)):
-                pass
             for i, (ch, x) in enumerate((('鬼', 590), ('屠', 790), ('第', 1100), ('三', 1300), ('季', 1500))):
                 e = c01(p * 1.6 - i * 0.12)
                 T.place(L, ch, x, 470 - 20 * (1 - eout(e)), 200, GOLD_T, 'kai', alpha=eout(e), texture=True)
