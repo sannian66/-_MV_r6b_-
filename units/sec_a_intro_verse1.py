@@ -760,26 +760,86 @@ class V07(Shot):
         return fr, 0
 
 
-# V08 23.45–25.29 CU 太上皇的手压下玉玺；24.48 落印 → 宣纸上朱印「罪状」
+# V08 23.45–25.29（第六棒重做，critic_A_r3 P0 不可交付：朱印叠在手指上、手里看不到玺）
+#   前段 23.45–24.58：低机位侧面 CU —— 太上皇枯手攥住盘龙玉玺（tsh_seal_lift 新精灵，脸在右后景虚化压暗作第三层），
+#       玺自画上方加速压向烛光下的宣纸（纸面在下沿成一条亮带），纸上玺影随落下收紧；24.48「罪」落印：震 + 纸尘 + 印泥飞点。
+#   后段 24.58–25.29：切俯拍纸面 —— 玺已抬走（只剩玺影向右上滑出），宣纸上留下「罪状」白文印痕（印痕乘在纸上、纸纹透出、
+#       纤维晕边、朱色降饱和 15%）；层级 = 纸 → 印痕 → 玺影，手与玺不在此画面中，不会再出现「贴纸盖在手上」。24.78「状」印泥再沉一档。
 class V08(Shot):
     def __init__(self):
-        self.path = S('A/tsh_hand', 'dm')
-        self.paper = K.paper_light(21) if hasattr(K, 'paper_light') else None
+        import a_r6
+        self.R = a_r6
+        self.spr = a_r6.tsh_seal_dof()
+        self.anc = a_r6.anc_for(self.spr, (0.402, 0.80))          # 玺底前沿中点
+        self.pap = a_r6.paper(21)
+        T.warm('定对错', 'kai', 96)
     def render(self, t):
-        u = self.u(t); th = CT(2, 7)
-        fr = night((0.02, 0.016, 0.014), (0.05, 0.04, 0.035))
-        fr = A.glow(fr, (1500, 300), 500, 0.35, (1.0, 0.72, 0.4))                         # 烛光暖侧光
-        down = eio(clamp01((t - self.t0) / (th - self.t0)))
-        fr, info = A.place(fr, t, self.path, (980, 470 + 120 * down), w=2200, anc=(0.5, 0.5), rim=GOLD, rim_amt=2.2, rim_dir=(0.8, -0.5),
-                           grade=dict(expo=0.75, sat=0.5, tint=(1.04, 0.98, 0.9)), wind=3)
-        a = t - th
+        th = CT(2, 7); tsw = th + 0.10
+        if t < tsw: return self.side(t, th)
+        return self.top(t, th, tsw)
+    def side(self, t, th):
+        q = clamp01((t - self.t0) / (th - self.t0)); a = t - th
+        fr = night((0.012, 0.009, 0.008), (0.04, 0.03, 0.024), y1=800)
+        fr = A.glow(fr, (1500, 260), 700, 0.45, (1.0, 0.62, 0.30))                       # 烛光（右后上）
+        fr = A.glow(fr, (1620, 330), 90, 0.9, (1.0, 0.75, 0.42), aspect=1.6)              # 烛焰本身（焦外光斑）
+        fr = fx2.god_rays(fr, (1620, 300), strength=0.25, length=0.8, color=(1.0, 0.7, 0.4), t=t, src_r=90)
+        # 宣纸桌面：低机位看成一条带透视的亮带（y 800–960），纸纹纵向压扁
+        yy = np.arange(H, dtype=np.float32)[:, None, None]
+        band = np.clip((yy - 878) / 5, 0, 1)
+        pap = cv2.resize(self.pap[::5], (W, H)) * (0.6 + 0.6 * np.clip((yy - 878) / 80, 0, 1))
+        lit = A.glow(np.zeros((H, W, 3), np.float32), (1300, 900), 900, 1.0, (1.0, 0.85, 0.6), aspect=0.2)
+        fr = fr * (1 - band) + pap * band * (0.35 + 0.9 * lit)
+        drop = 110 * (1 - ein(q, 1.8)) if a < 0 else -5 * math.exp(-a / 0.05)
+        at = (700, 880 - drop)
+        # 玺影：落在纸上，离纸越近越实越小
+        sh = np.zeros((H // 2, W // 2), np.float32)
+        sw = 300 + 260 * (1 - q)
+        cv2.ellipse(sh, (int((at[0] - 60 * (1 - q)) / 2), 442), (int(sw / 2), int(7 + 6 * (1 - q))), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+        sh = cv2.resize(cv2.GaussianBlur(sh, (0, 0), 3 + 16 * (1 - q)), (W, H))[..., None] * band
+        fr = fr * (1 - (0.35 + 0.5 * q) * sh)
+        fr, info = A.place(fr, t, self.spr, at, w=1760, anc=self.anc, rim=GOLD, rim_amt=2.4, rim_dir=(0.8, -0.5),
+                           grade=dict(expo=1.12, sat=1.25, tint=(1.0, 1.04, 0.94), gamma=0.95), wind=2, breathe=0.0)
+        # 桌面在玺/袖之前：低机位下纸面是一条掠射亮带，桌沿以下（袖摆）被桌前沿挡住
+        fr = fr * (1 - band) + pap * band * (0.35 + 0.9 * lit)
+        edge = np.clip((yy - 924) / 4, 0, 1)
+        fr = fr * (1 - edge) + edge * np.array([0.03, 0.018, 0.012], np.float32) * (1 + 0.6 * lit)
+        fr = fr + np.exp(-((yy - 879) / 1.5) ** 2) * lit * np.array([0.9, 0.7, 0.45], np.float32) * 0.5
         if a >= 0:
-            fr = fr * (1 + 0.5 * math.exp(-a / 0.08))
-            fr = T.stamp_seal(fr, '罪状', 560, 700, 250, clamp01(0.3 + a / 0.8), style='yin', seed=5)
-        else:
-            fr = T.stamp_seal(fr, '罪状', 560, 700, 250, clamp01(0.3 * (1 - (th - t) / 0.3)), style='yin', seed=5) if th - t < 0.3 else fr
-        fr = GDUST.draw(fr, t, 0.35, wind=(20, -30))
-        return fr, (4 if 0 <= a < 0.08 else 0)
+            fr = fr * (1 + 0.45 * math.exp(-a / 0.06))
+            fr = K.sparks(fr, t, 81, (700, 882), n=60, life=0.45, speed=(150, 520), dirc=(0, -1), spread=2.6, grav=900,
+                          area=(240, 6), amt=0.55, t0=th, burst=True, color=(0.95, 0.85, 0.7))      # 纸尘
+            fr = K.sparks(fr, t, 82, (700, 883), n=16, life=0.35, speed=(200, 600), dirc=(0, -1), spread=2.2, grav=1400,
+                          area=(220, 4), amt=0.8, t0=th, burst=True, color=(0.75, 0.10, 0.06))      # 印泥飞点
+        fr = GDUST.draw(fr, t, 0.25, wind=(20, -30))
+        return fr, (3 if 0 <= a < 0.08 else 0)
+    def top(self, t, th, tsw):
+        k = t - tsw; a2 = t - CT(2, 8)
+        lit = A.vgrad((1.0, 0.96, 0.9), (0.55, 0.48, 0.42))
+        lit = A.glow(lit * 0.75, (1550, 160), 1100, 0.55, (1.0, 0.8, 0.55))
+        fr = self.pap * lit * 0.9
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        fr = fr * (1 - 0.45 * np.clip((np.hypot(xx - 1300, yy - 300) - 500) / 1300, 0, 1))[..., None]     # 烛光衰减
+        # 纸上原有墨书（诏文，淡）：右侧三列小楷
+        if not hasattr(self, 'doc'):
+            L = T.Layer()
+            for ci, col in enumerate(('奉旨查办逆犯一名', '目无王法擅杀官兵', '罪证确凿着即拿问')):
+                for ri, ch in enumerate(col):
+                    T.place(L, ch, 1560 - ci * 92, 200 + ri * 84, 66, (0.06, 0.05, 0.05), 'kai', alpha=0.62, blur=0.9)
+            self.doc = L
+        fr = fr * (1 - 0.82 * self.doc.A[..., None]) + self.doc.A[..., None] * 0.02
+        kk = 0.86 + 0.14 * clamp01(a2 / 0.15) if a2 >= 0 else 0.86
+        fr, Lm = self.R.imprint(fr, '罪状', 760, 540, 330, k=kk, rot=-3.0, seed=5)
+        # 玺影：玺被抬走，影子变大变虚、向右上滑出（光从右上来 → 影落左下，抬起时影朝光源反向扩散后离开）
+        e = eout(clamp01(k / 0.55))
+        sh = np.zeros((H // 2, W // 2), np.float32)
+        c = (760 + 520 * e - 40, 540 - 300 * e + 50)
+        hs = 190 + 140 * e
+        cv2.rectangle(sh, (int((c[0] - hs) / 2), int((c[1] - hs) / 2)), (int((c[0] + hs) / 2), int((c[1] + hs) / 2)), 1.0, -1)
+        sh = cv2.resize(cv2.GaussianBlur(sh, (0, 0), 6 + 40 * e), (W, H))[..., None]
+        fr = fr * (1 - 0.55 * (1 - e) * sh)
+        fr = K.sparks(fr, t, 83, (760, 540), n=24, life=0.6, speed=(40, 160), dirc=(0.4, -1), spread=2.0, grav=-40,
+                      area=(180, 180), amt=0.35, t0=tsw - 0.02, burst=True, color=(0.95, 0.85, 0.65))      # 纸尘余烟
+        return fr, (2 if k < 0.06 else 0)
 
 
 PAPER_BODY = np.array([(0, -1.0), (-0.07, -0.97), (-0.09, -0.86), (-0.06, -0.80), (-0.22, -0.74), (-0.30, -0.40), (-0.24, -0.38),
@@ -815,30 +875,65 @@ def paper_crowd(fr, t, cx, cy, wpx, rows=5, per=11, hpx=70, seed=0, light=(0, -1
     return fr * (1 - Lp[..., None]) + np.clip(col, 0, 2) * Lp[..., None]
 
 
-# V09 25.29–27.10 MS 悬空巨天平：左盘千人、右盘一枚金印仍压下；环绕；字沿横梁排列，「人命」朱红
+# V09 25.29–27.10（第六棒重做，critic_A_r3 P0 不可交付：矢量线天平 + 平涂金块 + 灰渐变无空间）
+#   MS 暗殿中的青铜天平（bronze_scale 新生图：饕餮纹铜梁、铜链、左盘层叠剪纸人、右盘盘龙金玺，梁右低）。
+#   三层空间：后景 = 殿内两根朱漆柱 + 远处烛架光斑（焦外）+ 天窗体积光；中景 = 天平（金色主光右上、冷轮廓左后）；
+#   前景 = 焦外烛焰与一根横移的暗柱边（环绕视差）；地面 = 磨光金砖，天平倒影。
+#   歌词：梁下左右两列竖排（像一副对联挂在梁下）——左「谁把人命」贴着纸人盘，右「装进天平」贴着金玺盘；离梁 ≥80px；
+#   「人命」朱红描金边 + 暗衬，缩到 480px 宽仍可读。
 class V09(Shot):
     def __init__(self):
-        self.bal = PR.Balance(seed=4, people=90)
+        import a_r6
+        self.spr = a_r6.clean('A_r6/bronze_scale', lo=0.2, erode=3)
+        self.floor = (0.7 + 0.5 * cv2.resize(A.tex(93, 512, 5, 5), (W, H)))[..., None]
+        T.warm('谁把人命装进天平', 'kai', 92)
     def render(self, t):
         u = self.u(t)
-        fr = night((0.012, 0.012, 0.02), (0.06, 0.055, 0.06))
-        fr = A.glow(fr, (960, 260), 650, 0.3, (0.6, 0.55, 0.45))
-        fr = fx2.god_rays(fr, (960, 160), strength=0.5, length=1.0, color=(0.9, 0.8, 0.6), t=t, src_r=160)
-        tilt = -9 + 2 * math.sin(t * 1.3)
-        fr, info = self.bal.draw(fr, t, 960, 262, 1120, tilt=tilt, left_people=0.0, right='seal', rim_color=GOLDV, drip=0.5)
-        pl = info.get('pan_L')
-        if pl is not None: fr = paper_crowd(fr, t, pl[0], pl[1] - 6, 290, hpx=62, seed=9)
-        fr = fog(fr, t, 1, 700, 960, 0.4, (0.25, 0.24, 0.26), speed=(-30, 0))
-        # 沿横梁排字（屏幕层随梁倾斜）
-        txt = '谁把人命装进天平里'; ks = list(range(9))
-        L = T.Layer(); ang = math.radians(tilt)
-        for i, (c, p) in enumerate(zip(txt, cprog(3, ks, t, 0.2))):
-            if p <= 0: continue
-            d = (i - 4.5) * 120 + (60 if i >= 5 else -0)                       # 第三棒：字挂在梁下（让开支柱），守安全区
-            x = 960 + d * math.cos(ang); y = 262 + 100 - d * math.sin(ang) + 30 * (1 - p)
-            col = (0.86, 0.12, 0.08) if c in '人命' else (0.95, 0.92, 0.86)
-            T.place(L, c, x, y, 88, col, 'kai', alpha=eout(p), rot=-tilt, blur=4 * (1 - p))
-        fr = T.compose(fr, L, shadow=0.7, glow=0.25)
+        fr = A.vgrad((0.012, 0.009, 0.008), (0.035, 0.026, 0.02), 0, 880)
+        # 后景：两根朱漆殿柱（焦外）+ 远烛光斑
+        xx = np.arange(W, dtype=np.float32)[None, :, None]; yy = np.arange(H, dtype=np.float32)[:, None, None]
+        for cx_, w_ in ((250 - 60 * u, 120), (1680 - 60 * u, 130)):
+            m = np.clip((w_ / 2 - np.abs(xx - cx_)) / 30, 0, 1) * (yy < 880)
+            shade = 0.5 + 0.5 * np.clip((xx - cx_ + w_ / 2) / w_, 0, 1)
+            fr = fr * (1 - m) + m * np.array([0.10, 0.018, 0.012], np.float32) * shade
+        for i, (bx, by) in enumerate(((420, 520), (470, 560), (1460, 500), (1520, 540), (1400, 580))):
+            fl = 0.85 + 0.15 * math.sin(t * 9 + i * 2)
+            fr = A.glow(fr, (bx - 60 * u, by), 26, 0.55 * fl, (1.0, 0.62, 0.3), aspect=1.4)
+            fr = A.glow(fr, (bx - 60 * u, by), 120, 0.10 * fl, (1.0, 0.5, 0.2))
+        fr = fx2.god_rays(fr, (1180, 40), strength=0.45, length=1.1, color=(1.0, 0.82, 0.55), t=t, src_r=200)
+        # 地面：磨光金砖（缝 + 烛光反射）
+        fl_m = np.clip((yy - 880) / 3, 0, 1)
+        tiles = 1 - 0.35 * ((np.mod(xx + (yy - 880) * (xx - 960) / 300, 240) < 3) | (np.mod(yy, 46) < 2))
+        fr = fr * (1 - fl_m) + fl_m * self.floor * tiles * np.array([0.05, 0.035, 0.025], np.float32)
+        # 天平：先在黑底合成拿到预乘色，再做倒影
+        z = np.zeros((H, W, 3), np.float32)
+        rot = 0.5 * math.sin(t * 1.3)
+        P, info = A.place(z, t, self.spr, (960, 880), h=740, anc=(0.5, 1.0), rim=COLD, rim_amt=1.4, rim_dir=(-0.8, -0.5),
+                          grade=dict(expo=1.05, sat=0.85, tint=(1.04, 1.0, 0.92), gamma=1.0), wind=0, breathe=0.0, rot=rot)
+        Al = info['A'][..., None]
+        Rf = cv2.flip(P[880 - 120:880], 0); Ra = cv2.flip(Al[880 - 120:880, :, 0], 0)[..., None]
+        g = np.linspace(0.35, 0.0, 80, dtype=np.float32)[:, None, None]
+        fr[880:960] = fr[880:960] * (1 - Ra[:80] * g) + cv2.GaussianBlur(Rf[:80], (0, 0), 3) * g
+        fr = fr * (1 - Al) + P
+        fr = A.glow(fr, info['to_scr']((0.78, 0.63)), 90, 0.25 + 0.1 * math.sin(t * 5), (1.0, 0.8, 0.4))   # 金玺反光
+        fr = fog(fr, t, 1, 640, 900, 0.30, (0.20, 0.15, 0.11), speed=(-30, 0), light=(1180, 40))
+        # 前景：焦外暗柱边横移 + 焦外烛焰
+        fx_ = 1980 - 520 * u
+        m = np.clip((fx_ - xx) / 40 + 0, 0, 1) * 0 + np.clip((xx - fx_) / 40, 0, 1)
+        fr = fr * (1 - 0.92 * m)
+        fr = A.glow(fr, (140 + 80 * u, 900), 70, 0.5, (1.0, 0.55, 0.25), aspect=1.3)
+        # 梁下两列竖排
+        L = T.Layer(); Lr = T.Layer()
+        cols = (('谁把人命', [0, 1, 2, 3], (0.430, 0.235)), ('装进天平', [4, 5, 6, 7], (0.603, 0.315)))
+        for txt, ks, (nx, ny) in cols:
+            x0, y0 = info['to_scr']((nx, ny))
+            for i, (c, p) in enumerate(zip(txt, cprog(3, ks, t, 0.22))):
+                if p <= 0: continue
+                red = c in '人命'
+                g_ = T.brush_glyph(c, 'kai', 92, p, seed=30 + i + ks[0])
+                (Lr if red else L).paste(g_, x0, y0 + 46 + i * 98, (0.98, 0.22, 0.12) if red else (0.96, 0.93, 0.86))
+        fr = T.compose(fr, L, shadow=0.85, shadow_sigma=12, glow=0.15)
+        fr = T.compose(fr, Lr, shadow=0.9, shadow_sigma=12, outline=2, outline_color=(1.0, 0.78, 0.40), glow=0.35, glow_color=(0.9, 0.15, 0.06))
         return fr, 0
 
 
@@ -1521,7 +1616,7 @@ LY2 = [
     (0, [(k, 84, _R if k == 5 else _Wt) for k in range(2, 9)], 1300, 330, 17.92, False),             # 压在我刀锋之上
     (1, [(4, 190, _Wt), (5, 190, _Wt), (6, 190, _R), (7, 90, _Wt), (8, 90, _Wt)], 600, 330, 20.78, False),   # 拦不住·一道（第五棒：移到上方天幕，21.13 前退净，给 20.82「寒」让下方）
     (2, [(0, 190, _Wt), (1, 190, _Wt), (2, 190, _G), (3, 190, _G)], 960, 900, 23.44, False),        # 谁在高处（自殿檐压下）
-    (2, [(4, 96, _Wt), (5, 96, _Wt), (6, 96, _Wt)], 1480, 330, 25.05, False),                       # 定对错（→ 罪状朱印）
+    (2, [(4, 96, _Wt), (5, 96, _Wt), (6, 96, _Wt)], 1660, 820, 24.40, False),                       # 定对错（第六棒：移到右下太上皇袍面暗区，切俯拍前退净）
     (4, [(k, 80, _R if k == 1 else _Wt) for k in range(0, 5)], 1360, 880, 30.74, False),            # 我杀过恶徒
     (4, [(k, 80, _Wt) for k in range(5, 10)], 640, 880, 32.55, False),                              # 也放过混账
     (6, [(0, 120, _Wt), (1, 220, _R), (2, 220, _R)], 560, 880, 38.08, False),                       # 若「正义」

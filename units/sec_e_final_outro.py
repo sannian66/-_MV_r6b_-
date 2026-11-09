@@ -60,25 +60,45 @@ def bloom(fr, thr=0.8, amt=0.5, sig=30): return K.bloom(fr, thr, amt, sig)
 
 
 # =========================================================================================== 副歌终「定」
-class E01(Shot):   # S111 ECU 刃口迎日：日光沿刃口扫过，巨字「血」火烧出
+class E01(Shot):   # S111 ECU（第六棒重做，去和副歌一 S028「横刀 + 刀上方巨字」撞构图）：竖刀刀尖朝天、纵贯画面偏右，
+    #  逆光晨日在左下画外；一道日光沿刃口自下而上扫到刀尖；「血」以碑拓材质拓在刃面上 —— 刃面里的倒影（随刃面高光一起闪）；
+    #  副句「未冷」移到右上（刀的另一侧、远离左下）
     def __init__(self):
-        self.sky = E.dawn_sky(111, horizon=0.78, sun=(1560, 600), mid=(0.42, 0.29, 0.16), cloud=0.5)
-        self.l2 = Sub('未冷', cts(48, [1, 2]), 'left', CT(48, 2) + 0.15, seed=2)   # 统一副句
+        self.sky = E.dawn_sky(111, horizon=0.86, sun=(260, 900), mid=(0.40, 0.27, 0.15), cloud=0.55)
+        self.l2 = Sub('未冷', cts(48, [1, 2]), 1560, CT(48, 2) + 0.15, seed=2, y=330)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (1560, 610), 70, amt=1.1)
-        fr = fx2.god_rays(fr, (1560, 610), strength=0.5, length=0.8, t=t)
-        # 刀（S118 交叉斩的刀刃特写，旋成斜向横贯画面），轻微滑动
-        fr, info = put(fr, t, 'S118/xslash|crop=0.58,0.40,1,0.78', (980 - 120 * u, 610 + 20 * u), w=2500, anc=(0.5, 0.5),
-                       rot=24, rim=GOLDW, rim_amt=3.2, rim_dir=(0.6, -0.8), grade=G_HOT, wind=0)
-        sx = -200 + 2300 * eio(u * 1.1)                                   # 日光扫刃
-        fr = E.flare_streak(fr, (sx, 640 - (sx - 980) * 0.42), amt=1.0, angle=-23)
-        fr = E.dust_motes(fr, t, 111, n=70, amt=0.5, drift=(60, -10), depth=True)
+        fr = self.sky.copy()
+        fr = fx2.god_rays(fr, (260, 900), strength=0.55, length=0.9, t=t, src_r=160)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/blade_tip', (1130 + 25 * u, 150 - 30 * u), h=2900, anc=(0.5, 0.0),
+                      rot=-6, rim=GOLDW, rim_amt=2.6, rim_dir=(-0.7, 0.7), grade=G_HOT, wind=0)
+        A = info['A']
+        self.blade = (info['to_scr'], A)
+        yy, xx = E.grid()
+        sy = 1000 - 1050 * eio(c01(u * 1.15))                              # 日光沿刃口自下而上扫
+        sheen = np.exp(-((yy - sy) / 70) ** 2)[..., None] * np.array([1.0, 0.85, 0.6], np.float32) * 1.4
+        z = z + sheen * A[..., None]
+        fr = fr * (1 - A[..., None]) + z
+        tip = info['to_scr']((0.5, 0.04))
+        ex = info['to_scr']((0.42, (sy - 150) / 2900 * 1.0 + 0.04))
+        fr = E.flare_streak(fr, (ex[0], sy), amt=1.0, angle=0)
+        if u > 0.75: fr = E.flare_streak(fr, tip, amt=1.6 * c01((u - 0.75) / 0.1) * (1 - c01((u - 0.9) / 0.1)), angle=0)
+        fr = E.dust_motes(fr, t, 111, n=70, amt=0.5, drift=(60, -20), depth=True)
         return bloom(fr, 0.75, 0.6)
 
     def text(self, fr, t):
-        fr = R3.blood_rub(fr, '血', 470, 500, 440, c01((t - (CT(48, 0) - 0.1)) / 0.22), seed=11)   # 「血」碑拓材质
+        if hasattr(self, 'blade'):
+            to_scr, A = self.blade
+            c = to_scr((0.51, 0.20))
+            p = c01((t - (CT(48, 0) - 0.1)) / 0.22)
+            if p > 0:
+                rub = R3.blood_rub(fr.copy(), '血', c[0], c[1], 210, p, seed=11)            # 碑拓「血」拓在刃面上
+                Ab = cv2.GaussianBlur(cv2.erode(A, np.ones((7, 7), np.uint8)), (0, 0), 1.5)[..., None]
+                fr = fr * (1 - Ab) + rub * Ab
+                ghost = R3.blood_rub(np.zeros_like(fr), '血', c[0] - 40, c[1] + 300, 260, p, seed=12)   # 刃面倒影：下方一枚拉长、虚化的反影
+                ghost = cv2.GaussianBlur(cv2.resize(ghost, (W, int(H * 1.0))), (0, 0), 4)
+                fr = fr + ghost * Ab * 0.35
         return self.l2.draw(fr, t)
 
 

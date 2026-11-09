@@ -1098,13 +1098,13 @@ class V19(Shot):
 
     def render(self, t):
         u = self.u(t)
-        e = eout(clamp01(u * 1.6), 3)
+        e = eout(clamp01(u * 3.0), 3)          # 第五棒 9/n：甩入转身 0.4s 内落定（原 0.75s 全程糊）
         fr = self.fog.draw(self.bg.copy(), t, density=0.45, y0=400, y1=960, color=(0.30, 0.32, 0.35), speed=(-200 * (1 - e), 0))
         whip = (1 - e)
         fr, _ = put_at(fr, self.sp, t, (0.42, 0.85), (980 - 260 * whip, 880), 1900, rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(-0.7, -0.7)),
-                       wind_amp=14, mblur=(-90 * whip, 0), shade=(600, 1700, 0.25, 600, 0.3))
-        fr = K.sparks(fr, t, 6404, (640, 260), n=70, life=0.7, speed=(300, 900), dirc=(-1, -0.2), spread=0.8, grav=900, size=1.3,
-                      area=(80, 80), color=(0.8, 0.85, 0.95), amt=0.9, t0=self.t0 + 0.05, burst=True)
+                       wind_amp=14, mblur=(-55 * whip, 0), shade=(600, 1700, 0.25, 600, 0.3))
+        fr = K.sparks(fr, t, 6404, (640, 300), n=36, life=0.45, speed=(300, 900), dirc=(-1, -0.2), spread=1.1, grav=900, size=1.0,
+                      area=(220, 160), color=(0.8, 0.85, 0.95), amt=0.7, t0=self.t0 + 0.05, burst=True)   # 甩水珠：散开、不成方块
         pr = prs(25, [8, 9], t)
         fr = T.scatter_stack(fr, '手掌', pr, places=[dict(ch='手', x=1500, y=640, size=220, rot=-5, font='xing', idx=0, emph=False),
                                                        dict(ch='掌', x=1700, y=800, size=260, rot=6, font='xing', idx=1, emph=True)],
@@ -1469,7 +1469,7 @@ CUTS = {
     'V16': ('rain_curtain', 0.08, 0.18, dict(seed=16)),             # 第四棒：灰雾 smoke → 雨帘落幕（b_kit）
     'V17': ('hard', 0, 0, {}),
     'V18': ('punch', 0, 0, {}),
-    'V19': ('match_cut', 0.0, 0.10, dict(shape='circle', center=(860, 470), radius=200, glow=np.zeros(3, np.float32))),
+    'V19': ('hard', 0, 0, {}),                                      # 第五棒 9/n：match_cut 中点双影糊 → 落拍硬切冲击（推近+提亮 2 帧），拳 → 张开的手掌
     'V20': ('split_slide', 0.06, 0.14, dict(angle=0.0, center=(960, 560))),   # 第四棒：whip 糊黑 → 水平分屏（水面线），上岸下影反向滑
     'V21': ('none', 0, 0, {}),
     'V22': ('punch', 0, 0, {}),                                     # 第四棒：灰 glitch → 落拍硬切冲击（推近+色散）
