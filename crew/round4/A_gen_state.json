@@ -58,17 +58,19 @@
   "kneel_beg": [
    {
     "task_id": "dcacb003-4d50-4198-bf20-818431504e2c",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/kneel_beg_dcacb003_0.png",
+    "accepted": true
    }
   ],
   "villain_fall": [
    {
     "task_id": "9f74a166-620f-42d7-ac29-417641e434ad",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/villain_fall_9f74a166_0.png",
+    "accepted": true
    }
   ]
  }

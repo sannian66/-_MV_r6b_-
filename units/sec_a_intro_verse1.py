@@ -295,51 +295,97 @@ class A07(Shot):
 
 # A08 13.35–15.21 ELS 月下城墙绵延；14.28 云内闪电亮，照出云上太上皇巨影（一拍即逝）
 class A08(Shot):
+    """第二棒重做：城墙不再是一条平涂垛口——透视纵深的长城（近大远小、垛口按深度缩放、砖缝纹理、月光顶边轮廓、
+    三座敌楼带飞檐与灯火），远端爬上山脊蜿蜒入云；前景城墙走道雾；闪电时照出云中太上皇巨影。"""
+    VP = (1820, 640)
     def __init__(self):
         self.bg = night((0.012, 0.014, 0.024), (0.08, 0.085, 0.10))
-        self.wall = self._wall()
+        self.wall, self.face_lit, self.edge, self.towers = self._wall()
     def _wall(self):
-        m = np.zeros((H, W), np.float32)
-        r = np.random.default_rng(8)
-        base = 760
-        pts = [(0, base)]
-        x = 0
-        while x < W + 40:                               # 垛口
-            pts += [(x, base), (x, base - 22), (x + 26, base - 22), (x + 26, base)]
-            x += 44
-        pts += [(W, H), (0, H)]
-        cv2.fillPoly(m, [np.array(pts, np.int32)], 1.0, cv2.LINE_AA)
-        # 城楼（两层飞檐）
-        cx = 640
-        for (w, y0, y1) in ((300, 600, 760), (260, 530, 600), (190, 470, 530)):
-            cv2.rectangle(m, (cx - w // 2 + 30, y0), (cx + w // 2 - 30, y1), 1.0, -1)
-            roof = np.array([(cx - w // 2 - 50, y0 + 6), (cx - w // 2, y0 - 18), (cx + w // 2, y0 - 18), (cx + w // 2 + 50, y0 + 6)], np.int32)
-            cv2.fillPoly(m, [roof], 1.0, cv2.LINE_AA)
-        return cv2.GaussianBlur(m, (0, 0), 0.8)
+        q = 2; h, w = H // q, W // q
+        vx, vy = self.VP[0] / q, self.VP[1] / q
+        Aw, Ht, Hb = 2300 / q, 420 / q, 460 / q
+        xx = np.arange(w, dtype=np.float32)
+        z = np.clip(Aw / np.maximum(vx - xx, 1e-3), 1.0, 60)            # 每列深度
+        top = vy - Ht / z; bot = vy + Hb / z
+        yy = np.arange(h, dtype=np.float32)[:, None]
+        m = ((yy >= top[None]) & (yy <= bot[None])).astype(np.float32) * (xx[None] < vx - 2)
+        # 垛口：世界间距 0.18（深度单位），高 0.06*Ht
+        s_ = z - 1
+        mer = (np.mod(s_ * 5.5, 1.0) < 0.55)
+        mt = top - (Ht * 0.10) / z
+        m = np.maximum(m, ((yy >= mt[None]) & (yy < top[None]) & mer[None]).astype(np.float32) * (xx[None] < vx - 2))
+        # 砖缝：横缝 22 行，竖缝随行错位
+        v = np.clip((yy - top[None]) / np.maximum(bot - top, 1e-3)[None], 0, 1)
+        row = np.floor(v * 22)
+        jx = np.mod(s_[None] * 14 + 0.5 * np.mod(row, 2), 1.0)
+        mort = ((np.mod(v * 22, 1.0) < 0.10) | (jx < 0.07)).astype(np.float32)
+        fade = np.clip((z - 1) / 10, 0, 1)[None]                           # 远处砖纹平均掉
+        nz = cv2.resize(A.tex(81, 512, 6, 6), (w, h))
+        stain = 0.75 + 0.5 * nz * (1 - v * 0.5)
+        face = (1 - 0.55 * mort * (1 - fade)) * stain * (1 - 0.6 * v) * m    # 月光自上而下衰减
+        # 顶边月光轮廓（含垛口）
+        e = np.clip(m - cv2.erode(m, np.ones((3, 3), np.uint8)), 0, 1)
+        e = e * (yy < (top[None] + 6))
+        # 敌楼
+        towers = []
+        for zt in (1.55, 3.4, 8.0):
+            xt = vx - Aw / zt; sc = 1 / zt
+            towers.append((xt * q, top[int(np.clip(xt, 0, w - 1))] * q, sc))
+        m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 0.6), (W, H)); face = cv2.resize(face, (W, H)); e = cv2.resize(e, (W, H))
+        Tm = np.zeros((H, W), np.float32); Te = np.zeros((H, W), np.float32)
+        for (xt, yt, sc) in towers:
+            S_ = 2300 * sc
+            bw, bh = 0.30 * S_, 0.20 * S_
+            x0, x1 = int(xt - bw / 2), int(xt + bw / 2)
+            cv2.rectangle(Tm, (x0, int(yt - bh)), (x1, int(yt + 4)), 1.0, -1)
+            for k, (rw, ry, rh) in enumerate(((0.44, bh, 0.05), (0.34, bh + 0.11 * S_, 0.045))):
+                y0 = int(yt - ry); W2 = rw * S_ / 2
+                pts = np.array([(xt - W2 - 0.03 * S_, y0 + 0.012 * S_), (xt - W2 * 0.82, y0 - rh * S_ * 0.35), (xt - W2 * 0.55, y0 - rh * S_),
+                                (xt + W2 * 0.55, y0 - rh * S_), (xt + W2 * 0.82, y0 - rh * S_ * 0.35), (xt + W2 + 0.03 * S_, y0 + 0.012 * S_)], np.int32)
+                cv2.fillPoly(Tm, [pts], 1.0, cv2.LINE_AA)
+                cv2.polylines(Te, [pts[:4]], False, 1.0, max(1, int(3 * sc * 1.5)), cv2.LINE_AA)
+                if k == 0:
+                    cv2.rectangle(Tm, (int(xt - 0.11 * S_), int(y0 - 0.11 * S_)), (int(xt + 0.11 * S_), y0), 1.0, -1)
+            for j in (-1, 0, 1):                                            # 箭窗（灯火位置）
+                towers_win = (xt + j * bw * 0.28, yt - bh * 0.55, sc)
+                towers.append(towers_win)
+        return (m, Tm), face, (e, Te), towers
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
         env = 0.0
         for t0, a in ((V(14.28), 1.0), (V(14.28) + 0.12, 0.6), (V(14.28) + 0.3, 0.4)):
             if t >= t0: env = max(env, a * math.exp(-(t - t0) / 0.09))
-        # 巨影：闪电时从云里显出
-        if env > 0.02 or (V(14.28) - 0.05 < t < V(14.28) + 0.9):
+        if env > 0.02 or (V(14.28) - 0.05 < t < V(14.28) + 0.9):            # 巨影：闪电时从云里显出
             lit = np.clip(env * 2, 0, 1)
-            fr = A.glow(fr, (1200, 400), 560, 0.9 * lit, (0.75, 0.8, 0.95))
-            fr, _ = A.place(fr, t, S('S011/backlit'), (1200, 1040), h=1000, look='sil', rim=(0.85, 0.9, 1.0), rim_amt=5.0, wind=5,
-                            alpha=0.18 + 0.8 * lit)
-        fr = A.moon(fr, 1560, 260, 70, 0.9, halo=0.5)
-        fr = A.clouds(fr, t, 31, speed=(25, 0), y0=120, y1=640, amt=0.9, col=(0.13, 0.14, 0.18), light=(1200, 330), light_r=600,
+            fr = A.glow(fr, (1000, 380), 560, 0.9 * lit, (0.75, 0.8, 0.95))
+            fr, _ = A.place(fr, t, S('S011/backlit'), (1000, 900), h=900, look='sil', rim=(0.85, 0.9, 1.0), rim_amt=5.0, wind=5,
+                            alpha=0.15 + 0.75 * lit)
+        fr = A.moon(fr, 1500, 230, 62, 0.9, halo=0.5)
+        fr = A.clouds(fr, t, 31, speed=(25, 0), y0=120, y1=600, amt=0.9, col=(0.13, 0.14, 0.18), light=(1000, 330), light_r=600,
                       light_col=(0.9, 0.92, 1.0), thr=0.44)
         if env > 0: fr = fr + env * 0.18 * np.array([0.8, 0.85, 1.0], np.float32)
-        fr, _ = A.ridge(fr, 760, 120, 71, tone=(0.04, 0.045, 0.06), dx=-u * 20)
-        wl = self.wall[..., None]
-        fr = fr * (1 - wl) + wl * (0.010 + 0.05 * env)
-        edge = np.clip(self.wall - cv2.erode(self.wall, np.ones((3, 3), np.uint8)), 0, 1)
-        fr = fr + edge[..., None] * (np.array([0.55, 0.62, 0.8], np.float32) * (0.35 + 1.2 * env))
-        for x, y in ((560, 650), (720, 650), (640, 560)):                                # 城楼灯火
-            fr = A.glow(fr, (x, y), 10, 0.9, (1.0, 0.62, 0.3))
-        fr = fog(fr, t, 0, 690, 960, 0.55, (0.30, 0.33, 0.40), speed=(-35, 0))
+        # 远山 + 山脊上蜿蜒的城墙（细线 + 垛点）
+        fr, rl = A.ridge(fr, 700, 150, 71, tone=(0.035, 0.04, 0.055), rim=(0.5, 0.56, 0.72), rim_amt=0.3, dx=-u * 15, fogcol=(0.10, 0.11, 0.14), fog=0.6)
+        Lw = np.zeros((H, W), np.float32)
+        xs = np.arange(1100, W, 3); ys = rl[xs] - 3
+        cv2.polylines(Lw, [np.stack([xs, ys], 1).astype(np.int32)], False, 1.0, 3, cv2.LINE_AA)
+        for x in range(1100, W, 9): cv2.line(Lw, (x, int(rl[x] - 4)), (x, int(rl[x] - 7)), 1.0, 2)
+        fr = fr * (1 - Lw[..., None] * 0.9) + Lw[..., None] * np.array([0.30, 0.34, 0.45], np.float32) * (0.5 + env)
+        fr = fog(fr, t, 1, 560, 760, 0.45, (0.20, 0.22, 0.28), speed=(-20, 0))
+        # 近处城墙
+        (m, Tm), face, (e, Te), towers = self.wall, self.face_lit, self.edge, self.towers
+        k = 1 + 1.5 * env
+        col = np.array([0.050, 0.056, 0.075], np.float32) * k
+        fr = fr * (1 - m[..., None]) + (face[..., None] * col + 0.006) * m[..., None]
+        fr = fr * (1 - Tm[..., None]) + Tm[..., None] * (0.008 + 0.03 * env)
+        fr = fr + (e + Te)[..., None] * np.array([0.55, 0.62, 0.82], np.float32) * (0.45 + 1.4 * env)
+        for (x, y, sc) in towers[3:]:                                       # 敌楼箭窗灯火（微颤）
+            fl = 0.8 + 0.2 * math.sin(t * 17 + x)
+            fr = A.glow(fr, (x, y), max(3, 26 * sc * 1.2), 1.2 * fl, (1.0, 0.58, 0.25))
+        fr = A.glow(fr, towers[3][:2], 220, 0.10, (1.0, 0.55, 0.25))
+        fr = fog(fr, t, 0, 820, 1000, 0.6, (0.28, 0.31, 0.38), speed=(-45, 0))
         fr = ASH.draw(fr, t, 0.5 * clamp01(1 - u * 1.5), wind=(220, -60))
         return fr, (3 if env > 0.6 else 0)
 
@@ -663,8 +709,8 @@ class V12(Shot):
         fr = A.glow(fr, (1400, 420), 500, 0.35, (0.9, 0.2, 0.12))
         fr = _bamboo(fr, t, 0.10 * u)
         a = t - ts
-        # 恶徒：一道倒下的黑剪影（前倾倒地）
-        fr = _villain(fr, 1330, 960, 600, 0.0, red=a >= 0, cut=(max(0.0, a), 32))
+        # 恶徒（第二棒：villain_fall 精灵替换代码剪影）：被斩后沿斩线一刀两断、上半滑落
+        fr = _villain_spr(fr, t, a, (1330, 1000), 640)
         fr, info = A.place(fr, t, S('S014/slash_diag'), (720, 990), h=640, rim=REDR, rim_amt=3.0, wind=10, grade=dict(expo=0.85, sat=0.6))
         if a >= 0:
             fr = streak(fr, 480, 1700, 300, a / 0.09, w=6, amt=1.5, ang=32, col=(1.0, 0.85, 0.8))
@@ -686,6 +732,28 @@ def _bamboo(fr, t, dx):
         for y in range(0, H // 2, int(r.uniform(40, 80))): cv2.line(L, (int(x - 1), y), (int(x + w + 1), y), tone * 0.5, 1)
     L = cv2.resize(cv2.GaussianBlur(L, (0, 0), 3), (W, H))
     return fr * (1 - 0.65 * L[..., None])
+
+
+def _villain_spr(fr, t, a, at, h, deg=32):
+    """恶徒精灵：先在黑底单独合成（得到预乘色 + alpha），斩后沿 deg 斜线分成两半，上半沿斩线滑开下坠；断口朱红。"""
+    z = np.zeros((H, W, 3), np.float32)
+    back = 0.0 if a < 0 else 40 * eout(a / 0.4)
+    P, info = A.place(z, t, A.bg_matte('A/villain_fall'), (at[0] + back, at[1]), h=h, anc=(0.5, 1.0), rim=REDR, rim_amt=2.4,
+                      rim_dir=(-0.8, -0.4), grade=dict(expo=0.75, sat=0.5, tint=(1.04, 0.95, 0.92)), wind=8, rot=-6 * eout(max(0, a) / 0.5))
+    Al = info['A'][..., None]
+    if a > 0:
+        th = math.radians(deg); cy = at[1] - 0.55 * h
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        n = -(xx - at[0]) * math.sin(th) + (yy - cy) * math.cos(th)
+        side = (n < 0).astype(np.float32)[..., None]
+        sl = 240 * a ** 1.2
+        M = np.float32([[1, 0, sl * math.cos(th)], [0, 1, sl * math.sin(th) + 260 * a * a]])
+        Pu = cv2.warpAffine(P * side, M, (W, H)); Au = cv2.warpAffine(Al * side, M, (W, H))[..., None]
+        P = P * (1 - side) + Pu; Al = Al * (1 - side) + Au
+        seam = np.exp(-(n / 3.0) ** 2) * (np.abs(xx - at[0]) < h * 0.4)
+        fr = fr + seam[..., None] * RED * 2.2 * math.exp(-a / 0.5) * cv2.GaussianBlur(info['A'], (0, 0), 6)[..., None] * 3
+    fr = fr * (1 - Al) + P
+    return fr
 
 
 def _villain(fr, x, y, h, ang, red=False, cut=None):
@@ -724,14 +792,10 @@ class V13(Shot):
         fr = _bamboo(fr, t, -0.08 * u)
         fr = fog(fr, t, 2, 700, 960, 0.45, (0.25, 0.28, 0.34), speed=(-40, 0))
         fr, info = A.place(fr, t, S('S014/sheath'), (1250, 990), h=700, rim=COLD, rim_amt=3.2, wind=8, grade=dict(expo=0.85, sat=0.5))
-        # 跪地者（左前景，前倾磕头）
-        bow = 0.5 + 0.5 * math.sin(t * 5)
-        m = np.zeros((H, W), np.float32)
-        cv2.ellipse(m, (430, 870), (170, 110), 0, 180, 360, 1.0, -1, cv2.LINE_AA)
-        cv2.circle(m, (int(560 + 10 * bow), int(820 + 12 * bow)), 42, 1.0, -1, cv2.LINE_AA)
-        cv2.rectangle(m, (260, 870), (600, 960), 1.0, -1)
-        m = cv2.GaussianBlur(m, (0, 0), 2)
-        fr = fr * (1 - m[..., None]) + 0.006 * m[..., None]
+        # 跪地者（第二棒：kneel_beg 精灵替换代码糊团）：左前景，面朝鬼屠磕头求饶；前景虚焦 + 冷轮廓
+        bow = 0.5 + 0.5 * math.sin(t * 6.0)
+        fr, _ = A.place(fr, t, A.bg_matte('A/kneel_beg'), (560, 1010), h=560, anc=(0.55, 1.0), flip=True, rim=COLD, rim_amt=2.6,
+                        rim_dir=(0.7, -0.6), grade=dict(expo=0.55, sat=0.4, gamma=1.3), wind=3, rot=2.5 * bow, defocus=1.2)
         L = T.Layer(); p = cprog(4, [6], t, 0.25)[0]
         if p > 0: L.paste(T.ink_bleed_glyph('放', 'kai', 360, p, seed=6, bleed=0.8), 1680, 420, (0.55, 0.57, 0.62))
         fr = T.compose(fr, L, shadow=0.6, glow=0.1)
@@ -1051,7 +1115,7 @@ LY = [  # (行, 字序, x, y0, 字号, 朱, 金, 退场时刻)
     (2, list(range(7)), 230, 200, 80, '', '', 25.10),             # 谁在高处定对错（「罪状」= V08 朱印）
     (3, [9], 0, 0, 0, '', '', 0),                                  # （V09 沿梁 / V10 称量）——占位不画
     (4, [0, 2, 3, 4, 5], 1700, 230, 78, '', '', 30.70),           # 我 过恶徒也（杀 V12 巨字）
-    (4, [7, 8, 9], 230, 300, 78, '', '', 32.50),                  # 过混账（放 V13 巨字）
+    (4, [7, 8, 9], 900, 300, 78, '', '', 32.50),                  # 过混账（放 V13 巨字）
     (6, list(range(8)), 240, 190, 80, '正义', '权势', 40.75),
     (7, list(range(8)), 1700, 180, 80, '', '', 42.62),
 ]

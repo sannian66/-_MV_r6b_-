@@ -273,3 +273,43 @@ def defringe(key, erode=5, work=2560):
     rgb = rgb * (1 - w) + np.minimum(rgb, ext) * w
     Image.fromarray((np.concatenate([rgb, Ae[..., None]], -1) * 255 + 0.5).astype(np.uint8), 'RGBA').save(out)
     return out
+
+
+def bg_matte(key, lo=0.05, hi=0.14, work=2560):
+    """第二棒：背景有暗角/渐变的灰底 → 遮住主体后 inpaint 估出背景场，再做色差抠像（救回 recut 丢掉的手、飞刀）。"""
+    os.makedirs(CACHE, exist_ok=True)
+    out = CACHE + '/bm4_' + hashlib.md5(f'{key}{lo}{hi}{work}'.encode()).hexdigest()[:12] + '.png'
+    if os.path.exists(out): return out
+    im = Image.open(GEN + key + '_raw.png').convert('RGB')
+    im = im.resize((work, round(work * im.size[1] / im.size[0])), Image.LANCZOS)
+    F = np.asarray(im).astype(np.float32) / 255
+    h, w = F.shape[:2]
+    q = 8; sm = cv2.resize(F, (w // q, h // q), interpolation=cv2.INTER_AREA)
+    # 粗主体：与局部中值差异大 / 很暗 / 有饱和度
+    med = cv2.medianBlur((sm * 255).astype(np.uint8), 31).astype(np.float32) / 255
+    d0 = np.abs(sm - med).max(-1)
+    m = ((d0 > 0.05) | (sm.max(-1) - sm.min(-1) > 0.08)).astype(np.uint8)
+    m = cv2.dilate(m, np.ones((9, 9), np.uint8))
+    bg = cv2.inpaint((sm * 255).astype(np.uint8), m * 255, 9, cv2.INPAINT_TELEA).astype(np.float32) / 255
+    bg = cv2.GaussianBlur(bg, (0, 0), 4)
+    B = cv2.resize(bg, (w, h), interpolation=cv2.INTER_CUBIC)
+    d = np.sqrt(((F - B) ** 2).sum(-1))
+    A = np.clip((d - lo) / (hi - lo), 0, 1)
+    A = cv2.morphologyEx(A, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    if os.path.exists(GEN + key + '_cut.png'):                      # 并上 recut 主体（填身体内部近灰的洞）
+        c = np.asarray(Image.open(GEN + key + '_cut.png').convert('RGBA').resize((w, h))).astype(np.float32)[..., 3] / 255
+        A = np.maximum(A, cv2.erode(c, np.ones((5, 5), np.uint8)) * np.clip((d - 0.012) / 0.02, 0, 1))
+    inner = cv2.erode((A > 0.5).astype(np.uint8), np.ones((15, 15), np.uint8)).astype(np.float32)
+    Ac = cv2.morphologyEx(A, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    A = np.maximum(A, Ac * cv2.GaussianBlur(inner, (0, 0), 3))
+    # 小洞填实（与外界不连通、面积 < 0.4% 的透明区）
+    bm = (A < 0.5).astype(np.uint8)
+    n, lab, stt, _ = cv2.connectedComponentsWithStats(bm, 4)
+    border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])))
+    small = [i for i in range(1, n) if i not in border and stt[i, cv2.CC_STAT_AREA] < 0.004 * h * w]
+    if small:
+        A = np.where(np.isin(lab, small), 1.0, A).astype(np.float32)
+    A = cv2.GaussianBlur(A, (0, 0), 0.8)
+    Fu = np.clip((F - B * (1 - A[..., None])) / np.maximum(A[..., None], 0.08), 0, 1)
+    Image.fromarray((np.concatenate([Fu, A[..., None]], -1) * 255 + 0.5).astype(np.uint8), 'RGBA').save(out)
+    return out
