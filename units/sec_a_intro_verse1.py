@@ -414,11 +414,13 @@ class V01(Shot):
         cy = 380 + 260 * eio(u)                                                        # 云底压下
         fr = A.clouds(fr, t, 41, speed=(10, 40), y0=120, y1=int(cy + 160), amt=1.0, col=(0.05, 0.055, 0.07), dark=0.85, thr=0.38,
                       light=(420, 860), light_r=700, light_col=(0.5, 0.55, 0.7))
-        fr, info = self.blade.draw(fr, t, (-200, 720), (2300, 660), 210, frost=0.8, sheen=0.25 + 0.6 * u, glow=0.6, moon=(0.32, 0.35, 0.42))
+        fr, info = self.blade.draw(fr, t, (-220, 830), (1520, 600), 200,   # 第三棒：斜刃，刀尖停在歌词列前（不压字）
+                                   frost=0.8, sheen=0.25 + 0.6 * u, glow=0.6, moon=(0.32, 0.35, 0.42),
+                                   wet=0.7)   # 第三棒：湿润反光
         fr = ASH.draw(fr, t, 0.8, wind=(-30, 90))
         a = t - CT(0, 5)
         if a >= 0:
-            fr = streak(fr, 668, -100, 2100, a / 0.10, amt=1.3, ang=-1.4)
+            fr = streak(fr, 676, -100, 1560, a / 0.10, amt=1.3, ang=-7.6)
         return fr, (4 if 0 <= a < 0.1 else 0)
 
 
@@ -805,8 +807,11 @@ def _villain_spr(fr, t, a, at, h, deg=32):
     z = np.zeros((H, W, 3), np.float32)
     back = 0.0 if a < 0 else 40 * eout(a / 0.4)
     P, info = A.place(z, t, A.bg_matte('A/villain_fall'), (at[0] + back, at[1]), h=h, anc=(0.5, 1.0), rim=REDR, rim_amt=2.4,
-                      rim_dir=(-0.8, -0.4), grade=dict(expo=0.75, sat=0.5, tint=(1.04, 0.95, 0.92)), wind=8, rot=-6 * eout(max(0, a) / 0.5))
+                      rim_dir=(-0.8, -0.4), grade=dict(expo=0.75, sat=0.12, tint=(1.06, 0.94, 0.90)), wind=8, rot=-6 * eout(max(0, a) / 0.5))   # 第三棒：sat 0.5→0.12 去腿部青色溢色
     Al = info['A'][..., None]
+    col = P / np.maximum(Al, 1e-3); Al2 = np.clip((Al - 0.25) / 0.75, 0, 1)                         # 第三棒：收 matte 灰边
+    Al2 = np.minimum(Al2, cv2.erode(Al2[..., 0], np.ones((3, 3), np.uint8))[..., None] + 0.0)
+    P = col * Al2; Al = Al2
     if a > 0:
         th = math.radians(deg); cy = at[1] - 0.55 * h
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -815,7 +820,7 @@ def _villain_spr(fr, t, a, at, h, deg=32):
         sl = 240 * a ** 1.2
         M = np.float32([[1, 0, sl * math.cos(th)], [0, 1, sl * math.sin(th) + 260 * a * a]])
         Pu = cv2.warpAffine(P * side, M, (W, H)); Au = cv2.warpAffine(Al * side, M, (W, H))[..., None]
-        P = P * (1 - side) + Pu; Al = Al * (1 - side) + Au
+        P = P * (1 - side) * (1 - Au) + Pu; Al = Al * (1 - side) * (1 - Au) + Au     # 第三棒：上半盖在下半上（原相加 Al>1 → 背景被减成青色）
         seam = np.exp(-(n / 3.0) ** 2) * (np.abs(xx - at[0]) < h * 0.4)
         fr = fr + seam[..., None] * RED * 2.2 * math.exp(-a / 0.5) * cv2.GaussianBlur(info['A'], (0, 0), 6)[..., None] * 3
     fr = fr * (1 - Al) + P
