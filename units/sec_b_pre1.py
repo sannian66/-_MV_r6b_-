@@ -24,6 +24,7 @@ CUT_F = [F0] + [int(round(t * FPS)) - 1 for t in CUT_T[1:-1]] + [C1_FROM]
 
 # =====================================================================================
 # P01 ECU 俯拍生死簿：太上皇执朱笔（tsh_brush_hand），「谁配」流江毛草朱笔逐笔写在纸上
+DOCT = '纲常礼法忠孝节义尊卑贵贱王法天道规矩名分本分顺从伦理三纲五常君臣父子上下有序安分守己'   # 第五棒：铅字盘填充改「教条」字（去名单母题）
 NAMES = '张王李赵刘陈杨黄周吴徐孙胡朱高林何郭马罗梁宋郑谢韩唐冯于董萧程曹袁邓许傅沈曾彭吕苏卢蒋蔡贾丁魏薛叶阎余潘杜戴夏钟汪田任姜范方石姚谭廖邹熊金陆郝孔白崔康毛邱秦江史顾侯邵孟龙万段雷钱汤尹黎易常武乔贺赖龚文'
 
 
@@ -176,7 +177,7 @@ class P03(Shot):
     HALF = 270
     def __init__(self):
         self.bg = BK.paper(203, (0.78, 0.72, 0.60))
-        self.fig = BP.NameFigure(31, name='张三', view='front')
+        self.fig = spr('effigy')        # 第五棒：代码名帖纸人（圆头+矩形）→ 生图纸扎人
         T.warm('谁配画', 'xing', 200)
 
     def scene(self, t, prog, half, c):
@@ -188,8 +189,9 @@ class P03(Shot):
         sh = np.zeros((H, W), np.float32)
         cv2.ellipse(sh, (int(c[0] + hh * 0.12), int(c[1] + hh * 0.48)), (int(hh * 0.28), int(hh * 0.07)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
         fr = fr * (1 - 0.5 * cv2.GaussianBlur(sh, (0, 0), 10)[..., None])
-        fr = self.fig.draw(fr, c[0], c[1] + hh * 0.48, hh, tilt=1.2 * math.sin(t * 1.7), light='front', rim_col=(0.55, 0.40, 0.25),
-                           grade=(1.0, 0.96, 0.9))
+        fr, _ = put(fr, self.fig, t, hh, (c[0], c[1] + hh * 0.48), grade=dict(expo=0.95, sat=0.7, tint=(1.04, 0.97, 0.88), lift=0.0, gamma=1.05),
+                    rim=dict(col=(1.0, 0.78, 0.5), amt=1.2, dir=(0.6, -0.8)), wind_amp=0, breathe=0.004, rot=1.2 * math.sin(t * 1.7),
+                    shade=None, wrap=0.25)
         fr = brush_box(fr, c, half, prog, seed=33, width=max(10, half * 0.11))
         return fr
 
@@ -626,7 +628,7 @@ class P10(Shot):
             for col in range(11):
                 cx, cy = 140 + col * (S + 10), 160 + row * (S + 10)
                 main = (row == 3 and 3 <= col <= 6)
-                ch = '理所应当'[col - 3] if main else NAMES[int(r.integers(len(NAMES)))]
+                ch = '理所应当'[col - 3] if main else DOCT[int(r.integers(len(DOCT)))]
                 if main: self.pos[ch] = (cx, cy)
                 rgb, A = type_block(ch, S, seed=row * 20 + col, gold=0.35 if main else 0.0)
                 canvas[cy - S // 2:cy + S // 2, cx - S // 2:cx + S // 2] = rgb * (1.0 if main else 0.75)
@@ -635,7 +637,7 @@ class P10(Shot):
         self.Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [2800, 0], [2800, 1500], [0, 1500]]), self.q)
         self.blk = {c: type_block(c, S, seed=99 + i, gold=0.35) for i, c in enumerate('理所')}
         self.blade = tip_blade()
-        T.warm('不信谁的', 'cao', 110)
+        T.warm('不信谁的', 'kai', 110)
 
     def proj(self, p):
         v = self.Mq @ np.array([p[0], p[1], 1.0]); return v[:2] / v[2]
@@ -660,7 +662,7 @@ class P10(Shot):
             px = p0[0] - 900 * q; py = p0[1] - 1400 * q + 1800 * q * q
             rgb, A = self.blk[ch]
             sc = 0.82 * (1 + 0.8 * q)
-            M = cv2.getRotationMatrix2D((S / 2, S / 2), -q * 720, sc); M[0, 2] += px - S / 2; M[1, 2] += py - S / 2
+            M = cv2.getRotationMatrix2D((S / 2, S / 2), -q * 110, sc); M[0, 2] += px - S / 2; M[1, 2] += py - S / 2   # 第五棒：不翻到倒置
             fr, _ = BK.paste_rgba(fr, rgb * 1.3, A, M)
         # 刀尖：从右侧探入，挑「理」「所」
         F, A = self.blade
@@ -675,8 +677,8 @@ class P10(Shot):
         if flick > 0.3:
             fr = K.sparks(fr, t, 1010, tuple(tip.astype(int)), n=40, life=0.35, speed=(300, 900), dirc=(-1, -0.6), spread=0.9, grav=900, area=(20, 20), amt=1.0)
         pr = tp(10, [9, 10], t, 0.18)
-        fr = T.scatter_stack(fr, '谁的', pr, places=[dict(ch='谁', x=250, y=260, size=130, rot=-6, font='cao', idx=0, emph=False),
-                                                       dict(ch='的', x=380, y=400, size=110, rot=4, font='cao', idx=1, emph=False)],
+        fr = T.scatter_stack(fr, '谁的', pr, places=[dict(ch='谁', x=250, y=260, size=130, rot=-6, font='kai', idx=0, emph=False),
+                                                       dict(ch='的', x=380, y=400, size=110, rot=4, font='kai', idx=1, emph=False)],
                              color='white', t_local=u, style_kw=dict(shadow=0.8))
         fr = cam(fr, 1.04, 60 - 160 * eio(u), 0, -1.5)
         return fr, (3 if flick > 0.6 else 0)
@@ -700,14 +702,14 @@ class P11(Shot):
         x, y = K.grid()
         tray = cv2.GaussianBlur(tray, (0, 0), 7) * (0.35 + 0.6 * np.exp(-(((x - 1000) / 700) ** 2 + ((y - 380) / 300) ** 2)))[..., None]
         floor = sstep(770, 800, y)
-        pg = ledger(912, cols=16, size=40, x0=-100, x1=2000, y0=760, y1=1100) * 0.55
+        pg = BK.paper(912, (0.62, 0.58, 0.52)) * 0.55          # 第五棒：地面去人名（名单母题 ≤2）
         Mf = cv2.getPerspectiveTransform(np.float32([[0, 760], [W, 760], [W, H], [0, H]]), np.float32([[300, 790], [1620, 790], [2600, 1180], [-700, 1180]]))
         pg = cv2.warpPerspective(pg, Mf, (W, H), borderMode=cv2.BORDER_REFLECT)
         self.bg = tray * (1 - floor[..., None]) + pg * floor[..., None] * (0.5 + 0.6 * np.exp(-((x - 1060) / 700) ** 2))[..., None]
         # 散落铅字（地面前景，虚焦）
         r = np.random.default_rng(913)
         for k in range(7):
-            ch = NAMES[int(r.integers(len(NAMES)))]
+            ch = DOCT[int(r.integers(len(DOCT)))]
             rgb, A = type_block(ch, 150, seed=300 + k)
             px, py = r.uniform(100, 1800), r.uniform(860, 1000)
             if 850 < px < 1250: px += 500
@@ -730,16 +732,16 @@ class P11(Shot):
             cv2.circle(Lb, (int(bx * W / 4), int(by * 180 + 20)), int(6 + br * 14), 0.25 + 0.2 * math.sin(t * 2 + ph * 6), -1, cv2.LINE_AA)
         fr += cv2.resize(cv2.GaussianBlur(Lb, (0, 0), 3), (W, H))[..., None] * np.array([0.6, 0.65, 0.8], np.float32)
         ts = self.t0 + (t - self.t0) * 0.45                   # 慢放
-        for ch, (x0, y0, vx, vy, spin, land) in (('应', (700, 300, 160, -120, 260, None)), ('当', (1150, 260, -90, -60, -320, self.T_DANG))):
+        for ch, (x0, y0, vx, vy, spin, land) in (('应', (700, 300, 160, -120, 30, None)), ('当', (1150, 260, -90, -60, -35, self.T_DANG))):
             rgb, A = self.blk[ch]
             q = ts - self.t0
             if land is None:
                 px, py = x0 + vx * q * 2, y0 + vy * q * 2 + 260 * q * q * 4
-                ang = spin * q * 2; sy = abs(math.cos(q * 5.0)) * 0.9 + 0.1
+                ang = spin * q * 2; sy = 0.55 + 0.45 * abs(math.cos(q * 3.0))
             else:
                 tl = (t - self.t0) / (self.T_DANG - self.t0)
                 if t < self.T_DANG:
-                    px = x0 + vx * tl; py = y0 + (640 - y0) * tl ** 2; ang = spin * tl; sy = abs(math.cos(tl * 4.2)) * 0.9 + 0.1
+                    px = x0 + vx * tl; py = y0 + (640 - y0) * tl ** 2; ang = spin * tl; sy = 0.55 + 0.45 * abs(math.cos(tl * 3.0))
                 else:
                     b = t - self.T_DANG
                     px = x0 + vx + 60 * b; py = 640 - 140 * math.sin(min(math.pi, b * 9)) * math.exp(-b * 3); ang = spin + 20 * math.sin(b * 12) * math.exp(-b * 4); sy = 0.9
@@ -867,15 +869,16 @@ class P13(Shot):
         fr = K.fog(fr, t, 1301, amt=0.22, y0=0.72, y1=1.0)
         fr, Aw = put_at(fr, self.sp, t, self.SRC, self.DST, self.WPX, grade=GR_COLD,
                         rim=dict(col=(1.0, 0.55, 0.40), amt=2.2, dir=(0.7, -0.7)), wind_amp=6, shade=(400, 1500, 0.15, 600, 0.35))
-        # 刀弧：以肩为心，左下 → 右上（刀尖终点），白热 → 朱红余辉
+        # 刀弧：撩斩轨迹（二次贝塞尔：左下地面 → 左上弓起 → 右上刀尖），细→粗，白热 → 朱红余辉
         if ka > 0:
-            c = self.sh; R = np.linalg.norm(self.tip - c)
-            a1 = math.degrees(math.atan2(self.tip[1] - c[1], self.tip[0] - c[0])); a0 = a1 - 195     # 左下 → 经左上 → 右上
-            ae = a0 + (a1 - a0) * eout(ka, 2)
+            P0 = spt(self.sp, self.SRC, self.DST, self.WPX, (0.12, 0.80)); C = spt(self.sp, self.SRC, self.DST, self.WPX, (0.22, 0.02))
+            P2 = self.tip
             m = np.zeros((H // 2, W // 2), np.float32)
-            for k in range(14):
-                q0 = a0 + (ae - a0) * k / 14; q1 = a0 + (ae - a0) * (k + 1) / 14
-                cv2.ellipse(m, (int(c[0] / 2), int(c[1] / 2)), (int(R / 2), int(R / 2)), 0, q1, q0, 0.25 + 0.75 * (k + 1) / 14, max(1, int(3 + 10 * (k + 1) / 14)), cv2.LINE_AA)
+            N = 28; e = eout(ka, 2)
+            pts = [((1 - q) ** 2 * P0 + 2 * (1 - q) * q * C + q * q * P2) for q in np.linspace(0, e, N + 1)]
+            for k in range(N):
+                w_ = (k + 1) / N
+                cv2.line(m, tuple((pts[k] / 2).astype(int)), tuple((pts[k + 1] / 2).astype(int)), 0.2 + 0.8 * w_, max(1, int(2 + 9 * w_)), cv2.LINE_AA)
             m = cv2.resize(m, (W, H)) * (1 - 0.8 * clamp01((t - self.T_DAO) / 0.45))
             fr = fr + cv2.GaussianBlur(m, (0, 0), 2)[..., None] * np.array([1.0, 0.92, 0.85], np.float32) * 1.2 \
                  + cv2.GaussianBlur(m, (0, 0), 18)[..., None] * (RED * 1.2 + 0.1)
@@ -887,7 +890,7 @@ class P13(Shot):
                              emph_color=(0.88, 0.12, 0.08), cut_at=0.25, slide=0.12, angle=35, appear=0.15)
         ph = tp(11, [5], t, 0.18)[0]
         if ph > 0:
-            fr = T.ink_bleed_in(fr, '还', [ph], places=[dict(ch='还', x=1720, y=860, size=110, rot=0, font='kai', idx=0, emph=False)], color='white',
+            fr = T.ink_bleed_in(fr, '还', [ph], places=[dict(ch='还', x=1700, y=790, size=110, rot=0, font='kai', idx=0, emph=False)], color='white',
                                 style_kw=dict(shadow=0.8))
         fr = K.sparks(fr, t, 1313, tuple(self.tip.astype(int)), n=50, life=0.7, speed=(150, 600), dirc=(0.5, -1), spread=1.0, grav=300, area=(60, 60), amt=0.8 * glow + 0.2)
         fr = BK.rain(fr, t, 1302, amt=0.25, n=350, angle=-6)
