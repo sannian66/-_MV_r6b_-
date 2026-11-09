@@ -115,19 +115,21 @@
    "tries": [
     {
      "tid": "90a26926-c54d-4330-9653-cbe33e1af485",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/d_cands/draw_side_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "review"
   },
   "run_top": {
    "tries": [
     {
      "tid": "19141a90-ebb0-40f5-85b0-ac2ac0ef5d13",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/d_cands/run_top_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "review"
   }
  }
 }

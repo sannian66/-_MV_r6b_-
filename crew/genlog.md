@@ -291,3 +291,7 @@
 | 11-09 03:05 | D组/run_top | RH_image2 | 4K 16:9 | 3 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | submitted | - | try1 seen from a very HIGH bird-eye angle almost directly above,  |
 | 11-09 03:05 | C组/point_cam | RH_image2 | 4K 16:9 | 0 | 578e0e8e-3338-43ab-bd3d-a16d38bebdd3 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/point_cam_try1_0.png | try1 |
 | 11-09 03:07 | B组/blade_stuck | RH_image2 | 4K 16:9 | 3 | 268f9623-b37e-4c74-b916-6e2ce5cd506c | submitted | - | try1 product-style shot of ONLY the hero's long single-edged Chin |
+| 11-09 03:09 | B组/blade_stuck | RH_image2 | 4K 16:9 | 0 | 268f9623-b37e-4c74-b916-6e2ce5cd506c | completed | b_cands/blade_stuck_try1_0.png | try1 |
+| 11-09 03:09 | D组/draw_side | RH_image2 | 4K 16:9 | 0 | 90a26926-c54d-4330-9653-cbe33e1af485 | completed | d_cands/draw_side_try1_0.png | try1 |
+| 11-09 03:09 | B组/blade_stuck | RH_image2 | 4K 16:9 | 0 | 268f9623-b37e-4c74-b916-6e2ce5cd506c | 采用 | assets/gen/B_r4/blade_stuck_raw.png | try1 采用 |
+| 11-09 03:10 | D组/run_top | RH_image2 | 4K 16:9 | 0 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | completed | d_cands/run_top_try1_0.png | try1 |
