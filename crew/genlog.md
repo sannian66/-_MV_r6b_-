@@ -276,3 +276,9 @@
 | 11-09 11:08 | E组/E14T low_stride | RH_image2 | 4K 16:9 | 3 | 98dabfbc-c70d-4904-8cba-6a05d8e72c92 | submitted | - | [E组] 第四棒：低机位跨步（参考同上）；quote 3（累计 39） |
 | 11-09 03:01 | C组/soldiers3 | RH_image2 | 4K 16:9 | 0 | a6e34a40-a54d-4d82-bd8f-46fa267b8395 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/soldiers3_try1_0.png | try1 |
 | 11-09 03:01 | C组/army_kneel | RH_image2 | 4K 16:9 | 0 | 20df00ab-2a9f-4878-8939-7ba8552b1a68 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/army_kneel_try1_0.png | try1 |
+| 11-09 03:02 | A/blade_rain | RH_image2 | 4K 16:9 | 0 | 706c1683-edaf-4751-8fdf-963922216203 | completed | /workspace/work/a_cands/blade_rain_706c1683_0.png | A组 候选 |
+| 11-09 03:02 | A/back_walk | RH_image2 | 4K 16:9 | 0 | 8582230b-fcfc-415f-9fb6-27836afb868f | completed | /workspace/work/a_cands/back_walk_8582230b_0.png | A组 候选 |
+| 11-09 03:03 | A/blade_rain | RH_image2 | 4K 16:9 | 0 | 706c1683-edaf-4751-8fdf-963922216203 | 采用 | assets/gen/A/blade_rain_raw.png | A组 采用 |
+| 11-09 03:03 | A/back_walk | RH_image2 | 4K 16:9 | 0 | 8582230b-fcfc-415f-9fb6-27836afb868f | 采用 | assets/gen/A/back_walk_raw.png | A组 采用 |
+| 11-09 03:03 | D组/defy_up | RH_image2 | 4K 16:9 | 0 | 2d3efba1-433d-419b-b964-cbf036a91437 | completed | d_cands/defy_up_try1_0.png | try1 |
+| 11-09 11:20 | E组/E21+E14T | RH_image2 | 4K 16:9 | 0 | 072fbf7f/98dabfbc | 采用 | assets/gen/E_r4/profile_up、low_stride | [E组] 两张 try1 均采用（recut_flat + 边缘带色差软化去发丝灰填充）；E 组累计 39 点 |
