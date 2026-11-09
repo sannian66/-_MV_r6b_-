@@ -908,7 +908,7 @@ class V10(Shot):
         gp = clamp01((t - (tl - 0.12)) / 0.3)
         if gp > 0:
             g = T.glyph('里', 'kai', 240)
-            gx, gy = 640 + sway, 810
+            gx, gy = 640 + sway, 755
             h_, w_ = g.shape
             fill = np.clip((np.arange(h_)[:, None] - h_ * (1 - eout(clamp01(a_l / 0.35)))) / 6, 0, 1) if a_l > 0 else np.zeros((h_, 1))
             groove = g * gp
@@ -951,7 +951,7 @@ class V10(Shot):
         L = T.Layer()
         for i, (ch, k) in enumerate((('称', 9), ('量', 10))):
             p = clamp01((t - (CT(3, k) - 0.12)) / 0.4)
-            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 180, p, seed=9 + i, bleed=1.0), 1240 + 250 * i + sway, 810, (0.82, 0.08, 0.06))
+            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 180, p, seed=9 + i, bleed=1.0), 1240 + 250 * i + sway, 760, (0.82, 0.08, 0.06))
         fr = T.compose(fr, L, shadow=0.5, glow=0.35, glow_color=(0.9, 0.12, 0.06))
         fr = RAIN.draw(fr, t, 0.7, angle=6, layers=(2,))
         return fr, (3 if 0 <= a_l < 0.08 else 0)
