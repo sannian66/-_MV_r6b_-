@@ -320,3 +320,8 @@
 | 11-09 03:58 | C组/c14_ots | RH_image2 | 4K 16:9 | 3 | 6f7c4ab5-92a9-4b06-b512-fe87380155c3 | submitted | - | [C组] 第五棒 C14 try1 (quote 3) |
 | 11-09 03:58 | C组/c28_face | RH_image2 | 4K 16:9 | 3 | a1c28f02-166d-4536-b2db-dc4e47c93c9b | submitted | - | [C组] 第五棒 C28 try1 (quote 3) |
 | 11-09 03:58 | C组/c38_grip | RH_image2 | 4K 16:9 | 3 | 1731eb0e-b167-4c3d-b423-4ec3dfc6a8ec | submitted | - | [C组] 第五棒 C38 try1 (quote 3) |
+| 11-09 03:58 | C组/c22_wall | RH_image2 | 4K 16:9 | 3 | 86c2c256-cfa1-4b08-bb3f-0732ec60fd38 | submitted | - | [C组] 第五棒 C22 try1 (quote 3) |
+| 11-09 03:58 | C组/c37_plaque | RH_image2 | 4K 16:9 | 3 | c476f9d6-0d7e-453d-9b53-7bbb8ec40646 | submitted | - | [C组] 第五棒 C37 try1 (quote 3) |
+| 11-09 03:58 | C组/c10_tablets | RH_image2 | 4K 16:9 | 3 | cb8e95cc-3e22-42fb-8dca-2e308a2346af | submitted | - | [C组] 第五棒 C10 try1 (quote 3) |
+| 11-09 03:58 | C组/c23_bronze | RH_image2 | 4K 16:9 | 3 | 780476a2-192b-4210-8eb9-821a9412b440 | submitted | - | [C组] 第五棒 C23 try1 (quote 3) |
+| 11-09 03:58 | C组/c16_drip | RH_image2 | 4K 16:9 | 3 | de51d1de-32c0-4ba6-ab7c-443245348fdb | submitted | - | [C组] 第五棒 C16 try1 (quote 3) |
