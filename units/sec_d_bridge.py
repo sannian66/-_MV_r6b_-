@@ -1099,33 +1099,61 @@ class S23_Eye(Shot):
 
 
 class S24_Defy(Shot):
-    """[r4] 大仰拍 CU（反向）：同一张脸（defy_up，与 S11 同一精灵但水平翻转、实拍质感、更近），他举刀指天、怒视风暴；
-    185.75 雷光劈中刀尖、沿刃流下照亮半张脸；冷雨迎面落向镜头；左上宋体「天不」+ 朱红巨字「判」（脸在右，字在左上不压脸）"""
+    """[r5 重做] 低机位大远景剪影：他只占画高约 1/4，立在地平线上双手举刀直指天顶；头顶正中是 S23 那只风暴云眼
+    （S23→S24 云眼位置连续 = 动作/图形匹配）；左上冷白宋体「天」「不」；186.02 一道闪电从云眼劈下落到刀尖，
+    朱红「判」顺着闪电从云眼里砸下来、字脚正落在刀尖上（判 = 天劈到刀）。（第五棒 P0：不再镜像 S11 的 defy_up）"""
     t0, t1 = 185.57, 186.5
+    EYE = (960, 250)
     def __init__(self):
-        self.sp = D.spr('defy_up_flip')      # defy_up 水平翻转
+        self.sp = D.spr('raise_low')
+        A = self.sp.A; ys, xs = np.nonzero(A > 0.5)
+        j = ys.argmin(); self.tip_src = (xs[j] / self.sp.w, ys[j] / self.sp.h)
+        self.h = 285
 
     def render(self, t):
         u = self.u(t)
-        tl = 185.75
-        fl = impact(t, tl, 0.1)
-        fr = D.night(t, 241, top=(0.06, 0.065, 0.09), bot=(0.02, 0.02, 0.03), glow=(1150, 150, 560, (0.5, 0.55, 0.75), 0.35 + 1.0 * fl), clouds=0.8, drift=90)
-        fr = D.lightning(fr, t, tl, (1250, 120), (1000, 215), seed=13, amt=1.6, branches=5)
-        dst = (1180 + 20 * u, H - BAR + 100 - 24 * u)
-        sc = 0.70 + 0.04 * u
-        fr, Aw = D.real_figure(fr, self.sp, t, (0.55, 1.0), dst, sc, expo=0.8 + 0.6 * fl, sat=0.6,
-                               rim=(0.75, 0.82, 1.0), rim_amt=3.5 + 6 * fl, rim_dir=(0.6, -0.8), wind=6)
-        Fw, A2 = D.warp(self.sp, t, (0.55, 1.0), dst, sc, wind=0)
-        metal = A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.10) * np.clip((Fw.mean(-1) - 0.3) * 3, 0, 1)
-        if t > tl:   # 雷光沿刃流下
-            fr = D.metal_sheen(fr, metal, np.ones_like(Aw), t - tl, (1300, 0), 70, speed=1500, width=140, amt=3.0 * math.exp(-(t - tl) / 0.4))
-        fr = K.rain(fr, t, 24, n=600, amt=0.4, angle=4, length=(40, 120))
         tj = V(O[46][2])
-        its = [('天', 330, 270, 150, 1.0, 'w'), ('不', 330, 440, 150, cp(t, O[46][1], 0.14), 'w'), ('判', 560, 690, 330, cp(t, O[46][2], 0.1), 'r')]
-        fr = D.song(fr, its)
-        fr = fr * (1 + impact(t, tj, 0.05) * 0.35)
-        z = 1.0 + 0.04 * u + 0.06 * impact(t, tj, 0.1)
-        return shake_cam(fr, t, [tl, tj], 12, z=z), 0.0
+        fl = impact(t, tj, 0.14)
+        fr = D.storm(t, 241, c=self.EYE, spin=0.09, twist=0.8, base=(0.02, 0.022, 0.032), lit=(0.24, 0.27, 0.35), eye=150, bright=0.8,
+                     glow=(self.EYE[0], self.EYE[1], 0.25 + 0.5 * fl))
+        x, y = K.grid()
+        fr = fr * (1 - 0.45 * np.clip((y - 500) / 400, 0, 1))[..., None]
+        fr = fr + (np.exp(-(((x - 960) / 520) ** 2 + ((y - 830) / 110) ** 2)) * (0.22 + 0.5 * fl))[..., None] * np.array([0.55, 0.62, 0.85], np.float32)   # 剪影背后的地平冷光
+        # 地平线 + 低机位地面（黑、上缘一线冷光）
+        hor = 905 + 6 * math.sin(x[0] / 210.0)[None, :] if False else 905
+        g = np.clip((y - hor) / 6, 0, 1)
+        fr = fr * (1 - g[..., None]) + g[..., None] * np.array([0.012, 0.013, 0.018], np.float32)
+        fr = fr + (np.exp(-((y - hor) / 3) ** 2) * np.exp(-((x - 960) / 700) ** 2) * (0.25 + 0.8 * fl))[..., None] * np.array(COLD, np.float32)
+        fr = K.fog(fr, t, 243, amt=0.35, speed=(60, 0), y0=0.72, y1=0.9, color=(0.16, 0.17, 0.22))
+        # 人：剪影 + 冷轮廓
+        sc = D.fit_scale(self.sp, self.h * (1 + 0.04 * u))
+        feet = (960, hor + 8)
+        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), feet, sc, expo=0.22 + 0.4 * fl, sat=0.3, tint=(0.85, 0.9, 1.05),
+                               rim=(0.8, 0.88, 1.0), rim_amt=10.0 + 10 * fl, rim_dir=(0.0, -1.0), wind=9)
+        fx, fy = D.feet(self.sp)
+        tip = (feet[0] + (self.tip_src[0] - fx) * self.sp.w * sc, feet[1] + (self.tip_src[1] - fy) * self.sp.h * sc)
+        fr = D.lightning(fr, t, 185.7, (300, 140), (620, 520), seed=14, amt=0.8)
+        fr = D.lightning(fr, t, tj, (self.EYE[0], self.EYE[1] + 30), (tip[0], tip[1]), seed=13, amt=2.2, branches=5, life=0.3)
+        if t > tj:
+            gt = np.exp(-(((x - tip[0]) ** 2 + (y - tip[1]) ** 2) / (2 * 30 ** 2))) * 3.0 * math.exp(-(t - tj) / 0.25)
+            fr = fr + gt[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
+        fr = K.rain(fr, t, 24, n=600, amt=0.32, angle=4, length=(40, 120))
+        # 「天」「不」冷白；「判」从云眼砸到刀尖
+        fr = D.song(fr, [('天', 300, 300, 150, 1.0, 'w'), ('不', 300, 470, 150, cp(t, O[46][1], 0.14), 'w')])
+        pj = cl((t - (tj - 0.16)) / 0.16)
+        if pj > 0:
+            e = ei(pj, 2)
+            sz = lerp(90, 400, e)
+            cy = lerp(self.EYE[1] + 20, tip[1] - 400 * 0.5 - 10, e)
+            L = D.text_layer([('判', 960, cy, sz, min(1, pj * 2.5), 1.0, 0.0, RED)], fname='serif_black')
+            if pj < 1: L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 5 * (1 - pj))
+            fr = T.compose(fr, L, shadow=0.6, shadow_sigma=26, outline=3, outline_color=(0.03, 0.02, 0.02), glow=0.6 + 0.8 * fl,
+                           glow_color=(0.95, 0.15, 0.06), glow_sigma=30)
+            if t > tj:   # 落刀尖瞬间：字缘一圈闪电白
+                Ld = cv2.dilate(L.A, np.ones((5, 5), np.uint8)) - L.A
+                fr = fr + (np.clip(Ld, 0, 1) * 1.6 * math.exp(-(t - tj) / 0.15))[..., None] * np.array([0.9, 0.93, 1.0], np.float32)
+        fr = fr * (1 + fl * 0.3)
+        return shake_cam(fr, t, [tj], 12, z=1.0 + 0.05 * u + 0.05 * impact(t, tj, 0.1), oy=-20 * u, center=(960, 600)), 0.0
 
 
 class S25_Leap(Shot):
@@ -1226,31 +1254,85 @@ class S26_Judge(Shot):
 
 
 class S27_Bullet(Shot):
-    """MS 子弹时间（全段最长的憋气镜，1.37s）：雨滴悬停，单膝跪地的他双手扶着插地的刀静立其中，头顶完整入画、冷轮廓光勾出头肩；
-    镜头缓慢横移环绕；朱红宋体巨字「刀」+「不答」（第三棒：下压构图、加轮廓光）"""
+    """[r5 重做] CU 子弹时间：他的刀斜插在雨里（只有刀，人不在画内），雨滴悬停在刀身四周；镜头从刀柄红穗沿刀身下摇（tilt down），
+    189.00 朱红「刀」被火星一笔笔烙刻在刀身上（白热 → 暗红余烬，字随刀身斜度）；右侧冷白宋体「不」「答」；
+    （第五棒 P0：不再复用 S15 的 kneel_bow 跪姿；景别从 S15 的远景人 → 道具大特写）"""
     t0, t1 = 188.34, 189.71
+    SC = 1.25
     def __init__(self):
-        self.sp = D.spr('kneel_bow'); self.bg = None
+        self.sp = D.spr('sword_planted')
+        A = self.sp.A > 0.5
+        rows = [int(f * self.sp.h) for f in (0.35, 0.75)]
+        cx = [np.nonzero(A[r])[0].mean() for r in rows]
+        self.ax = (cx[0] / self.sp.w, 0.35)                         # 刀身中线上的锚点
+        self.slope = (cx[1] - cx[0]) / (rows[1] - rows[0])          # 每下行 1px 的 x 偏移
+        self.ang = math.degrees(math.atan(self.slope))
+        self.bg = None
 
-    def render(self, t):
+    def place(self, t):
+        u = self.u(t)
+        k = eo(cl((t - self.t0) / 0.75), 3)                          # 0.75s 下摇到刻字处后放慢
+        yy = lerp(1700, 330, k) - 50 * cl((t - self.t0 - 0.75) / 0.62)
+        return (900 + 30 * u, yy)
+
+    def render(self, t, text=True):
         u = self.u(t)
         if self.bg is None:
             x, y = K.grid()
-            self.bg = (0.025 + 0.09 * np.exp(-(((x - 700) / 650) ** 2 + ((y - 380) / 380) ** 2)))[..., None] * np.array([0.8, 0.9, 1.15], np.float32)
+            self.bg = (0.02 + 0.16 * np.exp(-(((x - 1000) / 520) ** 2 + ((y - 420) / 520) ** 2)) + 0.05 * np.exp(-((y - 760) / 60) ** 2))[..., None] * np.array([0.8, 0.9, 1.15], np.float32)
+            r = np.random.default_rng(277); bk = np.zeros((H, W), np.float32)
+            for _ in range(40):
+                cv2.circle(bk, (int(r.uniform(0, W)), int(r.uniform(BAR, H - BAR))), int(r.uniform(10, 34)), float(r.uniform(0.2, 0.6)), -1, cv2.LINE_AA)
+            self.bk = cv2.GaussianBlur(bk, (0, 0), 6)
+        dst = self.place(t)
         fr = self.bg.copy()
-        fr = K.fog(fr, t, 271, amt=0.3, speed=(20, 0), y0=0.7, y1=1.0, color=(0.2, 0.22, 0.27))
-        fr = D.droplets(fr, t, 271, n=110, orbit=-0.3 + 0.6 * u, focus=0.9)
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (720 + 30 * u, 990), D.fit_scale(self.sp, 720), expo=1.25, sat=0.55,
-                              rim=COLD, rim_amt=8.0, rim_dir=(-0.6, -0.8), wind=0, breathe=0.0)
-        fr = D.droplets(fr, t, 272, n=40, orbit=-0.8 + 1.6 * u, focus=0.2)
+        bo = int(-(dst[1] - 470) * 0.25)
+        fr = fr + np.roll(self.bk, bo, 0)[..., None] * np.array([0.10, 0.12, 0.17], np.float32)
+        fr = K.fog(fr, t, 271, amt=0.25, speed=(25, 0), y0=0.55, y1=1.0, color=(0.16, 0.18, 0.23))
+        fr = D.droplets(fr, t, 271, n=120, orbit=-0.2 + 0.4 * u, focus=0.9)
+        fr, Aw = D.real_figure(fr, self.sp, t, self.ax, dst, self.SC, expo=1.05, sat=0.5, rim=COLD, rim_amt=5.0, rim_dir=(-0.7, -0.7),
+                               wind=0, breathe=0.0)
+        Fw, A2 = D.warp(self.sp, t, self.ax, dst, self.SC, wind=0)
+        metal = A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.12) * np.clip((Fw.mean(-1) - 0.15) * 4, 0, 1)
+        fr = D.metal_sheen(fr, metal, Fw.mean(-1), t, (dst[0], 0), 84, speed=700, width=70, amt=0.6)
+        # 刀身上烙刻「刀」
         tk = V(O[47][0])
-        its = [('刀', 1460, 400, 380, cp(t, O[47][0], 0.12), 'r'), ('不', 1330, 760, 230, cp(t, O[47][1], 0.14), 'w'),
-               ('答', 1590, 795, 230, cp(t, O[47][2], 0.14), 'w')]     # [r4] 不答 放大到「刀」的 60%、错位
-        fr = D.song(fr, its)
-        if tk <= t < tk + 0.2:
-            q = (t - tk) / 0.2
-            fr = TR._slash_streak(fr, (lerp(500, 1300, q), lerp(200, 900, q)), np.array((0.6, 0.8)), q, length=1800, width=1, amt=0.6)
-        return shake_cam(fr, t, [tk], 6, z=1.0 + 0.04 * u, ox=-30 + 60 * u), 0.0
+        p = cl((t - (tk - 0.22)) / 0.26)
+        if p > 0:
+            gy = dst[1] + 0.06 * self.sp.h * self.SC
+            gx = dst[0] + self.slope * (gy - dst[1])
+            A = T.brush_glyph('刀', 'serif_black', 175, p, 0, 0.0, 1.0, splatter=False)
+            M = cv2.getRotationMatrix2D((A.shape[1] / 2, A.shape[0] / 2), -self.ang, 1.0)
+            A = cv2.warpAffine(A, M, A.shape[::-1])
+            Lc = T.Layer(); Lc.paste(A, gx, gy, (1, 1, 1))
+            G = Lc.A * np.clip(cv2.GaussianBlur(A2, (0, 0), 2) * 1.3, 0, 1)
+            heat = math.exp(-max(0, t - tk - 0.03) / 0.22)
+            hot = np.array([1.0, 0.86, 0.6], np.float32) * heat + np.array([0.92, 0.10, 0.04], np.float32) * (1 - heat)
+            sh = cv2.GaussianBlur(G, (0, 0), 3)
+            fr = fr * (1 - sh[..., None] * 0.5)
+            fr = fr * (1 - G[..., None]) + G[..., None] * hot * (1.1 + 0.6 * heat)
+            fr = fr + cv2.GaussianBlur(G, (0, 0), 16)[..., None] * np.array([1.0, 0.25, 0.08], np.float32) * (0.5 + 0.6 * heat)
+            if p < 1:
+                fr = K.sparks(fr, t, 2701 + int(p * 12), (gx, gy), n=30, life=0.35, speed=(150, 600), dirc=(0, 1), spread=1.6, grav=900, amt=1.0)
+        fr = D.droplets(fr, t, 272, n=36, orbit=-0.7 + 1.4 * u, focus=0.2)
+        if tk <= t < tk + 0.18:
+            q = (t - tk) / 0.18
+            fr = TR._slash_streak(fr, (lerp(dst[0] - 200, dst[0] + 120, q), lerp(150, 950, q)), np.array((0.25, 0.97)), q, length=1600, width=1, amt=0.5)
+        # 刻完推近：镜头压向刀身上的「刀」（ECU），字在画里变大
+        gy = dst[1] + 0.06 * self.sp.h * self.SC; gx = dst[0] + self.slope * (gy - dst[1])
+        zq = eo(cl((t - tk) / 0.6), 2)
+        fr = shake_cam(fr, t, [tk], 6, z=1.0 + 0.55 * zq, ox=(gx - 960) * 0.0 - 20 + 40 * u, center=(gx, gy))
+        return (self.text_only(fr, t) if text else fr), 0.0
+
+    def text_only(self, fr, t):
+        """「不答」：「答」随「不」一起以 35% 亮度入画（整句先读到），189.72 发声时提满；独立图层，不受入点故障影响"""
+        pb = cp(t, O[47][1], 0.14)
+        fr = D.song(fr, [('不', 1480, 430, 230, pb, 'w')])
+        a = max(0.35 * pb, cp(t, O[47][2], 0.08))
+        if a > 0:
+            f2 = D.song(fr, [('答', 1560, 720, 230, 1.0, 'w')])
+            fr = fr * (1 - a) + f2 * a
+        return fr
 
 
 class S28_Spin(Shot):
@@ -1451,7 +1533,7 @@ CUTS = {
     'S25_Leap': ('slash_wipe', 0.05, 0.2, dict(angle=-40)),
     'S26_Judge': ('match_cut', 0, 0.25, dict(shape='line', center=(1080, 420), angle=-37, mode='grow', glow=np.array([1.0, 0.3, 0.2], np.float32))),
     'S27_Bullet': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.0)),
-    'S28_Spin': ('freeze_glitch', 0.06, 0.08, dict(seed=28)),
+    'S28_Spin': ('freeze_glitch_keep', 0.12, 0.10, dict(seed=28)),
     'S29_Thrust': ('gold_beam', 0.08, 0.14, dict(x0=960)),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
 }
@@ -1559,6 +1641,11 @@ class Bridge:
                 out = gold_beam(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             elif name == 'ink_bleed_hd':
                 out = ink_bleed_hd(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
+            elif name == 'freeze_glitch_keep':      # [r5] 故障只撕画面，「不答」是独立图层保持可读（「答」189.72 发声）
+                S27 = self.shot(j - 1)
+                A0, _ = S27.render(min(t, SHOTS[j - 1].t1 - 1e-3), text=False)
+                out = TR.transition('freeze_glitch', np.clip(A0, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
+                if p < 0.8: out = S27.text_only(out, t)
             elif name == 'gold_tip':
                 out = gold_tip(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             else:
