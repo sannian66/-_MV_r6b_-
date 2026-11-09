@@ -1114,7 +1114,7 @@ class V14(Shot):
 #     左 60% 雨中巨碑（粗糙不规则碑边、无线框、雨水流痕），右侧鬼屠侧身 MCU（carve_mcu 精灵）以刀尖刻字，刀尖随当前字移动；
 #     右列「我的」(34.68 / 35.07) 先刻、左列「主张」(35.46 / 35.82) 大字后刻（竖排右起），每字迸石屑；左上体积光束穿雨照碑面
 class V15(Shot):
-    GL = [('我', 7, 1010, 360, 170), ('的', 8, 1010, 560, 170), ('主', 9, 690, 400, 270), ('张', 10, 690, 700, 270)]
+    GL = [('我', 7, 900, 440, 160), ('的', 8, 900, 610, 160), ('主', 9, 560, 430, 250), ('张', 10, 560, 700, 250)]
     def __init__(self):
         T.warm('我的', 'kai', 170); T.warm('主张', 'kai', 270)
         self.tex = cv2.resize(A.tex(151, 512, 8, 6), (W, H)); self.tex2 = cv2.resize(A.tex(152, 512, 40, 3), (W, H))
@@ -1125,8 +1125,9 @@ class V15(Shot):
         self.st = cv2.resize(np.clip(d / 4, 0, 1), (W, H))
         chip = np.clip((cv2.resize(A.tex(154, 256, 20, 3), (W, H)) - 0.66) * 6, 0, 1) * np.clip(1 - np.abs(cv2.resize(d, (W, H)) - 20) / 30, 0, 1)
         self.chip = chip
+        self.spr = S('A/carve_mcu', 'dm', crop=(0.22, 0.0, 1.0, 1.0))
     def tip(self, t):
-        pts = [(gx + 0, gy) for (_, k, gx, gy, _) in self.GL]
+        pts = [(965, 440), (965, 610), (965, 610), (965, 600)]                   # 刀尖：刻「我」「的」后停在「的」旁
         ts = [CT(5, k) for (_, k, _, _, _) in self.GL]
         if t <= ts[0]: return pts[0]
         for i in range(len(ts) - 1):
@@ -1169,8 +1170,7 @@ class V15(Shot):
         # 人：右侧侧身 MCU，刀尖抵住当前在刻的字（随字移动）
         tx, ty = self.tip(t)
         jit = 3 * math.sin(t * 40) if cur is not None else 0
-        sx = tx + 860 + 40 * u                                             # 精灵刀尖在其包围盒左缘：锚点 (0, 0.495)
-        fr, info = A.place(fr, t, S('A/carve_mcu'), (tx - 10 + jit, ty), h=1000, anc=(0.0, 0.495), rim=COLD, rim_amt=3.4,
+        fr, info = A.place(fr, t, self.spr, (tx + jit, ty), h=1050, anc=(0.0, 0.515), rim=COLD, rim_amt=3.4,       # 精灵左裁 22%：刀尖=包围盒左缘
                            rim_dir=(-0.7, -0.6), wind=8, grade=dict(expo=0.82, sat=0.5, gamma=1.12))
         fr = A.glow(fr, (tx, ty), 50, 0.6 if cur is not None else 0.15, (0.8, 0.88, 1.0))
         fr = fog(fr, t, 0, 800, 1000, 0.4, (0.22, 0.25, 0.32), speed=(-50, 0))
