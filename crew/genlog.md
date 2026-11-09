@@ -244,3 +244,5 @@
 | 11-09 01:01 | S116 | RH_image2 | 4K 16:9 | 3 | 799d0155-9e3d-46f6-8d23-78d6815c709e | completed | gen_cands/E/S116/emperor_try1_0.png | [E组] emperor try1: Full body, front view, he stands tall and still with both ha |
 | 11-09 01:01 | S124 | RH_image2 | 4K 16:9 | 3 | bf4391be-0307-48d0-afe4-22b8f5775443 | completed | gen_cands/E/S124/over_shoulder_try1_0.png | [E组] over_shoulder try1: Medium close-up from behind, three-quarter back view: his ba |
 | 11-09 01:05 | E组 | RH_image2 | 4K 16:9 | 0 | 29472ccf/bf4391be/799d0155/8cc9bccd | 采用 | assets/gen/S116/emperor S117/emperor_face S124/over_shoulder S137/sheath_close | [E组] 第二批 try1 全部采用（e_recut 抠图）；E 组累计 27 点 |
+| 11-09 01:08 | C组/blade_hot | RH_image2 | 4K 16:9 | 0 | d6d58fab-d846-461d-b353-e3d8f049c43a | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/blade_hot_try1_0.png | try1 |
+| 11-09 01:08 | C组/blade_level | RH_image2 | 4K 16:9 | 0 | 598c26c7-05dc-4a3d-a148-43ac3b681914 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/blade_level_try1_0.png | try1 |
