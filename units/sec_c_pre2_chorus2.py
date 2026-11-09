@@ -1322,7 +1322,8 @@ class C25(Shot):
             gR = cv2.warpAffine(g, cv2.getRotationMatrix2D((960, 1000), -1.2 * clamp(k / 0.3), 1.0) + np.float32([[0, 0, gap / 2], [0, 0, -4 * clamp(k / 0.3)]]), (W, H))
             spread = np.exp(-np.abs(xx - sx).astype(np.float32) / (40 + 900 * eout(clamp(k / 0.3))))
             gg = (gL * mL[..., 0] + gR * mR[..., 0]) * spread
-            fr = fr * (1 - 0.5 * gg[..., None]) + gg[..., None] * (np.array([0.95, 0.16, 0.08], np.float32) * 1.3 + np.array([1.0, 0.6, 0.2], np.float32) * 0.8 * math.exp(-k / 0.2))
+            gg = gg * (0.6 + 0.4 * cv2.resize(K.tex('c25m', seed=25, base=24), (W, H)))
+            fr = fr * (1 - 0.6 * gg[..., None]) + gg[..., None] * (np.array([0.95, 0.16, 0.08], np.float32) * 0.95 + np.array([1.0, 0.6, 0.2], np.float32) * 0.8 * math.exp(-k / 0.2))
             fr = fr + cv2.GaussianBlur(gg, (0, 0), 14)[..., None] * np.array([0.9, 0.1, 0.04], np.float32) * 0.6
             # 断口：赤热→冷却的边
             hot = math.exp(-k / 0.28)
