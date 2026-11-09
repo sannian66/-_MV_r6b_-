@@ -15,6 +15,7 @@ from c_kit import (W, H, FPS, BAR, RED, GOLD, COLD, WARM, clamp, sm, eout, ein, 
                    paste_glyph, glyph_layer, RED_T, GOLD_T, WHITE_T, CREAM)
 import typo as T, trans as TR, fx2
 import props as PR
+import c_props as CP
 from c1kit import finish, to8, sparks, dust, crack_path, draw_crack, paper_dark, fbm
 
 READY = False
@@ -254,133 +255,246 @@ class C02(Shot):
         return fr
 
 
+def hand_shadow_mask(cx, cy, sc, t, tw=0.0, seed=0):
+    """纯代码手影（取代 S062 第 3 次使用）：腕从画顶伸下，掌心朝下、五指垂指，指节随 t 微动；tw 抽动（0..1，拽线）。
+    返回 (mask 半分辨率 float32, 指尖坐标列表 全分辨率)。"""
+    h2, w2 = H // 2, W // 2
+    m = np.zeros((h2, w2), np.float32)
+    def P(x, y): return (int((cx + x * sc) / 2), int((cy + y * sc) / 2))
+    # 小臂 + 袖口（宽袍袖口外翻）
+    cv2.fillPoly(m, [np.array([P(-120, -700), P(120, -700), P(95, -40), P(-95, -40)], np.int32)], 1.0, cv2.LINE_AA)
+    cv2.fillPoly(m, [np.array([P(-260, -520), P(250, -540), P(170, -260), P(150, -170), P(-150, -170), P(-190, -260)], np.int32)], 1.0, cv2.LINE_AA)
+    # 手掌（梯形 + 圆角）
+    cv2.fillPoly(m, [np.array([P(-92, -60), P(92, -60), P(118, 120), P(-110, 125)], np.int32)], 1.0, cv2.LINE_AA)
+    cv2.ellipse(m, P(4, 118), (int(114 * sc / 2), int(30 * sc / 2)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+    tips = []
+    r = np.random.default_rng(seed)
+    # 四指（三节，向下垂，带弯曲）+ 拇指
+    for i, (x0, ln, ph) in enumerate(((-84, 1.0, 0.0), (-28, 1.12, 1.3), (30, 1.08, 2.1), (84, 0.86, 3.0))):
+        curl = 0.25 + 0.12 * math.sin(t * 2.4 + ph) + 0.45 * tw * (1 if i % 2 else 0.6)
+        ang = math.radians(90 + (x0 / 10) - 4)
+        px, py = x0, 130
+        segs = (70 * ln, 52 * ln, 40 * ln); wd = (30, 26, 22)
+        for k, (L_, w_) in enumerate(zip(segs, wd)):
+            a = ang + curl * (k + 1) * 0.55 * (1 if x0 < 0 else -1) * 0.6
+            nx, ny = px + L_ * math.cos(a), py + L_ * math.sin(a)
+            cv2.line(m, P(px, py), P(nx, ny), 1.0, max(1, int(w_ * sc / 2)), cv2.LINE_AA)
+            cv2.circle(m, P(nx, ny), max(1, int(w_ * sc / 4)), 1.0, -1, cv2.LINE_AA)
+            px, py = nx, ny
+        tips.append((cx + px * sc, cy + py * sc))
+    tc = 0.3 + 0.2 * math.sin(t * 1.9)
+    px, py = -100, 40
+    for k, (L_, w_) in enumerate(((70, 34), (55, 28))):
+        a = math.radians(150 - 30 * tc * (k + 1))
+        nx, ny = px + L_ * math.cos(a), py + L_ * math.sin(a)
+        cv2.line(m, P(px, py), P(nx, ny), 1.0, max(1, int(w_ * sc / 2)), cv2.LINE_AA); px, py = nx, ny
+    tips.append((cx + px * sc, cy + py * sc))
+    return m, tips
+
+
 class C03(Shot):
-    """LS 仰拍：一排纸人木偶被红线吊着，在「纲」字上同时被拽起；背后是皮影幕上巨手的影子。"""
+    """LS 皮影幕：一排纸人木偶被红线吊着，在「纲」字上同时被拽起；幕上是巨手的影子（纯代码手影，指节拽线时抽动）。"""
     def render(self, t):
         u = self.u(t)
         fr = candle_room(t, glow_c=(960, 420), amt=1.6) * 0.9
-        # 皮影幕（暖光纸幕）+ 巨手影
+        # 皮影幕（暖光纸幕：纤维纹理 + 竹框阴影）
         yy, xx = np.mgrid[0:H // 4, 0:W // 4].astype(np.float32) * 4
-        scr = np.exp(-(((xx - 960) / 1100) ** 2 + ((yy - 420) / 420) ** 2)) * 0.55
-        fr = fr + cv2.resize(scr.astype(np.float32), (W, H))[..., None] * np.array([1.0, 0.72, 0.42], np.float32)
-        fr, _ = put(fr, t, 'S062/puppeteer', 960 + 40 * math.sin(t), 120 - 60 * pulse(t, V(120.96), 0.2), 760, anchor='src', src=(0.5, 0.1),
-                    look='shadow', alpha=0.85, wind=0)
+        scr = np.exp(-(((xx - 980) / 1000) ** 2 + ((yy - 400) / 430) ** 2)) * (0.62 + 0.04 * math.sin(t * 19))
+        fib = cv2.resize(K.tex('scrn', seed=33, base=40, octaves=3), (W // 4, H // 4))
+        scr = scr * (0.85 + 0.3 * fib)
+        fr = fr + cv2.resize(scr.astype(np.float32), (W, H))[..., None] * np.array([1.0, 0.70, 0.40], np.float32)
+        for xb in (150, 1770):
+            fr[:, xb - 9:xb + 9] *= 0.35
         tj = V(120.96); tj2 = V(121.31)
+        tw = min(1.0, pulse(t, tj, 0.18) + 0.7 * pulse(t, tj2, 0.15))
+        # 手影：离幕远 → 软边（大模糊）+ 半影；轻微晃
+        hx = 960 + 40 * math.sin(t * 0.9); hy = 150 - 60 * tw
+        m, tips = hand_shadow_mask(hx, hy, 0.95, t, tw)
+        # 十字提线板（木偶戏的操纵杆）被手攥着：横杆 + 竖杆，横杆随手倾斜
+        bar_y = hy + 250; tilt = 0.06 * math.sin(t * 1.3) + 0.08 * tw * math.sin(t * 9)
+        xs = [170 + i * 200 for i in range(9)]
+        ends = [(x, bar_y + (x - hx) * tilt) for x in xs]
+        cv2.line(m, (int(ends[0][0] / 2 - 20), int(ends[0][1] / 2)), (int(ends[-1][0] / 2 + 20), int(ends[-1][1] / 2)), 1.0, 7, cv2.LINE_AA)
+        cv2.line(m, (int(hx / 2), int((bar_y - 120) / 2)), (int(hx / 2), int((bar_y + 90) / 2)), 1.0, 8, cv2.LINE_AA)
+        core = cv2.GaussianBlur(m, (0, 0), 2.5); pen = cv2.GaussianBlur(m, (0, 0), 12)
+        sh = cv2.resize(core * 0.65 + pen * 0.35, (W, H))
+        fr = fr * (1 - sh[..., None] * 0.86)
         lift = 70 * pulse(t, tj, 0.22) + 40 * pulse(t, tj2, 0.18)
         r = np.random.default_rng(3)
         for i in range(9):
-            x = 170 + i * 200 + r.uniform(-30, 30); hgt = 300 + r.uniform(-20, 20)
-            top = 470 - lift * (1 + 0.2 * math.sin(i)) + 10 * math.sin(t * 3 + i)
+            x = xs[i] + r.uniform(-20, 20); hgt = 300 + r.uniform(-20, 20)
+            top = 560 - lift * (1 + 0.2 * math.sin(i)) + 10 * math.sin(t * 3 + i)
             ang = 6 * math.sin(t * 2.5 + i) + 10 * pulse(t, tj, 0.3) * (1 if i % 2 else -1)
-            A, fib = puppet_sprite(i, int(hgt))
-            fr = red_line(fr, (x, BAR), (x, top + 4), w=2, amt=0.85)
-            fr = draw_puppet(fr, A, fib, x, top, ang, back=1.1 - 0.4 * abs(i - 4) / 4)
-        # 「纲」：宋体铅字压在纸人群上方，纲常之「纲」，朱红块光标
-        if t >= V(120.96) - 0.0:
-            k = t - V(120.96)
-            fr = paste_glyph(fr, '纲', 960, 330, 300, (0.95, 0.85, 0.62), font='serif_b', glow=0.35, glow_c=(1, 0.6, 0.3),
-                             scale=1 + 0.12 * pulse(t, V(120.96), 0.06))
+            A, fib2 = puppet_sprite(i, int(hgt))
+            fr = red_line(fr, ends[i], (x, top + 4), w=2, amt=0.85)
+            fr = draw_puppet(fr, A, fib2, x, top, ang, back=1.1 - 0.4 * abs(i - 4) / 4)
+        if t >= tj:
+            fr = paste_glyph(fr, '纲', 960, 330, 260, (0.95, 0.85, 0.62), font='serif_b', glow=0.35, glow_c=(1, 0.6, 0.3),
+                             scale=1 + 0.12 * pulse(t, tj, 0.06))
         fr = fog(fr, t, 4, density=0.4, y0=750, y1=980, color=(0.25, 0.17, 0.10), speed=(30, 0))
+        fr = sparks(fr, t, 31, (960, 600), n=40, life=3.0, speed=(8, 30), dirc=(0, -1), spread=1.4, grav=-6, amt=0.25, area=(800, 300))
         return fr
 
 
+_GSEAL = {}
+def gold_seal():
+    if 'g' not in _GSEAL: _GSEAL['g'] = CP.StoneSeal('正', seed=404, res=192, front_text='正', base=(0.62, 0.42, 0.13))
+    return _GSEAL['g']
+
+
+def fill_people(n, seed, h, scatter=0.0, t=0.0):
+    """秤盘回调：盘里一堆纸人（scatter>0 时被抛起）"""
+    def f(fr, c, rx, ry):
+        r = np.random.default_rng(seed)
+        for i in range(n):
+            ox = r.uniform(-0.75, 0.75) * rx; oy = r.uniform(-0.5, 0.3) * ry
+            hh = int(h * r.uniform(0.8, 1.15))
+            A, fib = puppet_sprite(60 + i % 8, hh)
+            k = scatter * r.uniform(0.6, 1.3)
+            x = c[0] + ox + r.uniform(-1, 1) * 260 * k; y = c[1] + oy - hh * 0.95 - (900 * k - 1100 * k * k * 0.6)
+            ang = r.uniform(-12, 12) + r.uniform(-200, 200) * k
+            fr = draw_puppet(fr, A, fib, x, y, ang, back=0.8 + 0.3 * r.random())
+        return fr
+    return f
+
+
+def fill_seal(size, fall=1.0, flash=0.0):
+    def f(fr, c, rx, ry):
+        g = gold_seal()
+        fr, _ = g.draw(fr, c[0], c[1] + ry * 0.35, size, fall=fall, yaw=-28, pitch=-14, rim=(1.0, 0.8, 0.45), rim_amt=1.2, flash=flash,
+                       light=(0.6, 0.7, -0.4), shadow=0.3)
+        return fr
+    return f
+
+
 class C04(Shot):
-    """CU 天平：金印落进右盘（121.72），左盘纸人被翘起抛飞；只有烛光金边，深景深。"""
-    def __init__(self): self.B = PR.Balance(seed=5, people=50)
+    """CU 青铜天平：金印「正」从画顶坠进右盘（121.72），右盘沉、左盘的纸人被翘起抛飞；烛光金边，浅景深。"""
+    def __init__(self): self.B = CP.BronzeBalance(seed=5)
     def render(self, t):
         u = self.u(t)
         fr = candle_room(t, glow_c=(1500, 250), amt=1.2) * 0.7
-        drop = sm(V(121.72) - 0.18, V(121.72), t)
-        tilt = -14 * eout((t - V(121.72)) / 0.35) if t > V(121.72) else 0
-        tilt += 2.5 * math.sin(t * 7) * pulse(t, V(121.72), 0.4)
-        fr, info = self.B.draw(fr, t, 960, 330, 1350, tilt=tilt, sway=0.5, left_people=1.0 - 0.6 * sm(V(121.72), V(122.3), t),
-                               right='seal', rim_color=GOLD, rim=1.6, light=(0.5, -1))
-        # 金印坠落（落进右盘前的残影）
-        if t < V(121.72):
-            y = lerp(-80, 560, ein(drop, 2))
-            fr = K.vol_light(fr, (1620, y), 70, GOLD, 0.8)
-        fr = sparks(fr, t, 21, (1640, 640), n=60, life=0.7, speed=(150, 600), dirc=(0, -1), spread=1.0, grav=900, amt=0.9,
-                    t0=V(121.72), burst=True, color=(1.0, 0.75, 0.35))
-        # 抛飞的纸人（剪影碎纸）
-        if t > V(121.72):
-            k = t - V(121.72); r = np.random.default_rng(9)
-            for i in range(14):
-                A, fib = puppet_sprite(20 + i, 70)
-                x = 300 + r.uniform(-120, 140) + r.uniform(-300, 200) * k; y = 560 - (700 * k - 900 * k * k) * r.uniform(0.5, 1.2)
-                fr = draw_puppet(fr, A, fib, x, y, r.uniform(-180, 180) * k * 3, back=0.9)
-        fr = cv2.GaussianBlur(fr, (0, 0), 0.6)
-        fr = K.vol_light(fr, (960, 330), 120, GOLD, 0.25 + 0.6 * pulse(t, V(121.98), 0.12))   # 「正」金闪
+        td = V(121.72)
+        fall = sm(td - 0.30, td, t) if t < td else 1.0
+        k = max(0.0, t - td)
+        tilt = -9 * eout(k / 0.35) + 2.5 * math.sin(t * 7) * pulse(t, td, 0.4) if t > td else 1.5 * math.sin(t * 2)
+        sc = clamp(k / 0.9)
+        fl = pulse(t, td, 0.12)
+        fr, info = self.B.draw(fr, t, 960, 250, 1360, tilt=tilt, rim=(1.0, 0.72, 0.42), rim_amt=0.9, light=(0.6, -0.8),
+                               fill_l=fill_people(18, 41, 74, scatter=sc * 0.9, t=t),
+                               fill_r=fill_seal(150, 1.0, fl) if t >= td else None)
+        if t < td:   # 坠落中的金印（拖影）
+            pr = info['pan_r']
+            g = gold_seal()
+            y = lerp(-200, pr[1] + 18, ein(fall, 2))
+            fr, _ = g.draw(fr, pr[0], y, 150, fall=1.0, yaw=-28 + 60 * (1 - fall), pitch=-14, rim=(1, 0.8, 0.45), rim_amt=1.2, mblur=False)
+            fr = K.vol_light(fr, (pr[0], y - 60), 90, GOLD, 0.5)
+        fr = sparks(fr, t, 21, info['pan_r'], n=80, life=0.7, speed=(150, 650), dirc=(0, -1), spread=1.0, grav=900, amt=1.0,
+                    t0=td, burst=True, color=(1.0, 0.75, 0.35))
+        fr = K.vol_light(fr, (1500, 250), 500, WARM, 0.12)
+        # 前景虚焦烛焰（浅景深）
+        fr = K.vol_light(fr, (180, 900), 150, (1.0, 0.6, 0.25), 0.55 + 0.05 * math.sin(t * 17))
+        fr = K.vol_light(fr, (960, 360), 120, GOLD, 0.6 * pulse(t, V(121.98), 0.12))   # 「正」金闪
+        fr = dust(fr, t, 42, n=90, amt=0.35, drift=(8, -14), region=(0, BAR, W, H - BAR), color=(1.0, 0.8, 0.5))
         return fr
 
 
 class C05(Shot):
-    """ECU 暗箱：黑漆金边方箱张着口，金印、铜钱、纸人倾泻而入，镜头推向箱口（交易）。"""
+    """ECU 暗箱：黑漆描金方箱张着口（俯 26°），金印、铜钱、纸人倾泻而入；镜头推向箱口（交易）。"""
+    def __init__(self): self.box = CP.LacquerBox(seed=5)
     def render(self, t):
         u = self.u(t)
-        fr = candle_room(t, glow_c=(960, 160), amt=1.0) * 0.55
-        z = 1.0 + 0.22 * ein(u, 2)
-        cx, cy = 960, 640
-        def P(x, y): return (int(cx + (x - cx) * z), int(cy + (y - cy) * z))
-        fl, fr_, br, bl = P(560, 600), P(1360, 600), P(1250, 470), P(670, 470)        # 箱口（顶面）
-        dl, dr = P(560, 1000), P(1360, 1000)
-        L = np.zeros((H, W), np.float32)
-        box = fr.copy()
-        cv2.fillPoly(box, [np.array([fl, fr_, dr, dl])], (0.035, 0.03, 0.03), cv2.LINE_AA)               # 前面
-        cv2.fillPoly(box, [np.array([fl, fr_, br, bl])], (0.0, 0.0, 0.0), cv2.LINE_AA)                     # 箱口（黑洞）
-        g = np.zeros((H, W), np.float32)
-        for a, b in ((fl, fr_), (fr_, br), (br, bl), (bl, fl), (fl, dl), (fr_, dr)):
-            cv2.line(g, a, b, 1.0, 3, cv2.LINE_AA)
-        fr = box + (g + cv2.GaussianBlur(g, (0, 0), 6) * 0.8)[..., None] * GOLD * 0.9
-        # 箱面漆光：烛光高光条
-        hl = np.zeros((H, W), np.float32); cv2.line(hl, P(600, 640), P(1320, 640), 1.0, 14, cv2.LINE_AA)
-        fr = fr + cv2.GaussianBlur(hl, (0, 0), 18)[..., None] * WARM * 0.12
-        # 倾泻物：金币（椭圆金片）+ 纸人
+        fr = candle_room(t, glow_c=(960, 160), amt=1.0) * 0.6
+        z = 1.0 + 0.25 * ein(u, 2)
+        size = 980 * z
+        # 桌面：深色木纹 + 烛光反射
+        yy = np.linspace(0, 1, H, dtype=np.float32)[:, None]
+        wood = cv2.resize(K.tex('wood', seed=55, base=3, octaves=4), (W, H))
+        grain = 0.5 + 0.5 * np.sin(np.linspace(0, 90, W, dtype=np.float32)[None, :] + wood * 14)
+        desk = np.array([0.06, 0.035, 0.02], np.float32) * (0.6 + 0.6 * grain[..., None]) * np.clip((yy - 0.62) * 4, 0, 1)[..., None]
+        fr = fr * (1 - np.clip((yy - 0.62) * 4, 0, 1)[..., None]) + desk
+        fr, uv = self.box.draw(fr, 960, 1020 + 120 * (z - 1), size, yaw=6 - 8 * u, pitch=-26, flash=0.0)
+        rim_y = float(np.mean([uv[4][1], uv[5][1], uv[6][1], uv[7][1]]))   # 箱口平面
+        front_y = float(max(uv[4][1], uv[5][1]))
+        xl, xr = float(min(uv[4][0], uv[7][0])) + 60 * z, float(max(uv[5][0], uv[6][0])) - 60 * z
+        # 箱内暖光往上溢
+        fr = K.vol_light(fr, (960, rim_y), 260 * z, (1.0, 0.6, 0.25), 0.35)
+        # 倾泻物：金币（翻转的椭圆金片，带高光）+ 纸人；落到箱口平面以下即消失（被吞）
         r = np.random.default_rng(13)
-        for i in range(70):
-            ph = r.random(); sp = r.uniform(0.6, 1.0)
-            k = ((t * sp * 1.4 + ph) % 1.0)
-            x = 960 + r.uniform(-260, 260) * (1 - k * 0.6); y = lerp(150, 560, k ** 1.6)
-            x, y = P(x, y)
-            if r.random() < 0.75:
-                sz = int(r.uniform(6, 13) * z); ang = (t * 300 * sp + i * 40) % 180
-                cv2.ellipse(fr, (x, y), (sz, max(1, int(sz * abs(math.cos(math.radians(ang)))))), i * 20, 0, 360, tuple(float(v) for v in GOLD * 0.9), -1, cv2.LINE_AA)
+        for i in range(80):
+            ph = r.random(); sp = r.uniform(0.7, 1.1)
+            k = ((t * sp * 1.3 + ph) % 1.0)
+            x = 960 + r.uniform(-0.8, 0.8) * (xr - xl) * 0.4 * (1 - k * 0.4)
+            y = lerp(BAR - 40, front_y + 20, k ** 1.7)
+            if y > rim_y + (front_y - rim_y) * 0.4 + r.uniform(-30, 30): continue
+            if r.random() < 0.78:
+                sz = int(r.uniform(9, 17) * z); ang = (t * 340 * sp + i * 40) % 180
+                ry_ = max(1, int(sz * abs(math.cos(math.radians(ang)))))
+                cv2.ellipse(fr, (int(x), int(y)), (sz, ry_), i * 23, 0, 360, tuple(float(v) for v in GOLD * 0.55), -1, cv2.LINE_AA)
+                cv2.ellipse(fr, (int(x), int(y)), (sz, ry_), i * 23, 200, 320, tuple(float(v) for v in GOLD * 1.5), 2, cv2.LINE_AA)
+                cv2.rectangle(fr, (int(x - sz * 0.2), int(y - ry_ * 0.2)), (int(x + sz * 0.2), int(y + ry_ * 0.2)), (0.02, 0.015, 0.01), -1)
             else:
-                A, fib = puppet_sprite(40 + i % 6, int(60 * z))
-                fr = draw_puppet(fr, A, fib, x, y, (t * 200 + i * 50) % 360, back=0.8)
-        fr = K.vol_light(fr, (960, 560), 260, GOLD, 0.25)
+                A, fib = puppet_sprite(40 + i % 6, int(70 * z))
+                fr = draw_puppet(fr, A, fib, x, y - 35 * z, (t * 220 + i * 50) % 360, back=0.8)
+        fr = sparks(fr, t, 51, (960, rim_y - 40), n=50, life=1.2, speed=(30, 120), dirc=(0, -1), spread=1.2, grav=-30, amt=0.5,
+                    area=(400, 30), color=(1.0, 0.7, 0.3))
         return fr
 
 
 class C06(Shot):
-    """ECU 俯拍：箱盖砸下合上（124.22「箱」），黑屏故障帧；「暗箱」二字被关进黑暗后碎裂。"""
+    """ECU 正俯拍：箱盖（黑漆描金、金锁片）砸下合上（124.22「箱」），黑屏故障帧；「暗箱」二字被关进黑暗后碎裂。"""
+    def __init__(self):
+        self.lid = CP.lacquer_tex(560, 380, 66, trim=True, lock=True)
+        self.wall = CP.lacquer_tex(560, 160, 67, trim=False)
     def render(self, t):
         tc = V(124.22)
         fr = np.zeros((H, W, 3), np.float32) + 0.012
+        x0, y0, x1, y1 = 400, 210, 1520, 970          # 箱口
+        ix0, iy0, ix1, iy1 = 610, 380, 1310, 820      # 箱底（透视内缩）
         if t < tc:
             q = ein(sm(self.t0, tc, t), 2.4)
             fr = candle_room(t, glow_c=(960, 540), amt=1.0) * 0.5
-            # 俯拍箱口：黑色方洞 + 金边，箱盖从上方压下（遮挡比例 q）
-            cv2.rectangle(fr, (420, 230), (1500, 960), (0.0, 0.0, 0.0), -1)
-            g = np.zeros((H, W), np.float32); cv2.rectangle(g, (420, 230), (1500, 960), 1.0, 4, cv2.LINE_AA)
-            fr = fr + (g + cv2.GaussianBlur(g, (0, 0), 8))[..., None] * GOLD * 0.8
-            yl = int(lerp(-500, 960, q))
-            lid = np.zeros((H, W), np.float32); cv2.rectangle(lid, (380, -800), (1540, yl), 1.0, -1)
-            fr = fr * (1 - lid[..., None]) + lid[..., None] * 0.03
-            gl = np.zeros((H, W), np.float32); cv2.line(gl, (380, yl), (1540, yl), 1.0, 5, cv2.LINE_AA)
-            fr = fr + (gl + cv2.GaussianBlur(gl, (0, 0), 10))[..., None] * GOLD
-            # 「暗箱」金字在箱口里（等着被关进去）
-            fr = paste_glyph(fr, '暗', 760, 600, 260, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25))
-            fr = paste_glyph(fr, '箱', 1160, 600, 260, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25),
-                             alpha=sm(V(123.86) - 0.08, V(123.86) + 0.02, t) * 0 + 1.0)
+            # 箱内四壁（漆面，越深越暗）+ 箱底暖光
+            for quad, sh in ((((x0, y0), (x1, y0), (ix1, iy0), (ix0, iy0)), 0.9), (((ix0, iy1), (ix1, iy1), (x1, y1), (x0, y1)), 0.45),
+                             (((x0, y0), (ix0, iy0), (ix0, iy1), (x0, y1)), 0.7), (((ix1, iy0), (x1, y0), (x1, y1), (ix1, iy1)), 0.6)):
+                src = np.float32([[0, 0], [560, 0], [560, 160], [0, 160]])
+                M = cv2.getPerspectiveTransform(src, np.float32(quad))
+                wc = cv2.warpPerspective(self.wall * sh, M, (W, H)); wa = cv2.warpPerspective(np.ones((160, 560), np.float32), M, (W, H))
+                fr = fr * (1 - wa[..., None]) + wc * wa[..., None]
+            cv2.rectangle(fr, (ix0, iy0), (ix1, iy1), (0.05, 0.025, 0.012), -1)
+            fr = K.vol_light(fr, (960, 600), 330, (1.0, 0.55, 0.2), 0.22)
+            g = np.zeros((H, W), np.float32); cv2.rectangle(g, (x0, y0), (x1, y1), 1.0, 10, cv2.LINE_AA)
+            fr = fr + (g * 0.8 + cv2.GaussianBlur(g, (0, 0), 6) * 0.5)[..., None] * GOLD * 0.7
+            fr = paste_glyph(fr, '暗', 790, 600, 230, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25))
+            fr = paste_glyph(fr, '箱', 1130, 600, 230, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25),
+                             alpha=sm(V(123.86) - 0.06, V(123.86) + 0.02, t))
+            # 箱盖：从画顶压下（带运动模糊），先投影后到位
+            yl = lerp(-900, y1, q)
+            shd = np.zeros((H // 4, W // 4), np.float32)
+            cv2.rectangle(shd, ((x0 - 20) // 4, 0), ((x1 + 20) // 4, int((yl + 120 * (1 - q)) / 4)), 1.0, -1)
+            fr = fr * (1 - cv2.resize(cv2.GaussianBlur(shd, (0, 0), 10), (W, H))[..., None] * 0.7)
+            src = np.float32([[0, 0], [560, 0], [560, 380], [0, 380]])
+            dst = np.float32([[x0 - 30, yl - (y1 - y0) - 40], [x1 + 30, yl - (y1 - y0) - 40], [x1 + 30, yl + 20], [x0 - 30, yl + 20]])
+            M = cv2.getPerspectiveTransform(src, dst)
+            lc = cv2.warpPerspective(self.lid * 1.4, M, (W, H)); la = cv2.warpPerspective(np.ones((380, 560), np.float32), M, (W, H))
+            if q < 1:
+                kb = int(40 * (1 - q) * q * 4) * 2 + 1
+                lc = cv2.blur(lc, (1, kb)); la = cv2.blur(la, (1, kb))
+            fr = fr * (1 - la[..., None]) + lc * la[..., None]
+            gl = np.zeros((H, W), np.float32); cv2.line(gl, (x0 - 30, int(yl + 20)), (x1 + 30, int(yl + 20)), 1.0, 4, cv2.LINE_AA)
+            fr = fr + (gl + cv2.GaussianBlur(gl, (0, 0), 10))[..., None] * GOLD * 0.8
             self.ca = 0
             return fr
         k = t - tc
-        # 合盖后：黑 + 故障条 + 「暗箱」在黑里碎裂
         L = T.Layer()
-        T.place(L, '暗', 760, 600, 260, GOLD_T, 'serif_b', texture=False); T.place(L, '箱', 1160, 600, 260, GOLD_T, 'serif_b', texture=False)
+        T.place(L, '暗', 790, 600, 230, GOLD_T, 'serif_b', texture=False); T.place(L, '箱', 1130, 600, 230, GOLD_T, 'serif_b', texture=False)
         q = sm(0.12, 0.6, k)
         L2 = T.shatter_layer(L, q, (960, 600), 60, seed=3, power=1.2, gravity=200) if q > 0 else L
-        out = T.compose(fr, L2, shadow=0, glow=0.5, glow_sigma=14, glow_color=(1, 0.5, 0.2))
+        # 合盖后的箱盖仍在（极暗，金边残光），字从缝里透出、碎裂
+        src = np.float32([[0, 0], [560, 0], [560, 380], [0, 380]])
+        M = cv2.getPerspectiveTransform(src, np.float32([[x0 - 30, y0 - 40], [x1 + 30, y0 - 40], [x1 + 30, y1 + 20], [x0 - 30, y1 + 20]]))
+        lc = cv2.warpPerspective(self.lid * 0.5, M, (W, H)); la = cv2.warpPerspective(np.ones((380, 560), np.float32), M, (W, H))
+        fr = fr * (1 - la[..., None]) + lc * la[..., None] * (1 - sm(0.1, 0.5, k) * 0.7)
+        out = T.compose(fr, L2, shadow=0, glow=0.5, glow_sigma=14, glow_color=(1, 0.5, 0.2), opacity=0.9)
         if k < 0.1:
             out = TR.glitch_cut(out, np.zeros_like(out), 0.4, seed=int(t * 30))
             out = flash_frame(out, 0.6, (1, 0.8, 0.5))
@@ -517,17 +631,38 @@ class C12(Shot):
 
 
 class C13(Shot):
-    """riser：镜头冲进翻滚的雷云，电光在云腹里蓄能，越推越快，鼓点上闪。"""
+    """riser：镜头冲进雷暴之眼——云层成漩涡，雨丝化作迎面的光速线，刀上的赤热余烬被卷进风眼；鼓点上闪。"""
     def render(self, t):
         u = self.u(t)
         hits = [V(x) for x in (131.42, 131.61, 131.96, 132.07)]
         fl = sum(0.7 * pulse(t, h, 0.07) for h in hits) + 0.6 * ein(u, 2)
         fr = storm_sky(t * 3, 13, 2000, flash=fl, flash_c=(960, 480), speed=(30, -40), cloud=1.3)
+        # 漩涡：极坐标扭曲
+        yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32) * 2
+        dx, dy = xx - 960, yy - 520; rr = np.sqrt(dx * dx + dy * dy) + 1
+        tw = (1.4 + 2.5 * ein(u, 2)) * np.exp(-rr / 700)
+        ca, sa = np.cos(tw), np.sin(tw)
+        mx = (960 + dx * ca - dy * sa).astype(np.float32); my = (520 + dx * sa + dy * ca).astype(np.float32)
+        fr = cv2.remap(fr, cv2.resize(mx, (W, H)), cv2.resize(my, (W, H)), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
         z = 1.0 + 0.5 * ein(u, 2.5)
         fr = camxf(fr, z, rot=12 * ein(u, 2))
-        fr = radial(fr, (960, 500), 0.05 + 0.25 * ein(u, 2))
+        # 风眼核心：一点赤热（承接 C12 烧红的刀）
+        fr = K.vol_light(fr, (960, 520), 90 + 160 * ein(u, 2), (1.0, 0.35, 0.12), 0.5 + 0.8 * ein(u, 2))
+        # 迎面光速线（雨丝径向拉长）
+        r = np.random.default_rng(13)
+        Ls = np.zeros((H // 2, W // 2), np.float32)
+        for i in range(160):
+            a = r.uniform(0, 6.283); ph = r.random(); sp = r.uniform(0.8, 1.6)
+            k = (t * sp * 2.2 + ph) % 1.0
+            d0 = 40 + 1100 * k ** 2; d1 = d0 * (1.10 + 0.5 * k * (0.5 + u))
+            p0 = (480 + math.cos(a) * d0 / 2, 260 + math.sin(a) * d0 / 2 * 0.62); p1 = (480 + math.cos(a) * d1 / 2, 260 + math.sin(a) * d1 / 2 * 0.62)
+            cv2.line(Ls, (int(p0[0]), int(p0[1])), (int(p1[0]), int(p1[1])), float(0.25 + 0.75 * k), 1, cv2.LINE_AA)
+        fr = fr + cv2.resize(Ls, (W, H))[..., None] * COLD * (0.5 + 0.8 * u)
+        fr = radial(fr, (960, 520), 0.05 + 0.25 * ein(u, 2))
         for i, h in enumerate(hits):
             fr = bolt(fr, t, h, 130 + i, (300 + 400 * i, 150), (800 + 120 * i, 980), inten=0.6, sky=0.0, width=2)
+        fr = sparks(fr, t, 131, (960, 520), n=120, life=0.8, speed=(200, 900), dirc=(0, -1), spread=3.1, grav=0, amt=0.9,
+                    color=(1.0, 0.45, 0.15))
         return fr
 
 
@@ -728,8 +863,17 @@ class C22(Shot):
 
 
 class C23(Shot):
-    """CU 仰拍字墙局部（同墙 match cut）：「铁」「壁」「铜」三块字砖逐拍从墙里凸出、逼近镜头。"""
-    def __init__(self): self.wall = PR.CharWall(seed=23, cols=12, rows=14, brick=(150, 64))
+    """CU 仰拍字墙局部（同墙 match cut）：「铁」「壁」「铜」三块石砖逐拍从墙里推出、逼近镜头（真立体砖：侧面、刻字、碎屑）。"""
+    def __init__(self):
+        self.wall = PR.CharWall(seed=23, cols=12, rows=14, brick=(150, 64))
+        self.bricks = []
+        for i, c in enumerate('铁壁铜'):
+            face = CP.stone_tex(300, 128, 230 + i, base=(0.13, 0.13, 0.14), engrave=(c, 104, False), engrave_gold=False)
+            # 刻字填冷银
+            m = CP.text_mask(c, 104, 300, 128)
+            face = face * (1 - m[..., None] * 0.85) + m[..., None] * np.array([0.75, 0.80, 0.90], np.float32) * 0.8
+            side = CP.stone_tex(300, 128, 240 + i, base=(0.09, 0.09, 0.10), border=False)
+            self.bricks.append(CP.Cuboid(dict(front=face, side=side)))
     def render(self, t):
         u = self.u(t)
         fl = sum(0.6 * bolt_env(t, V(CT(34, k))) for k in (4, 5, 6))
@@ -739,22 +883,21 @@ class C23(Shot):
         pos = [(560, 470), (960, 690), (1380, 420)]
         for i, k in enumerate((4, 5, 6)):
             ti = V(CT(34, k))
-            if t < ti - 0.15: continue
-            e = eout((t - ti + 0.15) / 0.22)
             x, y = pos[i]
-            sc = lerp(1.0, 1.35 + 0.08 * (t - ti), e)
-            # 砖体：厚度阴影 + 砖面
-            bw, bh = 300 * sc, 128 * sc
-            sh = np.zeros((H, W), np.float32)
-            cv2.rectangle(sh, (int(x - bw / 2 + 30 * e), int(y - bh / 2 + 40 * e)), (int(x + bw / 2 + 30 * e), int(y + bh / 2 + 40 * e)), 1.0, -1)
-            fr = fr * (1 - cv2.GaussianBlur(sh, (0, 0), 16)[..., None] * 0.7 * e)
-            face = np.zeros((H, W), np.float32)
-            cv2.rectangle(face, (int(x - bw / 2), int(y - bh / 2)), (int(x + bw / 2), int(y + bh / 2)), 1.0, -1)
-            fr = fr * (1 - face[..., None] * e) + face[..., None] * e * np.array([0.12, 0.12, 0.13], np.float32)
-            rim = cv2.Canny((face * 255).astype(np.uint8), 50, 150).astype(np.float32) / 255
-            fr = fr + cv2.GaussianBlur(rim, (0, 0), 2)[..., None] * COLD * 1.5 * e
-            fr = paste_glyph(fr, '铁壁铜'[i], x, y, 110 * sc, (0.92, 0.94, 1.0), glow=0.6, glow_c=(0.6, 0.7, 1.0), alpha=e, font='serif_b', shadow=0.3)
-            fr = dust(fr, t, 230 + i, n=40, amt=0.5 * e * (1 - sm(0.2, 0.8, t - ti)), drift=(0, 120), region=(int(x - bw / 2), int(y), int(x + bw / 2), int(y + 300)))
+            if t < ti - 0.15:
+                continue
+            e = eout((t - ti + 0.15) / 0.22)
+            depth = 40 + 260 * e + 60 * (t - ti)
+            # 砖洞（墙上被推出后留下的黑洞）
+            hole = np.zeros((H, W), np.float32)
+            cv2.rectangle(hole, (int(x - 150), int(y - 64)), (int(x + 150), int(y + 64)), 1.0, -1)
+            fr = fr * (1 - hole[..., None] * 0.9 * e)
+            C = np.zeros((H, W, 3), np.float32); A = np.zeros((H, W), np.float32)
+            self.bricks[i].draw(C, A, x, y + 64, 300, 128, depth, yaw=(x - 960) / 28, pitch=-10 - (y - 540) / 30, f=1400,
+                                light=(-0.4, 0.6, -0.7), amb=0.45, rim=COLD, rim_amt=0.8, flash=fl, offset=(0, 0, -depth / 2 + 20))
+            fr = CP.compose(fr, C, A, shadow=0.6)
+            fr = dust(fr, t, 230 + i, n=60, amt=0.7 * e * (1 - sm(0.2, 0.8, t - ti)), drift=(0, 160),
+                      region=(int(x - 170), int(y - 70), int(x + 170), int(y + 260)), size=(1, 4))
         fr = rain(fr, t, 230, inten=0.7, angle=4)
         return fr
 
@@ -838,39 +981,48 @@ class C26(Shot):
 
 
 class C27(Shot):
-    """ELS 缺口：墙的两半剪影之间，天被闪电照得惨白如昼（伪天亮），缺口里站着一个小小的人。"""
+    """ELS 缺口：墙的两半剪影之间，天被闪电照得惨白如昼（伪天亮），缺口里站着一个小小的人；雨幕被缺口里的天光逆照。"""
     def render(self, t):
         u = self.u(t)
         tt = V(147.28)
-        fl = 0.4 + 1.6 * bolt_env(t, tt) + 0.6 * pulse(t, V(146.5), 0.1)
+        fl = 0.8 + 1.6 * bolt_env(t, tt) + 0.6 * pulse(t, V(146.5), 0.1)
         fr = storm(t, 27, horizon=900, flash=fl, fc=(960, 400), refl=0.9)
         fr = fr + sm(tt - 0.05, tt + 0.1, t) * 0.5 * (1 - sm(tt + 0.3, tt + 0.8, t))
-        # 墙两半剪影（锯齿边）
+        fr = K.vol_light(fr, (960, 500), 380, (0.85, 0.9, 1.0), 0.35 * fl)
         r = np.random.default_rng(27)
         ys = np.linspace(BAR - 20, 910, 30)
         lx = 820 + np.cumsum(r.normal(0, 14, 30)) - 40 * u; rx = 1100 + np.cumsum(r.normal(0, 14, 30)) + 40 * u
         m = np.zeros((H, W), np.float32)
         cv2.fillPoly(m, [np.array([[0, BAR - 20]] + [[int(a), int(b)] for a, b in zip(lx, ys)] + [[0, 910]], np.int32)], 1.0, cv2.LINE_AA)
         cv2.fillPoly(m, [np.array([[W, BAR - 20]] + [[int(a), int(b)] for a, b in zip(rx, ys)] + [[W, 910]], np.int32)], 1.0, cv2.LINE_AA)
+        # 墙体剪影带砖缝（暗部仍有层次）
+        bw = np.zeros((H, W), np.float32)
+        for yb in range(BAR, 910, 46): bw[yb:yb + 3] = 1
+        for j, yb in enumerate(range(BAR, 910, 46)):
+            for xb in range((j % 2) * 55, W, 110): bw[yb:yb + 46, xb:xb + 3] = 1
+        wallc = 0.025 + 0.02 * bw[..., None] * (-1) + 0.012 * cv2.resize(K.tex('c27w', seed=27, base=12), (W, H))[..., None]
         edge = cv2.GaussianBlur(m, (0, 0), 3) - cv2.GaussianBlur(m, (0, 0), 12)
-        fr = fr * (1 - m[..., None]) + m[..., None] * 0.02 + np.clip(-edge, 0, 1)[..., None] * COLD * 0.8 * fl
+        fr = fr * (1 - m[..., None]) + m[..., None] * np.clip(wallc, 0, 1) + np.clip(-edge, 0, 1)[..., None] * COLD * 0.8 * fl
         fr, _ = put(fr, t, 'S082/walk_front', 960, 910, 170, look='sil', rim=(1, 1, 1), rim_amt=3.0, wind=3, flash=fl)
         fr = rain(fr, t, 270, inten=1.0, angle=8, light=(960, 400))
         return fr
 
 
 class C28(Shot):
-    """字即光：惨白天光里金色巨字「亮」墨晕显出（147.74），随即四周黑墨涌来把它吞掉——只是闪电的伪天亮。"""
+    """字即光：惨白天光里金色巨字「亮」墨晕显出（147.74，墨边金芯，压得住白底），随即四周黑墨涌来把它吞掉——只是闪电的伪天亮。"""
     def render(self, t):
         u = self.u(t)
         tl = V(147.74)
-        base = 1.15 - 0.95 * sm(tl + 0.25, self.t1, t)
-        fr = np.ones((H, W, 3), np.float32) * np.array([0.93, 0.94, 0.97], np.float32) * base
+        base = 0.86 - 0.70 * sm(tl + 0.25, self.t1, t)
+        fr = np.ones((H, W, 3), np.float32) * np.array([0.86, 0.88, 0.93], np.float32) * base
         fr = storm_sky(t, 28, 2000, flash=0.6, cloud=0.6) * 0.3 + fr
         if t >= tl - 0.15:
             e = eout((t - tl + 0.15) / 0.2)
-            fr = paste_glyph(fr, '亮', 960, 520, 620, GOLD_T, glow=1.0, glow_c=(1.0, 0.65, 0.25), alpha=e, scale=lerp(1.25, 1.0, e) + 0.04 * u,
-                             shadow=0.2)
+            sc = lerp(1.25, 1.0, e) + 0.04 * u
+            # 墨晕底（字形外扩的墨）+ 金字
+            L = T.Layer(); T.place(L, '亮', 960, 520, 620, (0.03, 0.025, 0.02), 'serif_black', alpha=e * 0.85, scale=sc * 1.02, blur=6, texture=False)
+            fr = T.compose(fr, L, shadow=0.0, glow=0.0)
+            fr = paste_glyph(fr, '亮', 960, 520, 620, (1.0, 0.70, 0.26), glow=0.9, glow_c=(1.0, 0.55, 0.15), alpha=e, scale=sc, shadow=0.9)
         fr = ink_vignette(fr, sm(tl + 0.15, self.t1, t))
         return fr
 
@@ -931,17 +1083,17 @@ class C31(Shot):
 
 class C32(Shot):
     """ELS 低机位：巨印「是」从雷云里砸下（152.21），鬼屠（S078 反向）在下面疾跑闪避。"""
-    def __init__(self): self.seal = PR.GiantSeal('是', seed=32)
+    def __init__(self): self.seal = CP.StoneSeal('是', seed=32, front_text='是')
     def render(self, t):
         u = self.u(t)
         ti = V(152.21)
         fr = storm(t, 32, horizon=880, flash=0.5 + 1.0 * pulse(t, ti, 0.15), fc=(1200, 150), refl=0.6)
         fall = sm(self.t0, ti, t) ** 2
-        fr, _ = self.seal.draw(fr, t, 1250, 900, 520, fall=fall, tilt=-8, rim_color=COLD, rim=1.4)
+        fr, _ = self.seal.draw(fr, 1420, 900, 560, fall=fall, yaw=-24, pitch=9, rim=COLD, rim_amt=1.0, flash=pulse(t, ti, 0.15), light=(0.5, 0.8, -0.4))
         k = max(0.0, t - ti)
         fr = dust(fr, t, 321, n=240, amt=1.0 * min(1, k * 6) * (1 - sm(0.3, 1.0, k)), drift=(0, -200), region=(800, 600, 1800, 960))
-        fr = shock_ring(fr, (1250, 900), k / 0.6, rx=1500, flat=0.12)
-        fr, _ = put(fr, t, 'S078/run', 420 + 700 * u, 920 + 6 * abs(math.sin(t * 10)), 300, flip=True, rim=COLD, rim_amt=2.6, expo=0.9, wind=9,
+        fr = shock_ring(fr, (1420, 900), k / 0.6, rx=1500, flat=0.12)
+        fr, _ = put(fr, t, 'S078/run', 300 + 560 * u, 920 + 6 * abs(math.sin(t * 10)), 300, flip=True, rim=COLD, rim_amt=2.6, expo=0.9, wind=9,
                     mblur=(16, 0))
         fr = rain(fr, t, 320, inten=1.0, angle=12)
         self.ca = 5 if 0 <= k < 0.1 else 0
@@ -950,13 +1102,13 @@ class C32(Shot):
 
 class C33(Shot):
     """LS 近距：第二方巨印「非」紧贴镜头前砸下（152.70），泥水与碎石扑向镜头。"""
-    def __init__(self): self.seal = PR.GiantSeal('非', seed=33)
+    def __init__(self): self.seal = CP.StoneSeal('非', seed=33, front_text='非')
     def render(self, t):
         u = self.u(t)
         ti = V(152.70)
         fr = storm(t, 33, horizon=800, flash=0.4 + 1.0 * pulse(t, ti, 0.12), fc=(500, 200), refl=0.6)
         fall = sm(self.t0 - 0.2, ti, t) ** 2
-        fr, _ = self.seal.draw(fr, t, 760, 1080, 1000, fall=fall, tilt=10, rim_color=COLD, rim=1.4)
+        fr, _ = self.seal.draw(fr, 760, 1060, 900, fall=fall, yaw=16, pitch=14, rim=COLD, rim_amt=1.0, flash=pulse(t, ti, 0.12), light=(-0.5, 0.8, -0.4))
         k = max(0.0, t - ti)
         fr = splash(fr, t, ti, (760, 960), 331, n=260, spread=1500, up=1400, col=(0.5, 0.5, 0.55))
         fr = dust(fr, t, 332, n=240, amt=1.0 * min(1, k * 6), drift=(100, -150), size=(2, 6))
@@ -967,14 +1119,14 @@ class C33(Shot):
 
 class C34(Shot):
     """MS 斜劈（新精灵 slash_diag_down）：身后「对」「错」两方印被一刀斩成两半错开。"""
-    def __init__(self): self.s1 = PR.GiantSeal('对', seed=341); self.s2 = PR.GiantSeal('错', seed=342)
+    def __init__(self): self.s1 = CP.StoneSeal('对', seed=341, front_text='对'); self.s2 = CP.StoneSeal('错', seed=342, front_text='错')
     def render(self, t):
         u = self.u(t)
         ts = V(153.12)
         fr = storm(t, 34, horizon=860, flash=0.4 + 0.9 * pulse(t, ts, 0.14), fc=(960, 150), refl=0.5)
         sp = sm(ts, ts + 0.5, t)
-        fr, _ = self.s1.draw(fr, t, 560, 760, 440, fall=1.0, tilt=-6, split=sp, split_angle=-62, rim_color=GOLD, rim=1.2)
-        fr, _ = self.s2.draw(fr, t, 1380, 740, 440, fall=1.0, tilt=-6, split=sp, split_angle=-62, rim_color=RED, rim=1.4)
+        fr, _ = self.s1.draw(fr, 520, 800, 420, split=sp, split_angle=-62, yaw=24, pitch=-8, rim=GOLD, rim_amt=0.8, flash=0.6 * pulse(t, ts, 0.14))
+        fr, _ = self.s2.draw(fr, 1400, 780, 420, split=sp, split_angle=-62, yaw=-24, pitch=-8, rim=(1.0, 0.3, 0.2), rim_amt=0.9, flash=0.6 * pulse(t, ts, 0.14))
         fr = slash_streak(fr, (1650, 200), (300, 980), (t - ts) / 0.4, width=12, amt=2.0)
         fr, _ = put(fr, t, 'C/slash_diag_down', 980, 1010, 680, rim=COLD, rim_amt=2.4, rim_dir=(0.4, -1), flash=0.8 * pulse(t, ts, 0.15),
                     expo=0.95, wind=9)
@@ -985,14 +1137,14 @@ class C34(Shot):
 
 class C35(Shot):
     """LS 硬扛：最大的一方巨印压下，鬼屠举刀过顶硬扛（S087），地面龟裂、积水被压得往外喷；「扛」朱红竖排。"""
-    def __init__(self): self.seal = PR.GiantSeal('令', seed=35)
+    def __init__(self): self.seal = CP.StoneSeal('令', seed=35, front_text='令')
     def render(self, t):
         u = self.u(t)
         tk = V(154.70)
         sink = 18 * eout(u)
         fr = storm(t, 35, horizon=880, flash=0.35 + 0.8 * pulse(t, tk, 0.2), refl=0.5)
         oy = lerp(-60, 20, eio(u))
-        fr, _ = self.seal.draw(fr, t, 960, 330 + sink - oy * 0.3, 1500, fall=1.0, tilt=12, rim_color=GOLD, rim=1.0)
+        fr, _ = self.seal.draw(fr, 960, 330 + sink - oy * 0.3, 1300, yaw=8, pitch=26, rim=GOLD, rim_amt=0.8, flash=0.5 * pulse(t, tk, 0.2), light=(-0.3, 0.6, -0.7), shadow=0)
         cr = np.zeros((H // 4, W // 4), np.float32)
         for i in range(6):
             p = crack_path((960, 965), (960 + (i - 2.5) * 330, 1060), 350 + i, n=24, jag=0.06)
@@ -1007,15 +1159,21 @@ class C35(Shot):
 
 
 class C36(Shot):
-    """ELS 雷暴全景：天幕翻滚，155.96「天」上一道横贯天际的闪电。"""
+    """ELS 雷暴全景：前景千人方阵跪伏在积水里（C18 冲锋方阵的回声：同一支军，这次跪下），155.96「天」上一道横贯天际的闪电。"""
+    def __init__(self): self.army = None
     def render(self, t):
+        import crowd
+        if self.army is None: self.army = crowd.Army(seed=36, rows=16, cols=30, banners=10, torches=12)
         u = self.u(t)
         tt = V(155.96)
         fl = bolt_env(t, tt) * 1.3 + 0.5 * bolt_env(t, V(155.40))
-        fr = storm(t, 36, horizon=900, flash=0.4 + fl, fc=(960, 250), refl=0.6, oy=-60 * u)
+        fr = storm(t, 36, horizon=760, flash=0.4 + fl, fc=(960, 250), refl=0.6, oy=-60 * u)
         fr = bolt(fr, t, tt, 361, (80, 260), (1840, 330), inten=1.3, branches=12, width=4)
-        fr = bolt(fr, t, V(155.40), 362, (1400, 100), (1500, 880), inten=0.8)
-        fr = fog(fr, t, 36, density=0.4, y0=780, y1=920, color=(0.4, 0.42, 0.5), speed=(60, 0))
+        fr = bolt(fr, t, V(155.40), 362, (1400, 100), (1500, 700), inten=0.8)
+        fr, _ = self.army.draw(fr, t, cam=dict(x=0, y=9, z=0, pitch=16, f=1500), advance=0.0, march=0.0, kneel=1.0, kneel_wave=0.0,
+                               part=0.12, rim_color=COLD, rim=1.0 + 2.0 * fl, fog_color=(0.10, 0.11, 0.14), fog_dist=38, torch=0.4,
+                               glint=0.6 + fl, origin=(0.0, 0.0, 14.0 - 1.5 * u))
+        fr = fog(fr, t, 36, density=0.45, y0=640, y1=900, color=(0.35, 0.38, 0.46), speed=(60, 0))
         fr = rain(fr, t, 360, inten=0.8, angle=10)
         return fr
 
@@ -1096,36 +1254,58 @@ class C39(Shot):
 
 
 class C40(Shot):
-    """LS 背身横斩（新精灵 slash_back）：前方雷暴里一架高过云的巨大天平，159.95 一刀横断天平横梁。"""
-    def __init__(self): self.B = PR.Balance(seed=40, people=80)
+    """LS 背身横斩（新精灵 slash_back）：前方雷暴里一架高过云的青铜天平，159.95 一刀横断天平横梁（断口赤热、秤盘甩落）。"""
+    def __init__(self): self.B = CP.BronzeBalance(seed=40)
     def render(self, t):
         u = self.u(t)
         ts = V(159.95)
         fl = 1.0 * pulse(t, ts, 0.15) + 0.6 * bolt_env(t, V(159.53))
-        fr = storm(t, 40, horizon=860, flash=0.4 + fl, fc=(960, 250), refl=0.5)
-        br = sm(ts, ts + 0.45, t)
-        fr, _ = self.B.draw(fr, t, 960, 330, 1500, tilt=4 * math.sin(t * 2), sway=1, left_people=1.0, right='seal', break_=br,
-                            rim_color=GOLD, rim=1.8, light=(0, -1))
+        fr = storm(t, 40, horizon=900, flash=0.4 + fl, fc=(960, 250), refl=0.5)
+        br = ein(sm(ts, ts + 0.6, t), 1.4)
+        tb = 6 * math.sin(t * 1.6)
+        fr = fog(fr, t, 41, density=0.35, y0=200, y1=520, color=(0.30, 0.32, 0.38), speed=(40, 0))
+        fr, info = self.B.draw(fr, t, 960, 300, 1560, tilt=tb, rim=(0.85, 0.9, 1.0), rim_amt=0.9 + 1.5 * fl, light=(-0.4, -0.9),
+                               fill_l=fill_people(22, 401, 60, scatter=br * 0.6), fill_r=fill_seal(130, 1.0, fl), break_=br)
         fr = fog(fr, t, 40, density=0.5, y0=600, y1=900, color=(0.38, 0.4, 0.46), speed=(30, 0))
-        pose_t = ts - 0.25
         fr, _ = put(fr, t, 'C/slash_back', 760, 1050, 760, rim=COLD, rim_amt=2.6, rim_dir=(0, -1), flash=fl, expo=0.85, wind=10)
-        fr = arc_streak(fr, (960, 360), 1100, 140, 200, -20, (t - ts) / 0.4, width=12, amt=2.2)
-        fr = sparks(fr, t, 401, (960, 330), n=180, life=0.8, speed=(200, 900), dirc=(0, 1), spread=2.5, grav=600, t0=ts, burst=True,
-                    color=(1.0, 0.8, 0.4))
+        fr = arc_streak(fr, (960, 330), 1100, 140, 200, -20, (t - ts) / 0.4, width=12, amt=2.2)
+        fr = sparks(fr, t, 401, (960, 300), n=220, life=0.8, speed=(200, 900), dirc=(0, 1), spread=2.5, grav=600, t0=ts, burst=True,
+                    color=(1.0, 0.7, 0.3))
         fr = rain(fr, t, 400, inten=1.0, angle=10)
         self.ca = 6 if 0 <= t - ts < 0.1 else 0
         return fr
 
 
 class C41(Shot):
-    """MCU 秤盘坠落：断梁和秤盘砸向镜头 → 定格 → 故障 → 「答」金闪 → 切黑。"""
-    def __init__(self): self.B = PR.Balance(seed=41, people=80)
+    """MCU 秤盘砸向镜头：断下的青铜秤盘翻滚着扑来，金印「正」从盘里甩出、纸人四散 → 160.72 定格 → 故障 → 「答」金闪 → 切黑。"""
     def render(self, t):
         u = self.u(t)
-        tf = min(t, V(160.72))
-        fr = storm(t, 41, horizon=1300, flash=0.4, ground=False)
-        fr, _ = self.B.draw(fr, tf, 960, 260 + 500 * ein(sm(self.t0, V(160.72), tf), 1.5), 2600, tilt=0, break_=1.0, rim_color=GOLD, rim=2.0)
-        fr = rain(fr, tf, 410, inten=0.9, angle=10, freeze=0.6 if t > V(160.72) else None)
+        tf = V(160.72)
+        te = min(t, tf)
+        q = sm(self.t0, tf, te)
+        fr = storm(t, 41, horizon=1300, flash=0.4 + 0.6 * pulse(t, tf, 0.1), ground=False)
+        # 秤盘：画在独立层上，整体旋转 + 放大（扑向镜头）
+        Lc = np.zeros((H, W, 3), np.float32)
+        rx = lerp(300, 820, ein(q, 1.6))
+        Lc = CP._bowl(Lc, (960, 470), rx, rx * 0.36, (-0.4, -0.9), rim=(0.85, 0.9, 1.0), rim_amt=1.0, seed=411)
+        Lm = (Lc.max(-1) > 0.004).astype(np.float32)
+        M = cv2.getRotationMatrix2D((960, 520), lerp(-8, 24, q), 1.0)
+        Lc = cv2.warpAffine(Lc, M, (W, H)); Lm = cv2.warpAffine(Lm, M, (W, H))
+        if t < tf:
+            k = int(18 * q) * 2 + 1; Lc = cv2.blur(Lc, (k, k)); Lm = cv2.blur(Lm, (k, k))
+        fr = fr * (1 - Lm[..., None]) + Lc
+        # 甩出的纸人与金印
+        r = np.random.default_rng(41)
+        for i in range(16):
+            A, fib = puppet_sprite(80 + i % 8, int(lerp(60, 150, q) * r.uniform(0.8, 1.2)))
+            a = r.uniform(0, 6.28); d = lerp(80, 900, q) * r.uniform(0.5, 1.1)
+            fr = draw_puppet(fr, A, fib, 960 + math.cos(a) * d, 440 + math.sin(a) * d * 0.6, r.uniform(-1, 1) * 400 * q, back=0.9)
+        g = gold_seal()
+        fr, _ = g.draw(fr, lerp(1000, 1380, q), lerp(520, 330, q), lerp(140, 300, q), yaw=-30 + 200 * q, pitch=lerp(-10, 30, q),
+                       rim=(1, 0.8, 0.45), rim_amt=1.4, flash=pulse(t, tf, 0.1), mblur=False, roll=lerp(0, 40, q))
+        fr = rain(fr, te, 410, inten=0.9, angle=10, freeze=0.6 if t > tf else None)
+        if t > tf:
+            fr = K.vol_light(fr, (1380, 330), 260, GOLD, 0.9 * pulse(t, tf + 0.05, 0.15))
         return fr
 
 
@@ -1219,8 +1399,8 @@ for _t, _n, _k in ((131.42, 1, 'white'), (131.96, 1, 'neg'), (132.07, 1, 'white'
 S = Sent
 SENTS = [
     # 预副歌二：铅字打字机（权力的话）
-    S(29, [0, 1, 2, 3], 1440, 860, size=58, mode='type', glitch='正义', exit='glitch', out=V(122.79)),                 # 谁的正义（C04）
-    S(29, [4, 5, 6, 7, 8], 960, 880, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.72)),  # 成了交易的（C05）
+    S(29, [0, 1, 2, 3], 560, 880, size=58, mode='type', glitch='正义', exit='glitch', out=V(122.79)),                 # 谁的正义（C04）
+    S(29, [4, 5, 6, 7, 8], 1480, 220, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.72)),  # 成了交易的（C05）
     # 「我不低头」起：他自己的重字（Black，朱红「不」逐拍落下）
     S(30, [0, 1, 2, 3], 420, 330, size=96, mode='fly', layout='v', red='不', exit='shatter', out=V(125.62), track=0.12),
     S(30, [4, 5, 6], 960, 900, size=110, mode='fly', red='不命', exit='shatter', out=V(126.22), track=0.15),
