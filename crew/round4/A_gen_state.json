@@ -1,5 +1,5 @@
 {
- "spent": 24,
+ "spent": 33,
  "jobs": {
   "eyes": [
    {
@@ -71,6 +71,30 @@
     "pts": 3,
     "file": "/workspace/work/a_cands/villain_fall_9f74a166_0.png",
     "accepted": true
+   }
+  ],
+  "hand_draw_cu": [
+   {
+    "task_id": "49a0d5c7-2e13-4a72-ae61-b98252a88f68",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "blade_rain": [
+   {
+    "task_id": "706c1683-edaf-4751-8fdf-963922216203",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "back_walk": [
+   {
+    "task_id": "8582230b-fcfc-415f-9fb6-27836afb868f",
+    "status": "running",
+    "pts": 3,
+    "file": null
    }
   ]
  }

@@ -39,6 +39,17 @@ JOBS = {
     'villain_fall': (None, 'LS', 'Full body side view (facing left) of a burly wuxia bandit in dark leather lamellar armour and a ragged dark cloak, '
                                  'struck by a sword: staggering backwards off balance, head thrown back, one arm flung up, his sabre flying out of his hand, '
                                  'cloak flaring. Whole figure inside the frame with margin.'),
+    # 第四棒（r4）：V05 手+刀特写（脸不入画）、V01 雨打刃口微距、A07b 背影走向城门
+    'hand_draw_cu': (GT, 'ECU', 'Extreme close-up of ONLY his right hand gripping the black cord-wrapped handle of the dao at his waist and drawing the '
+                                 'blade a few inches out of the black lacquered scabbard, his left thumb pushing the brass guard, a bright line of cold light '
+                                 'along the exposed steel, leather wrist guard, edge of the black sleeve and the dark red sash. Camera at waist height, '
+                                 'NO face, NO head, NO shoulders in frame.'),
+    'blade_rain': (GT, 'ECU', 'Macro extreme close-up of ONLY the tip section of the long single-edged dao steel blade, seen in steep perspective with the '
+                               'tip pointing toward the camera lens, visible hamon temper line and fine forged steel grain, tiny scratches, raindrops beading '
+                               'and splashing on the polished flat of the blade, a cold moonlight specular highlight running along the edge. NO person, NO hand.'),
+    'back_walk': (GT, 'MS', 'Full body rear view from behind: he walks away from camera toward the distance, back to camera, long high ponytail and black '
+                             'robe hem swaying, the dao in its scabbard at his left hip, dark red sash trailing, shoulders squared, mid-stride. Whole figure '
+                             'inside the frame with margin, face not visible.'),
 }
 VILLAIN_LOOK = ('Gritty realistic Chinese wuxia film costume, weathered fabric, scarred rough face, no modern items. ')
 
