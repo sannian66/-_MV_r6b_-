@@ -15,6 +15,7 @@ import typo as T
 import trans as TR
 import d_kit as D
 import d_r5 as R5
+import d_r7 as R7
 from d_kit import V, cp, seal_p, INK, CINNABAR, GOLD, RED, W, H, BAR
 
 READY = False
@@ -677,19 +678,20 @@ class S12_Pierce(Shot):
     def render(self, t):
         u = self.u(t)
         fr = D.paper(20).copy()
-        # [r5] 背景层：淡墨远山 + 山脚一排模糊的跪伏人影（被定罪的人）
-        for A_, k_ in R5.mountains_mask(12, y0=620, amp=170):
-            fr = fr * (1 - A_[..., None] * k_)
-        kn = R5.crowd_mask(1212, n=60, y_far=700, y_near=760, s_far=26, s_near=44, kneel=1.0)
-        fr = fr * (1 - cv2.GaussianBlur(kn, (0, 0), 3)[..., None] * 0.35)
-        fr = D.wash(fr, 0.38, 0.2, 1.1, seed=29)
+        # [r7] 背景：三层墨山（远淡近浓、干笔皴纹）+ 层间雾带；山脚一排被定罪的跪伏人影没在近雾里；左上暖主光 + 斜射光束 + 纸纹浮雕
+        fr = R7.mist_mountains(fr, 12, y0=500, amp=190, drift=-40 * u)
+        kn = R5.crowd_mask(1212, n=60, y_far=735, y_near=790, s_far=24, s_near=40, kneel=1.0)
+        fr = fr * (1 - cv2.GaussianBlur(kn, (0, 0), 2.5)[..., None] * 0.42)
+        fr = R7.paper_relief(fr, 20, amt=0.08)
+        fr = R7.key_light(fr, (300, 120), 1400, amt=0.12, dark=0.34)
+        fr = R7.light_shaft(fr, t, (180, 60), 33, 190, 0.12, seed=12, motes=40)
         tc = V(O[42][14])
         tipy = lerp(720, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
-        # 刀在纸上的投影（暖光从左上）
         fr = D.fall_chars(fr, t, '罪状', 120, density=4, sizes=(16, 40), alpha=0.35, near_blur=3, emph={'罪': tuple(CINNABAR)})
+        # 刀在纸上的投影（暖光从左上 → 影落右下）
         Fw, Aw = D.warp(self.sp, t, self.TIP, (975 + 40, tipy + 30), 1.75, rot=-3, wind=0)
         fr = fr * (1 - cv2.GaussianBlur(Aw, (0, 0), 14)[..., None] * 0.35)
-        # [r5] 前景层：刀尖前方纸面被顶起的隆起（法线高光 + 阴影环），刀身两侧被撕开的纸口卷边
+        # 刀尖前方纸面被顶起的隆起（法线高光 + 阴影环）
         x_, y_ = K.grid()
         if t < tc + 0.05:
             bq = 0.6 + 0.4 * math.sin(t * 25)
@@ -697,21 +699,19 @@ class S12_Pierce(Shot):
             bump = np.exp(-(dx_ ** 2 + dy_ ** 2))
             gy_, gx_ = np.gradient(bump)
             fr = fr * (1 - np.clip(gy_ * 9, 0, 1)[..., None] * 0.35 * bq) + np.clip(-gy_ * 9 - gx_ * 4, 0, 1)[..., None] * 0.22 * bq
-        tear_y = 905
-        for sg in (-1, 1):
-            flap = np.array([[975 + sg * 70, tear_y - 150], [975 + sg * 230, tear_y + 10], [975 + sg * 60, tear_y + 40]], np.int32)
-            fm = np.zeros((H, W), np.float32); cv2.fillPoly(fm, [flap], 1.0, cv2.LINE_AA); fm = cv2.GaussianBlur(fm, (0, 0), 1.2)
-            sh_ = cv2.GaussianBlur(np.roll(fm, (14, sg * 10), (0, 1)), (0, 0), 10)
-            fr = fr * (1 - sh_[..., None] * 0.45)
-            shade = 0.80 + 0.16 * np.clip((y_ - (tear_y - 150)) / 190, 0, 1)        # 卷起的纸背：上暗下亮，跟随底色
-            fr = fr * (1 - fm[..., None]) + fm[..., None] * np.roll(fr, -60, 0) * shade[..., None] * np.array([1.0, 0.98, 0.95], np.float32)
-            edge = np.clip(cv2.dilate(fm, np.ones((3, 3), np.uint8)) - fm, 0, 1)
-            fr = fr * (1 - edge[..., None] * 0.6)
-        hole = np.exp(-(((x_ - 975) / 85) ** 2 + ((y_ - tear_y) / 26) ** 2))
-        fr = fr * (1 - hole[..., None] * 0.85)
-        fr, Aw = D.real_figure(fr, self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, expo=0.82, sat=0.55, tint=(0.98, 1.0, 1.04),
-                               rim=(0.62, 0.76, 1.0), rim_amt=4.5, rim_dir=(-0.7, -0.7), wind=0, breathe=0.0,
+        # [r7] 纸被刀从背面刺穿的裂口：参差撕边 + 纸芯白纤维 + 两片翻起的纸舌（左背光 / 右迎光）+ 投影 + 洞内黑（替代旧灰三角）
+        ytop = max(560.0, tipy + 120) if t < tc else 560.0 - 30 * cl((t - tc) / 0.3)
+        opn = 1.0 + 0.25 * cl((t - tc) / 0.3) if t > tc else 0.85 + 0.15 * cl((t - self.t0) / 0.2)
+        fr_slit, over = R7.torn_slit(fr, 975, ytop, H - BAR + 4, 150, seed=12, open_=opn)
+        fr = fr_slit
+        fr, Aw = D.real_figure(fr, self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, expo=0.95, sat=0.55, tint=(0.98, 1.0, 1.04),
+                               rim=(0.62, 0.76, 1.0), rim_amt=4.5, rim_dir=(0.7, -0.5), wind=0, breathe=0.0,
                                mblur=(0, 10 * impact(t, self.t0 + 0.02, 0.2) + (14 if t > tc else 0)))
+        # [r7] 刀身轮廓光：左缘暖白主光一线 + 右缘冷蓝反光，与纸面光向统一
+        fr = R7.rim_edge(fr, Aw, (-0.85, -0.5), 4, 1.1, (1.0, 0.95, 0.84), glow=7, gamt=0.35)
+        fr = R7.rim_edge(fr, Aw, (0.9, -0.3), 3, 0.55, (0.62, 0.76, 1.0), glow=5, gamt=0.2)
+        if over is not None:
+            fr = fr * (1 - over[..., None]) + fr_slit * over[..., None]
         # 刃口一线寒光沿刃上行
         Fw, A2 = D.warp(self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, wind=0)
         lum = Fw.mean(-1)
