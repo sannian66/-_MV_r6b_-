@@ -1380,9 +1380,9 @@ class V25(Shot):
                     shade=None, wrap=0.2)
         pr = prs(27, [10], t, 0.3)[0]
         if pr > 0:
-            fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1330, y=440, size=300, rot=0, font='xing', idx=0, emph=False)],
+            fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1460, y=450, size=300, rot=0, font='xing', idx=0, emph=False)],
                            color='red', embers=140, seed=69, style_kw=dict(shadow=0.4, glow=0.7, glow_color=(1.0, 0.3, 0.08)))
-        Lf = T.Layer(); T.place(Lf, '方', 1300, 800, 270, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.9, sy=0.6, rot=-4)   # 第四棒：段尾主词放大
+        Lf = T.Layer(); T.place(Lf, '方', 1170, 470, 250, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.9, rot=-3)   # 第四棒：段尾主词放大、与「向」横排同读
         fr = T.compose(fr, Lf, shadow=0.5, glow=0.5, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=8)
         end = clamp01((t - 117.33) / 0.45)
