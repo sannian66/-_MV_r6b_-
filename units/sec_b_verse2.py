@@ -16,6 +16,7 @@ import typo as T
 import trans as TR
 import fx2
 import paper as PA
+import b_crowd as BC
 
 READY = False
 F0, F1 = 2586, 3534
@@ -303,7 +304,13 @@ class V02(Shot):
 #   「世人教我顾全」思源宋 3 个深度的空间字，随横移视差
 class V03(Shot):
     def __init__(self):
-        self.crowd = BP.NameCrowd(4903, rows=3, cols=9, x_span=(60, 1860), y_front=905, h_front=340)
+        self.figs = BC.figs('crowd_bow')       # 第五棒：代码名帖纸人 → 生图纸扎人（拆 6 个单体，依次鞠躬）
+        r = np.random.default_rng(4903)
+        self.rows = []                          # (x, foot_y, h, blur, fog, idx, delay)
+        for row, (n, fy, hh, bl, fg) in enumerate(((9, 655, 190, 2.5, 0.55), (7, 770, 300, 1.2, 0.3), (5, 975, 480, 0.0, 0.0))):
+            for i in range(n):
+                x_ = -120 + (2200 / n) * (i + 0.5) + r.uniform(-30, 30) + (row % 2) * 60
+                self.rows.append((x_, fy + r.uniform(-8, 8), hh * r.uniform(0.95, 1.05), bl, fg, int(r.integers(6)), (x_ + 200) / 2400 * 0.55 + row * 0.05))
         sk = night_sky(4901, top=(0.03, 0.03, 0.04), bot=(0.13, 0.12, 0.11), horizon=0.75)
         x, y = K.grid()
         sk += np.exp(-(((x - 1450) / 520) ** 2 + ((y - 560) / 260) ** 2))[..., None] * GOLD * 0.22
@@ -321,7 +328,15 @@ class V03(Shot):
         fr = self.fog.draw(fr, t, density=0.5, y0=480, y1=900, color=(0.34, 0.33, 0.32), speed=(30, 0), light=(1450, 560),
                            light_r=600, light_color=GOLD * 0.8, cam=(pan * 0.3, 0))
         bow = clamp01((t - (V(CT(20, 4)) - 0.4)) / 1.0)
-        fr = self.crowd.draw(fr, t, bow=eio(bow), wave=0.9, wet=0.3, light='back', dof=1.2, x_off=pan * 0.7)
+        par = (0.35, 0.6, 1.0)
+        for k, (x_, fy, hh, bl, fg, idx, dl) in enumerate(self.rows):
+            row = 0 if hh < 240 else (1 if hh < 400 else 2)
+            bk = eio(clamp01((t - (V(CT(20, 4)) - 0.55) - dl) / 0.45))          # 依次鞠躬（左 → 右的浪）
+            fr, _ = BC.draw(fr, self.figs[idx], (x_ + pan * par[row], fy), hh, tilt=-16 + 22 * bk + 1.5 * math.sin(t * 2 + k), flip=True,
+                            expo=0.62 - 0.22 * fg, tint=(1.0, 0.95, 0.86), sat=0.5, rim_col=GOLD * 1.1, rim_amt=1.4 - 0.6 * fg, rim_dir=(-1.0, -0.4),
+                            blur=bl, wet=0.35)
+            if fg > 0 and (k + 1 == len(self.rows) or self.rows[k + 1][2] > hh * 1.3):
+                fr = fr * (1 - fg * 0.5) + np.array([0.20, 0.19, 0.18], np.float32) * fg * 0.5      # 远排压雾
         pr = prs(20, [0, 1, 2, 3, 4, 5], t)
         items = [dict(text='世人', x=-520, y=-170, z=1700, size=150, color='white', font='serif_sb', style='h', prog=pr[0:2]),
                  dict(text='教我', x=80, y=-60, z=1250, size=150, color='white', font='serif_sb', style='h', prog=pr[2:4]),
@@ -339,7 +354,7 @@ class V04(Shot):
     def __init__(self):
         sk = night_sky(4911, top=(0.02, 0.022, 0.03), bot=(0.09, 0.085, 0.08), horizon=0.9)
         self.bg = sk
-        self.crowd = BP.NameCrowd(4912, rows=2, cols=7, x_span=(-80, 2000), y_front=1160, h_front=560, depth_scale=0.8)
+        self.back = BC.figs('crowd_back')[0]    # 第五棒：金边黑团块 → 生图纸扎人群背影（逆光、保留纸纹）
         self.rain = fx2.RainSheet(4913, density=1.0)
         T.warm('大局', 'serif_black', 300); T.warm('退让', 'serif_sb', 90)
 
@@ -375,9 +390,8 @@ class V04(Shot):
         fr = self.rain.draw(fr, t, intensity=1.2, angle=4, light=(960, 380), light_r=700)
         # 纸人头顶剪影（下沿，前景，逆光金边，随鞠躬下压）
         bowk = eio(clamp01((t - V(CT(20, 8)) + 0.2) / 0.8))
-        tmp = np.zeros_like(fr)
-        tmp = self.crowd.draw(tmp, t, bow=0.3 + 0.6 * bowk, wave=0.6, light='back', dof=0.0)
-        fr = sil_over(fr, tmp, GOLD, rim_w=5, amt=1.3)
+        fr, _ = BC.draw(fr, self.back, (960, 1080 + 1180 + 70 * bowk), 1720 * (1 - 0.03 * bowk), tilt=0, expo=0.30, tint=(1.0, 0.92, 0.8), sat=0.5,
+                        rim_col=GOLD * 1.2, rim_amt=2.2, rim_dir=(0.0, -1.0), sil=0.45, wet=0.3, blur=1.0)
         k = hitp(t, 91.314, 0.12)
         fr = cam(fr, 1.04 + 0.04 * eio(u) + 0.03 * k, 0, -20 * eio(u))
         return fr, (2 if k > 0.5 else 0)
@@ -397,7 +411,7 @@ class V05(Shot):
         self.lat = cv2.GaussianBlur(lat, (0, 0), 1.2)
         self.pap = pap
         self.sp = spr('S050/scepter')
-        self.figs = [BP.NameFigure(5010 + i, name=BP.NAMES[i + 8], view='front') for i in range(6)]
+        self.figs = BC.figs('crowd_bow')       # 第五棒：前景人群 = 生图纸扎人单体（第 2 次：大景别逆光剪影、虚焦）
         T.warm('可大局背后', 'serif_black', 110)
 
     def render(self, t):
@@ -423,11 +437,10 @@ class V05(Shot):
         fr = fr * (1 - self.lat[..., None] * 0.88) + self.lat[..., None] * np.array([0.03, 0.02, 0.015], np.float32)
         # 前景：人群背影（纸人背面，深色剪影、景深虚化），dolly 向前 → 背影下沉出画
         sink = 140 * e
-        tmp = np.zeros_like(fr)
-        for i, f_ in enumerate(self.figs):
-            xx = -60 + i * 400 + (i % 2) * 60
-            tmp = f_.draw(tmp, xx, 1080 + 230 + sink + 50 * (i % 3), 820, bow=0.2, light='back')
-        fr = sil_over(fr, tmp, GOLD * 0.8, rim_w=4, amt=0.9, blur=5)
+        for i in (0, 2, 4, 1, 3):
+            xx = 80 + i * 440 + (i % 2) * 40
+            fr, _ = BC.draw(fr, self.figs[(i * 2 + 1) % 6], (xx, 1080 + 330 + sink + 40 * (i % 3)), 1050 + 60 * (i % 2), tilt=6 + 2 * math.sin(t * 1.5 + i),
+                            flip=(i % 2 == 0), expo=0.5, sat=0.4, rim_col=GOLD * 0.9, rim_amt=1.8, rim_dir=(0.0, -1.0), sil=0.85, blur=5)
         fr = fr + 0.03 * glow[..., None] * GOLD
         fr = cam(fr, 1.0 + 0.07 * e, 0, -30 * e)
         return fr, 0
@@ -1398,7 +1411,7 @@ CUTS = {
     'V03': ('iris_moon', 0.06, 0.16, dict(center=(960, 470), radius=200, mode='open', ring=False)),   # 第三棒：雨滴圆 → 打开成队列
     'V04': ('gold', 0, 0, {}),
     'V05': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=1, seed=5)),
-    'V06': ('match_cut', 0.0, 0.12, dict(shape='circle', center=(930, 400), radius=220)),
+    'V06': ('match_cut', 0.0, 0.12, dict(shape='circle', center=(930, 400), radius=220, glow=np.zeros(3, np.float32))),   # 第五棒：去金圈（≈副歌一 S045 光圈）
     'V07': ('gold', 0, 0, {}),
     'V08': ('split_slide', 0.05, 0.12, dict(angle=90.0)),
     'V09': ('match_cut', 0.0, 0.12, dict(shape='rect', center=(960, 520), radius=160)),
@@ -1411,7 +1424,7 @@ CUTS = {
     'V16': ('rain_curtain', 0.08, 0.18, dict(seed=16)),             # 第四棒：灰雾 smoke → 雨帘落幕（b_kit）
     'V17': ('hard', 0, 0, {}),
     'V18': ('punch', 0, 0, {}),
-    'V19': ('match_cut', 0.0, 0.10, dict(shape='circle', center=(860, 470), radius=200)),
+    'V19': ('match_cut', 0.0, 0.10, dict(shape='circle', center=(860, 470), radius=200, glow=np.zeros(3, np.float32))),
     'V20': ('split_slide', 0.06, 0.14, dict(angle=0.0, center=(960, 560))),   # 第四棒：whip 糊黑 → 水平分屏（水面线），上岸下影反向滑
     'V21': ('none', 0, 0, {}),
     'V22': ('punch', 0, 0, {}),                                     # 第四棒：灰 glitch → 落拍硬切冲击（推近+色散）
