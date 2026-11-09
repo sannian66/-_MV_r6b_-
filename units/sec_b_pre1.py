@@ -54,9 +54,9 @@ class P01(Shot):
     def __init__(self):
         self.bg = ledger(201)
         self.hand = BK.spr_feather('tsh_brush_hand', left=0.10, right=0.18, bottom=0.32, keep_col=(0.60, 0.68))
-        T.prepare_brush('谁配', 'cao', 250)
-        self.P = [dict(ch='谁', x=640, y=420, size=260, rot=-4, font='cao', idx=0, emph=False),
-                  dict(ch='配', x=760, y=700, size=260, rot=3, font='cao', idx=1, emph=False)]
+        T.prepare_brush('谁配', 'kai', 250)   # 第五棒：草书→楷（评审：「谁」读成淮/渠）
+        self.P = [dict(ch='谁', x=640, y=420, size=260, rot=-4, font='kai', idx=0, emph=False),
+                  dict(ch='配', x=760, y=700, size=260, rot=3, font='kai', idx=1, emph=False)]
 
     def render(self, t):
         u = self.u(t)
@@ -80,13 +80,13 @@ class P01(Shot):
         # 手：笔尖在精灵内约 (0.638, 0.88)；镜像（手从右上入画，不挡字）
         fr, _ = put_at(fr, self.hand, t, (0.638, 0.88), tip, 1500, grade=GR_WARM, rim=RIM_WARM, wind_amp=0, breathe=0.0,
                        shade=None, wrap=0.2)
-        fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='cao', color=(0.62, 0.06, 0.04), splatter=True,
+        fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='kai', color=(0.62, 0.06, 0.04), splatter=True,
                            style_kw=dict(shadow=0.15))
         z = 1.0 + 0.08 * eio(u)
         fr = cam(fr, z, 0, 0, 2.0 * eio(u) - 1.0)
         # 入口：墨从黑中洇开成纸（接 A 组）
         if t < self.t0 + 0.30:
-            m = K.ink_blot(eout((t - self.t0) / 0.28, 2), seed=201, center=(930, 520), reverse=True)
+            m = K.ink_blot(0.86 + 0.14 * eout((t - self.t0) / 0.28, 2), seed=201, center=(930, 520), reverse=True)
             fr = over(fr, m, np.array([0.015, 0.012, 0.012], np.float32))
         return fr, 0
 
@@ -482,17 +482,33 @@ class P08(Shot):
         m = cv2.GaussianBlur(self.m.astype(np.float32), (0, 0), 7)
         nz = cv2.resize(K.fbm(H // 4, W // 4, 81, base=6, octaves=4), (W, H))
         m = np.clip(m * (0.8 + 0.4 * nz), 0, 1)
+        # 第五棒：去掉朱红一笔划掉（≈副歌一 S042）→ 闪电沿劈线把云隙「天」劈成两半、两半错开漂离
+        ps = eout(clamp01((t - (self.T_TIAN + 0.04)) / 0.45), 2)
+        if ps > 0:
+            x, y = K.grid()
+            a = np.array([1300.0, 120.0]); b = np.array([980.0, 560.0]); d = (b - a) / np.linalg.norm(b - a); nn = np.array([-d[1], d[0]])
+            side = ((x - a[0]) * nn[0] + (y - a[1]) * nn[1])
+            jag = (cv2.resize(K.fbm(H // 8, W // 8, 82, base=4, octaves=3), (W, H)) - 0.5) * 60
+            mL = m * sstep(10, -10, side + jag); mR = m * sstep(-10, 10, side + jag)
+            off = 70 * ps
+            ML = np.float32([[1, 0, -nn[0] * off - d[0] * off * 0.3], [0, 1, -nn[1] * off + 18 * ps]])
+            MR = np.float32([[1, 0, nn[0] * off + d[0] * off * 0.3], [0, 1, nn[1] * off - 18 * ps]])
+            RL = cv2.getRotationMatrix2D((800, 520), 4 * ps, 1.0); RR = cv2.getRotationMatrix2D((1100, 520), -3 * ps, 1.0)
+            mL = cv2.warpAffine(cv2.warpAffine(mL, RL, (W, H)), ML, (W, H)); mR = cv2.warpAffine(cv2.warpAffine(mR, RR, (W, H)), MR, (W, H))
+            m = np.clip(mL + mR, 0, 1)
+            crack = np.exp(-((side + jag) / 6) ** 2) * self.m.astype(np.float32) * (1 - ps) * 2.0
+            fr = fr + cv2.GaussianBlur(crack, (0, 0), 3)[..., None] * np.array([0.9, 0.95, 1.0], np.float32)
         lit = 0.25 + 0.75 * clamp01((t - (self.T_TIAN - 0.05)) / 0.06) * (0.6 + 0.4 * math.exp(-(t - self.T_TIAN) / 0.4) if t > self.T_TIAN else 1.0)
         glowc = np.array([0.85, 0.88, 1.0], np.float32)
         fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * glowc * 0.75 * lit
         fr += cv2.GaussianBlur(m, (0, 0), 40)[..., None] * glowc * 0.25 * lit
         if t >= self.T_TIAN - 0.05:
             fr = self.fx2.Lightning.draw(self.bolt, fr, t, self.T_TIAN, intensity=1.0)
-        # 朱红一笔划掉
-        ps = clamp01((t - (self.T_TIAN + 0.22)) / 0.16)
-        if ps > 0:
-            P = [dict(ch='天', x=960, y=520, size=760, rot=0, font='serif_black', idx=0, emph=False)]
-            fr = T.strike(fr, P, [0], ps, color=(0.84, 0.10, 0.07), width=0.12, seed=8)
+        # 「不信」（52.38 / 52.58）：楷书白字，从劈开的裂缝下方升起
+        pr = tp(10, [4, 5], t, 0.16)
+        fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=1480, y=760, size=130, rot=-4, font='kai', idx=0, emph=False),
+                                                       dict(ch='信', x=1630, y=800, size=150, rot=3, font='kai', idx=1, emph=True)],
+                             color='white', emph_color=(0.86, 0.12, 0.08), t_local=u, style_kw=dict(shadow=0.8, glow=0.12))
         z = 1.0 + 0.06 * eio(u)
         fr = cam(fr, z, 0, 30 - 60 * eio(u), 3 * eio(u))
         return fr, (3 if abs(t - self.T_TIAN) < 0.04 else 0)
@@ -501,46 +517,59 @@ class P08(Shot):
 # =====================================================================================
 # P09 MCU：鬼屠握拳（fist）；「命」朱印从背后逼近；53.17 刀柄回撞（pommel_thrust），印碎
 class P09(Shot):
+    """第五棒：「命」补出画（评审 P0：f1576–1606 从未出画——原印在人物正后方被拳头整块挡住）。
+    构图改左右分：左 = 朱红「命」阴文大印（52.84 字头砸进画面，可读停留 ~10 帧），右 = 鬼屠握拳；53.13 刀柄回撞，印从右往左碎开。
+    撞击帧不再整屏朱红（P2：f1594 红色糊团），改为撞点冲击环 + 色散。"""
     T_HIT = V(53.17)
+    T_MING = V(52.84)
+    SC = (610, 470)
     def __init__(self):
         self.a = spr('S024/fist'); self.b = spr('S024/pommel_thrust')
         self.bg = BK.dark_bg(909, 0.02, 0.06, tint=(1.1, 1.0, 1.0))
-        self.seal = T.seal_layer('命', 960, 470, 520, style='yin', rot=-4, seed=9)
-        T.warm('不信', 'cao', 120); T.warm('不', 'xing', 130)
+        self.seal = T.seal_layer('命', self.SC[0], self.SC[1], 470, style='yin', rot=-4, seed=9)
+        T.warm('不信', 'kai', 120)
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
         x, y = K.grid()
-        fr += np.exp(-(((x - 960) / 700) ** 2 + ((y - 450) / 400) ** 2))[..., None] * RED * 0.25
-        # 「命」印：逼近（缩放 0.6→1.0）→ 撞碎
-        pc = tp(10, [6], t, 0.3)[0]
+        fr += np.exp(-(((x - 700) / 700) ** 2 + ((y - 450) / 420) ** 2))[..., None] * RED * 0.22
+        # 人物（右）
         if t < self.T_HIT:
-            s = 0.55 + 0.45 * ein(clamp01((t - self.t0) / (self.T_HIT - self.t0)), 1.5)
-            L = T.Layer(); a = cv2.resize(self.seal.A, None, fx=s, fy=s); c = cv2.resize(self.seal.C, None, fx=s, fy=s)
-            L.paste_rgba(c, a, int(960 - 960 * s), int(470 - 470 * s))
-            L.A = cv2.GaussianBlur(L.A, (0, 0), 2.5 * (1 - s) + 0.5)
-            fr = T.compose(fr, L, shadow=0.5, opacity=min(1, pc + 0.4))
-        else:
-            q = clamp01((t - self.T_HIT) / 0.5)
-            L = T.shatter_layer(self.seal, q, impact=(960, 520), n=80, seed=9, power=1.4)
-            fr = T.compose(fr, L, shadow=0.4)
-        if t < self.T_HIT:
-            fr, _ = put_at(fr, self.a, t, (0.5, 0.42), (930, 520), 2150, grade=GR_COLD, rim=dict(col=(1.0, 0.45, 0.35), amt=1.8, dir=(0.0, -1.0)),
+            fr, _ = put_at(fr, self.a, t, (0.5, 0.42), (1320, 540), 2000, grade=GR_COLD, rim=dict(col=(1.0, 0.45, 0.35), amt=1.8, dir=(-1.0, -0.4)),
                            wind_amp=4, shade=(700, 1800, 0.25, 700, 0.35))
         else:
             k = clamp01((t - self.T_HIT) / 0.08)
-            fr, _ = put_at(fr, self.b, t, (0.5, 0.45), (980, 560), 2250 * (1.05 - 0.05 * k), grade=GR_COLD,
-                           rim=dict(col=(1.0, 0.45, 0.35), amt=2.0, dir=(0.0, -1.0)), wind_amp=6, mblur=(-50 * (1 - k), 0), shade=(700, 1800, 0.2, 700, 0.3))
-            fr = K.sparks(fr, t, 991, (720, 380), n=60, life=0.5, speed=(400, 1200), dirc=(-0.4, -1), spread=1.2, grav=900, area=(80, 80), amt=1.0)
-        if self.T_HIT <= t < self.T_HIT + 1 / 30 + 1e-3: fr = fr * 0.55 + RED * 0.75 + 0.04       # 撞击帧：朱红闪（第三棒去白闪）
+            fr, _ = put_at(fr, self.b, t, (0.5, 0.45), (1340, 570), 2100 * (1.05 - 0.05 * k), grade=GR_COLD,
+                           rim=dict(col=(1.0, 0.45, 0.35), amt=2.0, dir=(-1.0, -0.4)), wind_amp=6, mblur=(-50 * (1 - k), 0), shade=(700, 1800, 0.2, 700, 0.3))
+        # 「命」印：字头砸入（2.2→1.0 缩放 + 落地抖）→ 撞碎
+        if t < self.T_HIT:
+            q = clamp01((t - (self.T_MING - 0.10)) / 0.10)
+            if q > 0:
+                s = 1.0 + 1.2 * (1 - eout(q, 3))
+                M = cv2.getRotationMatrix2D(self.SC, 0, s)
+                L = T.Layer(); L.A = cv2.warpAffine(self.seal.A, M, (W, H)); L.C = cv2.warpAffine(self.seal.C, M, (W, H)); L.bb = [0, 0, W, H]
+                fr = fr * (1 - 0.6 * K.blur_ds(L.A, 40)[..., None])
+                fr = T.compose(fr, L, shadow=0.6, glow=0.15, opacity=min(1.0, q * 1.6))
+        else:
+            q = clamp01((t - self.T_HIT) / 0.5)
+            L = T.shatter_layer(self.seal, q, impact=(self.SC[0] + 230, self.SC[1]), n=80, seed=9, power=1.4)
+            fr = T.compose(fr, L, shadow=0.4)
+            fr = K.sparks(fr, t, 991, (self.SC[0] + 230, self.SC[1]), n=60, life=0.5, speed=(400, 1200), dirc=(-1, -0.3), spread=1.2, grav=900, area=(60, 120), amt=1.0)
+            ring = clamp01((t - self.T_HIT) / 0.18)
+            if ring < 1:
+                d = np.sqrt((x - self.SC[0] - 230) ** 2 + (y - self.SC[1]) ** 2)
+                fr = fr + (np.exp(-((d - 60 - 700 * eout(ring, 2)) / 14) ** 2) * (1 - ring))[..., None] * np.array([1.0, 0.55, 0.42], np.float32) * 0.9
         pr = tp(10, [7, 8], t, 0.18)
-        fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=300, y=330, size=130, rot=-6, font='xing', idx=0, emph=False),
-                                                       dict(ch='信', x=380, y=500, size=150, rot=5, font='xing', idx=1, emph=False)],
+        fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=1700, y=250, size=110, rot=-6, font='kai', idx=0, emph=False),
+                                                       dict(ch='信', x=1760, y=400, size=130, rot=5, font='kai', idx=1, emph=False)],
                              color='white', t_local=u, style_kw=dict(shadow=0.75, glow=0.1))
-        k2 = pulse(t, V(52.84), 0.1) * (t >= V(52.84)) + pulse(t, self.T_HIT, 0.12) * (t >= self.T_HIT)
+        k2 = pulse(t, self.T_MING, 0.1) * (t >= self.T_MING) + pulse(t, self.T_HIT, 0.12) * (t >= self.T_HIT)
         dx, dy, dr = shake(t, 6 + 14 * k2, 8, 9)
         fr = cam(fr, 1.0 + 0.05 * k2 + 0.03 * eio(u), dx, dy, dr)
+        if self.T_HIT <= t < self.T_HIT + 2 / 30 - 1e-3:                      # 撞击：色散错位（无整屏色闪）
+            a_ = 14 if t < self.T_HIT + 1 / 30 else 6
+            fr = np.stack([np.roll(fr[..., 0], a_, 1), fr[..., 1], np.roll(fr[..., 2], -a_, 1)], -1)
         return fr, (4 if k2 > 0.5 else 0)
 
 
@@ -877,7 +906,7 @@ CUTS = {
     'P06': ('flashr', 0, 0, {}),
     'P07': ('flash_white', 0.0, 0.17, {}),                          # 雷闪
     'P08': ('cloud_wipe', 0.10, 0.16, dict(seed=8)),                # 第四棒：灰雾 smoke → 云幕下压（b_kit，冷光云边，中点上天下人）
-    'P09': ('glitch_cut', 0.03, 0.12, dict(seed=9)),
+    'P09': ('glitch_cut', 0.03, 0.06, dict(seed=9)),                # 第五棒：缩短，让 52.84「命」干净砸进
     'P10': ('slash_wipe', 0.05, 0.14, dict(angle=-28)),
     'P11': ('gold', 0, 0, {}),                                      # 金属火花金闪（第三棒：去白闪）
     'P12': ('match_cut', 0.0, 0.12, dict(shape='rect', center=(960, 470), radius=140)),
