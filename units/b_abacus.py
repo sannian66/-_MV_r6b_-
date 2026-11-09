@@ -102,7 +102,7 @@ class Abacus:
             g = _noise(AH, AW, seed + 20, 30)
             rgb[mm] = (np.array([0.50, 0.36, 0.15], np.float32) * (0.7 + 0.5 * g[mm][:, None]))
         self.base, self.alpha = rgb, al
-        self.bead = [bead_sprite(seed + 30 + k, tone=(0.17 + 0.03 * k, 0.050, 0.030)) for k in range(3)]
+        self.bead = [bead_sprite(seed + 30 + k, tone=(0.12 + 0.025 * k, 0.040, 0.026)) for k in range(3)]
 
     def bead_pos(self, i, counts, upper):
         """返回第 i 档 7 颗珠的中心 y 列表（上 2 + 下 5）"""

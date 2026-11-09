@@ -528,14 +528,14 @@ def gild(rgb, m, glow=0.0):
 
 
 class V09(Shot):
-    QUAD = np.float32([[-60, 300], [1720, 150], [2320, 860], [-420, 1260]])          # 平面 → 画面（算盘平放在案上、低机位斜看）
+    QUAD = np.float32([[-380, 230], [1980, 70], [2760, 900], [-820, 1400]])          # 平面 → 画面（算盘平放在案上、低机位斜看）
     def __init__(self):
         self.ab = BA.Abacus(5401, beam_h=170)
         r = np.random.default_rng(5405)
         self.c0 = list(r.choice([0, 0, 1, 2, 3], BA.NR).astype(float))
         self.up0 = list(r.choice([0, 0, 1], BA.NR).astype(float))
-        self.cols = [2, 4, 6, 8, 10]                                                   # 每字拨哪一档（字刻在这档右侧梁上）
-        self.txt = beam_text('牺牲多少才', [2, 4, 6, 8, 10], 150, beam_h=170)
+        self.cols = [2, 4, 6, 7, 9]                                                    # 每字拨哪一档（字刻在这档右侧梁上）
+        self.txt = beam_text('牺牲多少才', [3.0, 4.7, 6.4, 8.1, 9.8], 150, beam_h=170)
         sk = night_sky(5402, top=(0.02, 0.022, 0.028), bot=(0.08, 0.08, 0.09), horizon=0.6)
         x, y = K.grid()
         table = wood_plane(5406)
@@ -1083,7 +1083,7 @@ class V20(Shot):
         pr = prs(26, [0, 1, 2], t)
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('若这世', pr)):
-            if pc > 0: T.place(L, ch, 1360, 330 + i * 170, 150, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+            if pc > 0: T.place(L, ch, 1230, 390 + i * 150, 130, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
         fr = T.compose(fr, L, shadow=0.85, glow=0.12)
         ang = 90 * ein(u, 2)
         fr = cam(fr, 1.0 + 0.12 * math.sin(math.pi * u * 0.5), 0, 0, ang)
@@ -1102,17 +1102,17 @@ class V21(Shot):
         for i, (ch, pc) in enumerate(zip('道黑白颠倒', pr)):
             if pc <= 0: continue
             col = (0.04, 0.04, 0.045) if ch == '黑' else ('white' if ch != '白' else (0.98, 0.97, 0.94))
-            T.place(L, ch, 1330 + (30 if i % 2 else -30), 200 + i * 150, 160 if ch in '黑白' else 128, color=col, fname='serif_black',
+            T.place(L, ch, 1190 + (24 if i % 2 else -24), 250 + i * 145, 150 if ch in '黑白' else 122, color=col, fname='serif_black',
                     alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
-        fr = fr * (1 - 0.45 * K.blur_ds(((np.abs(K.grid()[0] - 1330) < 130) & (K.grid()[1] > 100) & (K.grid()[1] < 980)).astype(np.float32), 40)[..., None])
+        fr = fr * (1 - 0.45 * K.blur_ds(((np.abs(K.grid()[0] - 1190) < 120) & (K.grid()[1] > 150) & (K.grid()[1] < 930)).astype(np.float32), 40)[..., None])
         fr = T.compose(fr, L, shadow=0.6, glow=0.15, outline=3, outline_color=(0.5, 0.5, 0.5))
         # 90°→180°，同时反相（黑白颠倒）；「黑」「白」随反相互换
         e = eio(u)
         ang = 90 + 90 * eout(u, 2)
         fr = cam(fr, 1.0 + 0.12 * (1 - e) + 0.04, 0, 0, ang)
         k = sstep(0.2, 0.55, u)
-        fr = fr * (1 - k) + (1 - np.clip(fr, 0, 1)) * 0.85 * k
-        fr = fr + 0.25 * max(0.0, 1 - abs(u - 0.38) / 0.05)
+        vg = np.exp(-(((K.grid()[0] - 960) / 1100) ** 2 + ((K.grid()[1] - 540) / 650) ** 2))[..., None]
+        fr = fr * (1 - k) + (1 - np.clip(fr, 0, 1)) ** 1.5 * np.array([0.62, 0.64, 0.70], np.float32) * (0.45 + 0.6 * vg) * k      # 负片：冷灰 + 暗角，不做满屏白
         return fr, 0
 
 
@@ -1140,7 +1140,7 @@ class V22(Shot):
         q = clamp01((t - tc) / 0.35)
         # 负片：斩前全屏；斩后只剩刀线以下（先做负片，字后合成，朱红「刀」不被反相）
         m = np.ones((H, W), np.float32) if t < tc else sstep(-6, 6, y - line_y)
-        fr = fr * (1 - m[..., None]) + (1 - np.clip(fr, 0, 1)) * 0.9 * m[..., None]
+        fr = fr * (1 - m[..., None]) + (1 - np.clip(fr, 0, 1)) * np.array([0.60, 0.62, 0.68], np.float32) * m[..., None]
         P = [dict(ch=c, x=500 + i * 300, y=700, size=170, rot=0, font='kai', idx=i, emph=(c == '刀')) for i, c in enumerate('那就用刀')]
         pr = prs(27, [0, 1, 2, 3], t)
         if q <= 0:

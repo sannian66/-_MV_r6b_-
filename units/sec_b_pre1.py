@@ -373,7 +373,7 @@ class P06(Shot):
         M = cv2.getPerspectiveTransform(np.float32([[0, 0], [2300, 0], [2300, 1400], [0, 1400]]), q)
         c = cv2.perspectiveTransform(np.float32(cen)[None], M)[0]
         self.cen = [(float(a), float(b)) for a, b in c if -50 < a < W + 50 and -50 < b < H + 50]
-        T.warm('血', 'xing', 520); T.warm('用来装潢', 'serif_sb', 72)
+        T.warm('血', 'kai', 520); T.warm('用来装潢', 'serif_sb', 72)
         self.flow_n = cv2.resize(K.fbm(H // 8, W // 8, 906, base=4, octaves=4), (W, H))
         r = np.random.default_rng(907)
         st = cv2.resize(r.random((8, W // 14)).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
@@ -409,7 +409,7 @@ class P06(Shot):
         # 「血」巨字：49.62 字头墨洇显出，之后下流
         pb = clamp01((t - (self.T_XUE - 0.12)) / 0.3)
         if pb > 0:
-            a = T.ink_bleed_glyph('血', 'xing', 520, max(0.02, pb), seed=6, bleed=1.0)
+            a = T.ink_bleed_glyph('血', 'kai', 520, max(0.02, pb), seed=6, bleed=1.0)
             L = T.Layer(); L.paste(a, 760, 500, (1.0, 0.16, 0.08))
             L = T.drip_layer(L, clamp01((t - self.T_XUE) / 0.8), n=7, seed=6, length=0.5)
             fr = fr * (1 - 0.8 * K.blur_ds(L.A, 30)[..., None])
@@ -533,10 +533,10 @@ class P09(Shot):
             fr, _ = put_at(fr, self.b, t, (0.5, 0.45), (980, 560), 2250 * (1.05 - 0.05 * k), grade=GR_COLD,
                            rim=dict(col=(1.0, 0.45, 0.35), amt=2.0, dir=(0.0, -1.0)), wind_amp=6, mblur=(-50 * (1 - k), 0), shade=(700, 1800, 0.2, 700, 0.3))
             fr = K.sparks(fr, t, 991, (720, 380), n=60, life=0.5, speed=(400, 1200), dirc=(-0.4, -1), spread=1.2, grav=900, area=(80, 80), amt=1.0)
-        if self.T_HIT <= t < self.T_HIT + 1 / 30 + 1e-3: fr = fr * 0.4 + 0.75
+        if self.T_HIT <= t < self.T_HIT + 1 / 30 + 1e-3: fr = fr * 0.55 + RED * 0.75 + 0.04       # 撞击帧：朱红闪（第三棒去白闪）
         pr = tp(10, [7, 8], t, 0.18)
         fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=300, y=330, size=130, rot=-6, font='xing', idx=0, emph=False),
-                                                       dict(ch='信', x=380, y=500, size=150, rot=5, font='cao', idx=1, emph=False)],
+                                                       dict(ch='信', x=380, y=500, size=150, rot=5, font='xing', idx=1, emph=False)],
                              color='white', t_local=u, style_kw=dict(shadow=0.75, glow=0.1))
         k2 = pulse(t, V(52.84), 0.1) * (t >= V(52.84)) + pulse(t, self.T_HIT, 0.12) * (t >= self.T_HIT)
         dx, dy, dr = shake(t, 6 + 14 * k2, 8, 9)
