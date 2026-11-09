@@ -1297,8 +1297,8 @@ class V15(Shot):
         pts = [(355, 652), (510, 652), (675, 652), (895, 652)]                   # 刀尖：每字左缘起刀，我 → 的 → 主 → 张
         ts = [CT(5, k) for (_, k, _, _, _) in self.GL]
         if t <= ts[0]: return pts[0]
-        if t >= ts[-1] + 0.12:                                                  # 第六棒：刻完「张」收刀后撤，刀身让开字
-            q = eio(clamp01((t - ts[-1] - 0.12) / 0.3)); return (pts[-1][0] + 420 * q, pts[-1][1])
+        if t >= ts[-1] + 0.06:                                                  # 第六棒：刻完「张」收刀后撤，刀身让开字
+            q = eout(clamp01((t - ts[-1] - 0.06) / 0.18)); return (pts[-1][0] + 460 * q, pts[-1][1])
         for i in range(len(ts) - 1):
             if t < ts[i + 1]:
                 q = eio(clamp01((t - ts[i]) / (ts[i + 1] - ts[i])))
