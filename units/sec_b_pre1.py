@@ -876,7 +876,7 @@ CUTS = {
     'P05': ('ink_bleed', 0.06, 0.16, dict(seed=5)),                 # 第三棒：去 whip，墨从指尖洇成宫门
     'P06': ('flashr', 0, 0, {}),
     'P07': ('flash_white', 0.0, 0.17, {}),                          # 雷闪
-    'P08': ('smoke_through', 0.08, 0.14, dict(seed=8, direction=-1)),  # 第三棒：去 whip，穿云
+    'P08': ('cloud_wipe', 0.10, 0.16, dict(seed=8)),                # 第四棒：灰雾 smoke → 云幕下压（b_kit，冷光云边，中点上天下人）
     'P09': ('glitch_cut', 0.03, 0.12, dict(seed=9)),
     'P10': ('slash_wipe', 0.05, 0.14, dict(angle=-28)),
     'P11': ('gold', 0, 0, {}),                                      # 金属火花金闪（第三棒：去白闪）

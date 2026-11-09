@@ -30,6 +30,24 @@ INK_C = np.array([0.015, 0.014, 0.016], np.float32)
 COLDC = np.array([0.80, 0.86, 0.96], np.float32)
 
 
+def neg_grade(fr):
+    """第四棒：黑白颠倒的负片调色——S 曲线拉开反差（纸白 ↔ 墨黑），冷白纸色 + 重暗角，避免整屏中灰。"""
+    x, y = K.grid()
+    n = 1 - np.clip(fr, 0, 1)
+    lum = (n * np.array([0.3, 0.59, 0.11], np.float32)).sum(-1, keepdims=True)
+    lo, hi = np.percentile(lum[::6, ::6], [2.0, 99.7])             # 按画面自身明暗拉伸（原画很暗，反相后全挤在高端）
+    lum = np.clip((lum - lo) / max(hi - lo, 1e-3), 0, 1)
+    lum = 0.06 + 0.90 * (lum * lum * (3 - 2 * lum)) ** 1.15
+    vg = np.exp(-(((x - 960) / 1000) ** 2 + ((y - 540) / 560) ** 2))[..., None]
+    if 'tex' not in _NEG:
+        _NEG['tex'] = cv2.resize(K.fbm(H // 4, W // 4, 6609, 7, 5), (W, H))[..., None].astype(np.float32)
+    tex = _NEG['tex']                                               # 宣纸云纹：平涂的城楼/墙面反相后不再是死白块
+    return lum * (0.80 + 0.32 * tex) * np.array([0.90, 0.91, 0.95], np.float32) * (0.30 + 0.72 * vg)
+
+
+_NEG = {}
+
+
 def prs(li, ks, t, dur=0.18):
     return tp(li, ks, t, dur)
 
@@ -1008,7 +1026,13 @@ class V18(Shot):
                                                          dict(ch='己', x=1660, y=800, size=170, rot=6, font='xing', idx=3, emph=False)],
                              color='white', emph_color=(0.86, 0.10, 0.06), t_local=u, style_kw=dict(shadow=0.85, glow=0.15))
         fr = self.rain.draw(fr, t, intensity=0.8, angle=8)
-        if V(self.T_WO) <= t < V(self.T_WO) + 1 / 30 + 1e-3: fr = fr * 0.5 + 0.6
+        q = t - V(self.T_WO)                                          # 第四棒：去白闪 → 冷色水花冲击环（只亮环，不抬全屏）
+        if 0 <= q < 0.30:
+            d = np.sqrt((x - 860) ** 2 + ((y - 430) * 1.25) ** 2)
+            R = 90 + 1500 * eout(q / 0.30, 2)
+            ring = np.exp(-((d - R) / (14 + 70 * q)) ** 2) * (1 - q / 0.30)
+            core = np.exp(-(d / 260) ** 2) * (1 - q / 0.30) ** 2
+            fr = fr * (1 - 0.25 * core[..., None]) + (ring * 0.9 + core * 0.35)[..., None] * COLDC
         dx, dy, dr = shake(t, 22 * hk, 14, 63)
         fr = cam(fr, 1.04 + 0.06 * hk, dx, dy, dr)
         return fr, (4 if hk > 0.5 else 0)
@@ -1112,7 +1136,7 @@ class V21(Shot):
         fr = cam(fr, 1.0 + 0.12 * (1 - e) + 0.04, 0, 0, ang)
         k = sstep(0.2, 0.55, u)
         vg = np.exp(-(((K.grid()[0] - 960) / 1100) ** 2 + ((K.grid()[1] - 540) / 650) ** 2))[..., None]
-        fr = fr * (1 - k) + (1 - np.clip(fr, 0, 1)) ** 1.5 * np.array([0.62, 0.64, 0.70], np.float32) * (0.45 + 0.6 * vg) * k      # 负片：冷灰 + 暗角，不做满屏白
+        fr = fr * (1 - k) + neg_grade(fr) * k                         # 负片：S 曲线高反差 + 重暗角（第四棒：去灰）
         return fr, 0
 
 
@@ -1132,16 +1156,19 @@ class V22(Shot):
         u = self.u(t)
         x, y = K.grid()
         fr = self.bg.copy()
-        fr, _ = put(fr, self.sp, t, 720, (960, 900), rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(0.6, -0.8)), wind_amp=10,
+        fr, am = put(fr, self.sp, t, 720, (960, 900), rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(0.6, -0.8)), wind_amp=10,
                     shade=(600, 1600, 0.2, 600, 0.3))
-        fr = self.rain.draw(fr, t, intensity=1.0, angle=10)
+        am = K.blur_ds(np.clip(am, 0, 1).astype(np.float32), 3) if am is not None else np.zeros((H, W), np.float32)
         tc = V(self.T_CUT)
         line_y = 470 + 0.06 * (x - 960)                 # 刀线（沿刀身，略斜）
         q = clamp01((t - tc) / 0.35)
         # 负片：斩前全屏；斩后只剩刀线以下（先做负片，字后合成，朱红「刀」不被反相）
         m = np.ones((H, W), np.float32) if t < tc else sstep(-6, 6, y - line_y)
-        fr = fr * (1 - m[..., None]) + (1 - np.clip(fr, 0, 1)) * np.array([0.60, 0.62, 0.68], np.float32) * m[..., None]
-        P = [dict(ch=c, x=500 + i * 300, y=700, size=170, rot=0, font='kai', idx=i, emph=(c == '刀')) for i, c in enumerate('那就用刀')]
+        m = m * (1 - 0.97 * am)                       # 第四棒：颠倒的是世界，他本人不反相（正片人站在负片世界里）
+        fr = fr * (1 - m[..., None]) + neg_grade(fr) * m[..., None]
+        fr = self.rain.draw(fr, t, intensity=0.8, angle=10)          # 雨在反相之后画：不变成黑粗条
+        P = [dict(ch=c, x=(1225, 1390, 1555, 1740)[i], y=700, size=(140, 140, 140, 190)[i], rot=0, font='kai', idx=i, emph=(c == '刀'))
+             for i, c in enumerate('那就用刀')]                     # 第四棒：移到右侧亮墙，不压人物
         pr = prs(27, [0, 1, 2, 3], t)
         if q <= 0:
             L = T.Layer()
@@ -1149,7 +1176,7 @@ class V22(Shot):
                 if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'ink', fname='kai', alpha=min(1, pc * 2))
             fr = T.compose(fr, L, shadow=0.0, glow=0.0)
         else:
-            fr = T.slash_cut(fr, '那就用刀', clamp01(0.25 + q * 0.75), places=P, fname='kai', color='white', emph=('刀',),
+            fr = T.slash_cut(fr, '那就用刀', clamp01(0.25 + q * 0.75), places=P, fname='kai', color=(0.03, 0.03, 0.035), emph=('刀',),
                              emph_color=(0.86, 0.10, 0.06), angle=4, cut_at=0.25, slide=0.18, appear=0.0)
         if t >= tc - 0.05:
             ql = clamp01((t - (tc - 0.05)) / 0.15)
@@ -1362,13 +1389,13 @@ CUTS = {
     'V13': ('none', 0, 0, {}),
     'V14': ('flash_red', 0.03, 0.12, {}),
     'V15': ('ink_bleed', 0.06, 0.20, dict(seed=15)),
-    'V16': ('smoke_through', 0.08, 0.14, dict(seed=16, direction=-1)),
+    'V16': ('rain_curtain', 0.08, 0.18, dict(seed=16)),             # 第四棒：灰雾 smoke → 雨帘落幕（b_kit）
     'V17': ('hard', 0, 0, {}),
     'V18': ('punch', 0, 0, {}),
     'V19': ('match_cut', 0.0, 0.10, dict(shape='circle', center=(860, 470), radius=200)),
-    'V20': ('whip_pan_blur', 0.05, 0.12, dict(direction='right', rot_deg=90.0)),
+    'V20': ('split_slide', 0.06, 0.14, dict(angle=0.0, center=(960, 560))),   # 第四棒：whip 糊黑 → 水平分屏（水面线），上岸下影反向滑
     'V21': ('none', 0, 0, {}),
-    'V22': ('glitch_cut', 0.03, 0.12, dict(seed=22)),
+    'V22': ('punch', 0, 0, {}),                                     # 第四棒：灰 glitch → 落拍硬切冲击（推近+色散）
     'V23': ('slash_wipe', 0.05, 0.14, dict(angle=4)),
     'V24': ('zoom_through', 0.08, 0.14, dict(center=(960, 640))),
     'V25': ('hard', 0, 0, {}),

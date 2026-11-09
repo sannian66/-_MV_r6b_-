@@ -228,6 +228,48 @@ def glyph_layer(text_places, fname, color, scale=1.0):
     return L
 
 
+# ---------------------------------------------------------------- B 组自写转场（第四棒：替换灰雾 smoke_through）
+def _bfbm(seed, sc=70, oc=5):
+    return cv2.resize(TR.fbm(H // 4, W // 4, seed, sc, oc).astype(np.float32), (W, H))
+
+
+def cloud_wipe(A, B, p, seed=0, soft=0.06):
+    """云幕下压：B（天空）带着翻卷云边从画面顶端压下来盖住 A；云边受闪电冷光照亮（冷蓝细边 + 边前轻压暗），
+    不加满屏灰雾——中间帧上半是 B、下半是 A。"""
+    x, y = K.grid()
+    nz = _bfbm(seed)
+    e = eio(p)
+    yn = y / H
+    front = -0.15 + 1.35 * e + (nz - 0.5) * 0.35 + 0.04 * np.sin(x / 90.0 + seed)
+    m = np.clip((front - yn) / soft, 0, 1)
+    out = A * (1 - m[..., None]) + B * m[..., None]
+    d = (front - yn)
+    rim = np.exp(-(d / 0.012) ** 2) * (0.6 + 0.8 * nz) * math.sin(math.pi * e)
+    pre = np.clip(-d / 0.10, 0, 1) * (1 - np.clip(-d / 0.35, 0, 1))
+    out = out * (1 - 0.45 * pre[..., None] * math.sin(math.pi * e))
+    return out + rim[..., None] * COLD * 0.9
+
+
+def rain_curtain(A, B, p, seed=0):
+    """雨帘落幕：B 被一条条竖向雨柱从上往下「冲」进画面（每列随机延迟、长短不一），雨柱头是冷白水珠；
+    中间帧是 A/B 竖条交错，带前后两镜元素，无整屏灰。"""
+    x, y = K.grid()
+    r = np.random.default_rng(seed)
+    ncol = 160
+    dl = r.uniform(0, 0.45, ncol).astype(np.float32)
+    sp = r.uniform(1.6, 2.4, ncol).astype(np.float32)
+    ci = np.clip((x / W * ncol).astype(np.int32), 0, ncol - 1)
+    head = (p - dl[ci]) * sp[ci] * 1.25
+    yn = y / H
+    m = np.clip((head - yn) / 0.03, 0, 1)
+    out = A * (1 - m[..., None]) + B * m[..., None]
+    tip = np.exp(-((yn - head) / 0.012) ** 2) * (head > 0) * (head < 1.05)
+    return out + tip[..., None] * WHITE * 0.55 * math.sin(math.pi * clamp01(p))
+
+
+BTRANS = dict(cloud_wipe=cloud_wipe, rain_curtain=rain_curtain)
+
+
 # ------------------------------------------------------------------ 镜头基类与段落运行器
 class Shot:
     t0 = t1 = 0.0
