@@ -1504,13 +1504,13 @@ class C37(Shot):
         u = self.u(t)
         tp = V(156.70); ts = tp + 0.24
         fl = bolt_env(t, tp) * 1.2
-        fr = storm(t, 37, horizon=1300, flash=0.25 + fl, fc=(960, 400), ground=False)
+        fr = storm(t, 37, horizon=1300, flash=0.12 + 0.45 * fl, fc=(960, 400), ground=False) * 0.8
         if t >= tp - 0.38:
             a = T.glyph('判', 'serif_black', 680, False)
             g = a.shape[0]
             edge = np.clip(a - cv2.erode(a, np.ones((9, 9), np.uint8)), 0, 1)
             nz = cv2.resize(np.random.default_rng(int(t * 30)).random((g // 12, g // 12)).astype(np.float32), (g, g))
-            core = np.clip(edge * (0.6 + 0.8 * nz), 0, 1) + a * 0.12
+            core = np.clip(edge * (0.6 + 0.8 * nz), 0, 1) * 0.9 + a * 0.45
             prog = sm(tp - 0.38, tp + 0.04, t)
             if not hasattr(self, 'field'):          # 电光逐笔：随机分形场 + 自上而下偏置，像电流沿笔画爬
                 fld = cv2.GaussianBlur(np.random.default_rng(37).random((g, g)).astype(np.float32), (0, 0), g / 30)
@@ -1657,8 +1657,8 @@ class C41(Shot):
             fr = draw_puppet(fr, A, fib, 960 + math.cos(a) * d, 460 + math.sin(a) * d * 0.55, r.uniform(-1, 1) * 400 * q, back=0.9)
         # 金印：翻滚着扑向镜头，越来越大（运动模糊在定格前）
         g = gold_seal()
-        sz = lerp(160, 640, ein(q, 2.2))
-        fr, _ = g.draw(fr, lerp(1000, 900, q), lerp(560, 860, ein(q, 2)), sz, yaw=lerp(-30, 8, q) + 160 * (1 - q) * q, pitch=lerp(-10, -4, q),
+        sz = lerp(160, 540, ein(q, 2.2))
+        fr, _ = g.draw(fr, lerp(1000, 900, q), lerp(560, 880, ein(q, 2)), sz, yaw=lerp(-30, 8, q) + 160 * (1 - q) * q, pitch=lerp(-10, -4, q),
                        rim=(1, 0.8, 0.45), rim_amt=1.4, flash=pulse(t, tf, 0.1), mblur=t < tf, roll=lerp(25, 0, q))
         fr = rain(fr, te, 410, inten=0.9, angle=10, freeze=0.35 if t > tf else None)
         if t > tf:
