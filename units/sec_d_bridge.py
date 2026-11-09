@@ -1016,6 +1016,24 @@ class S19_Forge(Shot):
         return shake_cam(fr, t, hits, 7, z=1.0 + 0.05 * u), 0.0
 
 
+def _strip_flat_shadow(sp):
+    """[r6] run_top 抠图把地上的平灰投影（~RGB 80、无纹理、不饱和、成大块）当成了人：从 alpha 里扣掉，返回该投影的蒙版（另作压暗投影用）。"""
+    v8 = sp.F * 255
+    v = v8.mean(-1); sat = v8.max(-1) - v8.min(-1)
+    mu = cv2.blur(v, (11, 11)); sd = np.sqrt(np.maximum(cv2.blur(v * v, (11, 11)) - mu * mu, 0))
+    g = ((sat < 10) & (v > 58) & (v < 200) & (sd < 8) & (sp.A > 0.08)).astype(np.uint8)
+    g = cv2.morphologyEx(g, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(g)
+    keep = np.isin(lab, [i for i in range(1, n) if st[i, 4] > 1000]).astype(np.uint8)
+    big = cv2.dilate(keep, np.ones((15, 15), np.uint8))
+    keep = np.maximum(keep, big * ((v > 40) & (sat < 14)).astype(np.uint8)).astype(np.float32)
+    keep = cv2.GaussianBlur(keep, (0, 0), 1.2)
+    sp.A = np.clip(sp.A * (1 - keep), 0, 1).astype(np.float32)
+    ring = sp.A - cv2.erode(sp.A, np.ones((5, 5), np.uint8))
+    sp.ring = cv2.GaussianBlur(np.clip(ring, 0, 1), (0, 0), 1.5)
+    return np.clip(keep, 0, 1)
+
+
 class S20_Wall(Shot):
     """[r5 重做] 大俯拍 LS：满地摊开的巨幅竹简（湿、反冷光；竖条竹片 + 竹节 + 两道编绳 + 墨书律令），相机在他头顶后退跟拍，
     他从画面上方朝镜头冲来、踏过竹简；他刚踏过的三片竹简亮起暖白宋体「谁 定 的」；唱到「规矩」时前方左右两片竹简迸出金光、
@@ -1024,6 +1042,7 @@ class S20_Wall(Shot):
     t0, t1 = 181.91, 182.81
     def __init__(self):
         self.sp = D.spr('run_top')
+        self.shadow = _strip_flat_shadow(self.sp)               # [r6] 去掉抠图残留的平灰投影块，改成真正压暗竹简的投影
         src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
         dst = np.float32([[170, 0], [W - 170, 0], [W + 140, H], [-140, H]])
         self.Mp = cv2.getPerspectiveTransform(src, dst)
@@ -1062,7 +1081,12 @@ class S20_Wall(Shot):
             if pk > 0: lit.append((c, 700 + 260 * k, 262, 150, pk, 'w'))
         fr = D.song(fr, lit, glow=0.3)
         h = lerp(560, 660, ei(u, 1.3))
-        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 930 + 40 * u), D.fit_scale(self.sp, h), expo=1.0 + 0.3 * flash, sat=0.55,
+        sc = D.fit_scale(self.sp, h); fa = D.feet(self.sp); fd = (960, 930 + 40 * u)
+        M = cv2.getRotationMatrix2D((fa[0] * self.sp.w, fa[1] * self.sp.h), 0, sc)
+        M[0, 2] += fd[0] - fa[0] * self.sp.w; M[1, 2] += fd[1] - fa[1] * self.sp.h
+        shw = cv2.GaussianBlur(cv2.warpAffine(self.shadow, M, (W, H)), (0, 0), 5)
+        fr = fr * (1 - 0.62 * shw[..., None])                    # 投影落在湿竹简上（压暗，不是灰片）
+        fr, Aw = D.real_figure(fr, self.sp, t, fa, fd, sc, expo=1.0 + 0.3 * flash, sat=0.55,
                                rim=COLD, rim_amt=4.0 + 3 * flash, rim_dir=(0.6, -0.8), wind=10)
         fr = D.song(fr, its)
         fr = K.rain(fr, t, 20, n=500, amt=0.28, angle=4)
