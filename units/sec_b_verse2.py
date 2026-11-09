@@ -388,16 +388,20 @@ class V04(Shot):
                     cv2.line(fr, (px, py), (int(px + math.cos(a) * d), int(py + math.sin(a) * d)), (0.75, 0.78, 0.85), 1, cv2.LINE_AA)
         # 「退让」：逐字从上压低（宋体小字，像被按下去的头）
         pr = prs(20, [8, 9], t)
-        L2 = T.Layer()
-        for i, (ch, pc) in enumerate(zip('退让', pr)):
-            if pc <= 0: continue
-            T.place(L2, ch, 1460 + i * 120, 600 + 90 * eout(pc, 3) + i * 40, 96, color='white', fname='serif_sb', alpha=min(1, pc * 2))
-        fr = T.compose(fr, L2, shadow=0.8)
         fr = self.rain.draw(fr, t, intensity=1.2, angle=4, light=(960, 380), light_r=700)
         # 纸人头顶剪影（下沿，前景，逆光金边，随鞠躬下压）
         bowk = eio(clamp01((t - V(CT(20, 8)) + 0.2) / 0.8))
-        fr, _ = BC.draw(fr, self.back, (960, 1080 + 1180 + 70 * bowk), 1720 * (1 - 0.03 * bowk), tilt=0, expo=0.30, tint=(1.0, 0.92, 0.8), sat=0.5,
-                        rim_col=GOLD * 1.2, rim_amt=2.2, rim_dir=(0.0, -1.0), sil=0.45, wet=0.3, blur=1.0)
+        # 第五棒 9/n：不再压成黑团+硬金边——中景人群背影露头肩（纸纹/湿袍可见），顶光暖、两侧冷边，后排略虚
+        fr, _ = BC.draw(fr, self.back, (980, 1830 + 60 * bowk), 1250 * (1 - 0.02 * bowk), tilt=0, expo=0.46, tint=(1.0, 0.93, 0.84), sat=0.55,
+                        rim_col=GOLD * 1.0, rim_amt=1.1, rim_dir=(0.0, -1.0), sil=0.18, wet=0.35, blur=0.6)
+        x2, y2 = K.grid()
+        fr *= (1 - 0.35 * np.clip((y2 - 700) / 260, 0, 1))[..., None]   # 下沿压暗收边（脚下暗场，视线回到「大局」）
+        # 「退让」在人群头顶之上、「局」右下，逐字被按低（像被按下去的头），画在人群之后不被遮
+        L2 = T.Layer()
+        for i, (ch, pc) in enumerate(zip('退让', pr)):
+            if pc <= 0: continue
+            T.place(L2, ch, 1470 + i * 120, 470 + 70 * eout(pc, 3) + i * 40, 96, color='white', fname='serif_sb', alpha=min(1, pc * 2))
+        fr = T.compose(fr, L2, shadow=0.8)
         k = hitp(t, 91.314, 0.12)
         fr = cam(fr, 1.04 + 0.04 * eio(u) + 0.03 * k, 0, -20 * eio(u))
         return fr, (2 if k > 0.5 else 0)
