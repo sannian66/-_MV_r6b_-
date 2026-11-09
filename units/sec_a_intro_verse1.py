@@ -201,22 +201,22 @@ class A05(Shot):
         return fr, (3 if g > 0.4 else 0)
 
 
-# A06 7.85–10.61 片名重击：刀光横斩，「鬼屠 · 第三季」志莽行书炸出，飞火 + 墨溅 + 闪白；8.31 鬼屠印；8.35 副标题
+# A06 7.85–10.61 片名重击：刀光横斩，「鬼屠 · 第二季」志莽行书炸出，飞火 + 墨溅 + 闪白；8.31 鬼屠印；8.35 副标题
 TITLE_HIT = V(7.85)
 TITLE_Y = 470
 class Title:
     """片名层（A06 屏幕位置 / A07 贴到刀面），保持用户 05:52 定的层级：主标题 + 副标题 + 印。"""
     def __init__(self):
-        T.warm('鬼屠第三季', 'xing', 210)
+        T.warm('鬼屠第二季', 'xing', 210)
         T.warm('主题曲《谁定正邪》', 'song', 50)
     def layer(self, t, out=0.0, sheen=None):
         k = t - TITLE_HIT
         L = T.Layer()
-        xs = [520, 735, 1080, 1290, 1500]
-        for i, (c, x) in enumerate(zip('鬼屠第三季', xs)):
+        xs = [520, 735, 1095, 1290, 1485]                    # 「二」笔画少：第/季向内收 15px，「二」放大 1.15 补视觉重心
+        for i, (c, x) in enumerate(zip('鬼屠第二季', xs)):
             e = eout((k - i * 0.035) / 0.22)
             if e <= 0: continue
-            sc = 1 + 0.35 * (1 - e)
+            sc = (1 + 0.35 * (1 - e)) * (1.15 if c == '二' else 1.0)
             T.place(L, c, x, TITLE_Y, 210, (0.96, 0.94, 0.90), 'xing', alpha=e, scale=sc, blur=6 * (1 - e) + 10 * out)
         L2 = T.Layer()
         se = eout((k - 0.06) / 0.25)
