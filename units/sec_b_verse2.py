@@ -1103,34 +1103,42 @@ class V19(Shot):
 # V20 109.55–110.92 LS 俯：积水倒影成为主画面：倒影里鬼屠背影（back_stand，镜像冷调），世界开始旋转 roll 0°→90°；「若这世」宋体随画面旋转
 # V21 110.92–112.29 LS：继续旋转 90°→180° 并翻成负片（黑白颠倒）；「道黑白颠倒」随画面倒置，「黑」「白」因反相互换颜色
 class V20(Shot):
+    """第五棒重做（评审 P0：倒置人头被下沿裁、背景只有灰蓝椭圆暗角、角上黑椭圆块）：
+    LS 贴水面平视——水线压在画面正中 y540：上半 = 雨夜远城墙 + 雾 + 站在浅水上低头看自己倒影的鬼屠（生图 look_down，全身入画，头顶留 50px）；
+    下半 = 同一画面的水中倒影（涟漪、冷暗、雨点圈）。上下各自完整，倒影头部在 y≈900、不出 2.39 有效区。
+    后半拍（u>0.45）世界开始 roll，V21 接着转到 180° —— 倒影翻到上方成「正面」，正是「黑白颠倒」。"""
+    WL = 540
     def __init__(self):
-        self.sp = spr('back_stand')
+        self.sp = spr('look_down')
         x, y = K.grid()
-        sk = night_sky(6501, top=(0.24, 0.25, 0.29), bot=(0.05, 0.055, 0.07), horizon=1.0)   # 第四棒：倒影天提亮，人物剪影读得出     # 倒影里的天（倒置：亮在下）
-        self.sky = sk[::-1].copy()
-        mud = (0.015 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6502, 9, 6), (W, H)))[..., None] * np.ones(3, np.float32)
-        nz = cv2.resize(K.fbm(H // 8, W // 8, 6503, 3, 4), (W, H))
-        d = np.sqrt(((x - 960) / 900) ** 2 + ((y - 540) / 520) ** 2)
-        self.pm = np.clip((1.0 - d + (nz - 0.5) * 0.5) * 8, 0, 1)
-        self.mud = mud
+        sk = night_sky(6501, top=(0.05, 0.055, 0.07), bot=(0.30, 0.31, 0.34), horizon=0.50)
+        wl, wm = city_wall_far(6502, 400, self.WL + 4, tone=0.075)
+        sk = sk * (1 - wm[..., None] * 0.85) + K.blur_ds(wl, 4) * wm[..., None] * 0.85
+        sk += np.exp(-(((x - 1250) / 520) ** 2 + ((y - 470) / 160) ** 2))[..., None] * np.array([0.10, 0.11, 0.13], np.float32)   # 城楼后冷月雾光
+        self.sky = sk
+        self.fog = fx2.Fog(6503)
         self.rain = fx2.RainSheet(6504, density=0.6)
-        self.r = np.random.default_rng(6505).uniform(0, 1, (30, 3))
+        self.r = np.random.default_rng(6505).uniform(0, 1, (34, 3))
+        self.wn = K.tile(256, 6506, 6, 3)
         T.warm('若这世', 'serif_black', 140); T.warm('道黑白颠倒', 'serif_black', 140)
 
     def scene(self, t):
         x, y = K.grid()
-        refl = self.sky.copy()
-        refl, _ = put(refl, self.sp, t, 780, (700, 920), look=None, rim=dict(col=(0.75, 0.85, 1.0), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
-                      shade=None, wrap=0.2)
-        refl = refl[::-1] if False else refl
-        # 倒影：人物头朝下（脚在上沿）
-        refl = cv2.flip(refl, 0)
-        nz = cv2.resize(K.tile_crop(K.tile(256, 6506, 6, 3), t * 20, t * 50, H // 8, W // 8), (W, H))
-        refl = cv2.remap(refl, x + (nz - 0.5) * 10, y + (nz - 0.5) * 4, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        fr = self.mud * (1 - self.pm[..., None]) + refl * self.pm[..., None] * np.array([0.85, 0.92, 1.05], np.float32)
-        cs = [(a * W, 150 + b * 780) for a, b, _ in self.r]; ts = [math.floor(t * 2 + c * 2) / 2 - c * 0.5 for _, _, c in self.r]
-        fr = fx2.ripples(fr, t, cs, ts, amt=0.5, flat=0.6, speed=160, life=1.0)
-        fr = self.rain.draw(fr, t, intensity=0.5, angle=0)
+        up = self.fog.draw(self.sky.copy(), t, density=0.55, y0=330, y1=self.WL, color=(0.30, 0.32, 0.36), speed=(25, 0), top_fade=200)
+        up, _ = put(up, self.sp, t, 360, (760, self.WL + 4), rim=dict(col=(0.78, 0.86, 1.0), amt=3.0, dir=(0.5, -1.0)),
+                    grade=dict(expo=0.80, sat=0.55, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.12), wind_amp=7, shade=None, wrap=0.3)
+        # 倒影：上半关于水线翻转 + 涟漪 + 冷暗
+        refl = np.zeros_like(up)
+        refl[self.WL:] = up[self.WL - 1::-1][:H - self.WL]
+        nz = cv2.resize(K.tile_crop(self.wn, t * 20, t * 55, H // 8, W // 8), (W, H))
+        refl = cv2.remap(refl, (x + (nz - 0.5) * 12).astype(np.float32), (y + (nz - 0.5) * 5).astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        refl = refl * np.array([0.58, 0.64, 0.74], np.float32) * (0.9 + 0.2 * nz[..., None])
+        low = sstep(self.WL - 1, self.WL + 2, y)[..., None]
+        fr = up * (1 - low) + refl * low
+        fr += np.exp(-((y - self.WL) / 2.5) ** 2)[..., None] * np.array([0.25, 0.28, 0.33], np.float32)      # 水线高光
+        cs = [(a * W, self.WL + 30 + b * 400) for a, b, _ in self.r]; ts = [math.floor(t * 2 + c * 2) / 2 - c * 0.5 for _, _, c in self.r]
+        fr = fx2.ripples(fr, t, cs, ts, amt=0.5, flat=0.25, speed=160, life=1.0)
+        fr = self.rain.draw(fr, t, intensity=0.55, angle=2)
         return fr
 
     def render(self, t):
@@ -1139,10 +1147,10 @@ class V20(Shot):
         pr = prs(26, [0, 1, 2], t)
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('若这世', pr)):
-            if pc > 0: T.place(L, ch, 1230, 390 + i * 150, 130, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+            if pc > 0: T.place(L, ch, 1480, 230 + i * 135, 120, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
         fr = T.compose(fr, L, shadow=0.85, glow=0.12)
-        ang = 90 * ein(u, 2)
-        fr = cam(fr, 1.0 + 0.12 * math.sin(math.pi * u * 0.5), 0, 0, ang)
+        ang = 90 * ein(clamp01((u - 0.45) / 0.55), 2)
+        fr = cam(fr, 1.0 + 0.10 * eio(u), 0, 0, ang)
         return fr, 0
 
 
