@@ -1329,6 +1329,8 @@ class C26(Shot):
             tris.append((q.astype(np.float32), c, d, r.uniform(-1, 1), r.uniform(0.6, 1.3)))
         self.tris = tris; self.S = S
         self.wall = cv2.resize(plate_view('C5/c22_wall', 0.5, 0.62, 2.0), (w, h))
+        self.nz = cv2.GaussianBlur(r.random((h, w)).astype(np.float32), (0, 0), 2.5)
+        self.nz = (self.nz - self.nz.mean()) / (self.nz.std() + 1e-6)          # 石片断口：噪声扰动边缘，不是干净三角
     def render(self, t):
         u = self.u(t)
         k = (t - self.t0) * 0.55 + 0.04                         # 慢放
@@ -1340,12 +1342,17 @@ class C26(Shot):
         for q, c, d, sp, sz in sorted(self.tris, key=lambda z: -z[2]):          # 先远（外圈，动得少）后近（中心，飞得最快）
             delay = d / 900.0 * 0.25
             e = max(0.0, k - delay)
-            fly = e * (2.6 - d / 500.0) * sz
+            fly = e * max(0.0, 1.7 - d / 520.0) * sz
             sc = 1 + 1.6 * fly * fly
             dirv = np.array([c[0] - w / 2, c[1] - h / 2 - 20], np.float32); dirv /= (np.linalg.norm(dirv) + 1e-3)
             mv = dirv * (fly * 260 + fly * fly * 300)
             M = cv2.getRotationMatrix2D((float(c[0]), float(c[1])), sp * 160 * fly, sc); M[:, 2] += mv
             m = np.zeros((h, w), np.float32); cv2.fillConvexPoly(m, q.astype(np.int32), 1.0, cv2.LINE_AA)
+            if fly > 0.002:
+                x0_, y0_ = q.min(0).astype(int) - 4; x1_, y1_ = q.max(0).astype(int) + 5
+                sl = (slice(max(0, y0_), min(h, y1_)), slice(max(0, x0_), min(w, x1_)))
+                mb = cv2.GaussianBlur(m[sl], (0, 0), 2.0)
+                m[sl] = np.clip((mb + 0.16 * self.nz[sl] - 0.5) * 6 + 0.5, 0, 1)
             x0, y0 = q.min(0).astype(int); x1, y1 = q.max(0).astype(int) + 2
             if fly <= 0.002:
                 sub = (slice(max(0, y0), min(h, y1)), slice(max(0, x0), min(w, x1)))
@@ -1354,6 +1361,9 @@ class C26(Shot):
             Am = cv2.warpAffine(m, M, (w, h)); Pm = cv2.warpAffine(self.wall * m[..., None], M, (w, h))
             edge = np.clip(Am - cv2.erode(Am, np.ones((3, 3), np.uint8)), 0, 1)[..., None]
             shade = 1.0 - 0.35 * min(1.0, fly)
+            th = np.float32([[1, 0, -dirv[0] * 5 * min(1, fly * 3)], [0, 1, 6 * min(1, fly * 3)]])      # 厚度：暗侧面
+            As = cv2.warpAffine(Am, th, (w, h))
+            out = out * (1 - As[..., None] * 0.9) + As[..., None] * 0.03
             out = out * (1 - Am[..., None]) + Pm * shade + edge * np.array([0.8, 0.85, 1.0], np.float32) * 0.6 * fl
         fr = cv2.resize(out, (W, H))
         fr = dust(fr, t, 261, n=200, amt=0.6, drift=(0, 160), region=(0, BAR, W, H - BAR))
