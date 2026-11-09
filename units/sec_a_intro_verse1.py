@@ -531,7 +531,7 @@ class V06(Shot):
                            mblur=(30 * math.exp(-max(0, a) / 0.08), 0) if a >= 0 else (0, 0))
         if a >= 0:
             fr = streak(fr, 600, -100, 2100, a / 0.08, w=5, amt=1.6, ang=-0.6)
-        if 0 <= a < 0.07: fr = fr * 1.8 + 0.4
+        if 0 <= a < 0.07: fr = fr * 1.55 + 0.06 * COLDV          # 第三棒：冲击改冷色曝光脉冲（不再白闪）
         # 「寒光」斩开：字在屏幕下方，被同一刀切开两半错位
         p = cprog(1, [9], t, 0.25)[0]
         if p > 0:
@@ -850,25 +850,27 @@ class V14(Shot):
         return fr, (4 if 0 <= a < 0.1 else 0)
 
 
-# V15 34.44–36.27 巨月满画：鬼屠剪影立于前景岩上（刀插岩石），「主张」从月面墨晕显出
+# V15 34.44–36.27 过肩大前景（第三棒重构，原「巨月 + 岩上小剪影」与 A02/V07 同构）：
+#     鬼屠背影的肩、马尾占右侧 1/3 作前景黑剪影（冷轮廓光、发丝随风），越过他的肩看左侧巨月；
+#     「主张」从月面墨晕显出；中景一道山脊 + 云带给出纵深。出口：月盘作 iris_moon 光圈开出 V16 金光。
 class V15(Shot):
     def __init__(self):
-        T.warm('主张', 'kai', 260)
+        T.warm('主张', 'kai', 250)
     def render(self, t):
         u = self.u(t)
         fr = night((0.01, 0.012, 0.022), (0.04, 0.045, 0.06))
-        fr = A.moon(fr, 1000, 500, 360, 1.0, halo=0.55, bright=0.58)
-        fr = A.clouds(fr, t, 61, speed=(-25, 0), y0=600, y1=960, amt=0.8, col=(0.10, 0.11, 0.14), light=(1000, 500), light_r=420, thr=0.45)
+        fr = A.moon(fr, 700, 480, 330, 1.0, halo=0.55, bright=0.58)
+        fr = A.clouds(fr, t, 61, speed=(-25, 0), y0=560, y1=900, amt=0.8, col=(0.10, 0.11, 0.14), light=(700, 480), light_r=420, thr=0.45)
         L = T.Layer()
         for i, (c, k) in enumerate((('主', 9), ('张', 10))):
             p = clamp01((t - (CT(5, k) - 0.2)) / 0.6)
-            if p > 0: L.paste(T.ink_bleed_glyph(c, 'kai', 260, p, seed=20 + i, bleed=1.0), 870 + 260 * i, 500, (0.05, 0.05, 0.06))
-        fr = T.compose(fr, L, shadow=0.0, glow=0.0, opacity=0.85)
-        rock = np.zeros((H, W), np.float32)
-        cv2.fillPoly(rock, [np.array([(1150, 960), (1260, 860), (1420, 830), (1600, 870), (1780, 960)], np.int32)], 1.0, cv2.LINE_AA)
-        fr = fr * (1 - rock[..., None]) + rock[..., None] * 0.006
-        fr, info = A.place(fr, t, S('S002/back_wind'), (1450, 845), h=330, flip=True, look='sil', rim=COLD, rim_amt=4.0, wind=12)
-        fr = ASH.draw(fr, t, 0.4, wind=(-200, 0))
+            if p > 0: L.paste(T.ink_bleed_glyph(c, 'kai', 250, p, seed=20 + i, bleed=1.0), 580 + 250 * i, 470, (0.05, 0.05, 0.06))
+        fr = T.compose(fr, L, shadow=0.0, glow=0.0, opacity=0.88)
+        fr, _ = A.ridge(fr, 860, 120, 66, tone=(0.012, 0.014, 0.02), rim=(0.6, 0.68, 0.9), rim_amt=0.45, peaks=3, dx=-u * 40)
+        fr = fog(fr, t, 0, 780, 960, 0.4, (0.22, 0.25, 0.32), speed=(-50, 0))
+        fr, info = A.place(fr, t, S('S002/back_wind'), (1500 - 40 * u, 1760), h=1580, flip=True, look='sil', rim=COLD, rim_amt=4.5,
+                           rim_dir=(-0.9, -0.3), wind=14, defocus=1.0)
+        fr = ASH.draw(fr, t, 0.5, wind=(-200, 0))
         return fr, 0
 
 
@@ -952,8 +954,8 @@ class V17(Shot):
         fr = fr * (1 - rg * 0.3) + rg * np.array([0.34, 0.28, 0.22], np.float32)
         fr = K.sparks(fr, t, 71, (960, 600), n=90, life=0.9, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=0, area=(260, 260), amt=0.6,
                       t0=th, burst=True, color=(0.8, 0.7, 0.55))
-        if a < 0.06: fr = fr * 0.15
-        elif a < 0.14: fr = fr * 1.6 + 0.25
+        if a < 0.06: fr = fr * 0.35
+        elif a < 0.14: fr = fr * 1.45 + 0.08 * GOLDV          # 第三棒：暖色曝光脉冲，不再灰白
         return fr, (6 if 0 <= a < 0.2 else 0)
 
 
@@ -1004,7 +1006,7 @@ class V20(Shot):
             cv2.ellipse(L, (int(700 / 2), int(1000 / 2)), (int(900 / 2), int(750 / 2)), 0, -90, -90 + 85 * q, 1.0, 5, cv2.LINE_AA)
             L = cv2.resize(L, (W, H)) * max(0, 1 - a / 0.5)
             fr = fr + (L * 1.4 + cv2.GaussianBlur(L, (0, 0), 16) * 1.5)[..., None] * np.array([1.0, 0.92, 0.8], np.float32)
-            if a < 0.06: fr = fr * 1.6 + 0.3
+            if a < 0.06: fr = fr * 1.4 + 0.08 * GOLDV
         return fr, (5 if 0 <= a < 0.12 else 0)
 
 
@@ -1028,7 +1030,7 @@ class V21(Shot):
         else:
             fr = T.slash_layer(fr, L, clamp01(a / 0.73), (960, 540), -62, slide=0.35, sz=560, length=1500, sparks=90,
                                style_kw=dict(shadow=0.7, glow=0.3))
-            if a < 0.07: fr = fr * 1.7 + 0.35
+            if a < 0.07: fr = fr * 1.5 + 0.07 * RED
             # 墨缝：斩线处渗出墨（给 B 组 ink_bleed 入口）
             k = clamp01((a - 0.35) / 0.38)
             if k > 0:
@@ -1061,24 +1063,24 @@ CUTS = {
     'A04': ('ink_bleed', 0.12, 0.18, dict(seed=7, center=(1300, 400))),
     'A05': ('hard', 0, 0, {}),
     'A06': ('slash_wipe', 0.0, 0.14, dict(angle=-3, center=(960, 480))),
-    'A07': ('zoom_through', 0.10, 0.14, dict(center=(960, 480), variant='glint')),
-    'A08': ('flash_white', 0.06, 0.20, {}),
+    'A07': ('a_zoom', 0.10, 0.14, dict(center=(960, 480))),                         # 第三棒：去 glint 白场，片名位置不动推入刀面
+    'A08': ('smoke_through', 0.14, 0.22, dict(seed=8, direction=1)),                 # 第三棒：flash_white → 片名化灰成烟，烟后露出城墙
     'V01': ('ink_bleed', 0.14, 0.22, dict(seed=11, center=(960, 300))),                 # 雾 → 乌云
     'V02': ('hard', 0, 0, {}),
-    'V03': ('smoke_through', 0.12, 0.18, dict(seed=3)),
+    'V03': ('shatter', 0.04, 0.20, dict(seed=3, center=(1060, 880), n=60)),       # 第三棒：水洼倒影碎裂 → 俯瞰方阵
     'V04': ('occlusion', 0.14, 0.14, dict(kind='spear', direction=-1, seed=4)),         # 枪林遮挡
-    'V05': ('whip', 0, 0, dict(dir=(1, 0), L=420)),
+    'V05': ('hard', 0, 0, {}),                                                         # 第三棒：whip 只留 V20 一处
     'V06': ('hard', 0, 0, {}),
     'V07': ('match_cut', 0.08, 0.10, dict(shape='line', center=(960, 600), angle=0, mode='cut')),   # 寒光横线 ↔ 城墙顶边
-    'V08': ('whip', 0, 0, dict(dir=(0, 1), L=420)),                                      # 高处 → 下压的手
+    'V08': ('paper_tear', 0.10, 0.20, dict(seed=8, angle=6)),                          # 第三棒：城楼画面撕开 → 宣纸上落印的手
     'V09': ('occlusion', 0.12, 0.14, dict(kind='blade', direction=1, seed=9)),           # 天平臂扫过
     'V10': ('hard', 0, 0, {}),
     'V11': ('flash_red', 0.03, 0.10, {}),
     'V12': ('slash_wipe', 0.0, 0.14, dict(angle=58)),
     'V13': ('split_slide', 0.10, 0.18, dict(angle=90)),
     'V14': ('match_cut', 0.08, 0.10, dict(shape='circle', center=(700, 520), radius=120, mode='cut')),   # 收刀刀柄 ↔ 拔刀刀柄
-    'V15': ('zoom_through', 0.10, 0.16, dict(center=(1000, 500))),
-    'V16': ('whip', 0, 0, dict(dir=(0, -1), L=460)),
+    'V15': ('a_zoom', 0.10, 0.16, dict(center=(700, 500))),
+    'V16': ('iris_moon', 0.04, 0.30, dict(center=(700, 480), radius=330, mode='open')),   # 第三棒：巨月盘成光圈，圈内开出召印金光
     'V17': ('hard', 0, 0, {}),
     'V18': ('flash_red', 0.03, 0.10, {}),
     'V19': ('hard', 0, 0, {}),
@@ -1181,6 +1183,15 @@ def lyrics(fr, t):
 
 
 # =====================================================================================
+def a_zoom(A_, B_, p, center=(960, 540)):
+    """第三棒：推镜穿越（无闪白版）。A 加速推近 + 径向模糊，B 从放大态减速回位；0.35–0.65 两画面按亮度叠化，
+    中间帧始终同时带着前后镜的画面元素（不出现白场/灰雾）。"""
+    e = TR.ease_in(min(1, p / 0.65), 2.4); A2 = TR._radial_blur(TR._zoom(A_, 1 + 0.9 * e, center), center, 0.22 * e)
+    q = 1 - TR.ease_out(max(0, (p - 0.35) / 0.65), 3); B2 = TR._radial_blur(TR._zoom(B_, 1 + 0.5 * q, center), center, 0.2 * q)
+    m = TR.ease_io((p - 0.35) / 0.3)
+    return np.maximum(A2 * (1 - m), B2 * m) * 0.6 + (A2 * (1 - m) + B2 * m) * 0.4
+
+
 class _Lazy:
     def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None; self.id = cls.__name__
     def render(self, t):
@@ -1222,7 +1233,9 @@ class Section:
             Af, ca1 = a.render(t) if (pre > 0 or t < c) else (B, 0)
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
-            return TR.transition(name, np.clip(Af, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw), max(ca1, ca2)
+            Af = np.clip(Af, 0, 4).astype(np.float32); B = np.clip(B, 0, 4).astype(np.float32)
+            if name == 'a_zoom': return a_zoom(Af, B, p, **kw), max(ca1, ca2)
+            return TR.transition(name, Af, B, p, **kw), max(ca1, ca2)
         fr, ca = s.render(t)
         name = CUTS.get(self.ids[i], ('hard',))[0]
         if name == 'hard' and i > 0:
