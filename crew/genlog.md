@@ -263,3 +263,14 @@
 | 11-09 01:35 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 0 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | 采用 | assets/gen/D_bridge/wall_stand_back_raw.png | try1 采用 |
 | 11-09 10:00 | E组 | RH_image2 | 4K 16:9 | 0 | 395c4836/599266ee | 采用 | assets/gen/E_r2/top_down、paper_effigy | [E组] 第二棒两张 try1 均采用（top_down 用 e_recut multi=0.003 保留插地刀）；E 组累计 33 点 |
 | 11-09 10:05 | E组/E_r3 | RH_image2 | 4K 16:9 | 0 | - | quote 失败 invalid_skill_key | - | [E组] 第三棒：nb.py 报 Key 无效，按任务书不折腾，全部改用现有精灵；E 组累计仍 33 点 |
+| 11-09 03:00 | C组/face_lit | RH_image2 | 4K 16:9 | 3 | aca831ec-d59a-460a-a30a-d92105c6176a | submitted | - | C28 try1 (quote 3) |
+| 11-09 03:00 | C组/brace_cu | RH_image2 | 4K 16:9 | 3 | 396ef948-8613-4d3d-9fd5-1817da443207 | submitted | - | C35 try1 (quote 3) |
+| 11-09 03:00 | C组/point_cam | RH_image2 | 4K 16:9 | 3 | 578e0e8e-3338-43ab-bd3d-a16d38bebdd3 | submitted | - | C40 try1 (quote 3) |
+| 11-09 03:00 | C组/soldiers3 | RH_image2 | 4K 16:9 | 3 | a6e34a40-a54d-4d82-bd8f-46fa267b8395 | submitted | - | C19 try1 (quote 3) |
+| 11-09 03:00 | C组/army_kneel | RH_image2 | 4K 16:9 | 3 | 20df00ab-2a9f-4878-8939-7ba8552b1a68 | submitted | - | C36 try1 (quote 3) |
+| 11-09 03:00 | A/hand_draw_cu | RH_image2 | 4K 16:9 | 3 | 49a0d5c7-2e13-4a72-ae61-b98252a88f68 | submitted | - | A组 hand_draw_cu try1 |
+| 11-09 03:00 | D组/defy_up | RH_image2 | 4K 16:9 | 3 | 2d3efba1-433d-419b-b964-cbf036a91437 | submitted | - | try1 medium close-up from a LOW angle, three-quarter view facing  |
+| 11-09 03:00 | A/blade_rain | RH_image2 | 4K 16:9 | 3 | 706c1683-edaf-4751-8fdf-963922216203 | submitted | - | A组 blade_rain try1 |
+| 11-09 03:00 | A/back_walk | RH_image2 | 4K 16:9 | 3 | 8582230b-fcfc-415f-9fb6-27836afb868f | submitted | - | A组 back_walk try1 |
+| 11-09 11:08 | E组/E21 profile_up_r4 | RH_image2 | 4K 16:9 | 3 | 072fbf7f-05cd-4444-b508-8ce0e218d51a | submitted | - | [E组] 第四棒：与 S123/front 同脸仰望侧脸（参考 S123 front_raw + 男主_鬼屠）；quote 3（累计 36） |
+| 11-09 11:08 | E组/E14T low_stride | RH_image2 | 4K 16:9 | 3 | 98dabfbc-c70d-4904-8cba-6a05d8e72c92 | submitted | - | [E组] 第四棒：低机位跨步（参考同上）；quote 3（累计 39） |
