@@ -1131,8 +1131,8 @@ class E26(Shot):   # S131（第三棒重做）一点透视：他划下的那道�
     def __init__(self):
         self.sky = E.dawn_sky(1310, horizon=0.55, mid=(0.45, 0.31, 0.17), hor=(1.0, 0.82, 0.5), cloud=0.8, sun=(960, 590))
         self.g = R3.Ground(261)
-        self.l = LyrO(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 960, 300, size=170, gold='正道', track=0.22, font='serif_black'),
-                      None, seed=210, glow=0.5, outline=4)
+        self.l = LyrO(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 960, 250, size=170, gold='正道沧桑', track=0.22, font='serif_black'),
+                      None, seed=210, glow=0.3, outline=7, shadow=0.95, plate_amt=0.45)      # 第六棒：四字全金 + 墨描边、上移离开地平线光带（亮天上对比度够）
 
     def render(self, t):
         u = self.u(t)
@@ -1536,7 +1536,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E27a': ('impact', 0, 0, dict(col=(1.0, 0.25, 0.12), amp=12)),   # 第五棒：朱红闪 + 抖
     'E27b': ('impact', 0, 0, dict(col=(1.0, 0.9, 0.7), amp=12)),     # 第五棒：白金闪 + 抖
     'E27c': ('slash_wipe', 0.03, 0.10, dict(angle=-78)),               # 第五棒：E27b 刀光延续成斩线 → 匾
-    'E28': ('blade_black', 0.04, 0.10, dict(angle=35, width=170)),
+    'E28': ('impact', 0, 0, dict(col=(0.9, 0.2, 0.1), amp=10)),      # 第六棒：入转场不再带出匾（匾只在 E04/E05/E27c）
     'E29': ('ink_swallow', 0.18, 0.18, dict(center=(1000, 500), seed=9)),
     'E30': ('hard', 0, 0, {}),
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
