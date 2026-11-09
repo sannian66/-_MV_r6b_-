@@ -433,6 +433,8 @@ class E08(Shot):   # S117 CU（第五棒重做）纸糊巨脸（暖橙主光右�
         key = np.clip(0.55 + 0.6 * ((xx - 1010) / 600 - (yy - 500) / 900), 0.35, 1.0)        # 右上暖主光 → 左下落入阴影，阴影带橙环境反射（第六棒：封顶，白发不被染金）
         C = C * key[..., None] * np.array([1.03, 0.98, 0.93], np.float32) + (1 - np.clip(key, 0, 1))[..., None] * np.array([0.075, 0.03, 0.006], np.float32)
         C = C * self.tex[..., None]
+        lum = C.mean(-1, keepdims=True); sd = np.clip((lum - 0.30) / 0.30, 0, 1) * 0.75         # 第六棒：亮部（白发）去暖，不读成金发
+        C = C * (1 - sd) + lum * np.array([1.0, 0.97, 0.94], np.float32) * sd
         pm = 1 + (self.pmul - 1) * 0.62                                     # 第六棒：宣纸叠皱 + 糊纸接缝压在脸上（约 35%）
         C = C * pm[..., None] * np.array([1.03, 1.0, 0.94], np.float32) + self.padd * 1.2
         fr = self.bg * (1 - A[..., None]) + C * A[..., None]
@@ -1461,7 +1463,7 @@ class E33(Credits):   # S135b（第六棒重做，去尾奏「地平线 + 中心
         r = np.random.default_rng(1371)
         self.bok = [(r.uniform(900, 1950), r.uniform(120, 600), r.uniform(18, 60), r.uniform(0.1, 0.35)) for _ in range(22)]
         self.ash = [(r.uniform(0, W), r.uniform(-200, H), r.uniform(4, 13), r.uniform(0.3, 1.0), r.uniform(0, 6.28)) for _ in range(70)]
-        self.blocks = [('AI画师', ['沉溺·雪晴·索恩'], 250, 220, 232.40, 1.4)]
+        self.blocks = [('AI画师', ['沉溺·雪晴·索恩'], 250, 200, 232.35, 1.0)]
 
     def credits(self, fr, t):
         for (role, names, x, y, ts, dur) in self.blocks:
