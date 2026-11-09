@@ -417,8 +417,11 @@ class A07a(Shot):
         self.lanterns = [(450, 410), (1470, 410), (640, 280), (1280, 280)]
     def render(self, t):
         u = self.u(t)
-        fr = self.bg.copy()
-        fr = A.glow(fr, (960, 120), 700, 0.22, (0.45, 0.52, 0.7))
+        env = 0.0                                                                                     # 第五棒：11.98 / 12.89 云内闪电照亮城楼
+        for t0_, a_ in ((V(11.98), 1.0), (V(11.98) + 0.13, 0.55), (V(12.89), 0.6)):
+            if t >= t0_: env = max(env, a_ * math.exp(-(t - t0_) / 0.10))
+        fr = self.bg.copy() * (1 + 2.5 * env)
+        fr = A.glow(fr, (960, 120), 700, 0.22 + 0.9 * env, (0.45, 0.52, 0.7))
         fr = A.glow(fr, (960, 200), 900, 0.18, (0.4, 0.46, 0.62), aspect=0.5)            # 城楼后天光：让飞檐轮廓从夜空里分出来
         fr = A.clouds(fr, t, 91, speed=(80, 10), y0=0, y1=420, amt=0.9, col=(0.10, 0.11, 0.14), dark=0.7, thr=0.42,
                       light=(960, 120), light_r=800, light_col=(0.6, 0.66, 0.85))
@@ -426,10 +429,10 @@ class A07a(Shot):
         yy = np.arange(H, dtype=np.float32)[:, None]
         face = (0.75 + 0.5 * self.tex) * (1 - 0.55 * np.clip((yy - 560) / 520, 0, 1))          # 墙面：顶亮下暗 + 湿渍
         m, roof, arch = self.m, self.roof, self.arch
-        fr = fr * (1 - m[..., None]) + (face * m)[..., None] * np.array([0.045, 0.05, 0.068], np.float32)
+        fr = fr * (1 - m[..., None]) + (face * m)[..., None] * np.array([0.045, 0.05, 0.068], np.float32) * (1 + 3.0 * env)
         fr = fr * (1 - roof[..., None]) + roof[..., None] * 0.006
         e = np.clip(np.maximum(m, roof) - cv2.erode(np.maximum(m, roof), np.ones((3, 3), np.uint8)), 0, 1) * (yy < 600)
-        fr = fr + cv2.GaussianBlur(e, (0, 0), 1.0)[..., None] * np.array([0.55, 0.62, 0.82], np.float32) * 0.7
+        fr = fr + cv2.GaussianBlur(e, (0, 0), 1.0)[..., None] * np.array([0.55, 0.62, 0.82], np.float32) * (0.7 + 2.5 * env)
         fr = fr * (1 - arch[..., None]) + arch[..., None] * np.array([0.03, 0.025, 0.02], np.float32)
         fr = A.glow(fr, (960, 940), 260, 0.25, (1.0, 0.6, 0.3), aspect=0.7)                       # 门洞深处火光
         for i, (x, y) in enumerate(self.wins):
@@ -438,8 +441,17 @@ class A07a(Shot):
         for i, (x, y) in enumerate(self.lanterns):                                                   # 檐下红灯笼（随风摆）
             sw = 10 * math.sin(t * 2.6 + i)
             cv2.line(fr, (int(x), int(y - 46)), (int(x + sw * 0.5), int(y - 26)), (0.02, 0.02, 0.02), 2, cv2.LINE_AA)
-            fr = A.glow(fr, (x + sw, y), 26, 1.4, (1.0, 0.22, 0.10), aspect=1.25)
-            fr = A.glow(fr, (x + sw, y), 90, 0.25, (1.0, 0.3, 0.12))
+            Ll = np.zeros((H, W), np.float32)                                                       # 第五棒：灯笼实体（腰鼓形 + 竹骨 + 顶底黑盖）
+            cv2.ellipse(Ll, (int(x + sw), int(y)), (30, 38), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+            rib = np.zeros_like(Ll)
+            for dx_ in (-18, -6, 6, 18):
+                cv2.ellipse(rib, (int(x + sw), int(y)), (abs(dx_) + 1, 38), 0, 0, 360, 1.0, 2, cv2.LINE_AA)
+            fr = fr * (1 - Ll[..., None]) + Ll[..., None] * np.array([0.95, 0.18, 0.07], np.float32) * (1 - 0.55 * (rib * Ll)[..., None])
+            for yy_ in (y - 40, y + 40):
+                cv2.rectangle(fr, (int(x + sw - 14), int(yy_ - 4)), (int(x + sw + 14), int(yy_ + 4)), (0.015, 0.012, 0.01), -1)
+            cv2.line(fr, (int(x + sw), int(y + 44)), (int(x + sw + 2), int(y + 70)), (0.6, 0.08, 0.04), 2, cv2.LINE_AA)
+            fr = A.glow(fr, (x + sw, y), 22, 0.5, (1.0, 0.45, 0.2), aspect=1.25)
+            fr = A.glow(fr, (x + sw, y), 110, 0.28, (1.0, 0.3, 0.12))
         for k, px in enumerate((360, 1560)):                                                        # 城头旗：杆 + 风中旗面
             top = 330; cv2.line(fr, (px, 540), (px, top), (0.01, 0.01, 0.012), 5, cv2.LINE_AA)
             d = 1 if k == 0 else -1
@@ -447,7 +459,8 @@ class A07a(Shot):
             pts += [(px + d * 180 * s, top + 100 + 14 * math.sin(t * 7 + s * 5 + k + 0.6)) for s in np.linspace(1, 0, 9)]
             Lf = np.zeros((H, W), np.float32); cv2.fillPoly(Lf, [np.array(pts, np.int32)], 1.0, cv2.LINE_AA)
             fr = fr * (1 - Lf[..., None]) + Lf[..., None] * np.array([0.16, 0.02, 0.02], np.float32)
-        fr, _ = A.place(fr, t, S('A/back_walk'), (960, 1010), h=190, look='sil', rim=(1.0, 0.65, 0.35), rim_amt=3.0, wind=6)
+        fr, _ = A.place(fr, t, S('A/back_walk'), (960 + 30 * math.sin(t * 2.4), 1030 - 60 * eio(u)), h=210 - 50 * eio(u), look='sil',
+                        rim=(1.0, 0.65, 0.35), rim_amt=3.0 + 4 * env, wind=6)
         fr = RAIN.draw(fr, t, 1.0, angle=10, light=(960, 120), layers=(0, 1))
         fr = fog(fr, t, 1, 820, 1060, 0.4, (0.18, 0.2, 0.25), speed=(-60, 0))
         # 前景：虚焦旗杆 + 大旗擦过左侧（推轨视差）
@@ -1308,9 +1321,9 @@ class V21(Shot):
 
 # =====================================================================================
 # 剪辑表：切点帧（=拍点最近帧 - 1，见 A_storyboard.md）
-SHOTS = [A01, A02, A03, A04, A05, A06, A07a, A07b, A08,
+SHOTS = [A01, A02, A03, A04, A05, A06, A07a, A08,                    # 第五棒：A07a/A07b 同场景两拍 → 合成一镜 A07a（镜内 11.98 闪电 + 升镜）
          V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21]
-BEAT_T = [0.0, 2.21, 4.06, 5.97, 7.38, 7.85, 10.61, 11.98, 13.35,
+BEAT_T = [0.0, 2.21, 4.06, 5.97, 7.38, 7.85, 10.61, 13.35,
           15.21, 17.00, 17.95, 19.78, 20.69, 21.20, 22.52, 23.45, 25.29, 27.10, 28.93, 29.86, 30.77, 32.60, 34.44, 36.27, 38.10,
           39.47, 40.84, 41.77, 42.68, 44.034]
 CUT_F = [0] + [round(b * FPS) - 1 for b in BEAT_T[1:-1]] + [F1]
@@ -1359,7 +1372,7 @@ MOVES3 = {
     'A04': M3('sine_io', 'beat', z=(1.0, 1.09), x=(20, -20), note='推 + 手持'),
     'A05': M3('expo_in', None, z=(1.0, 1.10), note='急推（蓄力）'),
     'A06': M3('sine_io', 'beat', z=(1.02, 1.13), x=(60, -60), rot=(-1.2, 0.6), note='第五棒：持续推 + 横移（不再 punch 后静止）'),
-    'A07a': M3('sine_io', 'beat', z=(1.0, 1.09), x=(30, -40), pitch=(-4, 1), note='低机位推轨 + 仰'),
+    'A07a': M3('sine_io', 'beat', z=(1.0, 1.16), x=(50, -70), y=(-40, 60), pitch=(-5, 2), note='第五棒：2.7s 低机位推轨 + 升镜仰（合并 A07b）'),
     'A07b': M3('sine_io', 'beat', x=(60, -60), z=(1.02, 1.06), note='横移（城墙纵深视差）'),
     'A08': M3('sine_io', 'beat', z=(1.0, 1.10), note='背影推进'),
     'V01': M3('sine_io', 'beat', z=(1.0, 1.08), pitch=(2, -1), note='推 + 下摇'),
