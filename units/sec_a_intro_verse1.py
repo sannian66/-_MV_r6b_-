@@ -680,13 +680,17 @@ class V05(Shot):
         u = self.u(t)
         fr = night((0.01, 0.012, 0.02), (0.03, 0.035, 0.05))
         fr = A.glow(fr, (1300, 420), 420, 0.3, (0.5, 0.58, 0.8))
-        fr, info = A.place(fr, t, S('A/hand_draw_cu'), (1040 - 40 * u, 560), w=2300 * (1 + 0.10 * u), anc=(0.5, 0.5), rim=COLD, rim_amt=2.2,
+        fr, info = A.place(fr, t, S('A/hand_draw_cu2'), (1040 - 40 * u, 560), w=2300 * (1 + 0.10 * u), anc=(0.5, 0.5), rim=COLD, rim_amt=2.2,
                            wind=0, grade=dict(expo=0.85, sat=0.5, gamma=1.1), breathe=0.0)
         g = math.exp(-max(0, t - V(20.82)) / 0.14) * (t >= V(20.82))
         p = info['to_scr']((0.49, 0.63))
         fr = pupil_glint(fr, p, 1.0 * g, 1.6)
         fr = A.glow(fr, p, 140, 0.5 * g, (0.75, 0.85, 1.0), aspect=0.35)
         fr = RAIN.draw(fr, t, 0.5, angle=10, layers=(2,))
+        p = cprog(1, [9], t, 0.16)[0]                                   # 第五棒：「寒」20.82 随刃口寒光落下（与 V06 同位，跨切点连续）
+        if p > 0:
+            L = T.Layer(); L.paste(T.brush_glyph('寒', 'kai', 230, p, seed=1), 800, 760, (0.94, 0.92, 0.88))
+            fr = T.compose(fr, L, shadow=0.8, shadow_sigma=16, glow=0.2)
         return fr, (3 if g > 0.5 else 0)
 
 
@@ -1389,7 +1393,7 @@ for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
 # 新增 a_cloud / a_zoom2 / a_seam（中间帧都带前后镜元素）
 CUTS = {
     'A02': ('a_cloud', 0.20, 0.24, dict(seed=2)),                                     # 云墙横扫：A01 云海 → A02 山脊
-    'A03': ('a_zoom2', 0.12, 0.16, dict(center=(640, 700), seed=3)),                 # 推进人物腰间 → 握刀手
+    'A03': ('a_glint', 0.14, 0.18, dict(angle=-12, center=(960, 560))),             # 第五棒：冷光掠刃（山脊线 → 刀身线），替换蓝色闪电圈
     'A04': ('ink_bleed', 0.12, 0.18, dict(seed=7, center=(1300, 400))),
     'A05': ('hard', 0, 0, {}),
     'A06': ('hard', 0, 0, {}),                                                        # 片名刀光在镜内（A05 末帧预光条）
@@ -1404,7 +1408,7 @@ CUTS = {
     'V06': ('hard', 0, 0, {}),
     'V07': ('match_cut', 0.08, 0.10, dict(shape='line', center=(960, 600), angle=0, mode='cut')),   # 寒光横线 ↔ 丹陛顶边
     'V08': ('paper_tear', 0.10, 0.20, dict(seed=8, angle=6)),
-    'V09': ('a_zoom2', 0.12, 0.16, dict(center=(560, 700), seed=9)),                 # 推进「罪状」朱印 → 天平
+    'V09': ('a_brush', 0.14, 0.20, dict(seed=9)),                                    # 第五棒：飞白大笔横扫（水墨），替换蓝色闪电圈
     'V10': ('hard', 0, 0, {}),
     'V11': ('flash_red', 0.03, 0.10, {}),
     'V12': ('slash_wipe', 0.0, 0.14, dict(angle=58)),
@@ -1507,7 +1511,7 @@ _Wt, _R, _G = (0.95, 0.93, 0.88), (0.86, 0.12, 0.08), (1.0, 0.78, 0.40)
 LY2 = [
     (0, [(0, 230, _Wt), (1, 230, _Wt)], 560, 470, 17.00, False),                                   # 「长夜」压在乌云下
     (0, [(k, 84, _R if k == 5 else _Wt) for k in range(2, 9)], 1300, 330, 17.92, False),             # 压在我刀锋之上
-    (1, [(4, 190, _Wt), (5, 190, _Wt), (6, 190, _R), (7, 90, _Wt), (8, 90, _Wt)], 560, 820, 21.15, False),   # 拦不住·一道（V04–V05 左下暗区）
+    (1, [(4, 190, _Wt), (5, 190, _Wt), (6, 190, _R), (7, 90, _Wt), (8, 90, _Wt)], 600, 330, 20.78, False),   # 拦不住·一道（第五棒：移到上方天幕，21.13 前退净，给 20.82「寒」让下方）
     (2, [(0, 190, _Wt), (1, 190, _Wt), (2, 190, _G), (3, 190, _G)], 960, 900, 23.44, False),        # 谁在高处（自殿檐压下）
     (2, [(4, 96, _Wt), (5, 96, _Wt), (6, 96, _Wt)], 1480, 330, 25.05, False),                       # 定对错（→ 罪状朱印）
     (4, [(k, 80, _R if k == 1 else _Wt) for k in range(0, 5)], 1360, 880, 30.74, False),            # 我杀过恶徒
@@ -1569,6 +1573,44 @@ def a_zoom2(A_, B_, p, center=(960, 540), seed=0):
     m = cv2.resize(np.clip((R + nz - d) / 30, 0, 1), (W, H))[..., None]
     rim = cv2.resize(np.exp(-((R + nz - d) / 14) ** 2), (W, H))[..., None] * (p < 0.95)
     return A2 * (1 - m) + B2 * m + rim * np.array([0.5, 0.6, 0.85], np.float32) * 0.8
+
+
+def a_glint(A_, B_, p, angle=-12.0, center=(960, 560)):
+    """第五棒（替换 A03 入点蓝色闪电圈）：冷光掠刃。一道极细冷钢高光沿斜线（=山脊线/刀身线）从左扫到右，
+    高光身后裂开一条窄缝露出 B，缝再向上下推开；只有一条细光，无圈、无白场。"""
+    th = math.radians(angle)
+    yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
+    n = (-(xx * 2 - center[0]) * math.sin(th) + (yy * 2 - center[1]) * math.cos(th))
+    along = ((xx * 2 - center[0]) * math.cos(th) + (yy * 2 - center[1]) * math.sin(th))
+    head = -1100 + 2400 * TR.ease_io(min(1, p / 0.55))
+    swept = np.clip((head - along) / 60, 0, 1)
+    half = 4 + 700 * TR.ease_in(max(0, (p - 0.35) / 0.65), 2.2)
+    m = np.clip((half - np.abs(n)) / 8, 0, 1) * swept
+    line = np.exp(-(np.abs(n) - half) ** 2 / 12) * swept * np.exp(-((along - head) / 500) ** 2 * (p < 0.6)) * (1.2 - p)
+    hd = np.exp(-((along - head) ** 2 + n ** 2) / 900) * (p < 0.6)
+    m = cv2.resize(m, (W, H))[..., None]; L = cv2.resize(line * 1.5 + hd * 2.5, (W, H))
+    L = L + cv2.GaussianBlur(L, (0, 0), 12) * 0.8
+    return A_ * (1 - m) + B_ * m + L[..., None] * np.array([0.72, 0.82, 1.0], np.float32)
+
+
+def a_brush(A_, B_, p, seed=0):
+    """第五棒（替换 V09 入点蓝色闪电圈）：飞白大笔横扫。一笔浓墨自左向右扫过（笔头湿重、笔尾飞白丝），墨过之处纸后露出 B；
+    中间帧 = 左 B / 墨笔 / 右 A，水墨风格、无冷光圈。"""
+    yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
+    nz = cv2.resize(A.ink_noise(seed + 41, 256), (W // 2, H // 2))
+    hair = cv2.resize(A.tex(seed + 43, 256, 40, 3)[:, :6], (W // 2, H // 2), interpolation=cv2.INTER_LINEAR)   # 横向拉长 = 笔毛丝纹
+    head = (-0.25 + 1.6 * TR.ease_io(p)) * W
+    x = xx * 2 + (yy * 2 - 540) * 0.18 + (nz - 0.5) * 120
+    tail = np.clip((head - x) / 1100, 0, 1)                                       # 0 = 笔头, 1 = 笔尾
+    body = np.clip((head - x) / 30, 0, 1) * (tail < 1)
+    wid = 300 * (1 - 0.35 * tail) + 60 * (nz - 0.5)
+    band = np.clip((wid - np.abs(yy * 2 - 560 - 40 * np.sin(xx / 120))) / 25, 0, 1)
+    dry = np.clip((hair - 0.25 - 0.55 * tail ** 1.5) * 6, 0, 1)                   # 笔尾飞白
+    ink = body * band * dry
+    rev = np.clip((head - 650 - x + (nz - 0.5) * 300) / 80, 0, 1)
+    m = cv2.resize(rev, (W, H))[..., None]; k = cv2.resize(ink, (W, H))[..., None]
+    out = A_ * (1 - m) + B_ * m
+    return out * (1 - 0.95 * k) + k * np.array([0.012, 0.012, 0.016], np.float32)
 
 
 def a_cloud(A_, B_, p, seed=0):
@@ -1648,6 +1690,8 @@ class Section:
             Af = np.clip(Af, 0, 4).astype(np.float32); B = np.clip(B, 0, 4).astype(np.float32)
             if name == 'a_zoom': return a_zoom(Af, B, p, **kw), max(ca1, ca2)
             if name == 'a_zoom2': return a_zoom2(Af, B, p, **kw), max(ca1, ca2)
+            if name == 'a_glint': return a_glint(Af, B, p, **kw), max(ca1, ca2)
+            if name == 'a_brush': return a_brush(Af, B, p, **kw), max(ca1, ca2)
             if name == 'a_cloud': return a_cloud(Af, B, p, **kw), max(ca1, ca2)
             if name == 'a_seam': return a_seam(Af, B, p), max(ca1, ca2)
             return TR.transition(name, Af, B, p, **kw), max(ca1, ca2)
