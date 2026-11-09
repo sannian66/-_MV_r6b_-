@@ -106,6 +106,14 @@ class S01_Drop(Shot):
             if 0 <= age < 0.35:
                 fr = K.sparks(fr, t, 300 + int(s * 10), c, n=int(40 * s), life=0.35, speed=(200, 600), dirc=(0, -1), spread=0.9,
                               grav=2200, burst=True, t0=th, color=(0.75, 0.15, 0.1), amt=0.9)
+        # 第三棒 P3：第二滴之后，朱墨云里浮出第一个字「什」（水波扭动），提前进入「什么叫」
+        q = cl((t - 162.25) / 0.3)
+        if q > 0:
+            L = D.text_layer([('什', 960, 545, 300, 0.75 * q, 1.08 - 0.08 * eo(q), 0.0, (0.85, 0.12, 0.08))], fname='serif_black')
+            wob = (np.sin(y / 23.0 + t * 9) * 5 * (1 - 0.6 * q)).astype(np.float32)
+            L.A = cv2.remap(L.A, (x + wob).astype(np.float32), y.astype(np.float32), cv2.INTER_LINEAR)
+            L.C = cv2.remap(L.C, (x + wob).astype(np.float32), y.astype(np.float32), cv2.INTER_LINEAR); L.bb = [0, 0, W, H]
+            fr = T.compose(fr, L, shadow=0.0, glow=0.5 * q, glow_color=(0.9, 0.15, 0.08), glow_sigma=24)
         fr = fr * min(1, (t - self.t0) / 0.18 + 0.0)
         return K.cam(fr, 1.0 + 0.05 * eo(u, 2), center=(960, 560)), 0.0
 
