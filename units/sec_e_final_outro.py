@@ -395,12 +395,12 @@ class E08(Shot):   # S117 CU（第五棒重做）纸糊巨脸（暖橙主光右�
 
     def render(self, t):
         u = self.u(t)
-        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S117/emperor_face', (1010, 1190), h=1250 * (1 + 0.06 * u), rim=(1.0, 0.6, 0.3), rim_amt=1.2,
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r5/emperor_face', (1010, 1190), h=1250 * (1 + 0.06 * u), rim=(1.0, 0.6, 0.3), rim_amt=1.2,
                       rim_dir=(0.8, -0.6), wind=1, grade=self.grade)
         C, A = sprite_clean(z, info['A'], erode=2, rim_col=(1.0, 0.58, 0.26), rim_amt=1.4, rim_dir=(0.8, -0.6))
         yy, xx = E.grid()
         key = np.clip(0.55 + 0.6 * ((xx - 1010) / 600 - (yy - 500) / 900), 0.35, 1.25)        # 右上暖主光 → 左下落入阴影，阴影带橙环境反射
-        C = C * key[..., None] + (1 - np.clip(key, 0, 1))[..., None] * np.array([0.05, 0.02, 0.0], np.float32)
+        C = C * key[..., None] * np.array([1.06, 0.97, 0.86], np.float32) + (1 - np.clip(key, 0, 1))[..., None] * np.array([0.075, 0.03, 0.006], np.float32)
         C = C * self.tex[..., None]
         fr = self.bg * (1 - A[..., None]) + C * A[..., None]
         if t >= CT(50, 6):
