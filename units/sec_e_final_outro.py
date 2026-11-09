@@ -864,19 +864,24 @@ class E24(Shot):   # S129b ECU 刃身满屏，寒光自柄扫到尖；巨字「�
     def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
 
 
-class E25(Shot):   # S130 LS 终极横斩：整个画面沿刀线裂开，金光喷涌；「的」「正」
+class E25(Shot):   # S130（第三棒重做）低机位终极横斩：墨黑红天（次色调），人物受刀光照亮、占满画面下 3/4；整个画面沿刀线裂开、金光喷涌
     def __init__(self):
-        self.sky = E.dawn_sky(1300, horizon=0.80, sun=(1500, 640), mid=(0.40, 0.28, 0.15), cloud=0.7)
-        self.rd, self.ra = E.ridges(n=3, base=0.74, step=0.05, seed=130, amp=0.07, far=0.45, near=0.03)
-        self.l = Lyr([('的', 560, 300, 70, 'serif_sb', WHITE_T, CT(55, 6)), ('正', 1480, 470, 300, 'serif_black', GOLD_T, CT(55, 7))], CT(55, 8) - 0.12, seed=200, glow=0.7)
+        self.sky = E.dawn_sky(1300, horizon=0.92, top=(0.02, 0.012, 0.012), mid=(0.17, 0.05, 0.03), hor=(0.62, 0.20, 0.08), cloud=0.9, sun=None)
+        n = K.fbm(H // 2, W // 2, 1302, base=10, octaves=5)
+        self.ground = cv2.resize(((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.7, 0.6], np.float32)).astype(np.float32), (W, H))
+        self.s1 = Sub('的', [CT(55, 6)], 450, CT(55, 8) - 0.12, seed=200)
+        self.l = LyrO([('正', 450, 470, 330, 'serif_black', GOLD_T, CT(55, 7))], CT(55, 8) - 0.12, seed=201, glow=0.6, outline=4)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (1500, 640), 80, amt=1.0)
-        fr = E.place_layer(fr, self.rd, self.ra)
+        fr = self.sky.copy()
+        hy = 930
+        m = sstep(hy - 2, hy + 20, np.arange(H, dtype=np.float32))[:, None, None]
+        fr = fr * (1 - m) + self.ground * m
         ts = CT(55, 6)
         mb = (90, 0) if t < ts + 0.04 else (0, 0)
-        fr, info = put(fr, t, 'S130/hslash', (1000, 1020), h=760, rim=GOLDW, rim_amt=2.8, wind=12, mblur=mb)
+        fr, info = put(fr, t, 'S130/hslash', (930, 1200), h=1040, rim=(1.0, 0.7, 0.4), rim_amt=3.4, rim_dir=(-0.9, -0.3), wind=12, mblur=mb,
+                       grade=dict(expo=1.15, sat=0.62, tint=(1.1, 0.95, 0.86), lift=0.02, gamma=1.0))
         self.y = by = info['tip'][1] if info['tip'] else 520
         q = t - ts
         if q > 0:
@@ -888,63 +893,94 @@ class E25(Shot):   # S130 LS 终极横斩：整个画面沿刀线裂开，金光
             band = np.exp(-((yy[..., 0] - by) / max(2, gap * 0.6)) ** 2)
             fr = fr * (1 - band[..., None] * 0.9) + band[..., None] * GOLDW * 2.2
             fr = fr + np.exp(-((yy - by) / (gap + 40)) ** 2) * GOLD * 0.9 * (1 + 2 * math.exp(-q / 0.12))
-            if q < 0.12: fr = fr + 0.5 * (1 - q / 0.12)
+            if q < 0.08: fr = fr * 1.3 + np.array([0.3, 0.12, 0.04], np.float32) * (1 - q / 0.08)
             fr = RS.fx_sparks(fr, t, ts, (300, by), 1301, n=90, spd=1400, dirv=(1, -0.1), spread=0.35, grav=300, amt=1.2)
+        fr = RS.fx_embers(fr, t, 1303, amt=0.7, n=50)
         return bloom(fr, 0.8, 0.6)
 
-    def text(self, fr, t): return self.l.draw(fr, t)
+    def text(self, fr, t): return self.l.draw(self.s1.draw(fr, t), t)
 
 
-class E26(Shot):   # S131 ELS 刀线化为地平线，朝阳从他画的线上升起；「正道沧桑」
+class E26(Shot):   # S131（第三棒重做）一点透视：他划下的那道火线贴地一路延伸到地平线（纵深），朝阳正从线的尽头升起；
+    #  画面里没有人（不再是日落剪影），「正道沧桑」大字描边升在天上
     def __init__(self):
-        self.sky = E.dawn_sky(1310, horizon=0.60, mid=(0.45, 0.31, 0.17), hor=(1.0, 0.82, 0.5), cloud=0.8, sun=(960, 640))
-        n = K.fbm(H // 2, W // 2, 1311, base=8, octaves=5)
-        self.ground = cv2.resize(((0.03 + 0.06 * n)[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32), (W, H))
-        self.l = Lyr(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 1180, 330, size=150, gold='正道', track=0.25),
-                     None, seed=210, glow=0.6)
+        self.sky = E.dawn_sky(1310, horizon=0.55, mid=(0.45, 0.31, 0.17), hor=(1.0, 0.82, 0.5), cloud=0.8, sun=(960, 590))
+        self.g = R3.Ground(261)
+        self.l = LyrO(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 960, 300, size=170, gold='正道', track=0.22, font='serif_black'),
+                      None, seed=210, glow=0.5, outline=4)
 
     def render(self, t):
         u = self.u(t)
-        hy = 640
+        hy = 600
         fr = self.sky.copy()
-        sun = (960, hy + 120 - 200 * eout(u, 2))
-        fr = E.sun_disc(fr, sun, 150, amt=1.2)
-        fr = fx2.god_rays(fr, sun, strength=0.7, length=1.0, t=t)
-        m = sstep(hy - 1, hy + 2, np.arange(H, dtype=np.float32))[:, None, None]
-        fr = fr * (1 - m) + self.ground * m
+        sun = (960, hy + 90 - 170 * eout(u, 2))
+        fr = E.sun_disc(fr, sun, 120, amt=1.2)
+        fr = fx2.god_rays(fr, sun, strength=0.8, length=1.0, t=t)
+        fr, z = self.g.render(fr, hy, f=900, camh=1.0, dz=-6 * u, line=1.0, fog=(1.0, 0.8, 0.5))
         yy = np.arange(H, dtype=np.float32)[:, None, None]
-        fr = fr + np.exp(-((yy - hy) / 2.5) ** 2) * GOLDW * 2.0 + np.exp(-((yy - hy) / 30) ** 2) * GOLD * 0.6
-        fr, info = put(fr, t, 'S130/hslash', (400 + 30 * u, hy + 4), h=380, rim=GOLDW, rim_amt=4.0, rim_dir=(1.0, -0.3), grade=G_SIL, look='sil', wind=10)
-        fr = E.dust_motes(fr, t, 1312, n=70, amt=0.5, drift=(40, -30), depth=True)
+        fr = fr + np.exp(-((yy - hy) / 2.0) ** 2) * GOLDW * 1.4 + np.exp(-((yy - hy) / 24) ** 2) * GOLD * 0.5
+        fr = RS.fx_embers(fr, t, 1312, amt=0.6, n=40)
         return bloom(fr, 0.85, 0.5)
 
     def text(self, fr, t): return self.l.draw(fr, t)
 
 
-# =========================================================================================== 尾奏
-class E27(Shot):   # S132 LS 背影沿山脊走向朝阳（呼应片头构图，已是白天）
+# ---- 高潮碎切（221.27–223.10，按鼓点 221.28 / 221.97 / 222.65 切）：眼 → 斩 → 匾碎，每镜 0.5–0.67s，取代原 1.83s 慢走
+class E27a(Shot):   # 眼：S125 眼部 ECU（第二次用，换景别），墨黑红底，红色轮廓光，急推
+    def render(self, t):
+        u = self.u(t)
+        fr = np.zeros((H, W, 3), np.float32) + np.array([0.03, 0.01, 0.01], np.float32)
+        fr, info = put(fr, t, 'S125/stare|crop=0.30,0.31,0.70,0.51', (960, 540), w=2500 * (1 + 0.12 * eout(u)), anc=(0.5, 0.5),
+                       rim=(1.0, 0.35, 0.2), rim_amt=2.5, rim_dir=(1.0, 0.0), wind=4,
+                       grade=dict(expo=0.85, sat=0.55, tint=(1.12, 0.92, 0.86), lift=0.0, gamma=1.15))
+        yy, xx = E.grid()
+        fr = fr * (0.35 + 0.8 * np.exp(-((yy - 560) / 260) ** 2))[..., None]                      # 只留眼睛这条光带
+        sx = 300 + 1400 * eio(u * 1.4)
+        fr = E.flare_streak(fr, (sx, 560), amt=0.6, angle=0, length=0.9, col=(1.0, 0.55, 0.35))
+        return bloom(fr, 0.8, 0.4)
+
+
+class E27b(Shot):   # 斩：纯刀光——一道巨大的金白弧光自左上劈到右下，拖出燃烧的刀痕、火星四溅，暗底震屏（不用精灵）
+    def render(self, t):
+        u = self.u(t)
+        fr = np.zeros((H, W, 3), np.float32) + np.array([0.03, 0.018, 0.015], np.float32)
+        fr = fx2.light_beam(fr, (1500, 60), (800, 1000), 40, 500, t=t, strength=0.25, seed=27)
+        pr = eout(c01(u / 0.45), 4)
+        yy, xx = E.grid()
+        c = (2300, -900); R = 1900
+        d = np.hypot(xx - c[0], yy - c[1])
+        ang = np.arctan2(yy - c[1], xx - c[0])
+        a0, a1 = math.radians(175), math.radians(175 - 70 * pr)
+        on = ((ang <= a0) & (ang >= a1)).astype(np.float32)
+        head = np.exp(-((ang - a1) / 0.05) ** 2)
+        core = np.exp(-((d - R) / (4 + 10 * head)) ** 2) * on
+        glow = np.exp(-((d - R) / 60) ** 2) * on
+        trail = np.exp(-((d - R - 30) / 22) ** 2) * on * (0.6 + 0.4 * np.sin(ang * 90 + t * 40)) * math.exp(-u * 1.5)
+        fr = fr + core[..., None] * np.array([1.0, 0.96, 0.88], np.float32) * 2.2 + glow[..., None] * GOLD * 0.9 * (1 - 0.5 * u) \
+             + trail[..., None] * np.array([1.0, 0.35, 0.08], np.float32) * 1.4
+        tipx = c[0] + R * math.cos(a1); tipy = c[1] + R * math.sin(a1)
+        fr = RS.fx_sparks(fr, t, self.t0 + 0.03, (tipx, tipy), 2701, n=120, spd=1500, dirv=(0.5, 0.8), spread=1.2, grav=1400, amt=1.4)
+        if 0 <= tipx <= W and 0 <= tipy <= H: fr = E.flare_streak(fr, (tipx, tipy), amt=1.0 * (1 - u), angle=-35, length=0.7)
+        if u < 0.1: fr = fr * 1.2 + np.array([0.35, 0.16, 0.05], np.float32) * (1 - u / 0.1)
+        fr = RS.fx_embers(fr, t, 2702, amt=0.8, n=60)
+        return bloom(fr, 0.7, 0.7)
+
+
+class E27c(Shot):   # 匾碎：E04/E05 那块「天理昭彰」金匾终于被斩碎——裂开、金箔碎片扑面，匾后是黑
     def __init__(self):
-        self.sky = E.dawn_sky(1320, horizon=0.66, mid=(0.48, 0.34, 0.19), hor=(1.0, 0.84, 0.55), cloud=0.7, sun=(1450, 520))
-        self.rd, self.ra = E.ridges(n=4, base=0.56, step=0.06, seed=132, amp=0.09, far=0.6, near=0.04)
-        r = np.random.default_rng(132)
-        self.grass = [(r.uniform(0, W), r.uniform(0.6, 1.4), r.uniform(-0.4, 0.4)) for _ in range(40)]
+        self.pl = PR.Plaque('天理昭彰', seed=3)
+        self.burst = R3.Shreds(271, n=60, gold=0.9, size=(30, 110), spread=(900, 360), zr=(0.6, 2.0))
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (1450, 520 - 30 * u), 100, amt=1.1)
-        fr = E.place_layer(fr, self.rd, self.ra, oy=-30 * u)
-        fr = fx2.god_rays(fr, (1450, 520), strength=0.6, length=1.0, t=t)
-        bob = 4 * abs(math.sin(t * 5))
-        fr, info = put(fr, t, 'S132/back_walk', (1080 + 90 * u, 960 - 40 * u - bob), h=440 * (1 - 0.1 * u), rim=GOLDW, rim_amt=3.0, wind=8)
-        G = np.zeros((H // 2, W // 2), np.float32)
-        for (x, s, lean) in self.grass:
-            for k in range(5):
-                x0 = (x + k * 9 - 120 * u) / 2
-                cv2.line(G, (int(x0), H // 2), (int(x0 + (lean + 0.1 * math.sin(t * 2 + x)) * 80 * s), int(H // 2 - 110 * s)), 1.0, 2, cv2.LINE_AA)
-        G = cv2.resize(cv2.GaussianBlur(G, (0, 0), 6), (W, H))
-        fr = fr * (1 - np.clip(G * 1.4, 0, 1)[..., None] * 0.9)
-        fr = E.dust_motes(fr, t, 1321, n=60, amt=0.4)
-        return bloom(fr, 0.85, 0.4)
+        fr = np.zeros((H, W, 3), np.float32) + np.array([0.02, 0.016, 0.014], np.float32)
+        base = fr.copy()
+        sc = 1.0 + 0.25 * eout(u)
+        fr = plaque_lit(self.pl, fr, t, 960, 520, 1500 * sc, [t - 9] * 4, crack=1.0, dim=0.7, tilt=-4 + 8 * u)
+        fr = base + (fr - base) * (1 - 0.7 * eio(u))                       # 匾碎后沉入黑
+        fr = self.burst.draw(fr, 0.2 + u * 1.1, to_cam=1.3, light=(0.2, -0.5, -0.8), dof=(1.5, 10.0), zfocus=1.0, emb=0.2)
+        if u < 0.15: fr = fr + np.array([0.5, 0.3, 0.1], np.float32) * (1 - u / 0.15)
+        return bloom(fr, 0.75, 0.6)
 
 
 class E28(Shot):   # S132b ECU 暗红腰带与马尾在逆光里翻飞（红绳母题收束）
@@ -1157,7 +1193,7 @@ SHOTS = [  # (类, 起帧, 原镜号, 景别)
     (E17, 6338, 'S124', 'MCU'), (E18, 6363, 'S124b', 'MS'), (E19, 6377, 'S125', 'CU'), (E20, 6418, 'S126', 'ELS'),
     (E21, 6459, 'S127', 'CU'), (E22, 6501, 'S128', 'LS'), (E23, 6534, 'S129', 'MCU'), (E24, 6548, 'S129b', 'ECU'),
     (E25, 6569, 'S130', 'LS'), (E26, 6610, 'S131', 'ELS'),
-    (E27, 6638, 'S132', 'LS'), (E28, 6693, 'S132b', 'ECU'), (E29, 6720, 'S133', 'MS'), (E30, 6762, 'S133b', 'MS'),
+    (E27a, 6638, 'S132', 'ECU'), (E27b, 6658, 'S132x', 'ECU'), (E27c, 6678, 'S132y', 'CU'), (E28, 6693, 'S132b', 'ECU'), (E29, 6720, 'S133', 'MS'), (E30, 6762, 'S133b', 'MS'),
     (E31, 6830, 'S134', 'ELS'), (E32, 6900, 'S135', 'CU'), (E33, 6968, 'S135b', 'ELS'), (E34, 7037, 'S136', 'ELS'),
     (E35, 7119, 'S137', 'ECU'), (E36, 7174, 'S138', '—'),
 ]
@@ -1193,7 +1229,9 @@ CUTS = {
     'E24': ('whip_pan_blur', 0.04, 0.08, dict(direction='left')),
     'E25': ('slash_wipe', 0.03, 0.12, dict(angle=-8)),
     'E26': ('match_cut', 0.0, 0.22, dict(shape='line', center=(960, 640), angle=0)),
-    'E27': ('ink_bleed', 0.0, 0.40, dict(center=(960, 640), white=True, seed=7)),
+    'E27a': ('hard', 0, 0, {}),
+    'E27b': ('hard', 0, 0, {}),
+    'E27c': ('hard', 0, 0, {}),
     'E28': ('whip_pan_blur', 0.05, 0.10, dict(direction='right')),
     'E29': ('flash_white', 0.0, 0.18, dict(color=(1.0, 0.9, 0.7))),
     'E30': ('hard', 0, 0, {}),
@@ -1233,7 +1271,9 @@ MOVE = {
     'E24': ('sine', 1.06, 1.0, 0, 0, 0, 0, 0, 0),
     'E25': ('expo_out', 1.12, 1.0, 0, 0, 0, 0, 0, 0),
     'E26': ('expo_out', 1.25, 1.0, 0, 0, -40, 0, 0, 0),        # 拉远：刀线 → 地平线
-    'E27': ('sine', 1.0, 1.04, 0, 0, 40, -30, 0, 0),
+    'E27a': ('expo_out', 1.15, 1.0, 0, 0, 0, 0, 0, 0),
+    'E27b': ('expo_out', 1.08, 1.0, 40, -40, 0, 0, -2, 1),
+    'E27c': ('expo_out', 1.0, 1.1, 0, 0, 0, 0, 0, 0),
     'E28': ('sine', 1.0, 1.05, 0, 0, 0, 0, 0, 0),
     'E29': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
     'E30': ('sine', 1.04, 1.07, 0, 0, 0, 0, 0, 0),
@@ -1246,7 +1286,7 @@ MOVE = {
 }
 SHAKE = {   # 冲击抖：(时刻, 幅度 px)
     'E05': [(CT(49, 11), 10)], 'E09': [(CT(51, 2), 12)], 'E11': [(6157 / 30, 12)], 'E12': [(CT(51, 9), 8)],
-    'E25': [(CT(55, 6), 18)], 'E15': [(210.058, 16)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
+    'E25': [(CT(55, 6), 18)], 'E27b': [(6658 / 30, 14)], 'E27c': [(6678 / 30, 18)], 'E15': [(210.058, 16)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
 }
 
 
