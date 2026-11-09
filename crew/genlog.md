@@ -298,3 +298,5 @@
 | 11-09 03:10 | D组/draw_side | RH_image2 | 4K 16:9 | 0 | 90a26926-c54d-4330-9653-cbe33e1af485 | 采用 | assets/gen/D_bridge/draw_side_raw.png | try1 采用 |
 | 11-09 03:10 | D组/run_top | RH_image2 | 4K 16:9 | 0 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | 采用 | assets/gen/D_bridge/run_top_raw.png | try1 采用 |
 | 11-09 03:12 | A/stand_ha | RH_image2 | 4K 16:9 | 3 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | submitted | - | A组 stand_ha try1 |
+| 11-09 03:15 | A/stand_ha | RH_image2 | 4K 16:9 | 0 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | completed | /workspace/work/a_cands/stand_ha_122c34d2_0.png | A组 候选 |
+| 11-09 03:15 | A/stand_ha | RH_image2 | 4K 16:9 | 0 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | 采用 | assets/gen/A/stand_ha_raw.png | A组 采用 |

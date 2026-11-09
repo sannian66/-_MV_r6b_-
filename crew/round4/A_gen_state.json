@@ -103,9 +103,10 @@
   "stand_ha": [
    {
     "task_id": "122c34d2-790d-46fc-bd00-d4c93f22b81b",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/stand_ha_122c34d2_0.png",
+    "accepted": true
    }
   ]
  }
