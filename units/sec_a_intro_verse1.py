@@ -304,7 +304,7 @@ class A08(Shot):
     def _wall(self):
         q = 2; h, w = H // q, W // q
         vx, vy = self.VP[0] / q, self.VP[1] / q
-        Aw, Ht, Hb = 2300 / q, 420 / q, 460 / q
+        Aw, Ht, Hb = 2300 / q, 300 / q, 300 / q
         xx = np.arange(w, dtype=np.float32)
         z = np.clip(Aw / np.maximum(vx - xx, 1e-3), 1.0, 60)            # 每列深度
         top = vy - Ht / z; bot = vy + Hb / z
@@ -329,7 +329,7 @@ class A08(Shot):
         e = e * (yy < (top[None] + 6))
         # 敌楼
         towers = []
-        for zt in (1.55, 3.4, 8.0):
+        for zt in (2.4, 5.2, 11.0):
             xt = vx - Aw / zt; sc = 1 / zt
             towers.append((xt * q, top[int(np.clip(xt, 0, w - 1))] * q, sc))
         m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 0.6), (W, H)); face = cv2.resize(face, (W, H)); e = cv2.resize(e, (W, H))
@@ -377,6 +377,8 @@ class A08(Shot):
         (m, Tm), face, (e, Te), towers = self.wall, self.face_lit, self.edge, self.towers
         k = 1 + 1.5 * env
         col = np.array([0.050, 0.056, 0.075], np.float32) * k
+        yy = np.arange(H, dtype=np.float32)[:, None, None]
+        fr = fr * (1 - np.clip((yy - 700) / 120, 0, 1) * 0.85)                 # 墙下大地压暗
         fr = fr * (1 - m[..., None]) + (face[..., None] * col + 0.006) * m[..., None]
         fr = fr * (1 - Tm[..., None]) + Tm[..., None] * (0.008 + 0.03 * env)
         fr = fr + (e + Te)[..., None] * np.array([0.55, 0.62, 0.82], np.float32) * (0.45 + 1.4 * env)
