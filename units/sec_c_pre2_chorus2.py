@@ -1345,20 +1345,20 @@ CUTS = {
     'C11': ('slash_wipe', 0.05, 0.12, dict(angle=-2)),                   # 横刀光 ↔ 横刀身（图形匹配）
     'C12': ('whip_pan_blur', 0.08, 0.10, dict(direction='right')),
     'C13': ('zoom_through', 0.10, 0.14, dict(center=(1000, 600), variant='glint')),   # 钻进刃口反光
-    'C14': ('flash_white', 0.0, 0.18, dict(color=(0.85, 0.9, 1.0))),
+    'C14': ('smoke_through', 0.10, 0.14, {}),                          # 风眼云团穿出 → 雨中立人
     'C15': ('hard', 0, 0, {}),
     'C16': ('flash_white', 0.0, 0.20, {}),                               # 副歌入口：白闪
     'C17': ('hard', 0, 0, {}),
     'C18': ('occlusion', 0.12, 0.12, dict(kind='spear', direction=1)),  # 枪林掠过遮挡
     'C19': ('whip_pan_blur', 0.08, 0.10, dict(direction='left')),
-    'C20': ('flash_white', 0.0, 0.14, dict(color=(0.85, 0.9, 1.0))),
+    'C20': ('ink_bleed', 0.06, 0.14, {}),                              # 斩开的甲士墨溅 → 太上皇
     'C21': ('slash_wipe', 0.05, 0.14, dict(angle=-62)),                  # 对角刀线 = 分屏线
     'C22': ('hard', 0, 0, {}),
     'C23': ('zoom_through', 0.08, 0.12, dict(center=(960, 400))),        # 墙远景 → 墙面（同墙推进）
     'C24': ('whip_pan_blur', 0.08, 0.10, dict(direction='right')),
     'C25': ('hard', 0, 0, {}),
     'C26': ('shatter', 0.0, 0.22, dict(center=(1065, 560))),
-    'C27': ('flash_white', 0.0, 0.14, {}),
+    'C27': ('smoke_through', 0.08, 0.12, {}),                          # 崩墙尘烟 → 缺口
     'C28': ('hard', 0, 0, {}),
     'C29': ('occlusion', 0.10, 0.10, dict(kind='pillar', direction=-1)),   # 坠石遮挡
     'C30': ('flash_red', 0.0, 0.14, {}),
@@ -1367,7 +1367,7 @@ CUTS = {
     'C33': ('hard', 0, 0, {}),
     'C34': ('slash_wipe', 0.05, 0.12, dict(angle=-62)),
     'C35': ('hard', 0, 0, {}),
-    'C36': ('flash_white', 0.0, 0.14, dict(color=(0.85, 0.9, 1.0))),
+    'C36': ('flash_red', 0.0, 0.12, dict(one_frame=True)),             # 扛印 → 1 帧朱闪 → 全景
     'C37': ('hard', 0, 0, {}),
     'C38': ('slash_wipe', 0.05, 0.12, dict(angle=-4)),                   # 斩字的横线 ↔ 横刀（图形匹配）
     'C39': ('hard', 0, 0, {}),
