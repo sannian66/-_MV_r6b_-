@@ -30,6 +30,16 @@ JOBS = {
 
  # 第四棒：V01/V02 用真实插地刀（替掉程序灰板刀 + 十字护手）
  'blade_stuck': (None, 'LS', 'product-style shot of ONLY the hero\'s long single-edged Chinese dao saber from the reference sheet (no person, no hands, no body): the saber is planted diagonally into a small clump of dark wet mud, tilted about 15 degrees, blade tip buried, the whole blade and the complete handle visible vertically centred and filling most of the frame height, slightly low camera angle; dark forged steel with a subtle hamon line, wet surface with rain water beads and thin streams running down the flat of the blade, a round dark iron guard (tsuba) with one large clear raindrop hanging from its lower edge, handle tightly wrapped in dark red cord with a short red tassel. Only the small mud clump at the base, nothing else on the ground', COLD),
+
+ # 第五棒（总导演第八任）：P13/P14 去横刀撞副歌一、纸人群改生图精灵、V20 重做
+ 'slash_up': (GT, 'LS', 'low-angle full body shot, caught at the END of a powerful RISING diagonal sword slash from lower left to upper right: the long dao held in his right hand high above his right shoulder, the blade pointing diagonally up to the upper right corner and fully visible, left arm swung down and back, body twisted, front knee bent, robe hem and red sash flaring upward, ponytail whipping, fierce eyes, crisp sharp image with no motion blur', COLD),
+ 'hand_hilt': (GT, 'CU', 'close-up of ONLY his right hand and forearm, no face: the hand clenched hard around the dark red cord-wrapped hilt of the dao, the round dark iron guard just above the fist, the first part of the straight steel blade rising diagonally toward the upper right and leaving the frame, black sleeve cuff and leather wrist guard, veins on the back of the hand, knuckles tight', COLD),
+ 'raise_blade': (GT, 'LS', 'very low-angle full body shot from below, standing with feet apart, holding the long dao straight up above his head with his right arm fully extended, the blade pointing vertically to the sky and fully visible, left hand clenched at his side, face tilted up, robe and red sash blown by strong wind, ponytail streaming', COLD),
+ 'look_down': (GT, 'LS', 'full body in three-quarter view from the front-left, standing still with feet apart, head bowed looking straight DOWN at the ground just in front of his feet, the long dao hanging low in his right hand with the tip almost touching the ground, shoulders slightly hunched, ponytail falling forward over one shoulder, solemn', COLD),
+ 'effigy': (None, 'LS', 'a single life-size traditional Chinese funeral paper effigy figure (zhizha paper man) standing upright, front view, made of pale off-white and grey mulberry paper glued over a thin bamboo frame, visible paper folds, creases, torn edges and bamboo ribs at the sleeves, a long paper robe with a faded red paper sash, arms hanging, a stiff blank painted face with two small black ink eyes and faint pink cheek circles, slightly eerie, aged and stained paper', SOFT),
+ 'effigy_fall': (None, 'LS', 'a single traditional Chinese funeral paper effigy figure (zhizha paper man) tumbling and falling sideways in mid-air, body tilted about 60 degrees, arms limp, made of pale off-white and grey mulberry paper over a thin bamboo frame, the paper soaked and darkened by rain with grey ink stains bleeding through, crumpled and partly torn, a long paper robe, blank painted face with small black ink eyes', SOFT),
+ 'crowd_bow': (None, 'LS', 'a straight row of six life-size traditional Chinese funeral paper effigy figures (zhizha paper people) in strict side profile all facing LEFT, evenly spaced and slightly overlapping, every figure bowing deeply at the waist with hands pressed together, made of pale off-white and grey mulberry paper over thin bamboo frames, long paper robes, small paper caps, blank painted faces, visible creases and torn paper edges; all six figures complete from head to feet inside the frame', SOFT),
+ 'crowd_back': (None, 'MS', 'a tight crowd of about eight life-size traditional Chinese funeral paper effigy figures (zhizha paper people) seen from BEHIND at shoulder height, heads bowed low, backs of paper heads with painted black hair buns and paper caps, rounded paper shoulders and long paper robes, made of off-white and grey mulberry paper over bamboo frames with creases and torn edges, arranged in two staggered rows', SOFT),
 }
 INPUTS = {'blade_stuck': ['男主_鬼屠.webp']}
 
@@ -42,6 +52,8 @@ def prompt(name):
 
 
 def body(name):
+    if JOBS[name][0] is None and name not in INPUTS:
+        return dict(model='RH_image2', prompt=prompt(name), ratio='16:9', size='4K')
     refs = INPUTS.get(name) or [JOBS[name][0] + '.webp']
     return dict(model='RH_image2', prompt=prompt(name), ratio='16:9', size='4K', input=[REFS[r] for r in refs])
 

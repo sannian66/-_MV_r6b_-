@@ -304,3 +304,19 @@
 | 11-09 03:25 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 3 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | submitted | - | [E组] 第五棒 E19 统一脸 |
 | 11-09 03:27 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 0 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/gen_cands/E/E_r5/stare_cu_0.png | [E组] 第五棒 候选 |
 | 11-09 03:27 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 0 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | 采用 | assets/gen/E_r5/stare_cu_raw.png | [E组] 第五棒 E19 统一脸 try1 采用；E 组累计 42/80 |
+| 11-09 03:57 | A/kneel_pan | RH_image2 | 4K 16:9 | 3 | 28244dde-92a5-4092-bc07-873d9f709990 | submitted | - | A组 kneel_pan try1 |
+| 11-09 03:57 | A/carve_mcu | RH_image2 | 4K 16:9 | 3 | 777f70a0-056d-4d97-8d54-a6687008db14 | submitted | - | A组 carve_mcu try1 |
+| 11-09 03:57 | A/look_up_mcu | RH_image2 | 4K 16:9 | 3 | 72af3abd-e5b7-4b4e-92c8-22403ddfae7e | submitted | - | A组 look_up_mcu try1 |
+| 11-09 03:58 | B组/slash_up | RH_image2 | 4K 16:9 | 3 | c627a5c3-ae4c-4b75-ac84-72cbab0afb69 | submitted | - | try1 low-angle full body shot, caught at the END of a powerful RI |
+| 11-09 03:58 | B组/hand_hilt | RH_image2 | 4K 16:9 | 3 | f96ca8bf-3c6c-48c0-8c75-da5367c32c70 | submitted | - | try1 close-up of ONLY his right hand and forearm, no face: the ha |
+| 11-09 03:58 | B组/raise_blade | RH_image2 | 4K 16:9 | 3 | c56546b6-a03e-4ca6-8d16-7cb77093ecb4 | submitted | - | try1 very low-angle full body shot from below, standing with feet |
+| 11-09 03:58 | B组/look_down | RH_image2 | 4K 16:9 | 3 | 3f212911-10a6-46de-bda3-94d6beb0300b | submitted | - | try1 full body in three-quarter view from the front-left, standin |
+| 11-09 03:58 | B组/effigy | RH_image2 | 4K 16:9 | 3 | 1289952f-12d9-4d4c-86d2-6570f480c7b9 | submitted | - | try1 a single life-size traditional Chinese funeral paper effigy  |
+| 11-09 03:58 | B组/effigy_fall | RH_image2 | 4K 16:9 | 3 | a45a9de8-d319-4222-ac4a-968fc4250e21 | submitted | - | try1 a single traditional Chinese funeral paper effigy figure (zh |
+| 11-09 03:58 | B组/crowd_bow | RH_image2 | 4K 16:9 | 3 | 049ea626-5782-4534-b3fa-2068c1de7031 | submitted | - | try1 a straight row of six life-size traditional Chinese funeral  |
+| 11-09 03:58 | C组/c07_chin | RH_image2 | 4K 16:9 | 3 | 897ea9cb-63f8-4027-afda-fdd019197966 | submitted | - | [C组] 第五棒 C07 try1 (quote 3) |
+| 11-09 03:58 | B组/crowd_back | RH_image2 | 4K 16:9 | 3 | 56213b72-67bf-4c8b-8e6f-565eea5038c9 | submitted | - | try1 a tight crowd of about eight life-size traditional Chinese f |
+| 11-09 03:58 | C组/c08_eyes | RH_image2 | 4K 16:9 | 3 | 1e9e2e9d-ae98-4dba-9ee4-474a4027807b | submitted | - | [C组] 第五棒 C08 try1 (quote 3) |
+| 11-09 03:58 | C组/c14_ots | RH_image2 | 4K 16:9 | 3 | 6f7c4ab5-92a9-4b06-b512-fe87380155c3 | submitted | - | [C组] 第五棒 C14 try1 (quote 3) |
+| 11-09 03:58 | C组/c28_face | RH_image2 | 4K 16:9 | 3 | a1c28f02-166d-4536-b2db-dc4e47c93c9b | submitted | - | [C组] 第五棒 C28 try1 (quote 3) |
+| 11-09 03:58 | C组/c38_grip | RH_image2 | 4K 16:9 | 3 | 1731eb0e-b167-4c3d-b423-4ec3dfc6a8ec | submitted | - | [C组] 第五棒 C38 try1 (quote 3) |
