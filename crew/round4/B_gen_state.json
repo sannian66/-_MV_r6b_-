@@ -75,73 +75,81 @@
    "tries": [
     {
      "tid": "c627a5c3-ae4c-4b75-ac84-72cbab0afb69",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/slash_up_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "hand_hilt": {
    "tries": [
     {
      "tid": "f96ca8bf-3c6c-48c0-8c75-da5367c32c70",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/hand_hilt_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "raise_blade": {
    "tries": [
     {
      "tid": "c56546b6-a03e-4ca6-8d16-7cb77093ecb4",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/raise_blade_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "look_down": {
    "tries": [
     {
      "tid": "3f212911-10a6-46de-bda3-94d6beb0300b",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/look_down_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "effigy": {
    "tries": [
     {
      "tid": "1289952f-12d9-4d4c-86d2-6570f480c7b9",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/effigy_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "effigy_fall": {
    "tries": [
     {
      "tid": "a45a9de8-d319-4222-ac4a-968fc4250e21",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/effigy_fall_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "crowd_bow": {
    "tries": [
     {
      "tid": "049ea626-5782-4534-b3fa-2068c1de7031",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/crowd_bow_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "crowd_back": {
    "tries": [
     {
      "tid": "56213b72-67bf-4c8b-8e6f-565eea5038c9",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/b_cands/crowd_back_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   }
  }
 }

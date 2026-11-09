@@ -341,3 +341,21 @@
 | 11-09 04:01 | C组/c07_chin | RH_image2 | 4K 16:9 | 0 | 897ea9cb-63f8-4027-afda-fdd019197966 | completed | /workspace/work/c_cands5/c07_chin_try1_0.png | [C组] 第五棒 try1 |
 | 11-09 04:01 | B组/effigy_fall | RH_image2 | 4K 16:9 | 0 | a45a9de8-d319-4222-ac4a-968fc4250e21 | completed | b_cands/effigy_fall_try1_0.png | try1 |
 | 11-09 04:01 | C组/c08_eyes | RH_image2 | 4K 16:9 | 0 | 1e9e2e9d-ae98-4dba-9ee4-474a4027807b | completed | /workspace/work/c_cands5/c08_eyes_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:02 | C组/c14_ots | RH_image2 | 4K 16:9 | 0 | 6f7c4ab5-92a9-4b06-b512-fe87380155c3 | completed | /workspace/work/c_cands5/c14_ots_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:02 | C组/c28_face | RH_image2 | 4K 16:9 | 0 | a1c28f02-166d-4536-b2db-dc4e47c93c9b | completed | /workspace/work/c_cands5/c28_face_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:02 | B组/crowd_bow | RH_image2 | 4K 16:9 | 0 | 049ea626-5782-4534-b3fa-2068c1de7031 | completed | b_cands/crowd_bow_try1_0.png | try1 |
+| 11-09 04:02 | C组/c38_grip | RH_image2 | 4K 16:9 | 0 | 1731eb0e-b167-4c3d-b423-4ec3dfc6a8ec | completed | /workspace/work/c_cands5/c38_grip_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:02 | B组/crowd_back | RH_image2 | 4K 16:9 | 0 | 56213b72-67bf-4c8b-8e6f-565eea5038c9 | completed | b_cands/crowd_back_try1_0.png | try1 |
+| 11-09 04:02 | C组/c22_wall | RH_image2 | 4K 16:9 | 0 | 86c2c256-cfa1-4b08-bb3f-0732ec60fd38 | completed | /workspace/work/c_cands5/c22_wall_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:02 | B组/slash_up | RH_image2 | 4K 16:9 | 0 | c627a5c3-ae4c-4b75-ac84-72cbab0afb69 | 采用 | assets/gen/B_r4/slash_up_raw.png | try1 采用 |
+| 11-09 04:02 | B组/hand_hilt | RH_image2 | 4K 16:9 | 0 | f96ca8bf-3c6c-48c0-8c75-da5367c32c70 | 采用 | assets/gen/B_r4/hand_hilt_raw.png | try1 采用 |
+| 11-09 04:02 | B组/raise_blade | RH_image2 | 4K 16:9 | 0 | c56546b6-a03e-4ca6-8d16-7cb77093ecb4 | 采用 | assets/gen/B_r4/raise_blade_raw.png | try1 采用 |
+| 11-09 04:02 | B组/look_down | RH_image2 | 4K 16:9 | 0 | 3f212911-10a6-46de-bda3-94d6beb0300b | 采用 | assets/gen/B_r4/look_down_raw.png | try1 采用 |
+| 11-09 04:02 | B组/effigy | RH_image2 | 4K 16:9 | 0 | 1289952f-12d9-4d4c-86d2-6570f480c7b9 | 采用 | assets/gen/B_r4/effigy_raw.png | try1 采用 |
+| 11-09 04:02 | B组/effigy_fall | RH_image2 | 4K 16:9 | 0 | a45a9de8-d319-4222-ac4a-968fc4250e21 | 采用 | assets/gen/B_r4/effigy_fall_raw.png | try1 采用 |
+| 11-09 04:02 | B组/crowd_bow | RH_image2 | 4K 16:9 | 0 | 049ea626-5782-4534-b3fa-2068c1de7031 | 采用 | assets/gen/B_r4/crowd_bow_raw.png | try1 采用 |
+| 11-09 04:03 | B组/crowd_back | RH_image2 | 4K 16:9 | 0 | 56213b72-67bf-4c8b-8e6f-565eea5038c9 | 采用 | assets/gen/B_r4/crowd_back_raw.png | try1 采用 |
+| 11-09 04:03 | C组/c37_plaque | RH_image2 | 4K 16:9 | 0 | c476f9d6-0d7e-453d-9b53-7bbb8ec40646 | completed | /workspace/work/c_cands5/c37_plaque_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:03 | C组/c10_tablets | RH_image2 | 4K 16:9 | 0 | cb8e95cc-3e22-42fb-8dca-2e308a2346af | completed | /workspace/work/c_cands5/c10_tablets_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:03 | C组/c23_bronze | RH_image2 | 4K 16:9 | 0 | 780476a2-192b-4210-8eb9-821a9412b440 | completed | /workspace/work/c_cands5/c23_bronze_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:03 | C组/c16_drip | RH_image2 | 4K 16:9 | 0 | de51d1de-32c0-4ba6-ab7c-443245348fdb | completed | /workspace/work/c_cands5/c16_drip_try1_0.png | [C组] 第五棒 try1 |
