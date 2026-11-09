@@ -564,7 +564,7 @@ class S12_Pierce(Shot):
         fr = D.paper(20).copy()
         fr = D.wash(fr, 0.45, 0.2, 1.1, seed=29)
         tc = V(O[42][14])
-        tipy = lerp(1150, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
+        tipy = lerp(930, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
         # 刀在纸上的投影（暖光从左上）
         fr = D.fall_chars(fr, t, '罪状', 120, density=4, sizes=(16, 40), alpha=0.35, near_blur=3, emph={'罪': tuple(CINNABAR)})
         Fw, Aw = D.warp(self.sp, t, self.TIP, (975 + 40, tipy + 30), 1.75, rot=-3, wind=0)
