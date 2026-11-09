@@ -841,25 +841,24 @@ class V13(Shot):
         u = self.u(t)
         fr = self.bg.copy()
         fr = self.fog.draw(fr, t, density=0.5, y0=500, y1=860, color=(0.32, 0.34, 0.37))
-        tl = self.t0 + 0.2
-        if t < tl:                                    # 纸人落地（与 V12 同姿态、同屏幕位置）
-            q = clamp01((t - self.t0) / 0.2)
-            tmp = np.zeros_like(fr)
-            tmp = self.fig.draw(tmp, 820, 760 + 200 * q ** 2, 600, tilt=175 + 10 * q, light='back')
-            fr = sil_over(fr, tmp, COLDC, rim_w=3, amt=1.0)
-        else:
-            k = eout(clamp01((t - tl) / 1.1), 2)       # 起身：从半跪抬升
-            fr, _ = put(fr, self.sp, t, 640 + 80 * k, (840, 900 + 80 * (1 - k)), rim=dict(col=(0.70, 0.80, 1.0), amt=2.4, dir=(0.5, -1.0)),
-                        wind_amp=6, shade=(500, 1500, 0.25, 600, 0.3))
-            if t < tl + 0.2:
-                fr = K.sparks(fr, t, 5806, (840, 880), n=80, life=0.5, speed=(200, 600), dirc=(0, -1), spread=1.3, grav=1300,
-                              area=(260, 10), color=(0.7, 0.75, 0.85), amt=1.0, t0=tl, burst=True)
+        # 第六棒：去掉开头 0.2s 纸人剪影坠地（f3017–3022 黑色硬边块穿帮 + 空画面）。人物首帧即在画内（半跪），
+        # 入镜 = 落拍 punch + 泥水冲击：他单膝砸进泥水的瞬间，泥浆与水花呈冠状向两侧炸开、冷光冲击环扩散
+        tl = self.t0
+        k = eout(clamp01((t - tl) / 1.25), 2)          # 起身：从半跪抬升
+        fr, _ = put(fr, self.sp, t, 640 + 80 * k, (840, 900 + 80 * (1 - k)), rim=dict(col=(0.70, 0.80, 1.0), amt=2.4, dir=(0.5, -1.0)),
+                    wind_amp=6, shade=(500, 1500, 0.25, 600, 0.3))
+        if t < tl + 0.45:
+            fr = K.sparks(fr, t, 5806, (840, 900), n=140, life=0.55, speed=(300, 900), dirc=(0, -1), spread=1.5, grav=1500,
+                          area=(320, 10), color=(0.62, 0.68, 0.78), amt=1.0, t0=tl - 1 / 30, burst=True)
+            x_, y_ = K.grid()
+            rr = 60 + 1500 * clamp01((t - tl + 1 / 30) / 0.45)
+            ring = np.exp(-((np.sqrt(((x_ - 840) / 1.0) ** 2 + ((y_ - 905) * 3.2) ** 2) - rr) / 14) ** 2) * (y_ > 840)
+            fr = fr + ring[..., None] * COLDC * 0.35 * (1 - clamp01((t - tl) / 0.45))
         fr = self.spl.draw(fr, t, y_far=850, y_near=1000, rate=120, amt=0.7)
         fr = self.rain.draw(fr, t, intensity=1.1, angle=10)
         pr = prs(23, [5, 6, 7, 8, 9], t)
         P = [dict(ch=c, x=1480 + (i % 2) * 40, y=250 + i * 120, size=104, rot=0, font='kai', idx=i, emph=False) for i, c in enumerate('可曾有机会')]
         fr = T.ink_bleed_in(fr, '可曾有机会', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.12))
-        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 1.45 + COLDC * 0.03         # 第四棒：落地冲击改乘性提亮，不抬白
         e = eio(u)
         fr = cam(fr, 1.0 + 0.18 * e, 0, -60 * e)
         return fr, (3 if abs(t - tl) < 0.04 else 0)
@@ -1464,7 +1463,7 @@ CUTS = {
     'V10': ('hard', 0, 0, {}),
     'V11': ('slash_wipe', 0.05, 0.12, dict(angle=-70)),
     'V12': ('shatter', 0.04, 0.14, dict(seed=12, center=(960, 520), n=60)),
-    'V13': ('none', 0, 0, {}),
+    'V13': ('punch', 0, 0, {}),                                     # 第六棒：none → 落拍 punch + 泥水冠状冲击（人物首帧在画内）
     'V14': ('flash_red', 0.03, 0.12, {}),
     'V15': ('ink_bleed', 0.06, 0.20, dict(seed=15)),
     'V16': ('rain_curtain', 0.08, 0.18, dict(seed=16)),             # 第四棒：灰雾 smoke → 雨帘落幕（b_kit）
