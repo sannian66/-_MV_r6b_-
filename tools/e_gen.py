@@ -8,7 +8,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT + '/tools')
 import nb
 CAND = os.path.join(os.path.dirname(os.path.realpath(ROOT)), 'gen_cands', 'E')
-REF = json.load(open(ROOT + '/assets/characters/asset_urls.json'))['男主_鬼屠.webp']
+URLS = json.load(open(ROOT + '/assets/characters/asset_urls.json'))
+REF = URLS['男主_鬼屠.webp']; REF_EMP = URLS['最终boss_太上皇.webp']
 CHAR = ("The same young man as in the reference image: identical face and identical hairstyle. High ponytail tied on top of the head "
         "with long messy black strands, center-parted messy bangs falling over the forehead and between the eyes, amber eyes, "
         "pale lean face, sharp straight brows, sharp jawline. Costume: black layered wuxia robe, dark crimson inner collar, wide dark "
@@ -28,11 +29,26 @@ JOBS = {
               "blade pointing back and up, torso twisted, eyes fixed forward toward the camera with fierce intensity, ponytail swinging. Dynamic action pose. The whole blade is inside the frame.",
  'S130/hslash': "Wide shot, full body, front view, low wide stance right after a huge horizontal slash: his right arm extended fully out to his right side at shoulder height, "
                 "the dao perfectly horizontal at arm's length, left hand open for balance, robe skirt flaring outward, ponytail whipping. Dynamic action pose. " + FULL,
+ 'S124/over_shoulder': "Medium close-up from behind, three-quarter back view: his back and right shoulder toward the camera, head turned sharply over the right shoulder glaring "
+                       "back at the camera with cold contempt, the long high ponytail hanging down his back, the dao hilt visible over his left hip. Head, ponytail top and shoulders fully inside the frame.",
+ 'S137/sheath_close': "Extreme close-up product-style shot of the dao being slid the last inch into its black lacquered scabbard: the round metal sword guard just touching the scabbard mouth, "
+                      "his left hand gripping the scabbard just below the mouth, right hand on the black cord-wrapped hilt, a red tassel hanging from the scabbard. "
+                      "The guard and scabbard mouth are in the center of the frame, horizontal composition. Anatomically correct hands with five fingers.",
 }
+EMP = ("The same old emperor as in the reference image: identical face, long white hair with a hairpin crown, long white beard if present in reference, "
+       "wide-sleeved layered imperial robe. ")
+EJOBS = {
+ 'S116/emperor': "Full body, front view, he stands tall and still with both hands folded inside the wide sleeves in front of him, imposing and cold, robes falling straight to the ground, "
+                 "seen slightly from below. The whole figure fully inside the frame with margin; head, crown and hem fully visible. " + EMP,
+ 'S117/emperor_face': "Close-up, head and shoulders, front view, he looks down at the camera with cold arrogant contempt, eyes half-lidded, chin slightly raised. Head, crown and shoulders fully inside the frame. " + EMP,
+}
+JOBS.update(EJOBS)
 LOG = ROOT + '/crew/genlog.md'
 lk = threading.Lock()
-def prompt(job): return JOBS[job] + " " + CHAR + BG
-def body(job): return dict(model='RH_image2', prompt=prompt(job), ratio='16:9', size='4K', input=[REF])
+def prompt(job):
+    if job in EJOBS: return JOBS[job] + ' ' + BG.replace('outlining the silhouette, hair strands and robe edges', 'outlining the silhouette and hair')
+    return JOBS[job] + ' ' + CHAR + BG
+def body(job): return dict(model='RH_image2', prompt=prompt(job), ratio='16:9', size='4K', input=[REF_EMP if job in EJOBS else REF])
 
 def run(job, k):
     shot, pose = job.split('/')

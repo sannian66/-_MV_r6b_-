@@ -238,3 +238,9 @@
 | 11-09 00:57 | C组/tsh_brush | RH_image2 | 4K 16:9 | 0 | 6c432a6d-71de-4dd1-95d4-85d3b70d3d24 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/tsh_brush_try1_0.png | try1 |
 | 11-09 00:58 | C组/blade_hot | RH_image2 | 4K 16:9 | 3 | d6d58fab-d846-461d-b353-e3d8f049c43a | submitted | - | C11/C12 try1 (quote 3) |
 | 11-09 00:58 | C组/blade_level | RH_image2 | 4K 16:9 | 3 | 598c26c7-05dc-4a3d-a148-43ac3b681914 | submitted | - | C38 try1 (quote 3) |
+| 11-09 01:00 | E组 | quote | RH_image2 4K 16:9 | 3/张 ×4 | - | quote ok | - | [E组] 报价第二批 S116 太上皇全身/S117 太上皇脸/S124 回头/S137 收鞘 共 12 点（累计 27） |
+| 11-09 01:01 | S117 | RH_image2 | 4K 16:9 | 3 | 29472ccf-a283-47aa-b9be-df1eea976ecc | completed | gen_cands/E/S117/emperor_face_try1_0.png | [E组] emperor_face try1: Close-up, head and shoulders, front view, he looks down at t |
+| 11-09 01:01 | S137 | RH_image2 | 4K 16:9 | 3 | 8cc9bccd-dc9c-4e2e-a639-da027ddb13bc | completed | gen_cands/E/S137/sheath_close_try1_0.png | [E组] sheath_close try1: Extreme close-up product-style shot of the dao being slid th |
+| 11-09 01:01 | S116 | RH_image2 | 4K 16:9 | 3 | 799d0155-9e3d-46f6-8d23-78d6815c709e | completed | gen_cands/E/S116/emperor_try1_0.png | [E组] emperor try1: Full body, front view, he stands tall and still with both ha |
+| 11-09 01:01 | S124 | RH_image2 | 4K 16:9 | 3 | bf4391be-0307-48d0-afe4-22b8f5775443 | completed | gen_cands/E/S124/over_shoulder_try1_0.png | [E组] over_shoulder try1: Medium close-up from behind, three-quarter back view: his ba |
+| 11-09 01:05 | E组 | RH_image2 | 4K 16:9 | 0 | 29472ccf/bf4391be/799d0155/8cc9bccd | 采用 | assets/gen/S116/emperor S117/emperor_face S124/over_shoulder S137/sheath_close | [E组] 第二批 try1 全部采用（e_recut 抠图）；E 组累计 27 点 |
