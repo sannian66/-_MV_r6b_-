@@ -675,17 +675,28 @@ class C13(Shot):
 
 
 class C14(Shot):
-    """LS 低机位：雷暴旷野，鬼屠立在积水里仰面看天（新精灵 look_up_back），132.31 背后一道落地闪电。"""
+    """过肩大仰拍（第三棒重构，拆远景小人）：镜头贴在他后脑勺下方，头肩占画面下半，他仰头看头顶的风眼（C13 的同一个漩涡），
+    132.31 一道落地闪电从风眼劈下，照亮发梢甩出的水珠。精灵 look_up_back 大前景。"""
     def render(self, t):
         u = self.u(t)
         tb = V(132.31)
         fl = bolt_env(t, tb)
-        fr = storm(t, 14, horizon=800, flash=0.4 + fl * 1.2, fc=(700, 100), refl=0.7)
-        fr = bolt(fr, t, tb, 141, (640, 130), (560, 800), inten=1.2, width=4)
-        fr = fog(fr, t, 14, density=0.5, y0=650, y1=900, color=(0.4, 0.43, 0.5), speed=(40, 0), light=(600, 600), light_r=500)
-        fr, _ = put(fr, t, 'C/look_up_back', 1180, 905, 600, rim=COLD, rim_amt=2.2, rim_dir=(-0.8, -0.6), flash=fl, expo=0.9, wind=6)
-        # 倒影
-        fr = rain(fr, t, 140, inten=1.1, angle=12, light=(600, 400))
+        fr = storm_sky(t * 2, 14, 2000, flash=0.5 + fl * 1.2, flash_c=(1100, 300), speed=(20, -30), cloud=1.3)
+        yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32) * 2
+        dx, dy = xx - 1100, yy - 330; rr = np.sqrt(dx * dx + dy * dy) + 1
+        tw = (2.2 + 0.6 * u) * np.exp(-rr / 650)
+        ca_, sa_ = np.cos(tw), np.sin(tw)
+        mx = (1100 + dx * ca_ - dy * sa_).astype(np.float32); my = (330 + dx * sa_ + dy * ca_).astype(np.float32)
+        fr = cv2.remap(fr, cv2.resize(mx, (W, H)), cv2.resize(my, (W, H)), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        fr = K.vol_light(fr, (1100, 330), 200, (1.0, 0.4, 0.15), 0.35)          # 风眼余烬（承接 C13）
+        fr = bolt(fr, t, tb, 141, (1100, 330), (1500, 1000), inten=1.3, width=4)
+        fr = rain(fr, t, 141, inten=0.8, angle=12, layers=(0, 1), light=(1100, 330))
+        fr, _ = put(fr, t, 'C/look_up_back', 760 + 20 * u, 760 - 25 * eio(u), 3000, anchor='src', src=(0.418, 0.103), rim=COLD, rim_amt=2.8,
+                    rim_dir=(0.4, -1), flash=fl, expo=0.85, wind=9, breathe=0.0)
+        # 发梢甩出的水珠（闪电里一亮）
+        fr = sparks(fr, t, 142, (700, 600), n=40, life=0.8, speed=(120, 420), dirc=(-0.3, -1), spread=1.3, grav=900, amt=0.4 + 0.8 * fl,
+                    color=(0.85, 0.9, 1.0), area=(160, 40))
+        fr = rain(fr, t, 140, inten=1.0, angle=12, layers=(2, 3), light=(1100, 330))
         return fr
 
 
@@ -869,7 +880,6 @@ class C22(Shot):
             fr = paste_glyph(fr, '若规则是'[i], 960, 220 + i * 120 - oy * 0.6, 96, (0.95, 0.97, 1.0) if i != 1 else RED_T,
                              glow=0.8, glow_c=(0.7, 0.8, 1.0) if i != 1 else (0.9, 0.1, 0.05), scale=lerp(1.5, 1, e), alpha=e, font='serif_b')
         fr = fog(fr, t, 22, density=0.6, y0=760, y1=950, color=(0.4, 0.43, 0.5), speed=(40, 0))
-        fr, _ = put(fr, t, 'C/look_up_back', 960, 915 - oy * 0.3, 140, rim=COLD, rim_amt=3.0, flash=fl, expo=0.8, wind=3, look='sil')
         fr = rain(fr, t, 220, inten=1.0, angle=8)
         return fr
 
@@ -1040,23 +1050,38 @@ class C28(Shot):
 
 
 class C29(Shot):
-    """MS 后退跟拍：鬼屠从缺口走出（S082），碎石在身侧坠落，余电在背后。"""
+    """中近景迎面（第三棒重构，拆远景小人）：他从缺口里走向镜头，腰以上占满画面，镜头后退跟；两侧断墙是失焦的黑色前景，
+    碎石擦着肩坠落，148.54 背后余电把轮廓勾亮。"""
     def render(self, t):
         u = self.u(t)
-        fr = storm(t, 29, horizon=860, flash=0.3 + 0.8 * bolt_env(t, V(148.54)), fc=(960, 300), refl=0.6)
-        m = np.zeros((H, W), np.float32)
-        cv2.fillPoly(m, [np.array([[0, BAR], [700, BAR], [760, 860], [0, 860]])], 1.0)
-        cv2.fillPoly(m, [np.array([[W, BAR], [1220, BAR], [1160, 860], [W, 860]])], 1.0)
-        fr = fr * (1 - m[..., None] * 0.92)
-        fr, _ = put(fr, t, 'S082/walk_front', 960, 1010, 640 * (1 + 0.1 * u), rim=COLD, rim_amt=2.6, rim_dir=(0, -1), expo=0.9, wind=6,
-                    flash=0.6 * bolt_env(t, V(148.54)))
+        tb = V(148.54)
+        fl = bolt_env(t, tb)
+        fr = storm(t, 29, horizon=1150, flash=0.45 + 0.9 * fl, fc=(960, 260), refl=0.6, ground=False)
+        fr = K.vol_light(fr, (960, 380), 520, (0.85, 0.9, 1.0), 0.35 + 0.5 * fl)   # 缺口里的天光逆照
+        fr = fog(fr, t, 29, density=0.45, y0=500, y1=1000, color=(0.35, 0.38, 0.45), speed=(30, 0))
+        fr, _ = put(fr, t, 'S082/walk_front', 960, 330 + 10 * math.sin(t * 7.5), 1900 * (1 + 0.10 * eio(u)), anchor='src', src=(0.467, 0.094),
+                    rim=COLD, rim_amt=3.0, rim_dir=(0, -1), expo=0.95, wind=7, flash=0.7 * fl, breathe=0.0)
+        # 两侧断墙前景（失焦、带砖缝和冷边光）
+        m = np.zeros((H // 4, W // 4), np.float32)
         r = np.random.default_rng(29)
-        for i in range(10):
-            x = r.choice([r.uniform(200, 700), r.uniform(1250, 1750)]); ph = r.random()
-            y = BAR + ((t * r.uniform(500, 900) + ph * 800) % 900); s = int(r.uniform(10, 40))
-            cv2.rectangle(fr, (int(x), int(y)), (int(x + s), int(y + s * 0.6)), (0.02, 0.02, 0.025), -1)
-        fr = dust(fr, t, 291, n=120, amt=0.5, drift=(0, 80))
-        fr = rain(fr, t, 290, inten=0.9, angle=6)
+        ys = np.linspace(0, H // 4, 16)
+        lx = 60 + np.cumsum(r.normal(0, 4, 16)) - 40 * u; rx = W // 4 - 60 + np.cumsum(r.normal(0, 4, 16)) + 40 * u
+        cv2.fillPoly(m, [np.array([[0, 0]] + [[int(a_), int(b_)] for a_, b_ in zip(lx, ys)] + [[0, H // 4]], np.int32)], 1.0)
+        cv2.fillPoly(m, [np.array([[W // 4, 0]] + [[int(a_), int(b_)] for a_, b_ in zip(rx, ys)] + [[W // 4, H // 4]], np.int32)], 1.0)
+        m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 3), (W, H))
+        wt = 0.03 + 0.03 * cv2.resize(K.tex('c29w', seed=29, base=10), (W, H))
+        edge = np.clip(cv2.GaussianBlur(m, (0, 0), 5) - cv2.GaussianBlur(m, (0, 0), 25), 0, 1)
+        fr = fr * (1 - m[..., None]) + m[..., None] * wt[..., None] + edge[..., None] * COLD * (0.3 + 0.8 * fl)
+        # 坠落碎石（有体积：亮面 + 暗面）
+        for i in range(7):
+            x = r.choice([r.uniform(220, 640), r.uniform(1280, 1700)]); ph = r.random(); sz = r.uniform(18, 52)
+            y = BAR - 60 + ((t * r.uniform(700, 1100) + ph * 900) % 1000)
+            ang = (t * r.uniform(-300, 300)) % 360
+            box = cv2.boxPoints(((x, y), (sz, sz * 0.7), ang)).astype(np.int32)
+            cv2.fillPoly(fr, [box], (0.025, 0.025, 0.03), cv2.LINE_AA)
+            cv2.polylines(fr, [box[:2]], False, tuple(float(v) for v in COLD * (0.35 + 0.8 * fl)), 2, cv2.LINE_AA)
+        fr = dust(fr, t, 291, n=140, amt=0.5, drift=(0, 120))
+        fr = rain(fr, t, 290, inten=0.9, angle=6, light=(960, 300))
         return fr
 
 
@@ -1083,8 +1108,8 @@ class C31(Shot):
         fr, A = put(fr, t, 'S062/puppeteer', 1150, hy, 1400, anchor='src', src=(0.5, 0.0), look='shadow', alpha=0.9, wind=0, breathe=0)
         fr = fr * (1 - 0.35 * q)
         k = max(0.0, t - ti)
-        x = 1180 - 420 * eout(k / 0.5)
-        fr, _ = put(fr, t, 'S084/knock_back', x, 1000, 620, rim=COLD, rim_amt=2.3, expo=0.95, wind=10, mblur=(-60 * pulse(t, ti, 0.2), 0),
+        x = 1120 - 360 * eout(k / 0.5)
+        fr, _ = put(fr, t, 'S084/knock_back', x + 40, 1140, 1050, rim=COLD, rim_amt=2.3, expo=0.95, wind=10, mblur=(-60 * pulse(t, ti, 0.2), 0),
                     flash=0.8 * pulse(t, ti, 0.15))
         fr = shock_ring(fr, (1150, 960), k / 0.6, rx=1400, flat=0.14, amt=1.0)
         fr = dust(fr, t, 311, n=220, amt=0.9 * min(1, k * 5) * (1 - sm(0.4, 1.2, k)), drift=(-300, -60), region=(300, 700, W, 1000))
@@ -1099,14 +1124,15 @@ class C32(Shot):
     def render(self, t):
         u = self.u(t)
         ti = V(152.21)
-        fr = storm(t, 32, horizon=880, flash=0.5 + 1.0 * pulse(t, ti, 0.15), fc=(1200, 150), refl=0.6)
+        fr = storm(t, 32, horizon=960, flash=0.5 + 1.0 * pulse(t, ti, 0.15), fc=(1200, 150), refl=0.6)
         fall = sm(self.t0, ti, t) ** 2
         fr, _ = self.seal.draw(fr, 1420, 900, 560, fall=fall, yaw=-24, pitch=9, rim=COLD, rim_amt=1.0, flash=pulse(t, ti, 0.15), light=(0.5, 0.8, -0.4))
         k = max(0.0, t - ti)
         fr = dust(fr, t, 321, n=240, amt=1.0 * min(1, k * 6) * (1 - sm(0.3, 1.0, k)), drift=(0, -200), region=(800, 600, 1800, 960))
         fr = shock_ring(fr, (1420, 900), k / 0.6, rx=1500, flat=0.12)
-        fr, _ = put(fr, t, 'S078/run', 300 + 560 * u, 920 + 6 * abs(math.sin(t * 10)), 300, flip=True, rim=COLD, rim_amt=2.6, expo=0.9, wind=9,
-                    mblur=(16, 0))
+        fr, _ = put(fr, t, 'S078/run', 420 + 260 * u, 1180 + 10 * abs(math.sin(t * 10)), 980, flip=True, rim=COLD, rim_amt=2.8, expo=0.95, wind=10,
+                    mblur=(22, 0), flash=0.8 * pulse(t, ti, 0.15))
+        fr = splash(fr, t, self.t0 + 0.42, (560 + 260 * u, 1010), 322, n=120, spread=300, up=600)
         fr = rain(fr, t, 320, inten=1.0, angle=12)
         self.ca = 5 if 0 <= k < 0.1 else 0
         return fr
@@ -1167,6 +1193,40 @@ class C35(Shot):
                     flash=0.5 * pulse(t, tk, 0.2))
         fr = dust(fr, t, 351, n=160, amt=0.7, drift=(0, -40), region=(300, 820, 1620, 1000))
         fr = rain(fr, t, 350, inten=0.9, angle=6)
+        return fr
+
+
+class C35b(Shot):
+    """MCU 仰拍「扛」：同轴跳进——刀横在头顶，印底（朱砂「令」）压到刀背上，咬牙、肩塌、膝弯；154.70 接触瞬间火星沿刃迸开，
+    画面重震、整体下沉 30px，再一点点顶回去（表演：被压下 → 顶住）。精灵 S087 第 2 次使用（C35 全身 → 这里中近景大仰角）。"""
+    def __init__(self): self.seal = CP.StoneSeal('令', seed=35, front_text='令')
+    def render(self, t):
+        u = self.u(t)
+        tk = V(154.70)
+        k = max(0.0, t - tk)
+        hit = pulse(t, tk, 0.10)
+        # 被压下 → 顶回：先沉 34px，0.5s 内顶回一半
+        sink = (34 * eout(k / 0.08) - 16 * sm(0.15, 0.6, k)) if t >= tk else 6 * u
+        fr = storm(t, 352, horizon=1300, flash=0.25 + 0.9 * hit, fc=(960, 150), ground=False)
+        fr = fr * np.array([1.05, 0.88, 0.85], np.float32)          # 红黑段（C33–C35b）整体偏红
+        # 印底：从画顶压下，接触后停在刀背上方
+        sy = lerp(-260, 40, ein(sm(self.t0, tk, t), 2)) + (sink * 0.9 if t >= tk else 0)
+        fr, _ = self.seal.draw(fr, 960, sy, 2600, yaw=4, pitch=40, rim=(1.0, 0.35, 0.2), rim_amt=0.7, flash=0.6 * hit,
+                               light=(-0.2, 0.9, -0.5), shadow=0, mblur=t < tk)
+        # 印压下来的阴影罩住他上半身
+        yy = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]
+        fr = fr * (1 - 0.35 * np.clip(1.2 - yy * 1.8, 0, 1) * sm(self.t0, tk, t))
+        fr, A = put(fr, t, 'S087/brace_overhead', 960, 610 + sink, 2065, anchor='src', src=(0.484, 0.213), rim=(1.0, 0.45, 0.3), rim_amt=2.2,
+                    rim_dir=(0, -1), expo=1.0, wind=4, flash=0.7 * hit, breathe=0.012)
+        # 刀背与印底的接触线：火星沿刃喷射
+        if t >= tk - 0.02:
+            for sd, x0 in ((-1, 700), (1, 1220)):
+                fr = sparks(fr, t, 353 + sd, (x0, 245 + sink), n=140, life=0.6, speed=(300, 1300), dirc=(sd, 0.15), spread=0.6, grav=1400,
+                            t0=tk, burst=True, color=(1.0, 0.6, 0.25), amt=1.4)
+            fr = K.vol_light(fr, (960, 250 + sink), 520, (1.0, 0.45, 0.2), 0.9 * hit + 0.15)
+        fr = dust(fr, t, 354, n=160, amt=0.8 * min(1, k * 8) * (1 - sm(0.3, 0.8, k)), drift=(0, 260), region=(200, BAR, 1720, 600), size=(1, 4))
+        fr = rain(fr, t, 355, inten=0.7, angle=4, layers=(1, 2, 3))
+        self.ca = 7 if 0 <= k < 0.1 else 0
         return fr
 
 
@@ -1270,8 +1330,8 @@ class C40(Shot):
     def __init__(self): self.B = CP.BronzeBalance(seed=40)
     def render(self, t):
         u = self.u(t)
-        ts = V(159.95)
-        fl = 1.0 * pulse(t, ts, 0.15) + 0.6 * bolt_env(t, V(159.53))
+        ts = V(159.66)          # 第三棒：一刀落在「刀」上；「是我」交给 C40b 的面部特写
+        fl = 1.0 * pulse(t, ts, 0.15) + 0.6 * bolt_env(t, V(159.50))
         fr = storm(t, 40, horizon=900, flash=0.4 + fl, fc=(960, 250), refl=0.5)
         br = ein(sm(ts, ts + 0.6, t), 1.4)
         tb = 6 * math.sin(t * 1.6)
@@ -1285,6 +1345,35 @@ class C40(Shot):
                     color=(1.0, 0.7, 0.3))
         fr = rain(fr, t, 400, inten=1.0, angle=10)
         self.ca = 6 if 0 <= t - ts < 0.1 else 0
+        return fr
+
+
+class C40b(Shot):
+    """ECU「是我」：斩断天平后回头——S090 精灵第 2 次使用（C39 中近景 → 这里大特写脸），琥珀眼直视镜头，
+    159.95「是」一道冷光沿刀刃扫过、160.08「我」眼里一亮 + 头发被余风甩起；人物表演落在眼神上。"""
+    def render(self, t):
+        u = self.u(t)
+        ts, tw = V(159.95), V(160.08)
+        fl = 0.5 * bolt_env(t, ts) + 0.4 * pulse(t, tw, 0.12)
+        fr = storm(t, 402, horizon=1300, flash=0.2 + fl, fc=(1500, 120), ground=False) * 0.85
+        # 背景：断开的天平余烬从右上落下（承接 C40）
+        fr = sparks(fr, t, 403, (1500, 140), n=120, life=1.4, speed=(40, 200), dirc=(0, 1), spread=1.0, grav=200, amt=0.9,
+                    area=(600, 60), color=(1.0, 0.6, 0.25))
+        fr, A = put(fr, t, 'S090/wind_up', 780 - 30 * u, 560, 2300 * (1 + 0.04 * u), anchor='src', src=(0.414, 0.378), rim=COLD,
+                    rim_amt=2.8, rim_dir=(0.8, -0.6), expo=1.02, wind=10 + 14 * pulse(t, tw, 0.2), flash=fl, breathe=0.0)
+        # 刀刃上一道冷光扫过（「是」）：沿精灵里刀的方向（右上斜）
+        q = (t - ts) / 0.30
+        if 0 < q < 1:
+            G = np.zeros((H // 2, W // 2), np.float32)
+            p0 = np.array([1130, 420]); p1 = np.array([1900, 60]); c = p0 + (p1 - p0) * q
+            cv2.line(G, tuple((c / 2 - (p1 - p0) / 2 * 0.08).astype(int)), tuple((c / 2 + (p1 - p0) / 2 * 0.08).astype(int)), 1.0, 3, cv2.LINE_AA)
+            G = cv2.resize(cv2.GaussianBlur(G, (0, 0), 3) * 2 + G, (W, H))
+            fr = fr + G[..., None] * np.array([0.9, 0.95, 1.0], np.float32) * 1.6 * math.sin(math.pi * q)
+        # 眼中一亮（「我」）
+        for ex in (690, 860):
+            fr = K.vol_light(fr, (ex - 30 * u, 575), 26, (1.0, 0.75, 0.4), 1.4 * pulse(t, tw, 0.18))
+        fr = rain(fr, t, 404, inten=0.8, angle=10, layers=(2, 3))
+        self.ca = 5 if 0 <= t - tw < 0.08 else 0
         return fr
 
 
