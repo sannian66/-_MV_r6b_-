@@ -1,0 +1,65 @@
+{
+ "spent": 18,
+ "jobs": {
+  "slash_h": {
+   "tries": [
+    {
+     "tid": "8b44599c-35c3-4f27-b574-a82c50919252",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/slash_h_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "drag_blade": {
+   "tries": [
+    {
+     "tid": "9f6aaf31-c906-4449-92d1-b68781386105",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/drag_blade_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "tsh_smirk": {
+   "tries": [
+    {
+     "tid": "ff6b3c9a-6948-4518-a9a9-ba2b41da1bd7",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/tsh_smirk_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "tsh_brush_hand": {
+   "tries": [
+    {
+     "tid": "12ee8f89-7994-4fa3-99aa-bc2140df9fcf",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/tsh_brush_hand_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "blade_face": {
+   "tries": [
+    {
+     "tid": "1f1acfd4-d6e7-4a3f-9591-8d22303c1bde",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/blade_face_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "back_stand": {
+   "tries": [
+    {
+     "tid": "e9db3eeb-c2d0-4a19-8ba5-45941b4b73de",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/b_cands/back_stand_try1_0.png"
+    }
+   ],
+   "state": "done"
+  }
+ }
+}
