@@ -1610,7 +1610,7 @@ CUTS = {
     'S09_Brush': ('ink_bleed_hd', 0.001, 0.28, dict(seed=9, center=(1560, 260))),
     'S10_Giant': ('hard_cut_x', 0, 0.07, dict(impact=0.07, tint=(0.05, 0.05, 0.06), amt=0.5, ca=6, jolt=(0, 20))),
     'S11_Answer': ('match_cut', 0, 0.2, dict(shape='line', center=(1300, 760), angle=-35, mode='cut')),
-    'S12_Pierce': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.55, 0.68, 0.95), amt=0.35, ca=9, jolt=(0, -22))),   # [r6] 冷钢色偏 + 色散 + 上顶（刀从下刺上）
+    'S12_Pierce': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.07, 0.10, 0.17), amt=0.5, ca=9, jolt=(0, -22))),   # [r6] 冷墨压暗（不白闪）+ 色散 + 上顶（刀从下刺上）
     'S13_PaperCut': ('paper_tear', 0.1, 0.3, dict(seed=12, angle=6)),
     'S14_Burn': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S15_Hole': ('flash_red', 0.04, 0.1, dict(one_frame=True)),
@@ -1625,7 +1625,7 @@ CUTS = {
     'S24_Defy': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.25)),
     'S25_Leap': ('slash_wipe', 0.05, 0.2, dict(angle=-40)),
     'S26_Judge': ('match_cut', 0, 0.25, dict(shape='line', center=(1080, 420), angle=-37, mode='grow', glow=np.array([1.0, 0.3, 0.2], np.float32))),
-    'S27_Bullet': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.62, 0.76, 1.0), amt=0.4, ca=8, jolt=(0, 18))),   # [r6] 冷白雨光闪 + 色散 + 下顿
+    'S27_Bullet': ('hard_cut_x', 0, 0.07, dict(impact=0.1, tint=(0.62, 0.76, 1.0), amt=0.65, ca=8, jolt=(0, 18))),   # [r6] 冷白雨光闪 + 色散 + 下顿
     'S28_Spin': ('freeze_glitch_keep', 0.12, 0.10, dict(seed=28)),
     'S29_Thrust': ('gold_beam', 0.08, 0.14, dict(x0=960)),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
