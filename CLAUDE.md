@@ -1,4 +1,4 @@
-# CLAUDE.md — 《谁定正邪》MV（鬼屠 · 第三季主题曲）
+# CLAUDE.md — 《谁定正邪》MV（鬼屠 · 第二季主题曲）
 
 接手先读 `HANDOFF.md`（权威交接文档）和 `crew/CONVERSATION.md`（沟通记录）。
 

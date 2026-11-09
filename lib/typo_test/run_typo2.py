@@ -25,7 +25,7 @@ def credits(f, p):
     f = T.credit_block(f, '出品人', '西几王传媒', 1580, 230, min(1, p * 1.6), seal_text='西几王')
     f = T.credit_block(f, '美术设计', 'Cait', 900, 230, min(1, p * 1.4))
     f = T.credit_block(f, 'AI画师', '沉溺\u3000雪晴\u3000索恩', 520, 230, p)
-    return T.typewriter(f, '鬼屠 · 第三季', 1.0, size=40, box=(1100, 860, 1840, 940), cursor=False)
+    return T.typewriter(f, '鬼屠 · 第二季', 1.0, size=40, box=(1100, 860, 1840, 940), cursor=False)
 
 def quad_demo(f, p):
     f = T.text_on_quad(f, '谁把人命装进天平里称量', [(260, 420), (1660, 330), (1660, 420), (260, 500)], p=p, emph='人命', strip_h=160)

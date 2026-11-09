@@ -653,8 +653,8 @@ class Outro:
         fr = spr_hook(fr, t)          # SPRITE_MODE：精灵在片名/署名之下
         a = ease((t - (s0 + 0.8)) / 1.0) * (1 - ease((t - 228.6) / 0.8))
         if a > 0:
-            # 主标题「鬼屠 · 第三季」，副标题「主题曲《谁定正邪》」（与片头一致）
-            for txt, x in (('鬼屠', 0.315), ('第三季', 0.595)):
+            # 主标题「鬼屠 · 第二季」，副标题「主题曲《谁定正邪》」（与片头一致）
+            for txt, x in (('鬼屠', 0.315), ('第二季', 0.595)):
                 rgb, al = text_layer(txt, F_BRUSH, 150, [a] * len(txt), spacing=0.1, pos=(x, 0.45), scale_in=0, blur_in=6)
                 fr = comp_text(fr, rgb, al, shadow=0.7)
             dot = np.zeros(fr.shape[:2], np.float32)

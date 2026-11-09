@@ -164,12 +164,12 @@ class Intro:
         out = ease((t - TITLE_OUT) / 1.4)
         if hit > 0.85: fr = fr + (hit - 0.85) / 0.15 * 0.55  # flash
         fr = self.burst.draw(fr, t, dt, 1.4 * max(0, 1 - k / 3.5), energy=hit * 2)
-        # 主标题「鬼屠 · 第三季」（书法，两段 + 朱红间隔点），副标题「主题曲《谁定正邪》」
+        # 主标题「鬼屠 · 第二季」（书法，两段 + 朱红间隔点），副标题「主题曲《谁定正邪》」
         y0 = 0.43 - 0.01 * eout(k / 6)
         revA = [eout((k - i * 0.035) / 0.28) * (1 - out) for i in range(2)]
         revB = [eout((k - (i + 2) * 0.035) / 0.28) * (1 - out) for i in range(3)]
         rgbA, alA = text_layer('鬼屠', F_BRUSH, 210, revA, spacing=0.10, pos=(TA_X, y0), scale_in=0.45, blur_in=10 + out * 14)
-        rgbB, alB = text_layer('第三季', F_BRUSH, 210, revB, spacing=0.10, pos=(TB_X, y0), scale_in=0.45, blur_in=10 + out * 14)
+        rgbB, alB = text_layer('第二季', F_BRUSH, 210, revB, spacing=0.10, pos=(TB_X, y0), scale_in=0.45, blur_in=10 + out * 14)
         fr = comp_text(fr, rgbA, alA, shadow=0.75, glowamt=0.25 * hit)
         fr = comp_text(fr, rgbB, alB, shadow=0.75, glowamt=0.25 * hit)
         al = np.maximum(alA, alB)
