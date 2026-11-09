@@ -1,5 +1,5 @@
 {
- "spent": 36,
+ "spent": 45,
  "jobs": {
   "eyes": [
    {
@@ -107,6 +107,30 @@
     "pts": 3,
     "file": "/workspace/work/a_cands/stand_ha_122c34d2_0.png",
     "accepted": true
+   }
+  ],
+  "kneel_pan": [
+   {
+    "task_id": "28244dde-92a5-4092-bc07-873d9f709990",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "carve_mcu": [
+   {
+    "task_id": "777f70a0-056d-4d97-8d54-a6687008db14",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "look_up_mcu": [
+   {
+    "task_id": "72af3abd-e5b7-4b4e-92c8-22403ddfae7e",
+    "status": "running",
+    "pts": 3,
+    "file": null
    }
   ]
  }

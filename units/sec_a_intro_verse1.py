@@ -262,15 +262,29 @@ class A06(Shot):
     def render(self, t):
         u = self.u(t); k = t - TITLE_HIT
         fr = self.bg.copy()
-        fr = A.moon(fr, 1480, 330, 150, 0.95, col=(1.0, 0.42, 0.32), halo=0.6)          # 血月：被云腰斩
-        fr = A.glow(fr, (1480, 330), 520, 0.22, (0.6, 0.12, 0.08))
-        fr = A.clouds(fr, t, 21, speed=(-45, 0), y0=150, y1=620, amt=0.9, col=(0.10, 0.08, 0.09), light=(1480, 330), light_r=360,
-                      light_col=(1.0, 0.45, 0.32), thr=0.46)
+        # 第五棒：片名镜不再近静止——血月缓升 + 每拍脉动、云层快速横流（腰斩月盘）、三层山脊强视差、每拍一阵火星、9.68 云内赤色闪电、
+        #         地面雾浪横扫；配合 MOVES3 的持续推 + 横移
+        bp = sum(math.exp(-max(0.0, t - V(b)) / 0.16) * (t >= V(b)) for b in (8.75, 9.22, 9.68, 10.15))
+        my = 360 - 60 * eio(u)
+        fr = A.moon(fr, 1480, my, 150, 0.95, col=(1.0, 0.42, 0.32), halo=0.6 + 0.3 * bp)          # 血月：被云腰斩
+        fr = A.glow(fr, (1480, my), 520, 0.22 + 0.18 * bp, (0.6, 0.12, 0.08))
+        fr = A.clouds(fr, t, 21, speed=(-150, 0), y0=150, y1=620, amt=0.95, col=(0.10, 0.08, 0.09), light=(1480, my), light_r=380,
+                      light_col=(1.0, 0.45, 0.32), thr=0.45)
+        lt = t - V(9.68)
+        if 0 <= lt < 0.5:                                                                # 云内赤色闪电（一拍）
+            env = math.exp(-lt / 0.07) + 0.5 * math.exp(-max(0, lt - 0.12) / 0.06) * (lt >= 0.12)
+            fr = A.glow(fr, (420, 260), 520, 0.5 * env, (0.9, 0.35, 0.28), aspect=1.6)
+            Lb = np.zeros((H // 2, W // 2), np.float32); r_ = np.random.default_rng(968); x_, y_ = 300.0, 80.0
+            for _ in range(14):
+                nx, ny = x_ + r_.uniform(-25, 45), y_ + r_.uniform(14, 26)
+                cv2.line(Lb, (int(x_), int(y_)), (int(nx), int(ny)), 1.0, 1, cv2.LINE_AA); x_, y_ = nx, ny
+            Lb = cv2.resize(Lb, (W, H))
+            fr = fr + (Lb * 1.2 + cv2.GaussianBlur(Lb, (0, 0), 10) * 1.5)[..., None] * np.array([1.0, 0.6, 0.5], np.float32) * env
         for i, (by, amp, tone) in enumerate(((760, 230, (0.05, 0.035, 0.04)), (860, 170, (0.025, 0.02, 0.025)), (960, 120, (0.006, 0.005, 0.007)))):
-            fr, _ = A.ridge(fr, by, amp, 60 + i, tone=tone, rim=(0.9, 0.35, 0.25), rim_amt=0.25 - 0.06 * i, dx=-t * (8 + 14 * i))
-            fr = fog(fr, t, i, by - 70, by + 50, 0.3, (0.25, 0.17, 0.17), speed=(25 + 20 * i, 0))
+            fr, _ = A.ridge(fr, by, amp, 60 + i, tone=tone, rim=(0.9, 0.35, 0.25), rim_amt=0.25 - 0.06 * i + 0.15 * bp, dx=-t * (30 + 70 * i))
+            fr = fog(fr, t, i, by - 70, by + 50, 0.35, (0.25, 0.17, 0.17), speed=(90 + 80 * i, 0))
         if k >= 0:
-            fr = EMB.draw(fr, t, 1.6 * max(0.35, 1 - k / 2.5), wind=(60, -30), burst=(960, TITLE_Y, 900) if k < 0.6 else None, t0=TITLE_HIT if k < 0.6 else None)
+            fr = EMB.draw(fr, t, (1.6 * max(0.35, 1 - k / 2.5)) * (1 + 0.8 * bp), wind=(220, -60), burst=(960, TITLE_Y, 900) if k < 0.6 else None, t0=TITLE_HIT if k < 0.6 else None)
         if 0 <= k < 0.14:                                                               # 闪白（全段唯一一处，HANDOFF §1；第三棒压短压轻，片名不被洗掉）
             fr = fr * (1 + 1.1 * (1 - k / 0.14)) + 0.22 * (1 - k / 0.14)
         fr = streak(fr, TITLE_Y + 10, -100, 2100, (t - (TITLE_HIT - 0.06)) / 0.12, ang=-3, amt=1.2)
@@ -1344,7 +1358,7 @@ MOVES3 = {
     'A03': M3('sine_io', 'beat', x=(40, -60), z=(1.0, 1.06), note='沿刀身滑移 + 推'),
     'A04': M3('sine_io', 'beat', z=(1.0, 1.09), x=(20, -20), note='推 + 手持'),
     'A05': M3('expo_in', None, z=(1.0, 1.10), note='急推（蓄力）'),
-    'A06': M3('expo_out', None, z=(1.10, 1.02), rot=(-1.2, 0), note='punch 拉开后缓推'),
+    'A06': M3('sine_io', 'beat', z=(1.02, 1.13), x=(60, -60), rot=(-1.2, 0.6), note='第五棒：持续推 + 横移（不再 punch 后静止）'),
     'A07a': M3('sine_io', 'beat', z=(1.0, 1.09), x=(30, -40), pitch=(-4, 1), note='低机位推轨 + 仰'),
     'A07b': M3('sine_io', 'beat', x=(60, -60), z=(1.02, 1.06), note='横移（城墙纵深视差）'),
     'A08': M3('sine_io', 'beat', z=(1.0, 1.10), note='背影推进'),
@@ -1591,7 +1605,7 @@ class Section:
         if TITLE_HIT <= t < V(13.35) + 0.5:                                     # 第四棒：片名 = 屏幕层（A06 → A07a → A07b 不动，13.35 化灰）
             k = t - TITLE_HIT
             fr = TITLE.draw(fr, t, out=clamp01((t - V(13.35)) / 0.45), sheen=clamp01((t - V(11.52)) / 0.7) if t >= V(11.52) else None,
-                            glow=0.5 * math.exp(-max(0, k) / 0.3))
+                            glow=0.5 * math.exp(-max(0, k) / 0.3) + 0.22 * sum(math.exp(-max(0.0, t - V(b)) / 0.15) * (t >= V(b)) for b in (8.75, 9.22, 9.68, 10.15, 10.61, 11.05, 11.98, 12.45, 12.89)))
         if t < 7.9: fr = credits(fr, t)
         fr = lyrics(fr, t)
         ca = max(ca, int(round(4 * min(1.0, st['punch']))))
