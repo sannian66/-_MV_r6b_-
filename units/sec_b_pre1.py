@@ -659,15 +659,42 @@ class P11(Shot):
     T_DANG = V(55.10)
     def __init__(self):
         self.blk = {c: type_block(c, 300, seed=120 + i, gold=0.35) for i, c in enumerate('应当')}
-        self.bg = BK.dark_bg(911, 0.01, 0.04)
         self.bok = np.random.default_rng(911).uniform(0, 1, (40, 4))
+        # 第三棒：加信息量——后景 = 虚焦的铅字盘（四个空槽 = 理所应当已被挑走）；地面 = 生死簿纸面；散落的铅字
+        p10 = P10()
+        cv_ = p10.canvas.copy(); S = p10.S
+        for ch in '理所应当':
+            cx, cy = p10.pos[ch]; cv_[cy - S // 2:cy + S // 2, cx - S // 2:cx + S // 2] = 0.01
+        q = np.float32([[-500, -260], [2500, -300], [2250, 820], [-300, 840]])
+        M = cv2.getPerspectiveTransform(np.float32([[0, 0], [2800, 0], [2800, 1500], [0, 1500]]), q)
+        tray = cv2.warpPerspective(cv_, M, (W, H))
+        x, y = K.grid()
+        tray = cv2.GaussianBlur(tray, (0, 0), 7) * (0.35 + 0.6 * np.exp(-(((x - 1000) / 700) ** 2 + ((y - 380) / 300) ** 2)))[..., None]
+        floor = sstep(770, 800, y)
+        pg = ledger(912, cols=16, size=40, x0=-100, x1=2000, y0=760, y1=1100) * 0.55
+        Mf = cv2.getPerspectiveTransform(np.float32([[0, 760], [W, 760], [W, H], [0, H]]), np.float32([[300, 790], [1620, 790], [2600, 1180], [-700, 1180]]))
+        pg = cv2.warpPerspective(pg, Mf, (W, H), borderMode=cv2.BORDER_REFLECT)
+        self.bg = tray * (1 - floor[..., None]) + pg * floor[..., None] * (0.5 + 0.6 * np.exp(-((x - 1060) / 700) ** 2))[..., None]
+        # 散落铅字（地面前景，虚焦）
+        r = np.random.default_rng(913)
+        for k in range(7):
+            ch = NAMES[int(r.integers(len(NAMES)))]
+            rgb, A = type_block(ch, 150, seed=300 + k)
+            px, py = r.uniform(100, 1800), r.uniform(860, 1000)
+            if 850 < px < 1250: px += 500
+            Mk = cv2.getRotationMatrix2D((75, 75), r.uniform(-40, 40), 1.0); Mk[1] *= 0.45
+            Mk[0, 2] += px - 75; Mk[1, 2] += py - 34
+            self.bg, _ = BK.paste_rgba(self.bg, rgb * 0.8, A, Mk)
+        self.bg = self.bg.astype(np.float32)
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
         x, y = K.grid()
-        floor = sstep(780, 800, y)
-        fr = fr * (1 - floor[..., None]) + floor[..., None] * (0.03 + 0.03 * cv2.resize(K.fbm(H // 4, W // 4, 9, 6, 4), (W, H)))[..., None]
+        # 「当」落地处在纸上留下的朱红压印（55.1 之后逐渐显影）
+        if t >= self.T_DANG:
+            Li = T.Layer(); T.place(Li, '当', 1060, 790, 220, color='red', fname='serif_black', sy=0.42, alpha=min(1, (t - self.T_DANG) / 0.15) * 0.85)
+            fr = fr * (1 - Li.A[..., None] * 0.8) + Li.A[..., None] * np.array([0.55, 0.05, 0.03], np.float32)
         # 背景虚焦光斑（冷/暖）
         Lb = np.zeros((H // 4, W // 4), np.float32)
         for bx, by, br, ph in self.bok:
