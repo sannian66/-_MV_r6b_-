@@ -26,7 +26,8 @@ def main():
         y = y[int((A0 - base) * sr):int((A1 - base) * sr)]
         S = np.abs(librosa.stft(y, n_fft=2048, hop_length=256)); src = 'htdemucs drums stem'
     else:
-        y, sr = librosa.load(ROOT + '/song.mp3', sr=44100, mono=True, offset=A0, duration=A1 - A0)
+        song = ROOT + '/song.mp3' if os.path.exists(ROOT + '/song.mp3') else ROOT + '/audio/谁定正邪.mp3'
+        y, sr = librosa.load(song, sr=44100, mono=True, offset=A0, duration=A1 - A0)
         D = librosa.stft(y, n_fft=2048, hop_length=256)
         S = np.abs(librosa.decompose.hpss(D, margin=(1.0, 2.0))[1]); src = 'HPSS percussive'
     f = librosa.fft_frequencies(sr=sr, n_fft=2048)
@@ -165,7 +166,8 @@ def plot(y, sr, tt, kick, snare, hat, out, vox=None):
     img = Image.new('RGB', (Wd, Hh * rows // 2 * 1), (14, 14, 18))
     d = ImageDraw.Draw(img)
     fnt = ImageFont.truetype(ROOT + '/fonts/NotoSerifSC.otf', 20)
-    seg = [(58, 74), (74, 90)]
+    mid_t = (W0 + W1) / 2
+    seg = [(W0, mid_t), (mid_t, W1)]                 # 第二棒修：原为副歌一窗口 (58,74),(74,90)，超出本段分析窗 → 切片为空报错
     rh = Hh // 2
     for r, (a, b) in enumerate(seg):
         y0 = r * rh
