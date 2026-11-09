@@ -246,3 +246,4 @@
 | 11-09 01:05 | E组 | RH_image2 | 4K 16:9 | 0 | 29472ccf/bf4391be/799d0155/8cc9bccd | 采用 | assets/gen/S116/emperor S117/emperor_face S124/over_shoulder S137/sheath_close | [E组] 第二批 try1 全部采用（e_recut 抠图）；E 组累计 27 点 |
 | 11-09 01:08 | C组/blade_hot | RH_image2 | 4K 16:9 | 0 | d6d58fab-d846-461d-b353-e3d8f049c43a | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/blade_hot_try1_0.png | try1 |
 | 11-09 01:08 | C组/blade_level | RH_image2 | 4K 16:9 | 0 | 598c26c7-05dc-4a3d-a148-43ac3b681914 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/blade_level_try1_0.png | try1 |
+| 2026-11-09 09:35 CST | C组 | C11/C12/C38 | 0（重新下载，未重生成） | 8557bf9f…(blade_hot) / 2e002f69…(blade_level) | 旧沙箱丢失，curl 结果地址重下 → 2560 宽 → recut_flat 16 ✓ |
