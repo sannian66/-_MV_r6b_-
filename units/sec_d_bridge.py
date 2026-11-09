@@ -77,6 +77,18 @@ class S01_Drop(Shot):
             for k in range(3):
                 R = (160 + 120 * k) * age ** 0.8 * 2.2
                 h += s * np.sin((r - R) / 9.0) * np.exp(-((r - R) / (28 + 30 * age)) ** 2) * math.exp(-age * 1.6) * (1 - 0.25 * k)
+        # [r4] 段首不再 0.6s 全黑：第一滴朱墨从画顶坠落（拉长的朱红水珠 + 高光），水面映出越来越近的红点、冷月光掠过水面
+        th1 = self.hits[0][0]
+        if t < th1:
+            q = cl((t - self.t0) / (th1 - self.t0))
+            dy = lerp(250, 560, ei(q, 2))
+            dm = np.exp(-(((x - 960) / 7) ** 2 + ((y - dy) / (10 + 26 * q)) ** 2))
+            fr = fr * (1 - dm[..., None]) + dm[..., None] * np.array([0.85, 0.08, 0.05], np.float32) + \
+                 (np.exp(-(((x - 957) / 2.5) ** 2 + ((y - dy + 6) / 4) ** 2)) * 0.9)[..., None]
+            rf = np.exp(-(((x - 960) / (14 + 30 * q)) ** 2 + ((y - 566) / (4 + 6 * q)) ** 2)) * q ** 2
+            fr = fr + rf[..., None] * np.array([0.6, 0.06, 0.04], np.float32)
+        sheen = np.exp(-((y - 600 - 40 * math.sin(t * 0.7)) / 90) ** 2) * (0.5 + 0.5 * np.sin(x / 40 + t * 2.0) * np.sin(x / 13 - t)) * 0.035
+        fr = fr + sheen[..., None] * np.array([0.7, 0.8, 1.0], np.float32)
         gy, gx = np.gradient(h)
         spec = np.clip(-gx * 0.6 - gy * 1.4, 0, None) ** 1.5 * 6
         fr = fr + spec[..., None] * np.array([0.8, 0.85, 0.95], np.float32) * 0.7
