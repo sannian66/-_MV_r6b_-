@@ -1753,7 +1753,7 @@ KICKS = [h['t'] for h in K.HM['hits'] if h['t'] >= 134.4 and 'kick' in h['type']
 
 # 插入闪切（帧, 帧数, 类型）：副歌里鼓加花处
 INSERTS = {}
-for _t, _n, _k in ((131.42, 1, 'white'), (131.96, 1, 'neg'), (132.07, 1, 'white'), (133.79, 2, 'neg'),
+for _t, _n, _k in ((131.42, 1, 'white'), (131.96, 1, 'neg'), (132.07, 1, 'white'), (133.79, 1, 'neg'),
                    (140.205, 1, 'white'), (140.408, 2, 'neg'), (148.54, 1, 'white'), (155.385, 2, 'neg'),
                    (160.238, 1, 'white'), (160.679, 2, 'neg')):
     for _i in range(_n): INSERTS[round(_t * FPS) - 1 + _i] = _k
@@ -1788,7 +1788,7 @@ SENTS = [
     S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.38), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
     S(39, [0, 1], 420, 820, size=100, mode='fly', exit='shatter', out=V(159.64), back=0.5),                         # 这一
     S(39, [2, 3, 4, 5], 1400, 290, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
-    S(39, [6, 7, 8], 1340, 840, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
+    S(39, [6, 7, 8], 1340, 800, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
 ]
 
 
