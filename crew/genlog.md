@@ -369,3 +369,5 @@
 | 11-09 04:20 | A/carve_grip | RH_image2 | 4K 16:9 | 3 | a5fb7985-55d5-429f-bcab-b85d9aa7eac2 | submitted | - | A组 carve_grip try1 |
 | 11-09 04:21 | E组/E_r6/scabbard_tassel | RH_image2 | 4K 16:9 | 3 | 08c0ed5b-776e-4f50-9b20-32c2f0a9731d | completed | gen_cands/E/E_r6/scabbard_tassel_try1_0.png | [E组] 第六棒 scabbard_tassel try1 |
 | 11-09 04:22 | E组/E_r6/shoulder_low | RH_image2 | 4K 16:9 | 3 | 4b46ec30-5cbc-4e8d-9f67-0d304f0c2a73 | completed | gen_cands/E/E_r6/shoulder_low_try1_0.png | [E组] 第六棒 shoulder_low try1 |
+| 11-09 04:22 | E组/E_r6/emperor_cu | RH_image2 | 4K 16:9 | 3 | c0acf0f3-0c15-4a02-9c1c-69a3683d7f07 | completed | gen_cands/E/E_r6/emperor_cu_try1_0.png | [E组] 第六棒 emperor_cu try1 |
+| 11-09 04:23 | E组/E_r6/blade_vert | RH_image2 | 4K 16:9 | 3 | 78cc68f7-f8eb-4add-99cb-fc18cdeb598a | completed | gen_cands/E/E_r6/blade_vert_try1_0.png | [E组] 第六棒 blade_vert try1 |
