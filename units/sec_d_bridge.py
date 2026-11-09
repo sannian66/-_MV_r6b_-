@@ -581,26 +581,29 @@ class S10_Giant(Shot):
 
 
 class S11_Answer(Shot):
-    """反打 MCU 仰拍：鬼屠举刀向天（水墨），反问「谁来定义你的」第一次用手写体（行书）——字体 = 立场"""
+    """反打 MCU 仰拍：鬼屠举刀向天（[r4] 换 defy_up 精灵，与 S16/S17/S24 同一张脸），水墨乘纸 + 脸部保留肤色层次；
+    反问「谁来定义你的」第一次用手写体（行书）——字体 = 立场，竖排在他视线方向（右侧上方）"""
     t0, t1 = 172.56, 173.66
     paper = 0.8
     def __init__(self):
-        self.sp = D.spr('S099/point_up')
+        self.sp = D.spr('defy_up')
 
     def render(self, t):
         u = self.u(t)
         fr = D.paper(19).copy()
-        fr = D.wash(fr, 0.62, -0.1, 0.75, seed=23)
-        fr = D.fall_chars(fr, t, '谁来定义罪状', 63, density=5, sizes=(16, 44), alpha=0.5, near_blur=3)
-        fr, _ = D.ink_figure(fr, self.sp, t, (0.5, 0.62), (1120, 640 - 20 * u), 0.78 + 0.05 * u, wind=6, k=1.35, dens=0.97)
+        fr = D.wash(fr, 0.55, -0.1, 0.7, seed=23)
+        fr = D.fall_chars(fr, t, '谁来定义罪状', 63, density=5, sizes=(16, 44), alpha=0.45, near_blur=3)
+        # 仰拍缓推 + 人物微升：脚底锚在画框下沿
+        fr, Aw = D.ink_figure(fr, self.sp, t, (0.45, 1.0), (760, H - BAR + 30 - 24 * u), 0.66 + 0.04 * u, wind=6, k=1.05,
+                              gamma=1.0, dens=0.95, bleed=0.12)
         items = []
         for i, (ch, on) in enumerate(zip('谁来定义你的', O[42][7:13])):
             p = cp(t, on, 0.22)
             if p <= 0: continue
-            items.append((ch, 330 + i * 18, 230 + i * 118 - 30 * (1 - eo(p)), 118, min(1, p * 1.5), 1 + 0.4 * (1 - eo(p)), -6.0))
+            items.append((ch, 1430 - i * 14, 250 + i * 112 - 30 * (1 - eo(p)), 112, min(1, p * 1.5), 1 + 0.4 * (1 - eo(p)), 6.0))
         L = D.text_layer(items, fname='xing')
         fr = D.ink_text(fr, L, bleed=0.2)
-        return K.cam(fr, 1.0 + 0.1 * eo(u, 2), 0, 30 * u, center=(1200, 300)), 0.8
+        return K.cam(fr, 1.0 + 0.08 * eo(u, 2), 0, 24 * u, center=(900, 300)), 0.8
 
 
 class S12_Pierce(Shot):
