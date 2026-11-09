@@ -174,7 +174,7 @@ class S03_TypeSlam(Shot):
         hits = []
         for ch, x, y, s, on in self.CH:
             th = V(on)
-            ws = min(th - 0.2, self.t0 - 0.01)          # [r4] 切入那一帧铅字已在画内下坠（去掉 5 帧空纸）
+            ws = min(th - 0.2, self.t0 - 0.01) if ch == '大' else th - 0.2   # [r4] 切入那一帧「大」已在画内下坠（去掉 5 帧空纸）
             if t < ws: continue
             q = cl((t - ws) / (th - ws)); hits.append(th)
             yy = lerp(y - 560, y, ei(q, 2))
