@@ -151,6 +151,35 @@ def carve_glyph(fr, ch, cx, cy, size, q, ang=-35.0, color=RED_T, hot=(1.0, 0.75,
     return out
 
 
+def blade_smear(fr, p0, p1, q, bend=0.25, width=70, col=(0.92, 0.95, 1.0), amt=1.3, seed=0, warm=0.0):
+    """第五棒：真实感刀光——不是激光线，而是一道弯月形的运动拖影：前沿锐亮、尾部渐虚，带沿刀路的拉丝纹理。
+    p0→p1 为刀路（屏幕坐标），bend 弯度（相对弦长，正 = 向左手侧鼓），q 0..1 扫过、之后 0.35 内消散。"""
+    if q <= 0 or q > 1.6: return fr
+    p0 = np.asarray(p0, np.float32); p1 = np.asarray(p1, np.float32)
+    d = p1 - p0; n = np.array([-d[1], d[0]], np.float32); n /= (np.linalg.norm(n) + 1e-6)
+    c = (p0 + p1) / 2 + n * bend * np.linalg.norm(d)
+    head = min(1.0, q * 2.2); fade = 1 - sm(0.45, 1.6, q)
+    S = 4; M = np.zeros((H // S, W // S), np.float32); Cc = np.zeros_like(M)
+    N = 48
+    pts = []
+    for i in range(N + 1):
+        u = head * i / N
+        pt = (1 - u) ** 2 * p0 + 2 * (1 - u) * u * c + u * u * p1
+        pts.append(pt)
+    for i in range(N):
+        k = (i + 1) / N                                    # 0 尾 → 1 头
+        w = max(1, int(width / S * (0.15 + 0.85 * math.sin(math.pi * min(1, 0.15 + 0.85 * k)))))
+        a = (k ** 1.6)
+        cv2.line(M, tuple((pts[i] / S).astype(int)), tuple((pts[i + 1] / S).astype(int)), a, w, cv2.LINE_AA)
+        cv2.line(Cc, tuple((pts[i] / S).astype(int)), tuple((pts[i + 1] / S).astype(int)), a, 1, cv2.LINE_AA)
+    r = np.random.default_rng(seed)
+    nz = cv2.GaussianBlur(r.random(M.shape).astype(np.float32), (0, 0), 1.2)
+    M = cv2.GaussianBlur(M, (0, 0), 2.0) * (0.55 + 0.9 * nz)
+    lay = cv2.resize(M * 0.55 + cv2.GaussianBlur(Cc, (0, 0), 0.8) * 1.8 + cv2.GaussianBlur(M, (0, 0), 8) * 0.6, (W, H))
+    colv = np.asarray(col, np.float32) * (1 - warm) + np.array([1.0, 0.55, 0.25], np.float32) * warm
+    return fr + lay[..., None] * colv * amt * fade
+
+
 def flash_frame(fr, amt, col=(0.92, 0.95, 1.0)):
     return fr * (1 + amt * 0.6) + amt * np.asarray(col, np.float32) * 0.5
 
@@ -603,21 +632,21 @@ class C09(Shot):
         fr = storm(t, 9, horizon=930, flash=0.4 + fl, fc=(700, 100), oy=-40 * u, refl=0.6)
         fr = bolt(fr, t, cuts[0], 91, (600, 30), (420, 760), inten=0.8)
         r = np.random.default_rng(5)
-        for i in range(26):
-            x = 150 + i * 65 + r.uniform(-20, 20)
+        for i in range(14):
+            x = 200 + i * 118 + r.uniform(-30, 30)
             ci = 0 if x < 960 else 1
             tc = cuts[ci]
             y_end = 520 + r.uniform(-80, 140)
             if t < tc:
-                fr = red_line(fr, (x + 30 * math.sin(i), BAR), (x + 6 * math.sin(t * 3 + i), y_end), w=2, amt=0.8)
+                fr = red_line(fr, (x + 30 * math.sin(i), BAR), (x + 6 * math.sin(t * 3 + i), y_end), w=1, amt=0.75)
             else:
                 k = t - tc; rec = 300 * eout(k / 0.4) + 400 * k
-                fr = red_line(fr, (x + 30 * math.sin(i), BAR), (x + 30 * math.sin(i * 2) * k, max(BAR + 2, y_end - 160 - rec)), w=2, amt=0.8)
+                fr = red_line(fr, (x + 30 * math.sin(i), BAR), (x + 30 * math.sin(i * 2) * k, max(BAR + 2, y_end - 160 - rec)), w=1, amt=0.75)
                 yb = y_end + 900 * k * k
-                fr = red_line(fr, (x - 40 * k, y_end - 140 + 900 * k * k), (x - 80 * k, yb + 120), w=2, amt=0.7 * (1 - sm(0.3, 0.9, k)))
+                fr = red_line(fr, (x - 40 * k, y_end - 140 + 900 * k * k), (x - 80 * k, yb + 120), w=1, amt=0.6 * (1 - sm(0.3, 0.9, k)))
         fr, _ = put(fr, t, 'C/slash_strings', 980, 1015, 760, rim=COLD, rim_amt=2.4, rim_dir=(-0.5, -0.9), flash=fl, expo=0.95, wind=7)
         for tc, (a, b) in zip(cuts, (((520, 620), (1050, 260)), ((900, 280), (1500, 560)))):
-            fr = slash_streak(fr, a, b, (t - tc) / 0.35, width=8)
+            fr = blade_smear(fr, a, b, (t - tc) / 0.20, bend=0.22, width=80, seed=int(tc * 10), amt=1.2)   # 第五棒：弯月拖影替代「光剑」白棒
             fr = sparks(fr, t, int(tc * 10), b, n=50, life=0.6, speed=(200, 700), dirc=(0, 1), spread=1.4, grav=900, t0=tc, burst=True,
                         color=(1.0, 0.35, 0.2))
         fr = rain(fr, t, 90, inten=0.9, angle=-8)
@@ -625,43 +654,73 @@ class C09(Shot):
 
 
 class C10(Shot):
-    """CU：宋体「大局为上」四块铅字（立体铅活字：铅灰字身、金字凸面）挂在红线上（字即物体）；127.86 一道横刀光斩断，四字坠入积水。"""
+    """第五棒重做（评审 P1：白横光条 + 红线吊方块 = 程序道具代码味）：生图底板 C5/c10_tablets——雨夜宫檐下真实的雕花檐梁，
+    四块乌木竖匾用红绳吊着。「大局为上」逐字（逐拍）以泥金阴刻在四块匾上亮起；127.86 一道弯月刀光横扫，红绳齐断，
+    四块木匾带着字翻滚坠入黑暗（匾是从底板抠出的实物，背后是修补好的雨夜天）。"""
+    Q = [[(368, 200), (440, 200), (428, 548), (352, 548)], [(528, 200), (602, 200), (602, 552), (528, 552)],
+         [(696, 215), (780, 215), (784, 556), (708, 556)], [(864, 222), (948, 222), (962, 560), (890, 560)]]
+    CORD = [408, 563, 722, 888]
     def __init__(self):
-        self.blocks = []
-        for i, c in enumerate('大局为上'):
-            face = CP.stone_tex(256, 256, 100 + i, base=(0.16, 0.16, 0.17), border=True)
-            m = CP.text_mask(c, 190, 256, 256)
-            e = CP.emboss(m, 3.0)
-            face = face * (1 - m[..., None]) + m[..., None] * np.array([0.95, 0.70, 0.30], np.float32) * (1 + 0.6 * e[..., None])
-            side = CP.stone_tex(256, 160, 110 + i, base=(0.13, 0.13, 0.14), border=False)
-            self.blocks.append(CP.Cuboid(dict(front=face, side=side)))
+        P = plate_view('C5/c10_tablets', 0.5, 0.5, 1.0)
+        pw = plate('C5/c10_tablets').shape[1]; ph = plate('C5/c10_tablets').shape[0]
+        self.mp = lambda x, y: (W / 2 + (x / 1280 - 0.5) * pw, H / 2 + (y / 720 - 0.5) * ph)
+        self.P = P
+        hole = np.zeros((H, W), np.uint8); self.tabs = []
+        for i, q in enumerate(self.Q):
+            poly = np.array([self.mp(*p) for p in q], np.int32)
+            m = np.zeros((H, W), np.uint8); cv2.fillPoly(m, [poly], 255)
+            m = cv2.dilate(m, np.ones((7, 7), np.uint8))
+            hole |= m
+            x0, y0, w, h = cv2.boundingRect(poly); x0 -= 8; y0 -= 8; w += 16; h += 16
+            A = (cv2.GaussianBlur(m, (0, 0), 1.2)[y0:y0 + h, x0:x0 + w].astype(np.float32) / 255)
+            Cc = P[y0:y0 + h, x0:x0 + w].copy()
+            # 泥金阴刻字（随匾一起运动）
+            g = T.glyph('大局为上'[i], 'serif_black', int(w * 0.62), False).astype(np.float32)
+            gh, gw = g.shape; cy = int(h * 0.36); cx = w // 2
+            G = np.zeros((h, w), np.float32)
+            ys, xs = max(0, cy - gh // 2), max(0, cx - gw // 2)
+            G[ys:ys + gh, xs:xs + gw] = g[:min(gh, h - ys), :min(gw, w - xs)]
+            self.tabs.append(dict(A=A, C=Cc, G=G, x0=x0, y0=y0, w=w, h=h, cx=x0 + w / 2, cy=y0 + h / 2))
+        for x in self.CORD:
+            a_ = self.mp(x, 90); b_ = self.mp(x, 215)
+            cv2.line(hole, (int(a_[0]), int(a_[1])), (int(b_[0]), int(b_[1])), 255, 16)
+        small = cv2.resize((np.clip(P, 0, 1) * 255).astype(np.uint8), (W // 2, H // 2))
+        hs = cv2.resize(hole, (W // 2, H // 2))
+        bg = cv2.inpaint(small, hs, 9, cv2.INPAINT_TELEA).astype(np.float32) / 255
+        bg = cv2.GaussianBlur(bg, (0, 0), 2)
+        hf = cv2.GaussianBlur(hole.astype(np.float32) / 255, (0, 0), 3)[..., None]
+        self.bg = P * (1 - hf) + cv2.resize(bg, (W, H)) * hf
     def render(self, t):
         u = self.u(t)
         tc = V(127.86)
-        fl = bolt_env(t, tc) * 0.6
-        fr = storm(t, 10, horizon=840, flash=0.35 + fl, ox=-40 * u, refl=0.7, rip=1.5)
-        xs = [600, 840, 1080, 1320]; tins = [V(CT(30, k)) for k in (11, 12, 13, 14)]
-        for i, (x, ti) in enumerate(zip(xs, tins)):
-            if t < ti - 0.02 and t < tc: continue
-            sw = 6 * math.sin(t * 2.4 + i)
+        fl = bolt_env(t, tc) * 0.7 + 0.35 * bolt_env(t, V(127.22))
+        tins = [V(CT(30, k)) for k in (11, 12, 13, 14)]
+        fr = (self.P if t < tc else self.bg) * (0.85 + 0.6 * fl)
+        if t >= tc:
+            k = t - tc
+            for x in self.CORD:                      # 断绳残段回弹
+                a_ = self.mp(x, 100); b_ = self.mp(x, 215 - 260 * min(1, k * 3))
+                fr = red_line(fr, a_, (b_[0] + 20 * math.sin(k * 20 + x), max(a_[1] + 6, b_[1])), w=2, amt=0.7 * (1 - sm(0.3, 0.8, k)))
+        for i, (tb, ti) in enumerate(zip(self.tabs, tins)):
+            sw = 2.0 * math.sin(t * 2.2 + i)
             if t < tc:
-                y = 430 + 30 * math.sin(i * 2.1) - 30 * pulse(t, ti, 0.1)
-                fr = red_line(fr, (x, BAR), (x + sw, y - 105), w=2, amt=0.9)
-                ang = sw * 0.5
+                dy, ang = 0.0, sw
             else:
                 k = t - tc
-                y = 430 + 30 * math.sin(i * 2.1) + 1300 * k * k * (0.8 + 0.1 * i)
-                ang = sw * 0.5 + (40 + 30 * i) * k * (1 if i % 2 else -1)
-                fr = red_line(fr, (x, BAR), (x + sw * 3 * k, BAR + 240 - 400 * k), w=2, amt=0.9 * (1 - sm(0.2, 0.6, k)))
-            if y > 800: 
-                if t > tc: fr = splash(fr, t, tc + math.sqrt(max(0, (800 - 430) / 1300 / (0.8 + 0.1 * i))), (x, 800), 40 + i, n=60, spread=150, up=500)
-                continue
-            # 铅字牌：金属块（暗）+ 金字
-            C_ = np.zeros((H, W, 3), np.float32); A_ = np.zeros((H, W), np.float32)
-            self.blocks[i].draw(C_, A_, x, y + 95, 190, 190, 120, yaw=-18 + 6 * i + sw * 2, pitch=-6, roll=ang, f=1600,
-                                light=(-0.4, 0.7, -0.6), amb=0.4, rim=COLD, rim_amt=0.7, flash=fl, spec=0.6)
-            fr = CP.compose(fr, C_, A_, shadow=0.5)
-        fr = slash_streak(fr, (300, 330), (1700, 300), (t - tc) / 0.35, width=7)
+                dy = 1400 * k * k * (0.85 + 0.12 * i) + 60 * k; ang = sw + (50 + 25 * i) * k * (1 if i % 2 else -1)
+            gl = sm(ti - 0.06, ti + 0.04, t)
+            C = tb['C'].copy()
+            gold = np.array([1.0, 0.76, 0.36], np.float32) * (0.75 + 0.9 * pulse(t, ti, 0.25) + 0.5 * fl)
+            C = C * (1 - tb['G'][..., None] * gl) + tb['G'][..., None] * gl * gold
+            Mx = cv2.getRotationMatrix2D((tb['w'] / 2, tb['h'] * 0.05), ang, 1.0)
+            Mx[0, 2] += tb['x0']; Mx[1, 2] += tb['y0'] + dy
+            Cw = cv2.warpAffine(C, Mx, (W, H)); Aw = cv2.warpAffine(tb['A'], Mx, (W, H))[..., None]
+            fr = fr * (1 - Aw) + Cw * Aw
+            if gl > 0:
+                fr = K.vol_light(fr, (tb['cx'], tb['y0'] + tb['h'] * 0.36 + dy), 90, (1.0, 0.7, 0.3), 0.5 * pulse(t, ti, 0.3) * (t < tc + 0.3))
+        fr = blade_smear(fr, (180, 300), (1760, 330), (t - tc) / 0.22, bend=0.10, width=60, seed=10, amt=1.4)
+        fr = sparks(fr, t, 101, (960, 315), n=90, life=0.5, speed=(200, 800), dirc=(1, -0.2), spread=1.2, grav=900, t0=tc, burst=True,
+                    color=(1.0, 0.8, 0.5), area=(700, 10)) if t >= tc else fr
         fr = rain(fr, t, 100, inten=0.9, angle=8)
         return fr
 
@@ -1845,7 +1904,12 @@ SENTS = [
 _CUTS_S = [f / FPS for f in CUT_F[1:-1]]
 for _s in SENTS:
     _nx = next((c for c in _CUTS_S if c > _s.out - 1e-6), None)
-    if _nx is None or _s.exit == 'cut': continue
+    if _s.exit == 'cut':                       # 第五棒：「cut」出场 = 下一切点前一帧干净收掉，不拖进下一镜
+        _nx2 = next((c for c in _CUTS_S if c > _s.tin[-1] + 1e-6), None)
+        if _nx2 is not None: _s.out = min(_s.out, _nx2 - 1 / FPS)
+        _s.exit_len = 1 / FPS
+        continue
+    if _nx is None: continue
     if _nx - _s.out < 0.30:
         if _nx - _s.out < 0.12: _s.out = _nx - 0.12
         _s.exit_len = max(0.12, _nx - _s.out - 1 / FPS)
