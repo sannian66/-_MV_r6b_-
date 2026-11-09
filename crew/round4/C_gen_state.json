@@ -127,9 +127,9 @@
     {
      "n": 1,
      "task_id": "a6e34a40-a54d-4d82-bd8f-46fa267b8395",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/soldiers3_try1_0.png"
     }
    ]
   },
@@ -138,9 +138,9 @@
     {
      "n": 1,
      "task_id": "20df00ab-2a9f-4878-8939-7ba8552b1a68",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/army_kneel_try1_0.png"
     }
    ]
   }

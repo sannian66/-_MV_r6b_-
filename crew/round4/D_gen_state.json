@@ -1,5 +1,5 @@
 {
- "spent": 30,
+ "spent": 33,
  "jobs": {
   "walk_back": {
    "tries": [
@@ -102,8 +102,13 @@
    "state": "done"
   },
   "defy_up": {
-   "tries": [],
-   "state": "todo"
+   "tries": [
+    {
+     "tid": "2d3efba1-433d-419b-b964-cbf036a91437",
+     "pts": 3
+    }
+   ],
+   "state": "running"
   }
  }
 }

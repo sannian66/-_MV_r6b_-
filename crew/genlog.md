@@ -274,3 +274,5 @@
 | 11-09 03:00 | A/back_walk | RH_image2 | 4K 16:9 | 3 | 8582230b-fcfc-415f-9fb6-27836afb868f | submitted | - | A组 back_walk try1 |
 | 11-09 11:08 | E组/E21 profile_up_r4 | RH_image2 | 4K 16:9 | 3 | 072fbf7f-05cd-4444-b508-8ce0e218d51a | submitted | - | [E组] 第四棒：与 S123/front 同脸仰望侧脸（参考 S123 front_raw + 男主_鬼屠）；quote 3（累计 36） |
 | 11-09 11:08 | E组/E14T low_stride | RH_image2 | 4K 16:9 | 3 | 98dabfbc-c70d-4904-8cba-6a05d8e72c92 | submitted | - | [E组] 第四棒：低机位跨步（参考同上）；quote 3（累计 39） |
+| 11-09 03:01 | C组/soldiers3 | RH_image2 | 4K 16:9 | 0 | a6e34a40-a54d-4d82-bd8f-46fa267b8395 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/soldiers3_try1_0.png | try1 |
+| 11-09 03:01 | C组/army_kneel | RH_image2 | 4K 16:9 | 0 | 20df00ab-2a9f-4878-8939-7ba8552b1a68 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/army_kneel_try1_0.png | try1 |

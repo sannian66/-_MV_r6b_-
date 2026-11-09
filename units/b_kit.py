@@ -269,7 +269,8 @@ class Section:
             A, ca1 = a.render(t) if (pre > 0 or t < c) else (B, 0)
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
-            out = TR.transition(name, np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw)
+            A_ = np.clip(A, 0, 4).astype(np.float32); B_ = np.clip(B, 0, 4).astype(np.float32)
+            out = BTRANS[name](A_, B_, float(np.clip(p, 0, 1)), **kw) if name in BTRANS else TR.transition(name, A_, B_, p, **kw)
             return out, max(ca1, ca2)
         fr, ca = s.render(t)
         name = self.cuts.get(self.ids[i], ('hard',))[0]

@@ -748,9 +748,10 @@ class C15(Shot):
         fr = bolt(fr, t, tb, 151, (1100, 60), (1300, 920), inten=1.3, width=4.5)
         fr = bolt(fr, t, tb2, 152, (700, 60), (520, 900), inten=1.0, width=3)
         # 起跳轨迹：前 0.4s 快速升起，之后近乎悬停
-        y = lerp(980, 520, eout(k / 0.5, 3)) - 15 * (k - 0.5) * (k > 0.5)
+        # 第四棒：悬停点下移（原来头顶进了遮幅被裁），身高 420→480，顶点 ≥ 有效区上沿 +130px
+        y = lerp(1120, 790, eout(k / 0.5, 3)) - 15 * (k - 0.5) * (k > 0.5)
         x = 760 + 260 * eout(k / 0.6, 2) + 20 * k
-        fr, _ = put(fr, t, 'C/leap_arc', x, y, 420, look='sil', rim=(0.9, 0.93, 1.0), rim_amt=3.6, rim_dir=(0.3, -1), flash=fl,
+        fr, _ = put(fr, t, 'C/leap_arc', x, y, 480, look='sil', rim=(0.9, 0.93, 1.0), rim_amt=4.2, rim_dir=(0.3, -1), flash=fl,
                     mblur=(0, 30 * (1 - sm(0.15, 0.45, k))), wind=10 * ramp)
         fr = rain(fr, self.t0 + 0.45 + (t - self.t0 - 0.45) * (0.08 if k > 0.45 else 1), 150, inten=1.1, angle=10,
                   freeze=sm(0.35, 0.6, k) * 0.5)

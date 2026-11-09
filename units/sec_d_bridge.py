@@ -453,11 +453,42 @@ class S07_Heap(Shot):
         return shake_cam(fr, t, [V(O[41][7])], 5), 1.0
 
 
+_TOPSEAL = {}
+
+
+def top_seal(fr, ch, cx, cy, size, t, th, rot=-3.0, seed=0, col=(0.80, 0.09, 0.05)):
+    """[r4] 不透明朱印：整方压在最上层，朱底 + 干净纸白字（不透出下面的印），落印前 0.12s 自高处落下、落后冲击压痕。"""
+    if t < th - 0.12: return fr
+    key = (ch, int(size), seed)
+    if key not in _TOPSEAL:
+        a = T._seal_img(ch, int(size), 'yin', seed)
+        box = T._seal_img(' ', int(size), 'yin', seed)
+        box = np.clip(cv2.GaussianBlur(box, (0, 0), 6) * 1.6, 0, 1)            # 方块本体（崩边、无颗粒洞）
+        rgb = np.ones((*a.shape, 3), np.float32) * np.array(WHITE, np.float32)
+        rgb = rgb * (1 - a[..., None]) + np.array(col, np.float32) * a[..., None] * (0.85 + 0.15 * a[..., None])
+        _TOPSEAL[key] = (rgb, box)
+    rgb, box = _TOPSEAL[key]
+    e = cl((t - (th - 0.12)) / 0.12)
+    sc = 1.0 + 0.55 * (1 - e) ** 2 + 0.015 * impact(t, th, 0.08)
+    s = rgb.shape[0]
+    M = cv2.getRotationMatrix2D((s / 2, s / 2), -rot, sc)
+    M[0, 2] += cx - s / 2; M[1, 2] += cy - s / 2
+    A = cv2.warpAffine(box, M, (W, H)) * (0.35 + 0.65 * e ** 0.6)
+    C = cv2.warpAffine(rgb, M, (W, H))
+    out = fr.copy()
+    # 落下中的投影 / 落定后的压暗环
+    sh = cv2.GaussianBlur(cv2.warpAffine(box, M, (W, H)), (0, 0), 8 + 40 * (1 - e))
+    sh = np.roll(sh, (int(30 * (1 - e)), int(20 * (1 - e))), (0, 1))
+    out = out * (1 - 0.45 * sh[..., None] * (1 - A[..., None]))
+    out = out * (1 - A[..., None]) + C * A[..., None]
+    return out
+
+
 class S08_Seals(Shot):
     """俯拍：「理」「所」「应」四方朱印一枚枚盖下，把那枚朱红「人」盖没；「当」最大最狠一印"""
     t0, t1 = 169.55, 170.92
     paper = 1.0
-    SEALS = [('理', 760, 400, 300, -7), ('所', 1170, 430, 300, 5), ('应', 790, 690, 300, 9), ('当', 960, 540, 560, -3)]
+    SEALS = [('理', 760, 400, 300, -7), ('所', 1170, 430, 300, 5), ('应', 790, 690, 300, 9), ('当', 960, 540, 600, -3)]
 
     def render(self, t):
         u = self.u(t)
@@ -471,8 +502,11 @@ class S08_Seals(Shot):
             if t < th - 0.12: continue
             p = 0.3 * cl((t - (th - 0.12)) / 0.12) if t < th else 0.3 + (t - th) / 1.4
             hits.append(th)
-            fr = T.stamp_seal(fr, ch, x, y, s, min(1, p), style='yin', rot=rot, seed=11 + k, color='red' if k == 3 else (0.62, 0.07, 0.05))
-        fr = shake_cam(fr, t, hits, 9, z=1.0 + 0.06 * u, rot=-1.0 * u)
+            if k == 3:
+                fr = top_seal(fr, ch, x, y, s, t, th, rot=rot, seed=11 + k)
+            else:
+                fr = T.stamp_seal(fr, ch, x, y, s, min(1, p), style='yin', rot=rot, seed=11 + k, color=(0.62, 0.07, 0.05))
+        fr = shake_cam(fr, t, hits, 9, z=1.0 + 0.04 * u, rot=-0.6 * u)
         return fr, 1.0
 
 
