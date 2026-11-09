@@ -200,6 +200,25 @@ def water_ripple(fr, c, k, flat=0.28, speed=520.0, amp=14.0, wl=46.0, y_top=0, l
     return out + hl * np.array([0.55, 0.6, 0.7], np.float32) * 0.18
 
 
+def arc_glyph(fr, ch, c, size, a, rot=0.0, split=0.0, split_ang=-62.0, seed=0, warm=0.0):
+    """第五棒：刀光残影里的字（是非对错）——冷白芯 + 冷辉，沿刀势轻微拖影；split>0 时被斜刀分成两半错开、渐隐。"""
+    if a <= 0.01: return fr
+    col = (0.93, 0.96, 1.0) if warm == 0 else (1.0, 0.82, 0.5)
+    if split <= 0:
+        return paste_glyph(fr, ch, c[0], c[1], size, col, alpha=a, rot=rot, glow=0.9, glow_c=(0.55, 0.7, 1.0) if warm == 0 else (1, 0.5, 0.2), shadow=0.5)
+    L = T.Layer(); T.place(L, ch, c[0], c[1], size, col, 'serif_black', alpha=a * (1 - sm(0.5, 1.0, split)), rot=rot, texture=False)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    ca_, sa_ = math.cos(math.radians(split_ang)), math.sin(math.radians(split_ang))
+    side = ((xx - c[0]) * sa_ - (yy - c[1]) * ca_) > 0
+    A2 = L.A.copy(); L.A[:] = 0
+    for sg in (1, -1):
+        msk = (side if sg > 0 else ~side).astype(np.float32)
+        off = 60 * split * sg
+        M = np.float32([[1, 0, ca_ * off], [0, 1, sa_ * off + 80 * split * split]])
+        L.A[:] = np.maximum(L.A, cv2.warpAffine(A2 * msk, M, (W, H)))
+    return T.compose(fr, L, shadow=0.4, shadow_sigma=18, glow=0.8, glow_sigma=16, glow_color=(0.55, 0.7, 1.0))
+
+
 def flash_frame(fr, amt, col=(0.92, 0.95, 1.0)):
     return fr * (1 + amt * 0.6) + amt * np.asarray(col, np.float32) * 0.5
 
@@ -1458,54 +1477,67 @@ class C31(Shot):
 
 
 class C32(Shot):
-    """ELS 低机位：巨印「是」从雷云里砸下（152.21），鬼屠（S078 反向）在下面疾跑闪避。"""
-    def __init__(self): self.seal = CP.StoneSeal('是', seed=32, front_text='是')
+    """第五棒重做（评审 P1：「是非对错」石碑/印章 ≈ 副歌一 S040 印章）：「是非对错」不再是石印，而是刻在他四道刀光残影里的字。
+    C32 = MS 低机位：他（slash_strings 第 2 次：翻转、更近、仰角更大）在雨里先虚晃一刀（152.05），152.40 回手十字双斩，
+    两道弯月刀光交叉，「是」「非」随刀光同帧烧亮在残影里（字 = 刀光，不是砸下来的物体）。"""
     def render(self, t):
         u = self.u(t)
-        ti = V(152.21)
-        fr = storm(t, 32, horizon=960, flash=0.5 + 1.0 * pulse(t, ti, 0.15), fc=(1200, 150), refl=0.6)
-        fall = sm(self.t0, ti, t) ** 2
-        fr, _ = self.seal.draw(fr, 1420, 900, 560, fall=fall, yaw=-24, pitch=9, rim=COLD, rim_amt=1.0, flash=pulse(t, ti, 0.15), light=(0.5, 0.8, -0.4))
-        k = max(0.0, t - ti)
-        fr = dust(fr, t, 321, n=240, amt=1.0 * min(1, k * 6) * (1 - sm(0.3, 1.0, k)), drift=(0, -200), region=(800, 600, 1800, 960))
-        fr = shock_ring(fr, (1420, 900), k / 0.6, rx=1500, flat=0.12)
-        fr, _ = put(fr, t, 'S078/run', 420 + 260 * u, 1180 + 10 * abs(math.sin(t * 10)), 980, flip=True, rim=COLD, rim_amt=2.8, expo=0.95, wind=10,
-                    mblur=(22, 0), flash=0.8 * pulse(t, ti, 0.15))
-        fr = splash(fr, t, self.t0 + 0.42, (560 + 260 * u, 1010), 322, n=120, spread=300, up=600)
+        t0_, tx = V(152.05), V(152.40)
+        fl = 0.6 * bolt_env(t, tx)
+        fr = storm(t, 32, horizon=1000, flash=0.35 + fl, fc=(1300, 160), refl=0.6)
+        fr = K.vol_light(fr, (1300, 200), 600, COLD, 0.25 + 0.5 * fl)
+        fr, _ = put(fr, t, 'C/slash_strings', 900 - 40 * u, 1120, 1020, flip=True, rim=COLD, rim_amt=2.6, rim_dir=(0.5, -0.9), flash=fl,
+                    expo=0.95, wind=8, rotblur=3.0 * pulse(t, tx, 0.12))
+        fr = blade_smear(fr, (1500, 260), (420, 640), (t - t0_) / 0.18, bend=0.18, width=60, seed=321, amt=0.9)
+        A1 = ((360, 220), (1560, 880)); A2_ = ((1560, 220), (360, 880))
+        fr = blade_smear(fr, *A1, (t - tx) / 0.14, bend=0.12, width=90, seed=322, amt=1.3)
+        fr = blade_smear(fr, *A2_, (t - tx - 0.03) / 0.14, bend=-0.12, width=90, seed=323, amt=1.3)
+        e = eout(clamp((t - tx + 0.02) / 0.10))
+        fr = arc_glyph(fr, '是', (640, 470), 230 * lerp(1.3, 1, e), e, rot=-8)
+        e2 = eout(clamp((t - tx - 0.01) / 0.10))
+        fr = arc_glyph(fr, '非', (1290, 470), 230 * lerp(1.3, 1, e2), e2, rot=8)
         fr = rain(fr, t, 320, inten=1.0, angle=12)
-        self.ca = 5 if 0 <= k < 0.1 else 0
+        self.ca = 5 if 0 <= t - tx < 0.1 else 0
         return fr
 
 
 class C33(Shot):
-    """LS 近距：第二方巨印「非」紧贴镜头前砸下（152.70），泥水与碎石扑向镜头。"""
-    def __init__(self): self.seal = CP.StoneSeal('非', seed=33, front_text='非')
+    """第五棒重做：CU 刀身横扫过画面（刃精灵 c16_drip 第 2 次，镜内旋转 = 刀在挥），每一挥留下一道刀光残影，「对」（152.70）、
+    「错」（152.90）逐拍烧亮在残影里；背后「是」「非」的残影还没散（虚、暗），四个字同画。"""
     def render(self, t):
         u = self.u(t)
-        ti = V(152.70)
-        fr = storm(t, 33, horizon=800, flash=0.4 + 1.0 * pulse(t, ti, 0.12), fc=(500, 200), refl=0.6)
-        fall = sm(self.t0 - 0.2, ti, t) ** 2
-        fr, _ = self.seal.draw(fr, 760, 1060, 900, fall=fall, yaw=16, pitch=14, rim=COLD, rim_amt=1.0, flash=pulse(t, ti, 0.12), light=(-0.5, 0.8, -0.4))
-        k = max(0.0, t - ti)
-        fr = splash(fr, t, ti, (760, 960), 331, n=260, spread=1500, up=1400, col=(0.5, 0.5, 0.55))
-        fr = dust(fr, t, 332, n=240, amt=1.0 * min(1, k * 6), drift=(100, -150), size=(2, 6))
+        td, tc = V(152.70), V(152.90)
+        fl = 0.5 * bolt_env(t, td) + 0.5 * bolt_env(t, tc)
+        fr = storm(t, 33, horizon=1300, flash=0.3 + fl, ground=False, fc=(500, 200)) * 0.85
+        for ch, c in (('是', (520, 380)), ('非', (1420, 360))):
+            fr = arc_glyph(fr, ch, c, 170, 0.28 * (1 - u * 0.5), rot=0)
+        fr = blade_smear(fr, (200, 760), (1720, 300), (t - td) / 0.12, bend=-0.10, width=80, seed=331, amt=1.2)
+        fr = blade_smear(fr, (1720, 760), (200, 320), (t - tc) / 0.10, bend=0.10, width=80, seed=332, amt=1.2)
+        ang = lerp(-14, 12, ein(clamp((t - self.t0) / 0.2))) if t < td else lerp(12, -16, eout(clamp((t - td) / 0.2)))
+        if t >= tc: ang = lerp(-16, 6, eout(clamp((t - tc) / 0.12)))
+        fr, _ = put(fr, t, 'C5/c16_drip', 960, 560, 1500, anchor='src', src=(0.497, 0.5), rot=90 + ang, rim=COLD, rim_amt=2.0, flash=fl,
+                    expo=1.0, sat=0.7, wind=0, breathe=0.0)        # 刃（c16_drip 第 2 次：横转、挥动、带血），不露手
+        e = eout(clamp((t - td + 0.02) / 0.09)); fr = arc_glyph(fr, '对', (700, 520), 240 * lerp(1.3, 1, e), e, rot=-10)
+        e = eout(clamp((t - tc + 0.02) / 0.09)); fr = arc_glyph(fr, '错', (1240, 560), 240 * lerp(1.3, 1, e), e, rot=10, warm=1.0)
         fr = rain(fr, t, 330, inten=1.0, angle=12)
-        self.ca = 6 if 0 <= k < 0.1 else 0
+        self.ca = 6 if (0 <= t - td < 0.08 or 0 <= t - tc < 0.08) else 0
         return fr
 
 
 class C34(Shot):
-    """MS 斜劈（新精灵 slash_diag_down）：身后「对」「错」两方印被一刀斩成两半错开。"""
-    def __init__(self): self.s1 = CP.StoneSeal('对', seed=341, front_text='对'); self.s2 = CP.StoneSeal('错', seed=342, front_text='错')
+    """第五棒重做：MS 斜劈（slash_diag_down）——「是非对错」四道刀光残影悬在他身周的雨里，153.12 他一刀斜劈到底，
+    四个字同时被斩成两半、错开、坠散（他亲手斩掉别人定的是非对错，接「我自己扛」）。"""
     def render(self, t):
         u = self.u(t)
         ts = V(153.12)
-        fr = storm(t, 34, horizon=860, flash=0.4 + 0.9 * pulse(t, ts, 0.14), fc=(960, 150), refl=0.5)
-        sp = sm(ts, ts + 0.5, t)
-        fr, _ = self.s1.draw(fr, 520, 800, 420, split=sp, split_angle=-62, yaw=24, pitch=-8, rim=GOLD, rim_amt=0.8, flash=0.6 * pulse(t, ts, 0.14))
-        fr, _ = self.s2.draw(fr, 1400, 780, 420, split=sp, split_angle=-62, yaw=-24, pitch=-8, rim=(1.0, 0.3, 0.2), rim_amt=0.9, flash=0.6 * pulse(t, ts, 0.14))
-        fr = slash_streak(fr, (1650, 200), (300, 980), (t - ts) / 0.4, width=12, amt=2.0)
-        fr, _ = put(fr, t, 'C/slash_diag_down', 980, 1010, 680, rim=COLD, rim_amt=2.4, rim_dir=(0.4, -1), flash=0.8 * pulse(t, ts, 0.15),
+        fl = 0.9 * pulse(t, ts, 0.14)
+        fr = storm(t, 34, horizon=860, flash=0.35 + fl, fc=(960, 150), refl=0.5)
+        sp = sm(ts, ts + 0.6, t)
+        for i, (ch, c, rt) in enumerate((('是', (300, 300), -8), ('非', (1560, 290), 8), ('对', (270, 700), -6), ('错', (1720, 560), 6))):
+            fr = arc_glyph(fr, ch, (c[0] + 10 * math.sin(t * 2 + i), c[1] + 6 * math.cos(t * 2.3 + i)), 190, 0.85, rot=rt, split=sp,
+                           warm=1.0 if ch == '错' else 0.0)
+        fr = blade_smear(fr, (1450, 180), (150, 960), (t - ts) / 0.16, bend=0.06, width=110, seed=341, amt=1.6, warm=0.25)
+        fr, _ = put(fr, t, 'C/slash_diag_down', 780, 1010, 680, rim=COLD, rim_amt=2.4, rim_dir=(0.4, -1), flash=0.8 * fl,
                     expo=0.95, wind=9)
         fr = rain(fr, t, 340, inten=1.0, angle=-10)
         self.ca = 5 if 0 <= t - ts < 0.1 else 0
@@ -1830,12 +1862,12 @@ CUTS = {
     'C31': ('hard', 0, 0, {}),
     'C32': ('split_slide', 0.06, 0.12, dict(angle=90.0)),                # 掌风压下：画面上下错开
     'C33': ('hard', 0, 0, {}),
-    'C34': ('slash_wipe', 0.05, 0.12, dict(angle=-62)),
+    'C34': ('hard', 0, 0, {}),                                           # 第五棒：slash_wipe 去重 → 硬切冲击，镜内自己斩
     'C35': ('hard', 0, 0, {}),
     'C35b': ('hard', 0, 0, {}),                                          # 同轴跳切：全身硬扛 → 中近景咬牙（「扛」）
     'C36': ('flash_red', 0.0, 0.12, dict(one_frame=True)),               # 扛印 → 1 帧朱闪 → 全景
     'C37': ('hard', 0, 0, {}),
-    'C38': ('slash_wipe', 0.05, 0.12, dict(angle=-4)),                   # 斩字的横线 ↔ 横刀（图形匹配）
+    'C38': ('ink_bleed', 0.05, 0.12, {}),                                # 第五棒：斩开的匾缝墨渗 → 握刀手（去掉擦除边缘亮线）
     'C39': ('hard', 0, 0, {}),
     'C40': ('hard', 0, 0, {}),
     'C40b': ('hard', 0, 0, {}),                                          # 斩断天平 → 回头面部特写（「我」）
@@ -1898,7 +1930,7 @@ SENTS = [
     S(36, [0, 1, 2], 1600, 230, size=150, mode='fly', layout='v', red='血', exit='shatter', out=V(150.22), track=0.05,
       sizes=[220, 110, 110]),                                                                                          # 血未冷（C30）
     S(36, [3, 4, 5], 420, 260, size=110, mode='fly', red='骨', exit='shatter', out=V(151.62)),                       # 骨未凉（C31）
-    S(37, [0, 2, 3], 960, 250, size=70, mode='fly', exit='shatter', out=V(153.00), track=0.6, text='是对错', red='错'),   # 是/对/错（随印）
+    # 第五棒：「是非对错」改为画内刀光残影字（C32–C34），不再走屏幕层
     S(37, [4, 5, 6, 7], 1380, 820, size=100, mode='fly', red='扛', exit='shatter', out=V(155.25), sizes=[96, 96, 96, 190], back=0.6),   # 我自己扛（C35 → C35b）
     S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.38), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
     S(39, [0, 1], 420, 820, size=100, mode='fly', exit='shatter', out=V(159.64), back=0.5),                         # 这一
