@@ -1,0 +1,57 @@
+"""[B组] 联系表 / 关键帧（按本组 SHOTS/CUT 表取帧，不用 tools/sec_contact.py）
+  python3 tools/b_contact.py render <tag> i0 i1     渲第 i0..i1 帧条目到 /tmp/bcache/<tag>/（分块跑，>1 帧须 tools/cpu_slot.sh 包裹）
+  python3 tools/b_contact.py sheet  <tag> out.jpg   拼图
+tag: contact（每镜中点帧，预副歌一 14 + 主歌二 25） | keys（转场中间帧 + 歌词关键帧）"""
+import sys, os, json
+ROOT = '/workspace/work/mv'; sys.path[:0] = [ROOT, ROOT + '/units', ROOT + '/lib']; os.chdir(ROOT)
+os.environ.setdefault('SPRITE_MODE', '1')
+from PIL import Image, ImageDraw, ImageFont
+import sec_b_pre1 as P1, sec_b_verse2 as V2
+FPS = 30
+
+
+def items(tag):
+    out = []
+    if tag == 'contact':
+        for m, key in ((P1, 'pre1'), (V2, 'verse2')):
+            for S, a, b in zip(m.SHOTS, m.CUT_F, m.CUT_F[1:]):
+                out.append((key, (a + b) // 2, f'{S.__name__} {a / FPS:.2f}-{b / FPS:.2f}'))
+    else:
+        for m, key in ((P1, 'pre1'), (V2, 'verse2')):
+            for S, a in zip(m.SHOTS[1:], m.CUT_F[1:]):
+                name = m.CUTS.get(S.__name__, ('hard',))[0]
+                if name not in ('hard', 'none'):
+                    out.append((key, a + 2, f'切{S.__name__} {name}'))
+        lyr = [('pre1', 45.75, '写生死簿'), ('pre1', 47.75, '善恶框'), ('pre1', 50.0, '血'), ('pre1', 52.55, '天划掉'), ('pre1', 58.3, '滚烫'),
+               ('verse2', 90.6, '空间字'), ('verse2', 93.2, '屏风字'), ('verse2', 95.5, '嚣张'), ('verse2', 97.3, '落秤盘'),
+               ('verse2', 99.1, '量'), ('verse2', 102.7, '反抗'), ('verse2', 104.35, '天命'), ('verse2', 105.4, '上苍'),
+               ('verse2', 107.3, '命'), ('verse2', 111.8, '颠倒'), ('verse2', 113.5, '刀'), ('verse2', 114.9, '锋重新划'), ('verse2', 117.0, '向')]
+        out += [(k, int(round(t * FPS)), f'字 {s}') for k, t, s in lyr]
+    return out
+
+
+def render(tag, i0, i1):
+    d = f'/tmp/bcache/{tag}'; os.makedirs(d, exist_ok=True)
+    for i, (key, f, lab) in enumerate(items(tag)):
+        if not (i0 <= i <= i1): continue
+        m = P1 if key == 'pre1' else V2
+        im = Image.fromarray(m.frame(f, {})).resize((640, 360), Image.LANCZOS)
+        im.save(f'{d}/{i:03d}.jpg', quality=90); print(i, f, lab, flush=True)
+
+
+def sheet(tag, out):
+    font = ImageFont.truetype(ROOT + '/fonts/NotoSerifSC-Bold.otf', 20)
+    its = items(tag); cols = 6; rows = (len(its) + cols - 1) // cols
+    sh = Image.new('RGB', (cols * 640 // 2 * 2, rows * 360))
+    for i, (key, f, lab) in enumerate(its):
+        p = f'/tmp/bcache/{tag}/{i:03d}.jpg'
+        if not os.path.exists(p): continue
+        im = Image.open(p); ImageDraw.Draw(im).text((6, 4), f'{lab}  f{f}', fill=(240, 220, 120), font=font)
+        sh.paste(im, ((i % cols) * 640, (i // cols) * 360))
+    w = 2880; sh = sh.resize((w, int(sh.size[1] * w / sh.size[0])), Image.LANCZOS)
+    sh.save(out, quality=82); print(out, len(its), os.path.getsize(out))
+
+
+if __name__ == '__main__':
+    if sys.argv[1] == 'render': render(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+    else: sheet(sys.argv[2], sys.argv[3])

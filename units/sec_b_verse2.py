@@ -516,7 +516,15 @@ class V09(Shot):
         fr = self.bg.copy()
         fr = self.fog.draw(fr, t, density=0.4, y0=600, y1=960, color=(0.3, 0.31, 0.33))
         pile = 0.25 + 0.75 * clamp01((t - self.t0) / 1.3)
-        fr, info = self.bal.draw(fr, t, 960, 360, 1180, tilt=0.0, sway=0.15, left_people=pile, right='seal', rim_color=GOLD, rim=1.2)
+        tmp = np.zeros_like(fr)
+        tmp, info = self.bal.draw(tmp, t, 960, 330, 1500, tilt=0.0, sway=0.15, left_people=pile, right='seal', rim_color=GOLD, rim=1.2)
+        # 线稿天平 → 有体积的青铜：结构线加粗、暗铜填充、顶光高光、逆光辉光
+        m = np.clip(tmp.max(-1) * 6, 0, 1)
+        m2 = cv2.dilate(m, np.ones((7, 7), np.uint8))
+        x_, y_ = K.grid()
+        bronze = np.array([0.20, 0.14, 0.07], np.float32) * (0.6 + 0.6 * sstep(900, 100, y_))[..., None]
+        fr = fr * (1 - m2[..., None]) + m2[..., None] * bronze + tmp * 0.9
+        fr += np.clip(m2 - np.roll(m2, 4, 0), 0, 1)[..., None] * GOLD * 0.5 + K.blur_ds(m2, 26)[..., None] * GOLD * 0.18
         pl = np.array(info.get('pan_L', (420, 640)), float)
         # 落下的纸人（不同时刻、旋转下坠）
         for i, f_ in enumerate(self.figs):
@@ -531,10 +539,10 @@ class V09(Shot):
         for i, (ch, pc) in enumerate(zip('牺牲多少才', pr)):
             if pc <= 0: continue
             q = eio(pc)
-            tx, ty = pl[0] - 150 + (i % 3) * 120, pl[1] - 120 - (i // 3) * 110
+            tx, ty = pl[0] - 240 + i * 120, pl[1] - 150 - (12 if i % 2 else 0)
             yy = 160 + (ty - 160) * q ** 1.6
             T.place(Lr if ch in '牺牲' else L, ch, tx, yy, 108, color='red' if ch in '牺牲' else 'white', fname='serif_black',
-                    rot=(1 - q) * (30 if i % 2 else -30) + (6 if i % 2 else -5) * q)
+                    rot=(1 - q) * (30 if i % 2 else -30) + (4 if i % 2 else -3) * q)
         fr = T.compose(fr, L, shadow=0.8, glow=0.1)
         fr = T.compose(fr, Lr, **T.auto_style('red'))
         fr = self.rain.draw(fr, t, intensity=1.0, angle=8, light=(960, 300), light_r=600)
