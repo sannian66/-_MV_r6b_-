@@ -1101,7 +1101,8 @@ class V19(Shot):
         e = eout(clamp01(u * 3.0), 3)          # 第五棒 9/n：甩入转身 0.4s 内落定（原 0.75s 全程糊）
         fr = self.fog.draw(self.bg.copy(), t, density=0.45, y0=400, y1=960, color=(0.30, 0.32, 0.35), speed=(-200 * (1 - e), 0))
         whip = (1 - e)
-        fr, _ = put_at(fr, self.sp, t, (0.42, 0.85), (980 - 260 * whip, 880), 1900, rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(-0.7, -0.7)),
+        fr, _ = put_at(fr, self.sp, t, (0.42, 0.85), (980 - 260 * whip, 950), 1900,   # 第五棒 9/n：下移 70px，头顶不贴黑边
+                       rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(-0.7, -0.7)),
                        wind_amp=14, mblur=(-55 * whip, 0), shade=(600, 1700, 0.25, 600, 0.3))
         fr = K.sparks(fr, t, 6404, (640, 300), n=36, life=0.45, speed=(300, 900), dirc=(-1, -0.2), spread=1.1, grav=900, size=1.0,
                       area=(220, 160), color=(0.8, 0.85, 0.95), amt=0.7, t0=self.t0 + 0.05, burst=True)   # 甩水珠：散开、不成方块
