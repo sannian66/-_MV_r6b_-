@@ -63,7 +63,7 @@ def frame(f: int, cache: dict) -> np.ndarray  # uint8 (1080,1920,3) RGB，成品
 - 单帧测试随便跑。**超过 1 帧的渲染（联系表、片段）必须用 `tools/cpu_slot.sh <命令>` 包一层**，它会排队拿 2 个槽之一。
 - 联系表：`V4_FORCE=<key> tools/cpu_slot.sh python3 tools/sec_contact.py <key> out/round4/<组>_contact_vN.jpg`
 - 不许 `pkill` 别人的进程。杀自己的进程用方括号写法 `pkill -f '[s]ec_a_...'`，否则会杀掉自己的 shell。
-- 新沙箱重建：`mkdir -p /workspace/work && ln -sfn /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/guitu-s3-mv /workspace/work/mv`；`pip install numpy pillow scipy opencv-python-headless skia-python librosa soundfile`；`sudo apt-get update && sudo apt-get install -y libegl1 libgl1`。
+- 新沙箱重建：`mkdir -p /workspace/work && ln -sfn /workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/guitu-s3-mv /workspace/work/mv（09:19 起新沙箱）`；`pip install numpy pillow scipy opencv-python-headless skia-python librosa soundfile`；`sudo apt-get update && sudo apt-get install -y libegl1 libgl1`。
 
 ## 每组交付物
 1. `crew/round4/<组>_storyboard.md`：逐镜表（时间、景别、构图意图、运镜、人物精灵、歌词排版手法、入/出转场、改动理由），以及「接缝」一节。
