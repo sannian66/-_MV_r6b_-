@@ -73,3 +73,8 @@
 - C 第三棒未完：C_keys_v3 只渲到第 47 张（续：V4_FORCE=c_pre2_chorus2 tools/cpu_slot.sh python3 tools/c_contact.py keys out/round4/C_keys_v3.jpg）；C_contact_v4 未看；补 C_storyboard 与本文件 C 组一节；然后送评。
 - E 第二轮评审失败：read_file 读 1920×2960 以上的联系表返回 image unavailable。下次评审先把联系表切成 ≤1920×1400 的块再看，且只给格式模板、不给上轮评审内容。
 - D 第二轮评审 81（critic_D_r2.md）：各项过 70%，总分差 4。P0：S08「当」印（170.6–170.93s）整方压顶、朱底白字停 ≥8 帧、去中央黑墨；P1：S21/S25/S28/S29 白宋体左侧版式雷同、S20 与副歌一 73.5s 撞画面、S29 刻字镜像、S18 slash_wipe「我的的刀」、S11 脸不一致。该评审看到了上轮评分，独立性存疑。
+
+## 总导演记录（第七任，2026-11-09 10:50 CST，新沙箱）
+- 新 Skills Key 已由用户提供，存入 Hark 保险库并绑定 www.nananobanana.cn（按域名注入，curl/nb.py 无需带 Authorization，仓库里不落 Key）。验证：GET /api/skills/models 200；RH_image2 4K 16:9 报价 3 积分。**生图恢复可用**，之前因 401 搁置的 D defy_up、E21 侧脸、C 五张、A 刀身/纸人可以排上。
+- 对话导出：前六任对话冻结到 crew/CONVERSATION_part5.md，export_chat.py 改读本会话 journal。
+- 防丢进度：hooks 已装（commit 即推送）；后台 tools/autosync_loop.sh 每 3 分钟；Hark 定时任务每 30 分钟兜底跑 autosync 并重启循环。
