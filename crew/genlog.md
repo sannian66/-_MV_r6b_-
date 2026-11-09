@@ -295,3 +295,5 @@
 | 11-09 03:09 | D组/draw_side | RH_image2 | 4K 16:9 | 0 | 90a26926-c54d-4330-9653-cbe33e1af485 | completed | d_cands/draw_side_try1_0.png | try1 |
 | 11-09 03:09 | B组/blade_stuck | RH_image2 | 4K 16:9 | 0 | 268f9623-b37e-4c74-b916-6e2ce5cd506c | 采用 | assets/gen/B_r4/blade_stuck_raw.png | try1 采用 |
 | 11-09 03:10 | D组/run_top | RH_image2 | 4K 16:9 | 0 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | completed | d_cands/run_top_try1_0.png | try1 |
+| 11-09 03:10 | D组/draw_side | RH_image2 | 4K 16:9 | 0 | 90a26926-c54d-4330-9653-cbe33e1af485 | 采用 | assets/gen/D_bridge/draw_side_raw.png | try1 采用 |
+| 11-09 03:10 | D组/run_top | RH_image2 | 4K 16:9 | 0 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | 采用 | assets/gen/D_bridge/run_top_raw.png | try1 采用 |

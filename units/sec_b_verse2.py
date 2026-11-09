@@ -87,6 +87,20 @@ def night_sky(seed, top=(0.035, 0.04, 0.05), bot=(0.16, 0.17, 0.19), horizon=0.7
     return K.sky(seed=seed, cloud=cloud, horizon=horizon, top=top, bot=bot, stars=0.0).copy()
 
 
+# 第四棒：生图插地刀 blade_stuck（assets/gen/B_r4/blade_stuck_cut.png，16:9 画布）关键点（归一化）
+BS_MUD = (0.470, 0.975)        # 泥堆底中点（锚点）
+BS_GUARD = (0.508, 0.300)      # 圆镡下沿中点
+BS_ENTRY = (0.462, 0.875)      # 刀身入泥点
+BS_DROP = (0.545, 0.338)       # 镡下悬着的水滴
+BS_W = 1300.0                  # V01 精灵整幅宽（屏幕像素）→ 柄头到泥约 690px
+
+
+def bs_pt(src, dst, w=BS_W, anchor=BS_MUD):
+    """精灵内归一化点 → 屏幕（与 put_at 同一仿射，无旋转）"""
+    sw, sh = w, w * 9 / 16
+    return dst[0] + (src[0] - anchor[0]) * sw, dst[1] + (src[1] - anchor[1]) * sh
+
+
 def sword_stuck():
     """斜插泥地的真刀（blade_face 生图刀身 + 护手，刀尖朝下）+ 代码缠绳刀柄。返回 (F, A, grip_y, guard_y)"""
     if 'stuck' in BK._BL: return BK._BL['stuck']
@@ -178,6 +192,7 @@ class V01(Shot):
         self.rain = fx2.RainSheet(4706, density=0.9)
         self.spl = fx2.Splashes(4707)
         self.fog = fx2.Fog(4708)
+        self.blade = BK.spr('B_r4/blade_stuck')
         T.warm('鬼屠', 'song', 40)
 
     def render(self, t):
@@ -187,8 +202,11 @@ class V01(Shot):
         fr = self.fog.draw(fr, t, density=0.75, y0=480, y1=860, color=(0.36, 0.38, 0.42), speed=(40, 0), top_fade=300)
         # 刀：焦点转移（开头刀虚、草实 → 刀实、草虚）
         focus = sstep(0.15, 0.75, u)
-        base = (1060, 905)
-        fr, Aw, M = paste_sword(fr, base, -14, 760, wet=1.0, t=t, blur=7 * (1 - focus))
+        base = (1060, 940)
+        # 第四棒：程序灰板刀 → 生图真刀 blade_stuck（缠红绳柄、圆镡、湿钢、泥堆）；冷月顶光轮廓
+        fr, _ = BK.put_at(fr, self.blade, t, BS_MUD, (base[0], base[1] + 25), BS_W, rim=dict(col=(0.75, 0.84, 1.0), amt=3.4, dir=(0.5, 1.0)),
+                          grade=dict(expo=0.95, sat=0.85, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.15), wind_amp=0, breathe=0,
+                          shade=None, wrap=0.15, defocus=6 * (1 - focus))
         # 积水倒影（上下翻 + 涟漪抖动）
         ref = fr[::-1].copy()
         ref = np.roll(ref, int(2 * (2 * 846 - H)) - 0, 0) if False else cv2.warpAffine(ref, np.float32([[1, 0, 0], [0, 1, 2 * 846 - H]]), (W, H))
@@ -196,12 +214,11 @@ class V01(Shot):
         ref = cv2.remap(ref, *[a.astype(np.float32) for a in (K.grid()[0] + (nz - 0.5) * 14, K.grid()[1])], cv2.INTER_LINEAR)
         fr = fr + ref * (self.puddle * 0.55)[..., None]
         # 雨水沿刃下流（亮点）
-        F, A, HL, gy = sword_stuck()
-        for k_ in range(5):
-            s = ((t * 0.8 + k_ * 0.21) % 1.0)
-            src = np.array([398 + 30 * math.sin(k_ * 2), gy + 60 + (A.shape[0] * 0.62 - gy - 60) * s, 1.0])
-            p = M @ src
-            cv2.circle(fr, (int(p[0]), int(p[1])), 3, (0.85, 0.9, 1.0), -1, cv2.LINE_AA)
+        g0 = bs_pt(BS_GUARD, (base[0], base[1] + 25)); g1 = bs_pt(BS_ENTRY, (base[0], base[1] + 25))
+        for k_ in range(6):                                  # 雨水沿刃下流（亮珠）
+            s_ = ((t * 0.8 + k_ * 0.17) % 1.0)
+            px = g0[0] + (g1[0] - g0[0]) * s_ + 6 * math.sin(k_ * 2); py = g0[1] + 30 + (g1[1] - g0[1] - 30) * s_
+            cv2.circle(fr, (int(px), int(py)), 3, (0.85, 0.9, 1.0), -1, cv2.LINE_AA)
         fr = self.spl.draw(fr, t, y_far=840, y_near=1000, rate=140, size=1.0, amt=0.8)
         fr = fx2.ripples(fr, t, [(base[0] - 30, base[1] + 6), (base[0] + 40, base[1] + 10)], [86.3, 86.9], amt=0.5, flat=0.18)
         fr = self.rain.draw(fr, t, intensity=1.0, angle=10, light=(1300, 300), light_r=700)
@@ -235,8 +252,10 @@ class V02(Shot):
         self.bolt = fx2.Lightning(4803, p0=(1500, 0), p1=(1180, 600), branches=5)
         # 背景：刀镡/刀柄的微距虚焦（真刀贴图放大）
         bgc = np.zeros((H, W, 3), np.float32) + np.array([0.02, 0.022, 0.026], np.float32)
-        bg, Aw, _ = paste_sword(bgc, (900, 2900), 4, 3600, wet=1.2)
-        self.bg = K.blur_ds(bg, 14) * 0.38
+        # 第四棒：微距背景 = 同一把生图刀（blade_stuck 第 2 次：ECU 圆镡+红绳柄，焦外），水滴就挂在镡下沿
+        bg, _ = BK.put_at(bgc, BK.spr('B_r4/blade_stuck'), 0.0, BS_DROP, (975, 390), 9000.0, rim=dict(col=(0.75, 0.84, 1.0), amt=3.0, dir=(0.4, 1.0)),
+                          grade=dict(expo=0.85, sat=0.8, tint=(0.94, 0.97, 1.05), lift=0.0, gamma=1.1), wind_amp=0, breathe=0, shade=None, wrap=0.1)
+        self.bg = K.blur_ds(bg, 3) * 0.75
         x, y = K.grid(); r = np.random.default_rng(4805)
         for _ in range(26):                          # 焦外雨珠光斑
             cx_, cy_, rr = r.uniform(0, W), r.uniform(120, 960), r.uniform(10, 46)
