@@ -373,7 +373,7 @@ class SteleHall:
             for side in (-1, 1):
                 z = 2.2 + i * 2.2 + r.uniform(-0.3, 0.3)
                 self.st.append(dict(x=side * r.uniform(1.25, 1.5), z=z, w=r.uniform(0.75, 0.95), h=r.uniform(2.1, 2.6), side=side,
-                                    tex=self._tex(r)))
+                                    tex=stone_tex(r)))
         g = 1024
         n1 = K.fbm(g, g, seed + 3, base=6, octaves=5); n2 = K.fbm(g, g, seed + 4, base=24, octaves=3)
         gx = (np.arange(g) % 128 < 3)[None, :] | (np.arange(g) % 128 < 3)[:, None]
@@ -579,7 +579,7 @@ def door_open(A, B, p, cx=960, col=GOLDW):
 def _latin_up(word, size, color):
     """署名里的拉丁字母：直立横排（不旋转），按竖排列宽收字号。"""
     from PIL import Image, ImageDraw
-    f = T._font('song', int(size * 0.62))
+    f = T._font('song', int(size * 0.5))
     w = int(f.getlength(word)) + 8; h = int(size * 0.9)
     im = Image.new('L', (w, h), 0); ImageDraw.Draw(im).text((w / 2, h / 2), word, font=f, fill=255, anchor='mm')
     return np.asarray(im).astype(np.float32) / 255

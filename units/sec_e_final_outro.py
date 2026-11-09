@@ -239,33 +239,49 @@ class E06(Shot):   # S115 MS（第三棒重做）律令挂轴林：远中近三�
 
 class E07(Shot):   # S116 LS（第三棒重做）挂轴缝后，太上皇本人（实体、正面受光、五官清楚）→ 环绕揭示：原来是纸扎（实体纸扎，不透明）
     def __init__(self):
-        self.sky = E.dawn_sky(116, horizon=0.75, sun=(980, 380), hor=(1.0, 0.85, 0.58), mid=(0.62, 0.46, 0.27), cloud=0.3)
+        self.sky = E.dawn_sky(116, horizon=0.75, sun=(1480, 330), hor=(0.62, 0.46, 0.30), mid=(0.20, 0.15, 0.10), top=(0.03, 0.025, 0.02), cloud=0.3)
         self.cur = R3.Scrolls(17, 6, (-40, 1960), 50, (980, 1050), (190, 240), text_size=22)
         self.l = LyrO(row('谎言', cts(50, [4, 5]), 960, 800, size=230, red='谎言', track=0.08, font='serif_black'), CT(50, 6) - 0.1, seed=40,
                       outline=5, plate_amt=0.6, glow=0.3)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (980, 380), 110, amt=0.9)
-        fr = fx2.god_rays(fr, (980, 380), strength=0.45, length=0.8, t=t)
+        fr = self.sky.copy()                                               # 第四棒：背景压暗、日偏右后方（只留光晕），纸扎在暗底上成实体
+        fr = fx2.god_rays(fr, (1480, 330), strength=0.35, length=0.8, t=t)
         rv = eio((t - 201.2) / 0.4)
         dx = 70 - 140 * eio(u)
         GE = dict(expo=1.0, sat=0.62, tint=(1.06, 0.99, 0.9), lift=0.02, gamma=1.0)
         if rv < 1:      # 帘后：太上皇本人，前侧受光，五官清楚
             fr0, _ = put(fr.copy(), t, 'S116/emperor', (960 + dx, 1590), h=1500, rim=GOLDW, rim_amt=2.6, grade=GE, wind=2)
         if rv > 0:      # 揭示：纸扎（宣纸蒙竹骨），实体不透明，只在边缘透光
-            fr1, info = put(fr.copy(), t, 'E_r2/paper_effigy', (960 + dx, 1590), h=1500, rim=GOLDW, rim_amt=3.0, wind=6,
-                            grade=dict(expo=0.95, sat=0.7, tint=(1.06, 0.98, 0.88), lift=0.0, gamma=1.05))
-            fr1 = paper_frame(fr1, info['A'], t, amt=0.3)
-        fr = fr1 if rv >= 1 else (fr0 if rv <= 0 else fr0 * (1 - rv) + fr1 * rv)
-        if 0 < rv < 1:   # 揭示瞬间：一道纸面反光扫过
-            yy, xx = E.grid(); band = np.exp(-((xx - (300 + 1400 * rv) + (yy - 540) * 0.4) / 60) ** 2)
-            fr = fr + band[..., None] * GOLDW * 0.35
+            fr1, info = put(fr.copy() * 0.45, t, 'E_r2/paper_effigy', (960 + dx, 1590), h=1500, rim=GOLDW, rim_amt=3.4, rim_dir=(0.9, -0.4), wind=6,
+                            grade=dict(expo=1.05, sat=0.5, tint=(1.06, 1.0, 0.9), lift=0.0, gamma=1.0))   # 第四棒：暗底上亮宣纸，读作实体
+            (bx0, by0), (bx1, by1) = info['box']                              # 第四棒：身体部分（头以下）糊上不透光的厚宣纸：抹平透出的灯笼网格，只留竹骨压痕
+            yv = np.arange(H, dtype=np.float32)[:, None]
+            bm = info['A'] * sstep(by0 + 0.20 * (by1 - by0), by0 + 0.30 * (by1 - by0), yv)
+            sm = cv2.GaussianBlur(fr1, (0, 0), 7)
+            lum = sm.mean(-1, keepdims=True)
+            solid = (0.6 * lum + 0.4 * sm) * np.array([1.08, 0.98, 0.82], np.float32) * 1.05
+            fr1 = fr1 * (1 - 0.75 * bm[..., None]) + solid * 0.75 * bm[..., None]
+            fr1 = paper_frame(fr1, info['A'], t, amt=0.32)
+            A_ = info['A']                                                   # 体积：边缘向内压暗（纸扎是实心的，不是灯笼）+ 左侧冷面
+            occ = np.clip(A_ - cv2.GaussianBlur(A_, (0, 0), 28) * 0.0, 0, 1) * (1 - cv2.GaussianBlur((A_ > 0.5).astype(np.float32), (0, 0), 30))
+            xx_ = np.arange(W, dtype=np.float32)[None, :]
+            side_ = np.clip((1100 + dx - xx_) / 500, 0, 1)
+            fr1 = fr1 * (1 - (0.55 * occ + 0.35 * side_ * A_)[..., None])
+        if rv >= 1: fr = fr1
+        elif rv <= 0: fr = fr0
+        else:            # 第四棒：揭示不再叠化（双重曝光读成「半透明」），改为一道纸面反光斜扫 = 硬擦除边界：光带左边已是纸扎、右边还是真人
+            yy, xx = E.grid(); sx = xx - (300 + 1400 * rv) + (yy - 540) * 0.4
+            m = sstep(8, -8, sx)[..., None]
+            fr = fr1 * m + fr0 * (1 - m)
+            band = np.exp(-(sx / 50) ** 2)
+            fr = fr + band[..., None] * GOLDW * 0.6
         sh = -300 * eio(u) + 150                                          # 前景挂轴从两侧掠过（环绕视差，强虚化）
         C, A = self.cur.layer(t, wind=1.0, dx=sh)
-        side = np.clip(np.abs(np.arange(W, dtype=np.float32) - 960) / 300 - 1.0, 0, 1)[None, :]
+        side = np.clip(np.abs(np.arange(W, dtype=np.float32) - 960) / 160 - 3.6, 0, 1)[None, :]   # 第四棒：前景挂轴只在两侧画边、实体不透明，不再叠在纸扎身上
         C, A = R3.Scrolls.light(C, A, fr * 0.5, 0.5, blur=10)
-        fr = R3.comp(fr, C * 0.5, A * side)
+        fr = R3.comp(fr, C * 0.35, A * side)
         return bloom(fr, 0.85, 0.35)
 
     def text(self, fr, t): return self.l.draw(fr, t)
@@ -536,8 +552,8 @@ class E14(Shot):   # S122（第三棒重做）低机位仰拍：他从烟尘里�
         yy, xx = E.grid()
         fr = fr + (np.exp(-(((xx - 1700) / 500) ** 2 + ((yy - 800) / 260) ** 2)) * 0.35)[..., None] * np.array([1.0, 0.45, 0.15], np.float32)  # 右后方余火
         bob = 6 * abs(math.sin(t * 5.5))
-        fr, info = put(fr, t, 'S122/walk_toward', (1270, 1210 - bob + 30 * u), h=1000 * (1 + 0.06 * u), rim=(1.0, 0.62, 0.32), rim_amt=3.2,
-                       rim_dir=(0.8, -0.3), grade=dict(expo=0.82, sat=0.5, tint=(0.95, 0.97, 1.03), lift=0.0, gamma=1.1), wind=10)
+        fr, info = put(fr, t, 'E_r4/low_stride', (1180, 1210 - bob + 40 * u), h=960 * (1 + 0.06 * u), rim=(1.0, 0.62, 0.32), rim_amt=3.2,
+                       rim_dir=(0.8, -0.3), grade=dict(expo=0.84, sat=0.5, tint=(0.95, 0.97, 1.03), lift=0.0, gamma=1.1), wind=12)
         fr = RS.fx_embers(fr, t, 1223, amt=0.9, n=70)
         fr = self.sh.draw(fr, (t - self.t0) * 0.6 + 0.3, c=(420, 620), dof=(4.0, 18.0), zfocus=2.5, emb=0.8, paper=(0.55, 0.45, 0.36), amt=0.95)
         return bloom(fr, 0.8, 0.45)
@@ -753,7 +769,7 @@ class E20(Shot):   # S126 ELS 巨大日轮占满画面；「天」字在日中�
 
 class E21(Shot):   # S127 CU（第三棒重做）逆光侧脸：低调光，脸沉在暗部、只留晨光勾出的额-鼻-唇-下颌金边与发丝（不再给写实五官，避免和 E16/E19 对不上）；
     #  「判」「我」同一套材质：红色拓印 + 金描边（不再一红一白混用），在天空侧、离脸
-    GR = dict(expo=0.2, sat=0.4, tint=(1.0, 0.95, 0.92), lift=0.0, gamma=1.55)
+    GR = dict(expo=0.72, sat=0.55, tint=(1.06, 0.97, 0.88), lift=0.0, gamma=1.15)   # 第四棒：新精灵与 E16 同脸，不再藏五官
 
     def __init__(self):
         sky = E.dawn_sky(1270, horizon=0.7, sun=(1600, 300), mid=(0.42, 0.30, 0.17), cloud=0.6)
@@ -764,7 +780,7 @@ class E21(Shot):   # S127 CU（第三棒重做）逆光侧脸：低调光，脸�
         u = self.u(t)
         fr = self.bg.copy()
         fr = fx2.god_rays(fr, (1600, 300), strength=0.7, length=1.0, t=t)
-        fr, info = put(fr, t, 'S127/profile_up', (600 + 40 * u, 1190), h=1150, rim=(1.0, 0.86, 0.6), rim_amt=5.0, rim_dir=(1.0, -0.35),
+        fr, info = put(fr, t, 'E_r4/profile_up', (560 + 40 * u, 1170), h=1080, rim=(1.0, 0.86, 0.6), rim_amt=4.0, rim_dir=(1.0, -0.35),
                        grade=self.GR, wind=12)
         fr = E.dust_motes(fr, t, 1271, n=80, amt=0.5, drift=(-20, -30), depth=True)
         return bloom(fr, 0.75, 0.55)
@@ -963,6 +979,9 @@ class E27b(Shot):   # 斩：纯刀光——一道巨大的金白弧光自左上�
         if 0 <= tipx <= W and 0 <= tipy <= H: fr = E.flare_streak(fr, (tipx, tipy), amt=1.0 * (1 - u), angle=-35, length=0.7)
         if u < 0.1: fr = fr * 1.2 + np.array([0.35, 0.16, 0.05], np.float32) * (1 - u / 0.1)
         fr = RS.fx_embers(fr, t, 2702, amt=0.8, n=60)
+        # 第四棒：刀光不再无主 —— 他（低机位跨步精灵翻转、第二次用：墨黑剪影 + 朱金轮廓光）随刀光落地，刀尖正是弧光的尽头
+        fr, info = put(fr, t, 'E_r4/low_stride|flip', (900 - 60 * pr, 1290 - 40 * pr), h=1080, rim=(1.0, 0.55, 0.25), rim_amt=4.5, rim_dir=(0.7, -0.6),
+                       grade=dict(expo=0.30, sat=0.5, tint=(1.05, 0.9, 0.85), lift=0.0, gamma=1.3), wind=16, mblur=(int(30 * (1 - pr)), 0))
         return bloom(fr, 0.7, 0.7)
 
 
@@ -1065,7 +1084,7 @@ class Credits(Shot):
             p = c01((t - ts) / dur)
             out = c01((t - (self.t1 - 0.35)) / 0.35)
             if p <= 0: continue
-            g = T.credit_block(fr.copy(), role, names, x, y, p, role_size=32, name_size=66, seal_text=names[0] if isinstance(names, list) else names[0],
+            g = R3.credit_block_up(fr.copy(), role, names, x, y, p, role_size=32, name_size=66, seal_text=(role[0] if names[0][0].isascii() else names[0][0]),
                                seal_size=46, color='white', name_font='kai', seed=hash(role) % 50)
             fr = g * (1 - out) + fr * out
         return fr
@@ -1113,12 +1132,23 @@ class E33(Credits):   # S135b（第三棒重做）晨后冷调：贴地低机位
         self.g = R3.Ground(331, tone=(0.85, 0.88, 0.95))
         self.blocks = [('AI画师', ['沉溺', '雪晴', '索恩'], 1640, 230, 232.45, 1.3)]
         self.fog = K.fbm(H // 4, W // 2, 1372, base=5, octaves=5)
+        # 第四棒：地平线不再是一刀硬线 —— 远山两层（被晨雾吃到只剩轮廓）+ 贴地平线的雾带 + 一排远处残碑剪影作焦点
+        self.rd, self.ra = E.ridges(n=2, base=0.455, step=0.035, seed=337, amp=0.045, haze=(0.80, 0.82, 0.86), far=0.85, near=0.35)
+        r = np.random.default_rng(338); self.stl = [(r.uniform(-1, 1), r.uniform(0.7, 1.3)) for _ in range(9)]
 
     def render(self, t):
         u = self.u(t)
         hy = 565
         fr = E.sun_disc(self.sky.copy(), (760, hy - 10), 40, amt=0.45, core=(1.0, 0.98, 0.95))
+        fr = E.place_layer(fr, self.rd, self.ra, ox=-40 * u, z=1.0)
         fr, z = self.g.render(fr, hy, f=900, camh=0.6, dz=-3 * u, cx=760, line=0.6, line_col=(0.55, 0.08, 0.04), fog=(0.85, 0.87, 0.9))
+        yy = np.arange(H, dtype=np.float32)[:, None, None]
+        for k, (xo, sc) in enumerate(self.stl):                       # 远处残碑剪影（线的两侧、地平线上）
+            x = 760 + (xo * 520 if abs(xo) > 0.25 else xo * 520 + np.sign(xo) * 200) - 25 * u
+            wv, hv = 9 * sc, 34 * sc * (1.3 if k % 3 == 0 else 1.0)
+            cv2.rectangle(fr, (int(x - wv / 2), int(hy - hv)), (int(x + wv / 2), hy + 2), (0.36, 0.38, 0.42), -1, cv2.LINE_AA)
+        band = np.exp(-((yy - hy + 6) / 38.0) ** 2)                    # 地平线雾带：软化天/地交界
+        fr = fr * (1 - 0.75 * band) + band * 0.75 * np.array([0.84, 0.86, 0.89], np.float32)
         f = cv2.resize(R3.slide(self.fog, 25 * u), (W, H))
         m = np.clip((f - 0.4) * 2.0, 0, 1) * sstep(0.45, 0.62, np.arange(H, dtype=np.float32)[:, None] / H) * (1 - sstep(0.7, 0.95, np.arange(H, dtype=np.float32)[:, None] / H))
         fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.82, 0.84, 0.88], np.float32) * 0.55
@@ -1218,8 +1248,8 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E13': ('hard', 0, 0, {}),
     'E14T': ('hard', 0, 0, {}),
     'E15': ('hard', 0, 0, {}),
-    'E16': ('slash_wipe', 0.04, 0.14, dict(angle=90)),
-    'E17': ('split_slide', 0.06, 0.14, dict(angle=90)),
+    'E16': ('door_open', 0.0, 0.20, dict(cx=960)),             # 第四棒：E15 沿竖缝裂开两扇滑出 → E16 自己的中缝（图形匹配）
+    'E17': ('push_h', 0.07, 0.13, {}),                         # 第四棒：横推，中间帧 = 金脸 | 朱缝 | 朱脸 正面相对
     'E18': ('hard', 0, 0, {}),
     'E19': ('shatter', 0.04, 0.22, dict(center=(960, 540))),
     'E20': ('iris_moon', 0.0, 0.30, dict(center=(960, 520), radius=120, sun=True)),
@@ -1242,7 +1272,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
-CUSTOM = {'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow}
+CUSTOM = {'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow, 'push_h': R3.push_h, 'door_open': R3.door_open}
 
 # 运镜：(缓动, z0, z1, x0, x1, y0, y1, rot0, rot1)
 MOVE = {
