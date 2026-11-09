@@ -119,7 +119,7 @@
      "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/d_cands/draw_side_try1_0.png"
     }
    ],
-   "state": "review"
+   "state": "done"
   },
   "run_top": {
    "tries": [
@@ -129,7 +129,7 @@
      "file": "/workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/d_cands/run_top_try1_0.png"
     }
    ],
-   "state": "review"
+   "state": "done"
   }
  }
 }

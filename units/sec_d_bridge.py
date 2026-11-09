@@ -847,7 +847,7 @@ class S18_Draw(Shot):
     """MS 雨夜：鬼屠横刀出鞘，寒光沿刃走过；脚下积水倒影 + 地雾（第三棒：去漩涡底，换雨夜地面空间）；宋体「只」+ 巨字「听」"""
     t0, t1 = 180.09, 181.0
     def __init__(self):
-        self.sp = D.spr('S103/slow_draw')
+        self.sp = D.spr('draw_side')       # [r4] 侧身半抽刀（替换正面 T 字横刀站姿）
 
     def render(self, t):
         u = self.u(t)
@@ -933,49 +933,61 @@ class S19_Forge(Shot):
 
 
 class S20_Wall(Shot):
-    """仰拍 LS：宋体字砖墙由下而上砌起、透视压顶；湿石质感、雨、雷光从右上扫过；墙心「规」「矩」两砖金光渗出，
-    唱到「规矩」时两块金砖脱墙、放大成金色宋体巨字压向他（第三棒 P3：回扣副歌一字墙，但墙是活的、字被点亮后崩落）；
-    前景鬼屠背影仰望（wall_stand_back）；左侧宋体竖排「谁定的」"""
+    """[r4 重做] 大俯拍 LS：字墙已倒成满地湿石字砖（相机在他头顶后退跟拍），他从画面上方朝镜头冲来、踏过字砖；
+    他刚踏过的三块砖亮起暖白宋体「谁 定 的」（横排，在他身后）；唱到「规矩」时他前方左右两块砖迸出金光、
+    「规」「矩」金色巨字从地面立起像两扇门，他从两字之间冲过去 → 接 S21 撞墙。
+    （去掉和副歌一 73.5s「砖墙 + 墙前小人背影」撞车的构图；同屏只一组「规矩」）"""
     t0, t1 = 181.91, 182.81
     def __init__(self):
-        self.B = T.wall_bricks('律令天条正邪大局理所应当忍让规矩牺牲本分名分上下尊卑', highlight='规矩', hl_color='gold', cols=15, rows=9,
-                               brick=(150, 92), center=(960, 500), seed=4)
-        self.sp = D.spr('wall_stand_back')
+        self.B = T.wall_bricks('律令天条正邪大局理所应当忍让名分上下尊卑本分', cols=15, rows=13, brick=(150, 92), center=(960, 540), seed=4)
+        self.sp = D.spr('run_top')
         src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
-        dst = np.float32([[330, -60], [W - 330, -60], [W + 260, H - 40], [-260, H - 40]])
+        dst = np.float32([[150, 0], [W - 150, 0], [W + 120, H], [-120, H]])
         self.Mp = cv2.getPerspectiveTransform(src, dst)
-        x, y = K.grid()
         st = cv2.resize(D._tile(205)[:H // 2, :W // 2], (W, H))
-        self.stone = (0.75 + 0.5 * st) * (0.55 + 0.45 * (1 - y / H))
+        self.stone = 0.7 + 0.6 * st
+        self.wet = np.clip((cv2.resize(D._tile(207)[:H // 4, :W // 4], (W, H)) - 0.55) * 4, 0, 1)
 
     def render(self, t):
         u = self.u(t)
-        fr = D.night(t, 201, top=(0.03, 0.033, 0.045), glow=(1500, 60, 500, (0.4, 0.45, 0.6), 0.3))
-        p = eo(cl((t - self.t0) / 0.7), 2)
-        wl = T.text_wall(np.zeros((H, W, 3), np.float32), p, mode='build', bricks=self.B, brick=(150, 92), seed=4)
+        x, y = K.grid()
+        scroll = -150 * u                                     # 相机后退：地面向上走
+        Bs = [dict(b, y=b['y'] + scroll) for b in self.B]
+        wl = T.text_wall(np.zeros((H, W, 3), np.float32), 1.0, mode='build', bricks=Bs, brick=(150, 92), seed=4)
         wl = cv2.warpPerspective(wl, self.Mp, (W, H))
         m = np.clip(wl.max(-1) * 5, 0, 1)
-        gold = np.clip((wl[..., 0] - wl[..., 2]) * 3, 0, 1) * m
-        flash = 0.6 * impact(t, 182.2, 0.14) + 0.9 * impact(t, V(O[45][3]), 0.1)
-        x, y = K.grid()
-        light = 0.55 + 0.9 * flash * np.exp(-(((x - 1500) / 900) ** 2 + ((y - 100) / 600) ** 2))
-        gl = 1.4 + 0.6 * math.sin(t * 13)
-        wl = wl * self.stone[..., None] * light[..., None] * (1 - gold[..., None]) + wl * gold[..., None] * gl
-        fr = fr * (1 - m[..., None]) + wl
-        fr = D.godrays(fr, gold, (960, 480), amt=0.5 * p)
-        fr = K.rain(fr, t, 20, n=600, amt=0.35, angle=12)
-        fr = K.fog(fr, t, 45, amt=0.5, speed=(90, -10), y0=0.75, y1=1.0, color=(0.22, 0.23, 0.27))
-        h = lerp(560, 600, u)
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (980, 1030), D.fit_scale(self.sp, h), expo=0.55 + 0.4 * flash, sat=0.5,
-                              rim=(1.0, 0.8, 0.5), rim_amt=3.0 + 4 * flash, rim_dir=(0.0, -1.0), wind=9)
-        its = [(c, 230, 270 + k * 135, 115, cp(t, O[45][k], 0.16), 'w') for k, c in enumerate('谁定的')]
-        # 「规」「矩」金砖脱墙 → 金色宋体巨字
-        for k, (ch, x1, y1) in enumerate((('规', 1520, 330), ('矩', 1520, 640))):
-            pq = cp(t, O[45][3 + k], 0.22)
+        flash = 0.5 * impact(t, 182.2, 0.14) + 0.8 * impact(t, V(O[45][3]), 0.1)
+        key = 0.35 + 0.45 * np.exp(-(((x - 1300) / 1100) ** 2 + ((y - 200) / 800) ** 2)) + 0.6 * flash
+        fr = np.array([0.012, 0.013, 0.017], np.float32) * np.ones((H, W, 3), np.float32)
+        fr = fr * (1 - m[..., None]) + wl * (self.stone * key)[..., None]
+        # 积水高光（冷）随相机移动
+        wet = np.roll(self.wet, int(scroll), 0)
+        fr = fr + (wet * key * 0.12)[..., None] * np.array(COLD, np.float32)
+        # 「规」「矩」两块砖先渗金光 → 金字从地面立起（门）
+        its = []
+        for k, (ch, gx, gy) in enumerate((('规', 470, 660), ('矩', 1450, 660))):
+            on = O[45][3 + k]
+            pre = cl((t - (V(on) - 0.3)) / 0.3)
+            if pre > 0:
+                g = np.exp(-(((x - gx) / 110) ** 2 + ((y - gy - 70) / 60) ** 2)) * pre
+                fr = fr + g[..., None] * GOLD * 1.2
+            pq = cp(t, on, 0.2)
             if pq > 0:
-                its.append((ch, lerp(930 + 70 * k, x1, eo(pq)), lerp(420, y1, eo(pq)), lerp(70, 270, eo(pq)), min(1, pq * 3), 'g'))
+                its.append((ch, gx, gy + 70 * (1 - eo(pq)), lerp(90, 330, eo(pq)), min(1, pq * 3), 'g'))
+        # 「谁定的」：他刚踏过的砖（身后、画面上方）依次亮起
+        lit = []
+        for k, c in enumerate('谁定的'):
+            pk = cp(t, O[45][k], 0.16)
+            if pk > 0: lit.append((c, 700 + 260 * k, 262, 150, pk, 'w'))
+        fr = D.song(fr, lit, glow=0.3)
+        # 人物：俯拍朝镜头冲刺，逐渐变大
+        h = lerp(560, 660, ei(u, 1.3))
+        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 930 + 40 * u), D.fit_scale(self.sp, h), expo=1.0 + 0.3 * flash, sat=0.55,
+                               rim=COLD, rim_amt=4.0 + 3 * flash, rim_dir=(0.6, -0.8), wind=10)
         fr = D.song(fr, its)
-        return shake_cam(fr, t, [V(O[45][3]), V(O[45][4])], 5, z=1.0 + 0.06 * eo(u, 2), oy=-14 * u), 0.0
+        fr = K.rain(fr, t, 20, n=500, amt=0.28, angle=4)
+        fr = K.fog(fr, t, 45, amt=0.3, speed=(70, -10), y0=0.0, y1=0.35, color=(0.2, 0.21, 0.25))
+        return shake_cam(fr, t, [V(O[45][3]), V(O[45][4])], 6, z=1.04 - 0.03 * eo(u, 2), rot=-1.5 + 1.5 * u), 0.0
 
 
 class S21_Charge(Shot):
