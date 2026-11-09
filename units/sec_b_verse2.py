@@ -1113,7 +1113,8 @@ class V20(Shot):
         x, y = K.grid()
         sk = night_sky(6501, top=(0.05, 0.055, 0.07), bot=(0.30, 0.31, 0.34), horizon=0.50)
         wl, wm = city_wall_far(6502, 400, self.WL + 4, tone=0.075)
-        sk = sk * (1 - wm[..., None] * 0.85) + K.blur_ds(wl, 4) * wm[..., None] * 0.85
+        wm = K.blur_ds(wm, 6)
+        sk = sk * (1 - wm[..., None] * 0.55) + K.blur_ds(wl, 9) * wm[..., None] * 0.55
         sk += np.exp(-(((x - 1250) / 520) ** 2 + ((y - 470) / 160) ** 2))[..., None] * np.array([0.10, 0.11, 0.13], np.float32)   # 城楼后冷月雾光
         self.sky = sk
         self.fog = fx2.Fog(6503)
@@ -1124,8 +1125,8 @@ class V20(Shot):
 
     def scene(self, t):
         x, y = K.grid()
-        up = self.fog.draw(self.sky.copy(), t, density=0.55, y0=330, y1=self.WL, color=(0.30, 0.32, 0.36), speed=(25, 0), top_fade=200)
-        up, _ = put(up, self.sp, t, 360, (760, self.WL + 4), rim=dict(col=(0.78, 0.86, 1.0), amt=3.0, dir=(0.5, -1.0)),
+        up = self.fog.draw(self.sky.copy(), t, density=0.8, y0=300, y1=self.WL, color=(0.30, 0.32, 0.36), speed=(25, 0), top_fade=200)
+        up, _ = put(up, self.sp, t, 395, (760, self.WL + 4), rim=dict(col=(0.78, 0.86, 1.0), amt=3.0, dir=(0.5, -1.0)),
                     grade=dict(expo=0.80, sat=0.55, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.12), wind_amp=7, shade=None, wrap=0.3)
         # 倒影：上半关于水线翻转 + 涟漪 + 冷暗
         refl = np.zeros_like(up)
@@ -1150,8 +1151,15 @@ class V20(Shot):
             if pc > 0: T.place(L, ch, 1480, 230 + i * 135, 120, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
         fr = T.compose(fr, L, shadow=0.85, glow=0.12)
         ang = 90 * ein(clamp01((u - 0.45) / 0.55), 2)
-        fr = cam(fr, 1.0 + 0.10 * eio(u), 0, 0, ang)
+        fr = roll_cover(fr, ang, 1.0 + 0.06 * eio(u))
         return fr, 0
+
+
+def roll_cover(fr, ang, extra=1.0):
+    """第五棒：旋转时按角度补足缩放（cos|θ| + 16/9·sin|θ|），画面四角永远被内容填满——不再露出 BORDER_REFLECT 的镜像人/黑角"""
+    a = math.radians(ang)
+    z = abs(math.cos(a)) + (W / H) * abs(math.sin(a))
+    return cam(fr, max(1.0, z) * extra, 0, 0, ang)
 
 
 class V21(Shot):
@@ -1173,7 +1181,7 @@ class V21(Shot):
         # 90°→180°，同时反相（黑白颠倒）；「黑」「白」随反相互换
         e = eio(u)
         ang = 90 + 90 * eout(u, 2)
-        fr = cam(fr, 1.0 + 0.12 * (1 - e) + 0.04, 0, 0, ang)
+        fr = roll_cover(fr, ang, 1.04 + 0.04 * (1 - e))
         k = sstep(0.2, 0.55, u)
         vg = np.exp(-(((K.grid()[0] - 960) / 1100) ** 2 + ((K.grid()[1] - 540) / 650) ** 2))[..., None]
         fr = fr * (1 - k) + neg_grade(fr) * k                         # 负片：S 曲线高反差 + 重暗角（第四棒：去灰）
