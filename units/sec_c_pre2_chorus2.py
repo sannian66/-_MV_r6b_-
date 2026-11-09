@@ -1136,9 +1136,9 @@ class C27(Shot):
     def render(self, t):
         u = self.u(t)
         tt = V(147.28)
-        fl = 0.8 + 1.6 * bolt_env(t, tt) + 0.6 * pulse(t, V(146.5), 0.1)
+        fl = 0.6 + 1.0 * bolt_env(t, tt) + 0.4 * pulse(t, V(146.5), 0.1)
         fr = storm(t, 27, horizon=900, flash=fl, fc=(960, 400), refl=0.9)
-        fr = fr + sm(tt - 0.05, tt + 0.1, t) * 0.5 * (1 - sm(tt + 0.3, tt + 0.8, t))
+        fr = fr + sm(tt - 0.05, tt + 0.1, t) * 0.18 * (1 - sm(tt + 0.3, tt + 0.8, t))
         fr = K.vol_light(fr, (960, 500), 380, (0.85, 0.9, 1.0), 0.35 * fl)
         r = np.random.default_rng(27)
         ys = np.linspace(BAR - 20, 910, 30)
@@ -1164,13 +1164,13 @@ class C28(Shot):
     化成一束束体积光扫过画面；他背对镜头站在光里（look_up_back 第 2 次，C14 过肩大特写 → 这里中景逆光剪影），
     147.74 光最满；随后乌云从字形边缘涌回、光束暗下去——只是闪电的伪天亮。"""
     def __init__(self):
-        a = T.glyph('亮', 'serif_black', 560, False).astype(np.float32)
+        a = T.glyph('亮', 'serif_black', 540, False).astype(np.float32)
         g = a.shape[0]
         r = np.random.default_rng(28)
         nz = cv2.resize(r.random((g // 10, g // 10)).astype(np.float32), (g, g))
         a = np.clip(cv2.dilate(a, np.ones((9, 9), np.uint8)) * (0.75 + 0.5 * nz) - 0.25, 0, 1) * 1.5
         self.hole = np.zeros((H, W), np.float32)
-        y0, x0 = 470 - g // 2, 960 - g // 2
+        y0, x0 = 440 - g // 2, 960 - g // 2
         self.hole[y0:y0 + g, x0:x0 + g] = np.clip(a, 0, 1)
         wall = 0.035 + 0.03 * cv2.resize(K.tex('c28w', seed=28, base=14, octaves=4), (W, H))
         bw = np.zeros((H, W), np.float32)
@@ -1185,6 +1185,9 @@ class C28(Shot):
             p = crack_path((960, 470), (960 + math.cos(a0) * 1100, 470 + math.sin(a0) * 650), 280 + i, n=22, jag=0.08)
             cr = np.maximum(cr, draw_crack(cr.shape, p / 4, 1, branches=2, seed=i, prog=1.0))
         self.crack = cv2.resize(cr, (W, H))
+        h4 = cv2.resize(self.hole, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
+        self.g120 = cv2.resize(cv2.GaussianBlur(h4, (0, 0), 30), (W, H))[..., None]
+        self.g200 = cv2.resize(cv2.GaussianBlur(h4, (0, 0), 50), (W, H))[..., None]
     def render(self, t):
         u = self.u(t)
         tl = V(147.74)
@@ -1192,8 +1195,8 @@ class C28(Shot):
         hole = self.hole
         sky = storm_sky(t, 28, 2000, flash=0.9 + 0.8 * lt, cloud=0.8)
         sky = sky * 0.4 + np.array([0.95, 0.93, 0.88], np.float32) * (0.35 + 0.65 * lt)
-        fr = self.wall * (1 + 2.5 * lt * cv2.GaussianBlur(hole, (0, 0), 120)[..., None])
-        fr = fr + self.crack[..., None] * np.array([1.0, 0.9, 0.7], np.float32) * (0.25 + 0.9 * lt) * cv2.GaussianBlur(hole, (0, 0), 200)[..., None] * 8
+        fr = self.wall * (1 + 2.5 * lt * self.g120)
+        fr = fr + self.crack[..., None] * np.array([1.0, 0.9, 0.7], np.float32) * (0.25 + 0.9 * lt) * self.g200 * 8
         fr = fr * (1 - hole[..., None]) + sky * hole[..., None]
         # 体积光：字形光源向镜头放射（径向拖影）
         src = (hole[..., None] * sky).astype(np.float32)
@@ -1203,7 +1206,7 @@ class C28(Shot):
             acc += cv2.warpAffine(src, np.float32([[z, 0, 960 * (1 - z)], [0, z, 470 * (1 - z)]]), (W, H)) * (1 - i / n)
         fr = fr + acc / n * 0.9 * lt * np.array([1.0, 0.92, 0.8], np.float32)
         fr = dust(fr, t, 281, n=160, amt=0.6 * lt, drift=(10, -20), region=(300, BAR, 1620, H - BAR), color=(1.0, 0.9, 0.7))
-        fr, _ = put(fr, t, 'C/look_up_back', 960, 1030, 640, look='sil', rim=(1.0, 0.85, 0.6), rim_amt=3.2 + 2 * lt, rim_dir=(0, -1), wind=5,
+        fr, _ = put(fr, t, 'C/look_up_back', 960, 1070, 470, look='sil', rim=(1.0, 0.85, 0.6), rim_amt=3.2 + 2 * lt, rim_dir=(0, -1), wind=5,
                     flash=0.4 * lt)
         fr = rain(fr, t, 280, inten=0.9, angle=6, light=(960, 470))
         # 乌云从边缘涌回（墨色）
