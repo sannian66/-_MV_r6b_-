@@ -863,7 +863,7 @@ class C14(Shot):
         fr = K.vol_light(fr, (1100, 330), 200, (1.0, 0.4, 0.15), 0.35)          # 风眼余烬（承接 C13）
         fr = bolt(fr, t, tb, 141, (1100, 330), (1500, 1000), inten=1.3, width=4)
         fr = rain(fr, t, 141, inten=0.8, angle=12, layers=(0, 1), light=(1100, 330))
-        fr, _ = put(fr, t, 'C5/c14_ots', 700 + 25 * u, 1000, 980 * (1 + 0.03 * u), anchor='src', src=(0.53, 1.0), rim=(0.92, 0.95, 1.0),
+        fr, _ = put(fr, t, 'C5/c14_ots', 720 + 25 * u, 1100, 760 * (1 + 0.03 * u), anchor='src', src=(0.53, 1.0), rim=(0.92, 0.95, 1.0),
                     rim_amt=3.6, rim_dir=(0.35, -1), flash=fl, expo=0.42, sat=0.4, wrap=0.5, wind=5, breathe=0.0)
         fr = sparks(fr, t, 142, (720, 420), n=40, life=0.8, speed=(120, 420), dirc=(-0.3, -1), spread=1.3, grav=900, amt=0.4 + 0.8 * fl,
                     color=(0.85, 0.9, 1.0), area=(200, 40))
@@ -887,8 +887,8 @@ class C15(Shot):
         x = 760 + 260 * eout(k / 0.6, 2) + 20 * k
         # 第五棒（评审 P0：扁平黑剪影）：真实雷光照亮的生图精灵——冷白轮廓光 + 闪电补光 + 体积光，不再填黑
         fr = K.vol_light(fr, (x + 120, y - 330), 520, (0.85, 0.9, 1.0), 0.35 + 0.5 * fl)
-        fr, _ = put(fr, t, 'C/leap_arc', x, y, 480, rim=(0.9, 0.93, 1.0), rim_amt=3.4, rim_dir=(0.3, -1), flash=0.6 * fl, expo=0.8,
-                    sat=0.55, mblur=(0, 30 * (1 - sm(0.15, 0.45, k))), wind=10 * ramp)
+        fr, _ = put(fr, t, 'C/leap_arc', x, y, 480, rim=(0.9, 0.93, 1.0), rim_amt=3.4, rim_dir=(0.3, -1), flash=0.6 * fl, expo=0.8 + 0.5 * bolt_env(t, tb),
+                    sat=0.55, mblur=(0, 12 * (1 - sm(0.05, 0.22, k))), wind=10 * ramp)
         fr = rain(fr, self.t0 + 0.45 + (t - self.t0 - 0.45) * (0.08 if k > 0.45 else 1), 150, inten=1.1, angle=10,
                   freeze=sm(0.35, 0.6, k) * 0.5)
         return fr
@@ -1509,7 +1509,7 @@ class C30(Shot):
     def render(self, t):
         u = self.u(t)
         fr = storm(t, 30, horizon=1300, flash=0.25 + 0.6 * bolt_env(t, V(149.70)), ground=False)
-        fr, _ = put(fr, t, 'S083/sash', 900 - 80 * u, 600, 1500, anchor='src', src=(0.5, 0.62), rim=COLD, rim_amt=1.8, expo=1.0, sat=0.9,
+        fr, _ = put(fr, t, 'S083/sash', 900 - 80 * u, 700, 1500, anchor='src', src=(0.5, 0.62), rim=COLD, rim_amt=1.8, expo=1.0, sat=0.9,
                     wind=22, flash=0.4 * bolt_env(t, V(149.70)))
         fr = rain(fr, t, 300, inten=1.0, angle=20)
         self.ca = 3 if 0 <= t - V(149.70) < 0.1 else 0
@@ -1982,7 +1982,7 @@ S = Sent
 SENTS = [
     # 预副歌二：铅字打字机（权力的话）
     S(29, [0, 1, 2, 3], 560, 880, size=58, mode='type', glitch='正义', exit='glitch', out=V(122.79)),                 # 谁的正义（C04）
-    S(29, [4, 5, 6, 7, 8], 1480, 220, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.90)),   # 第五棒：延续进 C06 前 6 帧，「的」不断档  # 成了交易的（C05）
+    S(29, [4, 5, 6, 7, 8], 1735, 300, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.90)),   # 第五棒：延续进 C06 前 6 帧，「的」不断档  # 成了交易的（C05）
     # 「我不低头」起：他自己的重字（Black，朱红「不」逐拍落下）
     S(30, [0, 1, 2, 3], 420, 330, size=96, mode='fly', layout='v', red='不', exit='shatter', out=V(125.62), track=0.12),
     S(30, [4, 5, 6], 1640, 540, size=120, mode='fly', layout='v', red='不命', exit='cut', out=V(126.22), track=0.12, back=0.7, sizes=[110, 110, 150]),   # 第五棒：脸偏左、字竖排右侧鬓发暗区（不压脸），切点前才收
@@ -2000,13 +2000,13 @@ SENTS = [
     S(35, [5, 6, 7], 1560, 300, size=100, mode='fly', layout='v', exit='cut', out=V(147.38), track=0.3, back=0.6),    # 看个天（竖排压在暗墙上）
     S(36, [0, 1, 2], 1600, 230, size=150, mode='fly', layout='v', red='血', exit='shatter', out=V(150.22), track=0.05,
       sizes=[220, 110, 110]),                                                                                          # 血未冷（C30）
-    S(36, [3, 4, 5], 420, 260, size=110, mode='fly', red='骨', exit='shatter', out=V(151.62)),                       # 骨未凉（C31）
+    S(36, [3, 4, 5], 1560, 500, size=110, mode='fly', red='骨', exit='shatter', out=V(151.62)),                       # 骨未凉（C31）
     # 第五棒：「是非对错」改为画内刀光残影字（C32–C34），不再走屏幕层
     S(37, [4, 5, 6, 7], 1380, 820, size=100, mode='fly', red='扛', exit='shatter', out=V(155.25), sizes=[96, 96, 96, 190], back=0.6),   # 我自己扛（C35 → C35b）
     S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.38), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
     S(39, [0, 1], 420, 820, size=100, mode='fly', exit='shatter', out=V(159.64), back=0.5),                         # 这一
     S(39, [2, 3, 4, 5], 1400, 290, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
-    S(39, [6, 7, 8], 1340, 800, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
+    S(39, [6, 7, 8], 1460, 280, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
 ]
 
 
