@@ -1056,21 +1056,48 @@ class E27b(Shot):   # 斩：纯刀光——一道巨大的金白弧光自左上�
         return bloom(fr, 0.7, 0.7)
 
 
-class E27c(Shot):   # 匾碎：E04/E05 那块「天理昭彰」金匾终于被斩碎——裂开、金箔碎片扑面，匾后是黑
+class E27c(Shot):   # 匾碎（第五棒重做，去和 E04 正面平拍撞构图）：低角度 3/4 透视仰拍，「天理昭彰」匾被一刀从中斩成两半，
+    #  两半各自翻转下坠、断口烧红喷金，金箔碎片扑面；背景高窗一道斜光（延续 E04 的殿，但机位换到匾下侧前方）
     def __init__(self):
         self.pl = PR.Plaque('天理昭彰', seed=3)
         self.burst = R3.Shreds(271, n=60, gold=0.9, size=(30, 110), spread=(900, 360), zr=(0.6, 2.0))
+        z = np.zeros((H, W, 3), np.float32)
+        P = plaque_lit(self.pl, z, 0.0, 960, 540, 1500, [-9] * 4, crack=0.25, dim=0.85)
+        A = np.clip(P.max(-1) * 14, 0, 1)
+        src = np.float32([[210, 270], [1710, 270], [1710, 810], [210, 810]])            # 匾的大致四角 → 低角度 3/4 透视（左近右远、仰视）
+        dst = np.float32([[120, 330], [1500, 140], [1560, 560], [60, 900]])
+        M = cv2.getPerspectiveTransform(src, dst)
+        self.P = cv2.warpPerspective(P, M, (W, H)); self.A = cv2.warpPerspective(A, M, (W, H))
+        self.cut = (np.array([860.0, 150.0]), np.array([700.0, 960.0]))                   # 斩线（斜竖）
 
     def render(self, t):
         u = self.u(t)
-        fr = np.zeros((H, W, 3), np.float32) + np.array([0.02, 0.016, 0.014], np.float32)
-        base = fr.copy()
-        sc = 1.0 + 0.25 * eout(u)
-        fr = plaque_lit(self.pl, fr, t, 960, 520, 1500 * sc, [t - 9] * 4, crack=1.0, dim=0.7, tilt=-4 + 8 * u)
-        fr = base + (fr - base) * (1 - 0.7 * eio(u))                       # 匾碎后沉入黑
-        fr = self.burst.draw(fr, 0.2 + u * 1.1, to_cam=1.3, light=(0.2, -0.5, -0.8), dof=(1.5, 10.0), zfocus=1.0, emb=0.2)
-        if u < 0.15: fr = fr + np.array([0.5, 0.3, 0.1], np.float32) * (1 - u / 0.15)
-        return bloom(fr, 0.75, 0.6)
+        fr = np.zeros((H, W, 3), np.float32) + np.array([0.025, 0.018, 0.015], np.float32)
+        fr = fx2.light_beam(fr, (1700, 60), (1100, 1000), 40, 420, t=t, strength=0.45, seed=271)
+        p0, p1 = self.cut; d = (p1 - p0) / np.linalg.norm(p1 - p0)
+        yy, xx = E.grid()
+        side = ((xx - p0[0]) * d[1] - (yy - p0[1]) * d[0]) > 0                            # True = 右半
+        q = eout(c01(u / 0.9), 2)
+        fall = (q ** 1.6) * 260
+        out = fr
+        for s_, rot, dx in ((False, -9, -70), (True, 11, 90)):
+            m = (side == s_).astype(np.float32)
+            C = self.P * m[..., None]; Am = self.A * m
+            cx, cy = (600, 520) if not s_ else (1250, 420)
+            R = cv2.getRotationMatrix2D((cx, cy), rot * q, 1.0); R[0, 2] += dx * q; R[1, 2] += fall
+            C = cv2.warpAffine(C, R, (W, H)); Am = cv2.warpAffine(Am, R, (W, H))
+            if q > 0.05:
+                C = K.mblur(C, 0, 18 * q) if hasattr(K, 'mblur') else cv2.blur(C, (1, int(1 + 22 * q)))
+                Am = cv2.blur(Am, (1, int(1 + 22 * q)))
+            sd = np.abs(((xx - p0[0]) * d[1] - (yy - p0[1]) * d[0]))                    # 断口烧红
+            edge = np.exp(-(sd / 10) ** 2)
+            edge = cv2.warpAffine(edge.astype(np.float32), R, (W, H)) * Am
+            out = out * (1 - Am[..., None]) + C * Am[..., None] + edge[..., None] * np.array([1.0, 0.45, 0.12], np.float32) * 2.2
+        sl = np.exp(-(((xx - p0[0]) * d[1] - (yy - p0[1]) * d[0]) / (6 + 40 * q)) ** 2) * (1 - q) * 1.4            # 刀线余光
+        out = out + sl[..., None] * GOLDW
+        out = self.burst.draw(out, 0.2 + u * 1.1, to_cam=1.3, light=(0.2, -0.5, -0.8), dof=(1.5, 10.0), zfocus=1.0, emb=0.2)
+        out = RS.fx_embers(out, t, 2711, amt=0.7, n=50)
+        return bloom(out, 0.75, 0.6)
 
 
 class E28(Shot):   # S132b ECU 暗红腰带与马尾在逆光里翻飞（红绳母题收束）
@@ -1328,13 +1355,13 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E20': ('iris_moon', 0.0, 0.30, dict(center=(960, 520), radius=120, sun=True)),
     'E21': ('flash_red', 0.0, 0.16, {}),
     'E22': ('match_cut', 0.0, 0.18, dict(shape='circle', center=(960, 330), radius=120)),
-    'E23': ('hard', 0, 0, {}),
+    'E23': ('impact', 0, 0, dict(col=(1.0, 0.86, 0.6), amp=10)),     # 第五棒：硬切加冲击（金白闪 2 帧 + 抖 4 帧 + 色散）
     'E24': ('hard', 0, 0, {}),
     'E25': ('slash_wipe', 0.03, 0.12, dict(angle=-8)),
     'E26': ('match_cut', 0.0, 0.22, dict(shape='line', center=(960, 600), angle=0)),
-    'E27a': ('hard', 0, 0, {}),
-    'E27b': ('hard', 0, 0, {}),
-    'E27c': ('hard', 0, 0, {}),
+    'E27a': ('impact', 0, 0, dict(col=(1.0, 0.25, 0.12), amp=12)),   # 第五棒：朱红闪 + 抖
+    'E27b': ('impact', 0, 0, dict(col=(1.0, 0.9, 0.7), amp=12)),     # 第五棒：白金闪 + 抖
+    'E27c': ('slash_wipe', 0.03, 0.10, dict(angle=-78)),               # 第五棒：E27b 刀光延续成斩线 → 匾
     'E28': ('blade_black', 0.04, 0.10, dict(angle=35, width=170)),
     'E29': ('ink_swallow', 0.18, 0.18, dict(center=(1000, 500), seed=9)),
     'E30': ('hard', 0, 0, {}),
@@ -1437,7 +1464,7 @@ class _Sec:
             if j <= 0 or j >= len(SHOTS): continue
             name, pre, post, kw = CUTS.get(IDS[j], ('hard', 0, 0, {}))
             c = BOUNDS[j] / FPS
-            if name in ('hard', 'cut', 'entry_flash') or not (c - pre - 1e-6 <= t < c + post - 1e-6): continue
+            if name in ('hard', 'cut', 'entry_flash', 'impact') or not (c - pre - 1e-6 <= t < c + post - 1e-6): continue
             B = self.full(j, t)
             A = self.full(j - 1, min(t, c - 1 / FPS) if pre == 0 else t)
             p = (t - (c - pre)) / (pre + post)
@@ -1453,6 +1480,13 @@ class _Sec:
             p = c01(k / (0.22 * FPS))
             fr = fr * (0.4 + 0.6 * p) + np.array([1.0, 0.92, 0.78], np.float32) * (1 - p) ** 2 * 1.2
             ca = 3 if k < 3 else 0
+        elif name == 'impact' and k < 5 and i > 0:              # 第五棒：硬切冲击 = 2 帧色闪 + 4 帧位移抖 + RGB 分离
+            kw = CUTS[IDS[i]][3]; amp = kw.get('amp', 10)
+            fl = (1.0, 0.55, 0, 0, 0)[k]
+            sx = amp * (1, -0.8, 0.6, -0.35, 0.15)[k]; sy = amp * (-0.6, 0.7, -0.4, 0.25, -0.1)[k]
+            fr = K.cam(fr, 1 + 0.03 * (1 - k / 5), ox=sx, oy=sy)
+            fr = fr * (1 + 0.6 * fl) + np.asarray(kw.get('col', (1, 1, 1)), np.float32) * 0.45 * fl
+            ca = (6, 5, 3, 2, 1)[k]
         elif name == 'hard' and k < 2 and i > 0:
             a = 1.0 if k == 0 else 0.45
             fr = K.cam(fr, 1 + 0.025 * a) * (1 + 0.15 * a) + 0.04 * a
