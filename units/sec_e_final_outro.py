@@ -969,7 +969,7 @@ class E21(Shot):   # S127 CU（第三棒重做）逆光侧脸：低调光，脸�
         return R3.rub_text(fr, [('判', 1230, 400, 230, CT(54, 2), to, t), ('我', 1560, 600, 330, CT(54, 3), to, t)], seed=21)
 
 
-class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他自己成了秤；「我来量」刻在刀身上（逐字烧亮）
+class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中（支点）——他自己成了秤；第六棒：「我」「来」= 两端秤盘，「量」= 刀心下垂的秤砣
     GR = dict(expo=0.55, sat=0.55, tint=(1.04, 0.97, 0.9), lift=0.0, gamma=1.2)
 
     def __init__(self):
@@ -985,12 +985,15 @@ class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他
         xs = np.where(A[r])[0]
         self.cal = dict(y=r - dy, x0=int(xs[0]), x1=int(xs[-1]))
         ch = '我来量'; ts = [CT(54, 3), CT(54, 4), CT(54, 5)]
-        # 第五棒：刻刀字放大可读（≥60px）。我/来 金色内发光刻痕坐在刀身上（墨描边，亮日上也读得出），量 朱红大字落在刀尖
+        # 第六棒：去和副歌一 S044「刀身下一行刻字」撞概念 —— 横刀成秤：「我」「来」是刀两端吊着的秤盘、「量」是刀心（日 = 支点）下垂的秤砣
         y = self.cal['y']; x0, x1 = self.cal['x0'], self.cal['x1']
-        self.chx = [x0 + 0.27 * (x1 - x0), x0 + 0.47 * (x1 - x0), x1 - 0.05 * (x1 - x0)]
-        self.eng = LyrO([('我', self.chx[0], y + 56, 78, 'serif_black', GOLD_T, ts[0]), ('来', self.chx[1], y + 56, 78, 'serif_black', GOLD_T, ts[1]),
-                         ('量', self.chx[2], y + 84, 132, 'serif_black', REDT, ts[2])],
-                        CT(55, 0) - 0.1, seed=170, outline=5, glow=0.9, shadow=0.6, direction=(1.0, 0.0))
+        self.pan = [x0 + 0.13 * (x1 - x0), x1 - 0.13 * (x1 - x0)]
+        self.chx = [self.pan[0], self.pan[1], 960]
+        PY = y + 205; WY = y + 330
+        self.eng = LyrO([('我', self.pan[0], PY - 62, 120, 'serif_black', GOLD_T, ts[0]), ('来', self.pan[1], PY - 62, 120, 'serif_black', GOLD_T, ts[1]),
+                         ('量', 960, WY, 150, 'serif_black', REDT, ts[2])],
+                        CT(55, 0) - 0.1, seed=170, outline=5, glow=0.7, shadow=0.7, direction=(0.0, -1.0))
+        self.PY, self.WY = PY, WY
         self.ts = ts                                                       # 底部重复副句去掉（刀上的字已成立）
 
     def render(self, t):
@@ -1018,7 +1021,28 @@ class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他
         return bloom(fr, 0.8, 0.5)
 
     def text(self, fr, t):
-        return self.eng.draw(fr, t, dy=getattr(self, 'by', self.cal['y']) - self.cal['y'] if self.cal else 0)
+        if not self.cal: return fr
+        dy = getattr(self, 'by', self.cal['y']) - self.cal['y']
+        y = self.cal['y'] + dy
+        fr = np.ascontiguousarray(fr, np.float32)
+        for k in range(3):                                                 # 秤绳 / 秤盘 / 秤砣挂绳：随各自的字一起出现
+            a = c01((t - (self.ts[k] - 0.2)) / 0.2)
+            if a <= 0: continue
+            cx = self.chx[k]
+            if k < 2:
+                py = self.PY + dy + 6 * math.sin((t - self.ts[k]) * 9) * math.exp(-(t - self.ts[k]) / 0.4) * (t > self.ts[k])
+                ov = fr.copy()
+                for sx in (-95, 0, 95):
+                    cv2.line(ov, (int(cx), int(y + 4)), (int(cx + sx), int(py)), (0.55, 0.42, 0.25), 3, cv2.LINE_AA)
+                cv2.ellipse(ov, (int(cx), int(py)), (118, 26), 0, 0, 180, (0.10, 0.07, 0.05), -1, cv2.LINE_AA)
+                cv2.ellipse(ov, (int(cx), int(py)), (118, 26), 0, 0, 180, (1.0, 0.72, 0.36), 3, cv2.LINE_AA)
+                cv2.line(ov, (int(cx - 118), int(py)), (int(cx + 118), int(py)), (1.0, 0.8, 0.45), 3, cv2.LINE_AA)
+                fr = fr * (1 - a) + ov * a
+            else:
+                ov = fr.copy()
+                cv2.line(ov, (960, int(y + 4)), (960, int(self.WY + dy - 95)), (0.75, 0.5, 0.28), 3, cv2.LINE_AA)
+                fr = fr * (1 - a) + ov * a
+        return self.eng.draw(fr, t, dy=dy)
 
 
 class E23(Shot):   # S129 MCU 后撤蓄力，速度坡度推近（吸气）
