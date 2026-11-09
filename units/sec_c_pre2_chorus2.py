@@ -566,7 +566,16 @@ class C09(Shot):
 
 
 class C10(Shot):
-    """CU：宋体「大局为上」四块铅字牌挂在红线上（字即物体）；127.86 一道横刀光斩断，四字坠入积水。"""
+    """CU：宋体「大局为上」四块铅字（立体铅活字：铅灰字身、金字凸面）挂在红线上（字即物体）；127.86 一道横刀光斩断，四字坠入积水。"""
+    def __init__(self):
+        self.blocks = []
+        for i, c in enumerate('大局为上'):
+            face = CP.stone_tex(256, 256, 100 + i, base=(0.16, 0.16, 0.17), border=True)
+            m = CP.text_mask(c, 190, 256, 256)
+            e = CP.emboss(m, 3.0)
+            face = face * (1 - m[..., None]) + m[..., None] * np.array([0.95, 0.70, 0.30], np.float32) * (1 + 0.6 * e[..., None])
+            side = CP.stone_tex(256, 160, 110 + i, base=(0.13, 0.13, 0.14), border=False)
+            self.blocks.append(CP.Cuboid(dict(front=face, side=side)))
     def render(self, t):
         u = self.u(t)
         tc = V(127.86)
@@ -589,12 +598,10 @@ class C10(Shot):
                 if t > tc: fr = splash(fr, t, tc + math.sqrt(max(0, (800 - 430) / 1300 / (0.8 + 0.1 * i))), (x, 800), 40 + i, n=60, spread=150, up=500)
                 continue
             # 铅字牌：金属块（暗）+ 金字
-            L = T.Layer(); a = np.ones((190, 190), np.float32)
-            T.place(L, ' ', x, y, 10, CREAM)
-            M = cv2.getRotationMatrix2D((95, 95), ang, 1.0); a = cv2.warpAffine(a, M, (190, 190))
-            L.paste(a * 0.92, x, y, (0.06, 0.055, 0.05))
-            fr = T.compose(fr, L, shadow=0.7, shadow_sigma=18, glow=0)
-            fr = paste_glyph(fr, '大局为上'[i], x, y, 150, GOLD_T, font='serif_b', glow=0.35, glow_c=(1, 0.6, 0.25), rot=ang, shadow=0)
+            C_ = np.zeros((H, W, 3), np.float32); A_ = np.zeros((H, W), np.float32)
+            self.blocks[i].draw(C_, A_, x, y + 95, 190, 190, 120, yaw=-18 + 6 * i + sw * 2, pitch=-6, roll=ang, f=1600,
+                                light=(-0.4, 0.7, -0.6), amb=0.4, rim=COLD, rim_amt=0.7, flash=fl, spec=0.6)
+            fr = CP.compose(fr, C_, A_, shadow=0.5)
         fr = slash_streak(fr, (300, 330), (1700, 300), (t - tc) / 0.35, width=7)
         fr = rain(fr, t, 100, inten=0.9, angle=8)
         return fr
@@ -772,12 +779,12 @@ class C19(Shot):
         r = np.random.default_rng(19)
         for i, (x, sc) in enumerate(((360, 1.0), (1560, 1.05), (1240, 0.8))):
             sp = crowd.soldier_sprite(phase=0.3 * i, arm=0.6, weapon='spear', view='front', seed=i)
-            A = sp[0] if isinstance(sp, tuple) else sp['A'] if isinstance(sp, dict) else None
-            if A is None: break
-            A = cv2.resize(A.astype(np.float32), None, fx=sc * 1.6, fy=sc * 1.6)
+            A = sp['A'].astype(np.float32)
+            Cs = sp['base'].astype(np.float32) * (1 + 0.8 * fl) + sp['rim'][..., None].astype(np.float32) * COLD * (1.2 + 2 * fl)
+            A = cv2.resize(A, None, fx=sc * 1.6, fy=sc * 1.6); Cs = cv2.resize(Cs, (A.shape[1], A.shape[0]))
             h, w = A.shape[:2]
             k = max(0.0, t - ts - 0.05 * i)
-            for half, sgn in ((A[:h // 2], -1), (A[h // 2:], 1)):
+            for half, chalf, sgn in ((A[:h // 2], Cs[:h // 2], -1), (A[h // 2:], Cs[h // 2:], 1)):
                 hh = half.shape[0]
                 dy = sgn * 220 * k * k * 3 + (0 if sgn < 0 else 0)
                 dx = sgn * 90 * k * (1 if x < 960 else -1)
@@ -787,7 +794,10 @@ class C19(Shot):
                 a = half[ys - y0:ye - y0, xs - x0:xe - x0]
                 a = a[..., 0] if a.ndim == 3 else a
                 a = np.clip(a, 0, 1) * (1 - sm(0.2, 0.5, k))
-                fr[ys:ye, xs:xe] = fr[ys:ye, xs:xe] * (1 - a[..., None] * 0.95) + a[..., None] * 0.02
+                cc = chalf[ys - y0:ye - y0, xs - x0:xe - x0]
+                fr[ys:ye, xs:xe] = fr[ys:ye, xs:xe] * (1 - a[..., None]) + cc * a[..., None]
+                if sgn > 0 and k > 0:   # 切口亮线
+                    fr[ys:min(ye, ys + 3), xs:xe] += (a[:3, :, None] if a.shape[0] >= 3 else 0) * np.array([1.0, 0.9, 0.8], np.float32) * 1.5 * (1 - sm(0.1, 0.4, k))
         pose = 'S073/spin1' if t < ts else 'S073/spin2'
         fr, _ = put(fr, t, pose, 960, 990, 660, rim=COLD, rim_amt=2.3, flash=fl, expo=0.95, rotblur=-25 * pulse(t, ts, 0.1), wind=9)
         fr = arc_streak(fr, (960, 640), 760, 170, 160, -200, (t - ts) / 0.4, width=10)
@@ -1172,7 +1182,7 @@ class C36(Shot):
         fr = bolt(fr, t, V(155.40), 362, (1400, 100), (1500, 700), inten=0.8)
         fr, _ = self.army.draw(fr, t, cam=dict(x=0, y=9, z=0, pitch=16, f=1500), advance=0.0, march=0.0, kneel=1.0, kneel_wave=0.0,
                                part=0.12, rim_color=COLD, rim=1.0 + 2.0 * fl, fog_color=(0.10, 0.11, 0.14), fog_dist=38, torch=0.4,
-                               glint=0.6 + fl, origin=(0.0, 0.0, 14.0 - 1.5 * u))
+                               glint=0.6 + fl, origin=(0.0, 0.0, 9.0 - 1.5 * u))
         fr = fog(fr, t, 36, density=0.45, y0=640, y1=900, color=(0.35, 0.38, 0.46), speed=(60, 0))
         fr = rain(fr, t, 360, inten=0.8, angle=10)
         return fr
