@@ -538,7 +538,8 @@ class C06(Shot):
 
 
 class C07(Shot):
-    """MCU 雨夜：鬼屠在雨里抬起下颌（S065），闪电从背后勾边——「我不低头」从这里起，字体从铅字换成他自己的重字。"""
+    """MCU 雨夜：鬼屠在雨里抬起下颌，闪电从背后勾边——「我不低头」从这里起，字体从铅字换成他自己的重字。
+    第五棒：换统一定妆脸（高马尾版，生图 C5/c07_chin，参考 C40b point_cam），镜内 3° 抬颌 + 推近，不再用方下颌披发的 S065。"""
     def render(self, t):
         u = self.u(t)
         tf = V(124.90)
@@ -546,23 +547,26 @@ class C07(Shot):
         fr = storm(t, 7, horizon=1200, flash=0.5 + fl, fc=(1500, 120), ox=30 * u, ground=False)
         fr = bolt(fr, t, tf, 71, (1650, 40), (1500, 700), inten=0.8, sky=0.3, width=2.5)
         fr = rain(fr, t, 70, inten=0.6, angle=14, layers=(0, 1), light=(1500, 300))
-        fr, _ = put(fr, t, 'S065/chin_up', 1280, 1100, 1080, rim=COLD, rim_amt=2.6, rim_dir=(0.6, -0.8), flash=fl, expo=0.95, wind=8,
-                    tint=(0.92, 0.97, 1.06))
+        lift = eio(clamp((t - tf + 0.1) / 0.5))
+        fr, _ = put(fr, t, 'C5/c07_chin', 1240, 1000, 870, anchor='src', src=(0.5, 1.0), rot=2.5 - 4.0 * lift, rim=COLD, rim_amt=2.8,
+                    rim_dir=(0.7, -0.7), flash=fl, expo=0.95, wind=6, tint=(0.92, 0.97, 1.06), breathe=0.0)
         fr = rain(fr, t, 72, inten=0.9, angle=14, layers=(2, 3), light=(1500, 300))
         return fr
 
 
 class C08(Shot):
-    """ECU 同轴跳切进眼睛：雨水顺睫毛，闪电在瞳孔里一亮（「命」126.14 推）。"""
+    """ECU 同轴跳切进眼睛：雨水顺睫毛，闪电在瞳孔里一亮（「命」126.14 推）。
+    第五棒：换统一定妆脸的眼部大特写（生图 C5/c08_eyes），字放到头顶发区（不压脸），「命」亮朱红。"""
     def render(self, t):
         u = self.u(t)
         tf = V(126.14)
         fl = bolt_env(t, tf)
         fr = storm(t, 8, horizon=1200, flash=0.3 + fl * 0.7, ground=False)
-        z = 1.0 + 0.05 * pulse(t, tf, 0.15)
-        fr, _ = put(fr, t, 'S065/chin_up', 980, 470, 4200 * z, anchor='src', src=(0.535, 0.27), rim=COLD, rim_amt=2.0,
-                    rim_dir=(0.6, -0.8), flash=fl * 0.7, expo=1.0, wind=3, breathe=0.0)
-        fr = K.vol_light(fr, (1040, 470), 40, COLD, 1.6 * fl)                # 瞳中电光
+        z = 1.0 + 0.05 * pulse(t, tf, 0.15) + 0.04 * u
+        fr, _ = put(fr, t, 'C5/c08_eyes', 760, 640, 1500 * z, anchor='src', src=(0.5, 0.72), rim=COLD, rim_amt=1.2,
+                    rim_dir=(0.6, -0.8), flash=fl * 0.6, expo=1.0, wind=2, breathe=0.0)
+        for ex in (440, 1080):
+            fr = K.vol_light(fr, (ex + 20, 640), 26, COLD, 1.8 * fl)          # 瞳中电光
         fr = rain(fr, t, 80, inten=1.0, angle=14, layers=(2, 3))
         return fr
 
@@ -720,12 +724,13 @@ class C13(Shot):
 
 
 class C14(Shot):
-    """过肩大仰拍（第三棒重构，拆远景小人）：镜头贴在他后脑勺下方，头肩占画面下半，他仰头看头顶的风眼（C13 的同一个漩涡），
-    132.31 一道落地闪电从风眼劈下，照亮发梢甩出的水珠。精灵 look_up_back 大前景。"""
+    """过肩大仰拍：镜头贴在他后脑勺下方，头肩占画面下半，他仰头看头顶的风眼（C13 的同一个漩涡），
+    132.45 一道落地闪电从风眼劈下。第五棒：换生图 C5/c14_ots（统一定妆脸的后脑+高马尾），逆光剪影处理：
+    主体压暗、只留冷白轮廓光（评审 P0 发丝白毛边 → 抠图去灰边 + 毛边被轮廓光吃掉）。"""
     def render(self, t):
         u = self.u(t)
-        tb = V(132.31)
-        fl = bolt_env(t, tb)
+        tb = V(132.45)
+        fl = bolt_env(t, tb) + 0.5 * bolt_env(t, V(132.87))
         fr = storm_sky(t * 2, 14, 2000, flash=0.5 + fl * 1.2, flash_c=(1100, 300), speed=(20, -30), cloud=1.3)
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32) * 2
         dx, dy = xx - 1100, yy - 330; rr = np.sqrt(dx * dx + dy * dy) + 1
@@ -736,11 +741,10 @@ class C14(Shot):
         fr = K.vol_light(fr, (1100, 330), 200, (1.0, 0.4, 0.15), 0.35)          # 风眼余烬（承接 C13）
         fr = bolt(fr, t, tb, 141, (1100, 330), (1500, 1000), inten=1.3, width=4)
         fr = rain(fr, t, 141, inten=0.8, angle=12, layers=(0, 1), light=(1100, 330))
-        fr, _ = put(fr, t, 'C/look_up_back', 760 + 20 * u, 760 - 25 * eio(u), 3000, anchor='src', src=(0.418, 0.103), rim=COLD, rim_amt=2.8,
-                    rim_dir=(0.4, -1), flash=fl, expo=0.85, wind=9, breathe=0.0)
-        # 发梢甩出的水珠（闪电里一亮）
-        fr = sparks(fr, t, 142, (700, 600), n=40, life=0.8, speed=(120, 420), dirc=(-0.3, -1), spread=1.3, grav=900, amt=0.4 + 0.8 * fl,
-                    color=(0.85, 0.9, 1.0), area=(160, 40))
+        fr, _ = put(fr, t, 'C5/c14_ots', 700 + 25 * u, 1000, 980 * (1 + 0.03 * u), anchor='src', src=(0.53, 1.0), rim=(0.92, 0.95, 1.0),
+                    rim_amt=3.6, rim_dir=(0.35, -1), flash=fl, expo=0.42, sat=0.4, wrap=0.5, wind=5, breathe=0.0)
+        fr = sparks(fr, t, 142, (720, 420), n=40, life=0.8, speed=(120, 420), dirc=(-0.3, -1), spread=1.3, grav=900, amt=0.4 + 0.8 * fl,
+                    color=(0.85, 0.9, 1.0), area=(200, 40))
         fr = rain(fr, t, 140, inten=1.0, angle=12, layers=(2, 3), light=(1100, 330))
         return fr
 
@@ -748,7 +752,7 @@ class C14(Shot):
 class C15(Shot):
     """ELS：鬼屠腾空（新精灵 leap_arc），133.22 电光炸开，速度坡度 1→0.1 定格在空中，雨滴悬停。"""
     def render(self, t):
-        tb = V(133.22); tb2 = V(133.79)
+        tb = V(133.38); tb2 = V(133.79)      # 第五棒：切点改到拍点 133.38，雷光与切点同帧
         k = t - self.t0
         ramp = 1 - 0.9 * sm(tb + 0.05, tb + 0.35, t)
         fl = bolt_env(t, tb) * 1.2 + bolt_env(t, tb2) * 0.9
@@ -759,8 +763,10 @@ class C15(Shot):
         # 第四棒：悬停点下移（原来头顶进了遮幅被裁），身高 420→480，顶点 ≥ 有效区上沿 +130px
         y = lerp(1120, 790, eout(k / 0.5, 3)) - 15 * (k - 0.5) * (k > 0.5)
         x = 760 + 260 * eout(k / 0.6, 2) + 20 * k
-        fr, _ = put(fr, t, 'C/leap_arc', x, y, 480, look='sil', rim=(0.9, 0.93, 1.0), rim_amt=4.2, rim_dir=(0.3, -1), flash=fl,
-                    mblur=(0, 30 * (1 - sm(0.15, 0.45, k))), wind=10 * ramp)
+        # 第五棒（评审 P0：扁平黑剪影）：真实雷光照亮的生图精灵——冷白轮廓光 + 闪电补光 + 体积光，不再填黑
+        fr = K.vol_light(fr, (x + 120, y - 330), 520, (0.85, 0.9, 1.0), 0.35 + 0.5 * fl)
+        fr, _ = put(fr, t, 'C/leap_arc', x, y, 480, rim=(0.9, 0.93, 1.0), rim_amt=3.4, rim_dir=(0.3, -1), flash=0.6 * fl, expo=0.8,
+                    sat=0.55, mblur=(0, 30 * (1 - sm(0.15, 0.45, k))), wind=10 * ramp)
         fr = rain(fr, self.t0 + 0.45 + (t - self.t0 - 0.45) * (0.08 if k > 0.45 else 1), 150, inten=1.1, angle=10,
                   freeze=sm(0.35, 0.6, k) * 0.5)
         return fr
@@ -1285,7 +1291,8 @@ class C28(Shot):
         fr = fr + acc / n * 0.9 * lt * np.array([1.0, 0.92, 0.8], np.float32)
         fr = dust(fr, t, 281, n=160, amt=0.6 * lt, drift=(10, -20), region=(300, BAR, 1620, H - BAR), color=(1.0, 0.9, 0.7))
         # 第四棒：生图 face_lit 大特写——字形里灌出的光正好横过他的双眼（「亮」照在人脸上，而不是白底字卡）
-        fr, _ = put(fr, t, 'C/face_lit', 1400 - 20 * u, 560, 980 * (1 + 0.04 * u), anchor='src', src=(0.47, 0.53), rim=(1.0, 0.85, 0.6),
+        fr, _ = put(fr, t, 'C5/c28_face', 1400 - 20 * u, 560, 1000 * (1 + 0.04 * u), anchor='src', src=(0.53, 0.50),   # 第五棒：统一定妆脸
+                    rim=(1.0, 0.85, 0.6),
                     rim_amt=2.0 + 2.5 * lt, rim_dir=(-1, -0.2), expo=0.55 + 0.6 * lt, sat=0.75, tint=(1.05, 0.98, 0.9), wind=4, breathe=0.004)
         fr = rain(fr, t, 280, inten=0.9, angle=6, light=(HX, 470))
         # 乌云从边缘涌回（墨色）
@@ -1784,7 +1791,7 @@ SENTS = [
     S(29, [4, 5, 6, 7, 8], 1480, 220, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.90)),   # 第五棒：延续进 C06 前 6 帧，「的」不断档  # 成了交易的（C05）
     # 「我不低头」起：他自己的重字（Black，朱红「不」逐拍落下）
     S(30, [0, 1, 2, 3], 420, 330, size=96, mode='fly', layout='v', red='不', exit='shatter', out=V(125.62), track=0.12),
-    S(30, [4, 5, 6], 960, 900, size=110, mode='fly', red='不命', exit='shatter', out=V(126.22), track=0.15),
+    S(30, [4, 5, 6], 1640, 540, size=120, mode='fly', layout='v', red='不命', exit='cut', out=V(126.22), track=0.12, back=0.7, sizes=[110, 110, 150]),   # 第五棒：脸偏左、字竖排右侧鬓发暗区（不压脸），切点前才收
     S(30, [7, 8, 9, 10], 1560, 300, size=86, mode='fly', layout='v', red='不', exit='shatter', out=V(127.36), track=0.12),
     S(31, [0, 1, 2, 3], 960, 250, size=78, mode='fly', red='刀', exit='shatter', out=V(130.10)),
     S(31, [4, 5, 6, 7], 960, 860, size=110, mode='fly', red='发烫', exit='shatter', out=V(131.50), back=0.5),
