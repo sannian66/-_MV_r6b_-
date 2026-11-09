@@ -71,7 +71,7 @@ class E01(Shot):   # S111 ECU（第六棒重做，去和副歌一 S028「横刀 
         u = self.u(t)
         fr = self.sky.copy()
         fr = fx2.god_rays(fr, (260, 900), strength=0.55, length=0.9, t=t, src_r=160)
-        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/blade_tip', (1130 + 25 * u, 150 - 30 * u), h=2900, anc=(0.5, 0.0),
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/blade_tip', (1130 + 25 * u, 150 - 30 * u), h=2500, anc=(0.5, 0.0),
                       rot=-6, rim=GOLDW, rim_amt=2.6, rim_dir=(-0.7, 0.7), grade=G_HOT, wind=0)
         A = info['A']
         self.blade = (info['to_scr'], A)
@@ -81,7 +81,7 @@ class E01(Shot):   # S111 ECU（第六棒重做，去和副歌一 S028「横刀 
         z = z + sheen * A[..., None]
         fr = fr * (1 - A[..., None]) + z
         tip = info['to_scr']((0.5, 0.04))
-        ex = info['to_scr']((0.42, (sy - 150) / 2900 * 1.0 + 0.04))
+        ex = info['to_scr']((0.42, (sy - 150) / 2500 * 1.0 + 0.04))
         fr = E.flare_streak(fr, (ex[0], sy), amt=1.0, angle=0)
         if u > 0.75: fr = E.flare_streak(fr, tip, amt=1.6 * c01((u - 0.75) / 0.1) * (1 - c01((u - 0.9) / 0.1)), angle=0)
         fr = E.dust_motes(fr, t, 111, n=70, amt=0.5, drift=(60, -20), depth=True)
@@ -93,7 +93,7 @@ class E01(Shot):   # S111 ECU（第六棒重做，去和副歌一 S028「横刀 
             c = to_scr((0.51, 0.20))
             p = c01((t - (CT(48, 0) - 0.1)) / 0.22)
             if p > 0:
-                rub = R3.blood_rub(fr.copy(), '血', c[0], c[1], 210, p, seed=11)            # 碑拓「血」拓在刃面上
+                rub = R3.blood_rub(fr.copy(), '血', c[0], c[1], 185, p, seed=11)            # 碑拓「血」拓在刃面上
                 Ab = cv2.GaussianBlur(cv2.erode(A, np.ones((7, 7), np.uint8)), (0, 0), 1.5)[..., None]
                 fr = fr * (1 - Ab) + rub * Ab
                 ghost = R3.blood_rub(np.zeros_like(fr), '血', c[0] - 40, c[1] + 300, 260, p, seed=12)   # 刃面倒影：下方一枚拉长、虚化的反影
