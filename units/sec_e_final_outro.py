@@ -524,7 +524,7 @@ L_GU = None
 def lyr_gu():
     global L_GU
     if L_GU is None:
-        L_GU = Lyr(row('骨未凉', cts(52, [3, 4, 5]), 960, 860, size=78, red='骨', track=0.3), CT(53, 0) - 0.15, seed=110)
+        L_GU = Lyr(row('骨未凉', cts(52, [3, 4, 5]), 420, 860, size=78, red='骨', track=0.3), CT(53, 0) - 0.15, seed=110)
     return L_GU
 
 
@@ -815,7 +815,7 @@ class E24(Shot):   # S129b ECU 刃身满屏，寒光自柄扫到尖；巨字「�
     def __init__(self):
         self.bg = E.dawn_sky(1291, horizon=0.5, top=(0.06, 0.05, 0.04), mid=(0.25, 0.18, 0.1), hor=(0.6, 0.42, 0.22), cloud=0.3)
         self.l1 = Lyr([('刀', 1440, 520, 440, 'serif_black', REDT, CT(55, 2))], CT(55, 6) - 0.05, seed=190)
-        self.l2 = Lyr(row('就是我', cts(55, [3, 4, 5]), 620, 860, size=66, base=WHITE_T, track=0.3), CT(55, 6) - 0.05, seed=191)
+        self.l2 = Lyr(row('就是我', cts(55, [3, 4, 5]), 560, 250, size=66, base=WHITE_T, track=0.3), CT(55, 6) - 0.05, seed=191)
 
     def render(self, t):
         u = self.u(t)
@@ -832,7 +832,7 @@ class E25(Shot):   # S130 LS 终极横斩：整个画面沿刀线裂开，金光
     def __init__(self):
         self.sky = E.dawn_sky(1300, horizon=0.80, sun=(1500, 640), mid=(0.40, 0.28, 0.15), cloud=0.7)
         self.rd, self.ra = E.ridges(n=3, base=0.74, step=0.05, seed=130, amp=0.07, far=0.45, near=0.03)
-        self.l = Lyr([('的', 560, 300, 70, 'serif_sb', WHITE_T, CT(55, 6)), ('正', 960, 520, 300, 'serif_black', GOLD_T, CT(55, 7))], CT(55, 8) - 0.12, seed=200, glow=0.7)
+        self.l = Lyr([('的', 560, 300, 70, 'serif_sb', WHITE_T, CT(55, 6)), ('正', 1480, 470, 300, 'serif_black', GOLD_T, CT(55, 7))], CT(55, 8) - 0.12, seed=200, glow=0.7)
 
     def render(self, t):
         u = self.u(t)
@@ -899,7 +899,7 @@ class E27(Shot):   # S132 LS 背影沿山脊走向朝阳（呼应片头构图，
         fr = E.place_layer(fr, self.rd, self.ra, oy=-30 * u)
         fr = fx2.god_rays(fr, (1450, 520), strength=0.6, length=1.0, t=t)
         bob = 4 * abs(math.sin(t * 5))
-        fr, info = put(fr, t, 'S132/back_walk', (1080 + 90 * u, 930 - 40 * u - bob), h=360 * (1 - 0.1 * u), rim=GOLDW, rim_amt=3.0, wind=8)
+        fr, info = put(fr, t, 'S132/back_walk', (1080 + 90 * u, 960 - 40 * u - bob), h=440 * (1 - 0.1 * u), rim=GOLDW, rim_amt=3.0, wind=8)
         G = np.zeros((H // 2, W // 2), np.float32)
         for (x, s, lean) in self.grass:
             for k in range(5):
@@ -999,18 +999,19 @@ class Credits(Shot):
 
 class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / 编剧·导演
     def __init__(self):
-        self.sky = E.dawn_sky(1350, horizon=0.62, mid=(0.42, 0.30, 0.17), hor=(1.0, 0.83, 0.55), cloud=0.5, sun=(560, 560))
-        self.rd, self.ra = E.ridges(n=5, base=0.50, step=0.07, seed=134, amp=0.11, far=0.65, near=0.05)
+        self.sky = E.dawn_sky(1350, horizon=0.62, top=(0.05, 0.06, 0.08), mid=(0.30, 0.33, 0.38), hor=(0.86, 0.80, 0.72), cloud=0.5, sun=(560, 560))
+        self.rd, self.ra = E.ridges(n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.62, 0.68, 0.76), far=0.75, near=0.05)
         self.blocks = [('出品人', ['西几王传媒'], 1660, 230, 227.85, 0.9), ('编剧 / 导演', ['苏打'], 1430, 230, 228.45, 0.8)]
         self.fog = K.fbm(H // 4, W // 2, 1351, base=5, octaves=5)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (560, 560), 80, amt=1.0)
+        fr = E.sun_disc(self.sky.copy(), (560, 600), 60, amt=0.55)
         fr = E.place_layer(fr, self.rd, self.ra, ox=-120 * u, z=1.05)
         f = cv2.resize(np.roll(self.fog, int(60 * u), 1), (W, H))
         m = np.clip((f - 0.45) * 2.5, 0, 1) * sstep(0.45, 0.85, np.arange(H, dtype=np.float32)[:, None] / H)
-        fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * GOLDW * 0.55
+        fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.80, 0.82, 0.84], np.float32) * 0.6
+        fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(0.9, 0.9, 0.95))
         return bloom(fr, 0.85, 0.35)
 
 
@@ -1067,7 +1068,7 @@ class E34(Credits):   # S136 ELS 日出全景，远处一粒走向太阳的人�
         fr = E.sun_disc(fr, sun, 130, amt=1.15)
         fr = fx2.god_rays(fr, sun, strength=0.8, length=1.1, t=t)
         fr = E.place_layer(fr, self.rd, self.ra, z=z)
-        fr, info = put(fr, t, 'S132/back_walk', (900 + 25 * u, 752), h=92, rim=GOLDW, rim_amt=3.0, grade=G_SIL, look='sil', wind=4)
+        fr, info = put(fr, t, 'S132/back_walk', (900 + 25 * u, 756), h=135, rim=GOLDW, rim_amt=4.0, grade=G_SIL, look='sil', wind=4)
         return bloom(fr, 0.85, 0.45)
 
 
