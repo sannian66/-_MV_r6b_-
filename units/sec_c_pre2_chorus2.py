@@ -558,6 +558,8 @@ class C06(Shot):
         r = np.random.default_rng(66)
         self.nz = cv2.GaussianBlur(r.random((H // 2, W // 2)).astype(np.float32), (0, 0), 1.5)
         self.nz = cv2.resize((self.nz - self.nz.min()) / (np.ptp(self.nz) + 1e-6), (W, H))
+        f = cv2.GaussianBlur(r.random((H, W)).astype(np.float32), (0, 0), 2.2)
+        self.nf = np.clip(((f - f.mean()) / (f.std() + 1e-6)) * 0.5 + 0.5, 0, 1)        # 细噪声：炭火断续
     def brand(self, fr, g, k, amt=1.0):
         """g = 字形 alpha；k = 烙下后的秒数。焦痕外晕 + 字芯炭化发黑 + 只在烧边和裂纹里留炭火（白→橙→暗红，0.25s 冷却）。"""
         if k <= -0.03: return fr
@@ -569,7 +571,7 @@ class C06(Shot):
         fr = fr + sc2[..., None] * self.nz[..., None] * np.array([0.05, 0.035, 0.025], np.float32)   # 炭面颗粒
         edge = np.clip(sc2 - cv2.erode(sc2, np.ones((7, 7), np.uint8)), 0, 1)
         crack = sc2 * np.clip((self.nz - 0.62) * 5, 0, 1)
-        emb = np.clip(edge * (0.35 + 1.1 * self.nz) + crack, 0, 1)
+        emb = np.clip(edge * np.clip((self.nf - 0.35) * 2.6, 0, 1) * (0.5 + self.nz) + crack, 0, 1)
         heat = math.exp(-max(0.0, k) / 0.25) * e
         col = np.array([1.0, 0.85, 0.55], np.float32) * heat ** 2 + np.array([1.0, 0.36, 0.08], np.float32) * heat + np.array([0.55, 0.07, 0.02], np.float32) * 0.35
         fr = fr + emb[..., None] * col * 1.5 * amt
@@ -601,9 +603,9 @@ class C06(Shot):
             z = lerp(1.0, 2.1, cl)
             M = np.float32([[z, 0, 960 * (1 - z)], [0, z, 450 * (1 - z) + 60 * cl]])
             lid = cv2.warpAffine(base, M, (W, H), borderMode=cv2.BORDER_REFLECT)
-            fr = lid * (1 - 0.82 * cl)
+            fr = lid * (1 - 0.72 * cl)
             gg = cv2.warpAffine(np.clip(self.g1 + self.g2, 0, 1), M, (W, H))
-            edge = np.clip(gg - cv2.erode(gg, np.ones((9, 9), np.uint8)), 0, 1) * (0.3 + 1.1 * cv2.warpAffine(self.nz, M, (W, H))) + gg * np.clip((cv2.warpAffine(self.nz, M, (W, H)) - 0.6) * 4, 0, 1)
+            edge = np.clip(gg - cv2.erode(gg, np.ones((9, 9), np.uint8)), 0, 1) * np.clip((cv2.warpAffine(self.nf, M, (W, H)) - 0.35) * 2.6, 0, 1) + gg * np.clip((cv2.warpAffine(self.nz, M, (W, H)) - 0.6) * 4, 0, 1)
             br = (0.6 * math.sin(math.pi * min(1.0, cl * 1.25)) + 0.9 * cl) * (0.8 + 0.2 * math.sin(t * 19))
             fr = fr + np.clip(edge, 0, 1)[..., None] * np.array([1.0, 0.25, 0.06], np.float32) * br
             fr = fr + cv2.GaussianBlur(np.clip(edge, 0, 1), (0, 0), 20)[..., None] * np.array([0.9, 0.2, 0.05], np.float32) * 0.5 * br
