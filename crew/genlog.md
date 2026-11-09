@@ -300,3 +300,4 @@
 | 11-09 03:12 | A/stand_ha | RH_image2 | 4K 16:9 | 3 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | submitted | - | A组 stand_ha try1 |
 | 11-09 03:15 | A/stand_ha | RH_image2 | 4K 16:9 | 0 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | completed | /workspace/work/a_cands/stand_ha_122c34d2_0.png | A组 候选 |
 | 11-09 03:15 | A/stand_ha | RH_image2 | 4K 16:9 | 0 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | 采用 | assets/gen/A/stand_ha_raw.png | A组 采用 |
+| 11-09 11:20 | C组 | RH_image2 | 4K 16:9 | 0 | aca831ec/396ef948/578e0e8e/a6e34a40/20df00ab | 采用 | assets/gen/C/face_lit、brace_cu、point_cam、soldiers3（拆 sold_a/b/c）、army_kneel | [C组] 第四棒五张 try1 全部采用：C28/C35b/C40b/C18/C36；C 组累计 39/80 |
