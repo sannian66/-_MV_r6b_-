@@ -248,7 +248,7 @@ def fall_chars(fr, t, text, seed, density=10, sizes=(26, 70), speed=(180, 420), 
             x = xs[i] + wind * z * (t - t0) % 400 * 0 + math.sin(t * 1.3 + ph[i] * 9) * 18
             ch = text[(i + li * 7) % len(text)]
             c = (emph or {}).get(ch, 'ink' if ink else 'white')
-            a = alpha * (0.35 + 0.65 * z) if c in ('ink', 'white') else min(1, alpha * 1.2)
+            a = alpha * (0.35 + 0.65 * z) if isinstance(c, str) and c in ('ink', 'white') else min(1, alpha * 1.2)
             T.place(L, ch, x, y, sz[i], c, fname, alpha=a, rot=rot0[i] + spin[i] * t, texture=False)
         bl = near_blur * max(0, z - 0.5) * 2
         Ls.append((L, bl, z))
@@ -267,27 +267,48 @@ def _tile(seed, n=512, base=5, octaves=6):
 
 
 def storm(t, seed=7, c=(960, 380), spin=0.05, twist=0.55, base=(0.035, 0.04, 0.055), lit=(0.42, 0.46, 0.56), eye=150,
-          bright=1.0, scale=1):
-    """俯仰视风暴云涡：极坐标采样平铺噪声 → 旋转 + 对数螺旋扭曲；中心风眼。返回 float 帧"""
-    h4, w4 = H // 4, W // 4
-    yy, xx = np.mgrid[0:h4, 0:w4].astype(np.float32)
-    dx = xx * 4 - c[0]; dy = (yy * 4 - c[1]) * 1.35
+          bright=1.0, scale=1, glow=None):
+    """风暴云涡（第二棒重写，去「旋转滤镜」味）：三层不同尺度的云密度（极坐标 + 对数螺旋，整数倍频率无接缝），
+    朝风眼一侧的云边吃光（银边）、背光侧自阴影、云底暗；风眼内是发光的雾；外圈拉丝的风带；可选 glow=(x,y,amt) 云内闪电照亮。"""
+    h2, w2 = H // 2, W // 2
+    yy, xx = np.mgrid[0:h2, 0:w2].astype(np.float32)
+    dx = xx * 2 - c[0]; dy = (yy * 2 - c[1]) * 1.35
     r = np.sqrt(dx * dx + dy * dy) + 1
     th = np.arctan2(dy, dx)
     lr = np.log(r)
-    tex = _tile(seed); tex2 = _tile(seed + 1, 512, 9, 5)
-    u = ((th / (2 * math.pi)) + spin * t + twist * lr * 0.25) * 512
-    v = (lr * 140 - t * 22) % 512
-    n1 = cv2.remap(tex, (u % 512).astype(np.float32), v.astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
-    n2 = cv2.remap(tex2, ((u * 2.1) % 512).astype(np.float32), ((v * 1.7 + 40) % 512).astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
-    n = n1 * 0.7 + n2 * 0.3
-    cloud = K.sstep(0.35, 0.75, n)
-    edge = np.clip(cv2.Sobel(n, cv2.CV_32F, 1, 1, ksize=3) * 3 + 0.0, 0, 1)
+    u0 = (th / (2 * math.pi)) + spin * t + twist * lr * 0.25
+    v0 = lr * 140 - t * 22
+    def samp(tx, ku, kv, off, du=0.0):
+        return cv2.remap(tx, ((u0 * ku + du) * 512 % 512).astype(np.float32), ((v0 * kv + off) % 512).astype(np.float32),
+                         cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
+    n1 = samp(_tile(seed), 1, 1.0, 0)
+    n2 = samp(_tile(seed + 1, 512, 9, 5), 2, 1.7, 40, 0.13 * t)
+    n3 = samp(_tile(seed + 2, 512, 17, 4), 4, 2.9, 90, -0.2 * t)
+    streak = samp(_tile(seed + 3, 512, 24, 3), 6, 0.35, 0)            # 外圈风带：角向高频、径向低频 → 拉丝
+    n = n1 * 0.62 + n2 * 0.28 + n3 * 0.10
+    ringw = np.exp(-((r - eye * 1.7) / (eye * 1.1)) ** 2)
+    dens = K.sstep(0.36, 0.74, n + 0.10 * ringw)
+    dens = np.maximum(dens, K.sstep(0.55, 0.85, streak) * 0.35 * np.clip((r - eye * 2.5) / (eye * 3), 0, 1))
+    # 光：来自风眼（向内的法线吃光）
+    lx, ly = -dx / r, -dy / r
+    gx = cv2.Sobel(dens, cv2.CV_32F, 1, 0, ksize=3); gy = cv2.Sobel(dens, cv2.CV_32F, 0, 1, ksize=3)
+    facing = cv2.GaussianBlur(np.clip(-(gx * lx + gy * ly) * 1.2, 0, 1), (0, 0), 1.2)
+    sm = cv2.GaussianBlur(dens, (0, 0), 6)
+    M = np.float32([[1, 0, 0], [0, 1, 0]])
+    shadow = np.clip(sm - cv2.GaussianBlur(dens, (0, 0), 2), 0, 1)       # 云团内部、背光侧更暗
+    falloff = np.exp(-(r / (eye * 7.0)) ** 1.3)
     eyem = np.exp(-(r / eye) ** 2)
-    ring = np.exp(-((r - eye * 1.6) / (eye * 0.9)) ** 2)
-    L = cloud * (0.55 + 0.45 * ring) + edge * 0.25 + eyem * 0.6
-    col = np.array(base, np.float32) + L[..., None] * np.array(lit, np.float32) * bright
-    return cv2.resize(col.astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
+    body = dens * (0.30 + 0.55 * falloff) * (1 - 1.6 * shadow)
+    rim = facing * dens * (0.35 + 0.9 * falloff + 0.6 * ringw)
+    mist = eyem * (0.55 + 0.25 * n2)
+    lit_ = np.array(lit, np.float32) * bright
+    col = np.array(base, np.float32) * (0.6 + 0.8 * (1 - dens))[..., None] + body[..., None] * lit_ \
+        + rim[..., None] * lit_ * 0.85 * np.array([1.0, 1.02, 1.08], np.float32) + mist[..., None] * (lit_ * 0.9 + 0.04)
+    if glow is not None:                                                # 云内闪电：一团云从里面亮
+        gx_, gy_, ga = glow
+        g = np.exp(-(((xx * 2 - gx_) / 420) ** 2 + ((yy * 2 - gy_) / 300) ** 2)) * (0.4 + dens) * ga
+        col = col + g[..., None] * np.array([0.75, 0.82, 1.0], np.float32)
+    return cv2.resize(np.clip(col, 0, 3).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
 
 
 def lightning(fr, t, t_hit, p0, p1, seed=0, life=0.18, amt=1.6, col=(0.85, 0.9, 1.0), branches=4, width=3):

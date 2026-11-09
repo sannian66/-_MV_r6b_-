@@ -231,65 +231,89 @@ class S04_Snow(Shot):
 
 
 class S05_Ren(Shot):
-    """ECU 纸面：「什么叫」墨洇显出 →「忍」宋体巨字砸满屏，刃上一点朱墨凝成滴落下（→ 秤盘 匹配）"""
+    """ECU 纸面：「什么叫」墨洇显出 →「忍」宋体巨字踩拍砸下（先大后定、墨洇开），「刃」上那一点变朱墨、
+    凝成一滴沿纸滑落到左下（→ 下一镜秤盘左盘那枚朱红「人」，圆形匹配剪辑）"""
     t0, t1 = 165.88, 167.25
     paper = 1.0
-    DROP = (960, 540)
+    REN = (960, 540, 760)
+    DROP = (680, 600)
 
     def __init__(self):
-        T.glyph('忍', 'serif_black', 880, False)
+        x, y, s = self.REN
         self.pap = cv2.resize(D.paper(14)[300:780, 540:1380], (W, H))
+        a = T.ink_bleed_glyph('忍', 'serif_black', s, 1.0, seed=5); G = a.shape[0]
+        n, lab, st, cen = cv2.connectedComponentsWithStats((a > 0.5).astype(np.uint8))
+        # 「刃」的那一点：左上方的小连通域
+        cand = [i for i in range(1, n) if st[i, 4] < st[1:, 4].max() * 0.4 and cen[i][1] < G / 2 and cen[i][0] < G / 2]
+        k = cand[0] if cand else 2
+        dm = cv2.dilate((lab == k).astype(np.float32), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25)))
+        L = T.Layer(); L.paste(cv2.GaussianBlur(dm, (0, 0), 1.5), x, y, CINNABAR); self.dotA = L.A
+        self.dot = (int(x - G / 2 + cen[k][0]), int(y - G / 2 + cen[k][1]))
 
     def render(self, t):
         u = self.u(t)
         fr = self.pap.copy()
-        tr = V(O[40][13])
+        tr = V(O[40][13]); tin = tr - 0.1
+        x, y, s = self.REN
         if t < tr:
             Lq = T.Layer()
             for k, (ch, on) in enumerate(zip('什么叫', O[40][10:13])):
                 p = cl((t - V(on) + 0.12) / 0.4)
                 if p > 0:
-                    a = T.ink_bleed_glyph(ch, 'serif_black', 220, p, seed=k)
-                    Lq.paste(a, 960, 300 + k * 250, INK)
+                    Lq.paste(T.ink_bleed_glyph(ch, 'serif_black', 220, p, seed=k), 960, 300 + k * 250, INK)
             fr = D.ink_text(fr, Lq, bleed=0.1)
         else:
-            p = cl((t - tr) / 0.16)
-            a = T.ink_bleed_glyph('忍', 'serif_black', 880, max(0.05, p), seed=5)
-            L = T.Layer(); L.paste(a, 960, 520, INK)
+            fr = vcol(fr, '什么叫', 300, 330, 110, [self.t0] * 3, t, 'ink', fname='serif_black', adv=1.15)
+        if t >= tin:
+            q = cl((t - tin) / 0.1)
+            p = cl((t - tin) / 0.32)
+            a = T.ink_bleed_glyph('忍', 'serif_black', s, 0.15 + 0.85 * p, seed=5)
+            sc = 1.0 + 0.6 * (1 - eo(q, 2))
+            if sc > 1.01: a = cv2.resize(a, None, fx=sc, fy=sc)
+            L = T.Layer(); L.paste(a, x, y, INK, alpha=0.4 + 0.6 * q)
+            if q < 1: L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 8 * (1 - q))
             fr = D.ink_text(fr, L, bleed=0.25, sig=10)
-            # 刃上的点：朱墨（「忍」=刃在心上）
-            dot = (1095, 268)
-            q = cl((t - tr - 0.05) / 0.25)
-            m = np.zeros((H, W), np.float32)
-            cv2.circle(m, dot, int(10 + 26 * q), 1.0, -1, cv2.LINE_AA)
-            fr = fr * (1 - cv2.GaussianBlur(m, (0, 0), 2)[..., None]) + cv2.GaussianBlur(m, (0, 0), 2)[..., None] * CINNABAR
-            if t > tr + 0.3:                      # 滴落到画面中心（下一镜秤盘）
-                d = cl((t - tr - 0.3) / (self.t1 - tr - 0.3))
-                yy = lerp(dot[1], self.DROP[1], ei(d, 2)); xx = lerp(dot[0], self.DROP[0], d)
-                m2 = np.zeros((H, W), np.float32)
-                cv2.ellipse(m2, (int(xx), int(yy)), (18, int(22 + 18 * d)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
-                cv2.line(m2, (dot[0], dot[1]), (int(xx), int(yy)), 0.6 * (1 - d), 6, cv2.LINE_AA)
-                m2 = cv2.GaussianBlur(m2, (0, 0), 1.5)
-                fr = fr * (1 - m2[..., None]) + m2[..., None] * CINNABAR * 0.95
-            # 「让」
+            if t >= tr:
+                fr = D.ink_spray(fr, t, tr, (x, y + 300), n=70, seed=55, power=900)
+                # 刃上那一点：洇成朱墨
+                c = cl((t - tr - 0.05) / 0.3)
+                m = self.dotA * c
+                fr = fr * (1 - m[..., None]) + m[..., None] * CINNABAR * 0.95
+                if t > tr + 0.35:                      # 凝成一滴，滑落到秤盘位置
+                    d = cl((t - tr - 0.35) / (self.t1 - tr - 0.38))
+                    xx = lerp(self.dot[0], self.DROP[0], ei(d, 2)); yy = lerp(self.dot[1], self.DROP[1], ei(d, 2))
+                    m2 = np.zeros((H, W), np.float32)
+                    cv2.line(m2, self.dot, (int(xx), int(yy)), 0.55, 9, cv2.LINE_AA)
+                    cv2.ellipse(m2, (int(xx), int(yy)), (17, int(20 + 10 * d)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+                    m2 = cv2.GaussianBlur(m2, (0, 0), 1.6)
+                    fr = fr * (1 - m2[..., None]) + m2[..., None] * CINNABAR * 0.95
+                    hl = np.zeros((H, W), np.float32); cv2.circle(hl, (int(xx - 5), int(yy - 8)), 4, 1.0, -1, cv2.LINE_AA)
+                    fr = fr + cv2.GaussianBlur(hl, (0, 0), 2)[..., None] * 0.5
             p2 = cp(t, O[40][14], 0.2)
             if p2 > 0:
-                L2 = D.text_layer([('让', 1640, 820, 150, p2, 1 + 0.3 * (1 - p2))], fname='serif_black')
+                L2 = D.text_layer([('让', 1640, 800, 170, p2, 1 + 0.3 * (1 - p2))], fname='serif_black')
                 fr = D.ink_text(fr, L2)
         hit = [tr] if t >= tr else []
-        fr = shake_cam(fr, t, hit, 14, z=1.0 + 0.07 * u, rot=1.5 * u)
+        fr = shake_cam(fr, t, hit, 14, z=1.0 + 0.05 * u, rot=1.2 * u)
         return fr, 1.0
 
 
-def brush_mask(shape, p0, p1, w, seed, dry=0.5):
-    """毛笔干湿笔触蒙版（墨的边缘不规则 + 飞白丝）"""
+def brush_mask(shape, p0, p1, w, seed, dry=0.5, pts=None, closed=False):
+    """毛笔干湿笔触蒙版（墨的边缘不规则 + 顺笔方向的飞白丝）；pts 给折线/弧线时按折线画"""
     m = np.zeros(shape, np.float32)
-    cv2.line(m, tuple(map(int, p0)), tuple(map(int, p1)), 1.0, int(w), cv2.LINE_AA)
+    P = np.array(pts if pts is not None else [p0, p1], np.float32)
+    # 笔压：起笔重、行笔略轻、收笔提
+    for i in range(len(P) - 1):
+        q = i / max(1, len(P) - 2)
+        ww = w * (1.0 - 0.25 * math.sin(math.pi * q) + 0.15 * (q < 0.08))
+        cv2.line(m, tuple(map(int, P[i])), tuple(map(int, P[i + 1])), 1.0, max(1, int(ww)), cv2.LINE_AA)
+    if closed: cv2.line(m, tuple(map(int, P[-1])), tuple(map(int, P[0])), 1.0, int(w), cv2.LINE_AA)
     r = np.random.default_rng(seed)
     n = cv2.resize(r.random((shape[0] // 16 + 1, shape[1] // 16 + 1)).astype(np.float32), (shape[1], shape[0]), interpolation=cv2.INTER_CUBIC)
-    m = cv2.GaussianBlur(m, (0, 0), w * 0.18)
+    m = cv2.GaussianBlur(m, (0, 0), max(0.8, w * 0.18))
     m = np.clip((m - 0.35 - (n - 0.5) * 0.35) * 4, 0, 1)
-    ang = math.degrees(math.atan2(p1[1] - p0[1], p1[0] - p0[0]))
+    d = P[-1] - P[0]
+    ang = math.degrees(math.atan2(d[1], d[0]))
     st = r.random((shape[0] // 2, shape[1] // 2)).astype(np.float32)
     k = np.zeros((31, 31), np.float32); cv2.line(k, (0, 15), (30, 15), 1.0, 1)
     k = cv2.warpAffine(k, cv2.getRotationMatrix2D((15, 15), -ang, 1.0), (31, 31)); k /= k.sum() + 1e-6
@@ -297,65 +321,87 @@ def brush_mask(shape, p0, p1, w, seed, dry=0.5):
     return m * np.clip(1 - dry * np.clip((st - 0.52) * 6, 0, 1), 0, 1)
 
 
+def arc_pts(c, ax, ay, a0, a1, n=40):
+    return [(c[0] + ax * math.cos(math.radians(a)), c[1] + ay * math.sin(math.radians(a))) for a in np.linspace(a0, a1, n)]
+
+
 class S06_Scale(Shot):
-    """LS 白纸上的毛笔天平：左盘一枚朱红「人」，右盘堆起上千个墨「人」——竟然平衡；句子坐在横梁上逐字落下"""
+    """LS 白纸上的毛笔天平（大写意：干湿笔触、飞白、墨池、淡墨投影）：左盘一枚朱红「人」，右盘堆起上千个墨「人」——
+    竟然平衡；句子「什么叫以一人换千人」坐在横梁上逐字落下，「一人」朱红。镜头缓推 + 微仰。"""
     t0, t1 = 167.25, 168.62
     paper = 1.0
-    PIV = (960, 360)
-    LP, RP = (680, 640), (1240, 640)
+    PIV = (960, 300)
+    LP, RP = (650, 640), (1270, 640)
 
     def __init__(self):
         sh = (H, W)
-        post = brush_mask(sh, (960, 905), (960, 360), 30, 1, 0.6)
-        foot = brush_mask(sh, (820, 905), (1100, 905), 26, 2, 0.5)
+        post = brush_mask(sh, (962, 895), (958, 300), 36, 1, 0.65)
+        foot = brush_mask(sh, None, None, 30, 2, 0.55, pts=[(770, 905), (860, 892), (960, 888), (1060, 892), (1150, 902)])
         self.post = np.maximum(post, foot)
-        beam = brush_mask(sh, (640, 360), (1280, 360), 22, 3, 0.55)
+        # 墨池：底座洇开的淡墨
+        x, y = K.grid()
+        nn = cv2.resize(D._tile(61)[:H // 4, :W // 4], (W, H))
+        self.pool = np.clip(1 - np.sqrt(((x - 960) / 330) ** 2 + ((y - 905) / 44) ** 2) - (nn - 0.5) * 0.7, 0, 1) ** 0.7 * 0.5
+        # 背后一轮淡墨晕（像月，也像秤砣的影）
+        n2 = cv2.resize(D._tile(62)[:H // 4, :W // 4], (W, H))
+        self.moon = np.clip((1 - np.sqrt(((x - 960) / 420) ** 2 + ((y - 470) / 400) ** 2)) * 3 - (n2 - 0.5) * 2.2, 0, 1) * 0.13
+        beam = brush_mask(sh, None, None, 24, 3, 0.6, pts=[(560, 308), (760, 300), (960, 298), (1160, 300), (1370, 306)])
+        cap = np.zeros(sh, np.float32); cv2.circle(cap, self.PIV, 22, 1.0, -1, cv2.LINE_AA)
         ch = np.zeros(sh, np.float32)
-        for cx in (680, 1240):
-            for dx in (-120, 0, 120):
-                cv2.line(ch, (cx, 362), (cx + dx, 640), 1.0, 2, cv2.LINE_AA)
-            cv2.ellipse(ch, (cx, 640), (150, 34), 0, 0, 180, 1.0, 9, cv2.LINE_AA)
-            cv2.ellipse(ch, (cx, 640), (150, 10), 0, 180, 360, 0.8, 3, cv2.LINE_AA)
-        self.beam = np.maximum(beam, cv2.GaussianBlur(ch, (0, 0), 0.8))
+        for i, (cx, cy) in enumerate((self.LP, self.RP)):
+            for dx in (-160, 0, 160):
+                ch = np.maximum(ch, brush_mask(sh, (cx, 310), (cx + dx, cy - 4), 4, 10 + i * 3 + dx // 80, 0.35))
+            bowl = brush_mask(sh, None, None, 15, 20 + i, 0.5, pts=arc_pts((cx, cy), 182, 48, 4, 176))
+            lip = brush_mask(sh, None, None, 6, 30 + i, 0.6, pts=arc_pts((cx, cy), 182, 12, 186, 354))
+            ch = np.maximum(ch, np.maximum(bowl, lip))
+        self.beam = np.maximum(np.maximum(beam, cv2.GaussianBlur(cap, (0, 0), 1.5)), ch)
         r = np.random.default_rng(66)
         items = []
-        for i in range(700):
-            a = r.uniform(-1, 1); hgt = (1 - a * a) ** 0.8
-            items.append(('人', 1240 + a * 135, 630 - r.uniform(0, 1) ** 0.7 * hgt * 150, r.uniform(12, 26), 0.95, 1.0, r.uniform(-40, 40)))
+        for i in range(950):
+            a = r.uniform(-1, 1); hgt = (1 - a * a) ** 0.75
+            items.append(('人', self.RP[0] + a * 168, self.RP[1] - 8 - r.uniform(0, 1) ** 0.7 * hgt * 200, r.uniform(12, 28), 0.95, 1.0, r.uniform(-50, 50)))
         items.sort(key=lambda c: -c[2])
         self.heap = D.text_layer(items, fname='serif_b')
-        self.one = D.text_layer([('人', 680, 588, 104, 1.0, 1.0, 0.0, CINNABAR)], fname='serif_black')
-        T.warm('什么叫以一人换千人', 'serif_sb', 56, False)
+        self.one = D.text_layer([('人', self.LP[0], self.LP[1] - 50, 112, 1.0, 1.0, 0.0, CINNABAR)], fname='serif_black')
+        T.warm('什么叫以一人换千人', 'serif_sb', 60, False)
+
+    def _rot(self, L, M):
+        L2 = T.Layer(); L2.A = cv2.warpAffine(L.A, M, (W, H)); L2.C = cv2.warpAffine(L.C, M, (W, H)); L2.bb = [0, 0, W, H]
+        return L2
 
     def scene(self, t):
-        fr = D.paper(15).copy()
-        fr = D.wash(fr, 0.08, 0.0, 0.5, seed=9)
-        fr = D.fall_chars(fr, t, '人', 61, density=5, sizes=(14, 34), alpha=0.5, near_blur=3)
-        fr = fr * (1 - self.post[..., None] * 0.93) + self.post[..., None] * INK * 0.93
-        ang = 1.2 * math.sin(t * 2.1)
+        fr = D.paper(15).copy() * D.fiber(5)[..., None]
+        fr = D.wash(fr, 0.07, 0.0, 0.5, seed=9)
+        fr = D.fall_chars(fr, t, '人', 61, density=5, sizes=(14, 34), alpha=0.45, near_blur=3)
+        ang = 0.9 * math.sin(t * 2.1)
         M = cv2.getRotationMatrix2D(self.PIV, ang, 1.0)
         bm = cv2.warpAffine(self.beam, M, (W, H))
-        fr = fr * (1 - bm[..., None] * 0.93) + bm[..., None] * INK * 0.93
-        for L in (self.heap, self.one):
-            L2 = T.Layer(); L2.A = cv2.warpAffine(L.A, M, (W, H)); L2.C = cv2.warpAffine(L.C, M, (W, H)); L2.bb = [0, 0, W, H]
-            fr = D.ink_text(fr, L2, bleed=0.1)
-        # 句子坐在横梁上
+        # 淡墨投影（光从左上）
+        shadow = cv2.GaussianBlur(np.maximum(self.post, bm), (0, 0), 9)
+        shadow = np.roll(np.roll(shadow, 34, 1), 26, 0) * 0.14
+        fr = fr * (1 - shadow[..., None])
+        fr = fr * (1 - self.moon[..., None])
+        fr = fr * (1 - self.pool[..., None] * 0.55) + self.pool[..., None] * INK * 0.55 * (fr / 0.93)
+        fr = fr * (1 - self.post[..., None] * 0.93) + self.post[..., None] * INK * 0.93 * (fr / 0.93)
+        fr = fr * (1 - bm[..., None] * 0.93) + bm[..., None] * INK * 0.93 * (fr / 0.93)
+        fr = D.ink_text(fr, self._rot(self.heap, M), bleed=0.1)
+        fr = D.ink_text(fr, self._rot(self.one, M), bleed=0.2, sig=6)
+        fr = D.ink_spray(fr, 200.0, 199.0, (960, 890), n=50, seed=606, power=500, size=(2, 7))
         prog = [cp(t, o, 0.2) for o in O[41][0:9]]
         items = []
         for i, (ch, p) in enumerate(zip('什么叫以一人换千人', prog)):
             if p <= 0: continue
-            x = 610 + i * 87.5; y = 300 - 30 * (1 - eo(p))
-            c = CINNABAR if (ch == '人' and i == 5) else 'ink'
-            items.append((ch, x, y, 56, min(1, p * 1.5), 1 + 0.3 * (1 - eo(p)), 0.0, c))
+            xx = 610 + i * 87.5; yy = 240 - 40 * (1 - eo(p))
+            c = CINNABAR if i in (4, 5) else 'ink'
+            items.append((ch, xx, yy, 60, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, c))
         L = D.text_layer(items, fname='serif_sb')
-        L.A = cv2.warpAffine(L.A, M, (W, H)); L.C = cv2.warpAffine(L.C, M, (W, H)); L.bb = [0, 0, W, H]
-        fr = D.ink_text(fr, L, bleed=0.12)
+        fr = D.ink_text(fr, self._rot(L, M), bleed=0.12)
         return fr
 
     def render(self, t):
         u = self.u(t)
         fr = self.scene(t)
-        return K.cam(fr, 1.0 + 0.08 * eo(u, 2), 0, 25 * (1 - u), center=(960, 600)), 1.0
+        return K.cam(fr, 1.0 + 0.07 * eo(u, 2), 0, 30 * (1 - u), rot=-0.6 * u, center=(960, 600)), 1.0
 
 
 class S07_Heap(Shot):
@@ -369,7 +415,7 @@ class S07_Heap(Shot):
         u = self.u(t)
         if self.base is None: self.base = S06_Scale()
         fr = self.base.scene(t)
-        fr = K.cam(fr, 2.5 + 0.25 * u, 1240 - 960 + 20 * u, 560 - 540, center=(960, 540))
+        fr = K.cam(fr, 2.3 + 0.25 * u, 1270 - 960 + 20 * u, 540 - 540, center=(960, 540))
         x = np.linspace(0, 1, W, dtype=np.float32)[None, :]
         bl = cv2.GaussianBlur(fr, (0, 0), 9)
         m = (1 - K.sstep(0.18, 0.42, x))[..., None]
@@ -416,10 +462,20 @@ class S09_Brush(Shot):
     CH = [('正', 720, 520, 520, 170.95, 171.42), ('义', 1260, 540, 520, 171.40, 171.83)]
 
     def __init__(self):
-        self.sp = D.spr('tsh_brush')
-        A = self.sp.A; ys, xs = np.nonzero(A > 0.5)
-        sel = xs > self.sp.w * 0.5; j = np.argmax(ys * sel)
-        self.tip = (xs[j] / self.sp.w, ys[j] / self.sp.h)
+        import copy
+        base = D.spr('tsh_brush')
+        A = base.A; ys, xs = np.nonzero(A > 0.5)
+        sel = xs > base.w * 0.5; j = np.argmax(ys * sel)
+        self.tip = (xs[j] / base.w, ys[j] / base.h)
+        # 只留「握笔的手 + 笔杆 + 笔锋」：沿笔杆的一条带（人和袍子不进 ECU）
+        self.sp = copy.copy(base)
+        yy, xx = np.mgrid[0:base.h, 0:base.w].astype(np.float32)
+        p0 = np.array([0.40 * base.w, 0.22 * base.h]); p1 = np.array([xs[j], ys[j]], np.float32)
+        d = p1 - p0; L2 = float(d @ d)
+        tt = np.clip(((xx - p0[0]) * d[0] + (yy - p0[1]) * d[1]) / L2, 0, 1)
+        dist = np.sqrt((xx - p0[0] - tt * d[0]) ** 2 + (yy - p0[1] - tt * d[1]) ** 2)
+        band = np.clip((0.07 * base.w - dist) / (0.02 * base.w), 0, 1)
+        self.sp.A = (A * band).astype(np.float32); self.sp.ring = base.ring * band
         for ch, *_ in self.CH: T._brush_prep(ch, 'serif_black', 520, 0)
 
     def head(self, ch, x, y, s, p):
@@ -436,14 +492,14 @@ class S09_Brush(Shot):
         for ch, x, y, s, a0, a1 in self.CH:
             p = cl((t - a0) / (a1 - a0))
             if p <= 0: continue
-            A = T.brush_glyph(ch, 'serif_black', s, p, 0, 0.6)
+            A = T.brush_glyph(ch, 'serif_black', s, p, 0, 0.15, 0.35)
             L.paste(A, x, y, INK)
             if p < 1: hd = self.head(ch, x, y, s, p) or hd
             else: hd = hd
         fr = D.ink_text(fr, L, bleed=0.3, sig=8)
         if hd is None: hd = (1500, 760)
         # 巨笔（笔尖压在笔序前沿）
-        fr, _ = D.ink_figure(fr, self.sp, t, self.tip, (hd[0] + 20, hd[1] + 30), 2.4, rot=-8, wind=0, k=1.4, dens=0.98)
+        fr, _ = D.ink_figure(fr, self.sp, t, self.tip, (hd[0] + 14, hd[1] + 18), 1.5, rot=-6 + 4 * math.sin(t * 9), wind=0, k=1.4, dens=0.98)
         fr = vcol(fr, '若正义由你定义', 1752, 262, 58, O[42][0:7], t, 'ink')
         return K.cam(fr, 1.05 + 0.04 * u, (hd[0] - 960) * 0.05, (hd[1] - 540) * 0.05), 1.0
 
@@ -493,33 +549,45 @@ class S11_Answer(Shot):
 
 
 class S12_Pierce(Shot):
-    """ECU 刀尖向上顶进朱红行书「罪状」，「状」落字那一刻一刀两断（纸也随之撕开 → 下一镜）"""
+    """ECU 一柄真刀（实拍质感，唯一不是墨的东西）从纸底刺上来，刀尖顶进朱红行书「罪状」；「状」落字那一刻
+    一刀两断（字沿刀线裂开滑走），刀继续上冲出画（→ 下一镜纸被撕开）。"""
     t0, t1 = 173.66, 174.59
     paper = 0.8
+    TIP = (0.498, 0.03)
     def __init__(self):
-        self.sp = D.spr('S099/point_up')
-        self.top = self.sp.top
-        self.P = [dict(ch='罪', x=800, y=360, size=330, rot=0.0, font='xing', idx=0, emph=False),
-                  dict(ch='状', x=1130, y=380, size=330, rot=0.0, font='xing', idx=1, emph=False)]
+        self.sp = D.spr('blade_up_cu')
+        self.P = [dict(ch='罪', x=790, y=380, size=330, rot=0.0, font='xing', idx=0, emph=False),
+                  dict(ch='状', x=1140, y=400, size=330, rot=0.0, font='xing', idx=1, emph=False)]
 
     def render(self, t):
         u = self.u(t)
         fr = D.paper(20).copy()
         fr = D.wash(fr, 0.45, 0.2, 1.1, seed=29)
         tc = V(O[42][14])
-        tipy = lerp(1100, 470, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (120 * eo(cl((t - tc) / 0.3)) if t > tc else 0)
-        fr, _ = D.ink_figure(fr, self.sp, t, self.top, (975, tipy), 2.6, rot=-58, wind=0, k=1.25, dens=0.97)
+        tipy = lerp(1150, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
+        # 刀在纸上的投影（暖光从左上）
+        fr = D.fall_chars(fr, t, '罪状', 120, density=4, sizes=(16, 40), alpha=0.35, near_blur=3, emph={'罪': tuple(CINNABAR)})
+        Fw, Aw = D.warp(self.sp, t, self.TIP, (975 + 40, tipy + 30), 1.75, rot=-3, wind=0)
+        fr = fr * (1 - cv2.GaussianBlur(Aw, (0, 0), 14)[..., None] * 0.35)
+        fr, Aw = D.real_figure(fr, self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, expo=0.82, sat=0.55, tint=(1.04, 0.98, 0.9),
+                               rim=(1.0, 0.92, 0.8), rim_amt=2.5, rim_dir=(-0.7, -0.7), wind=0, breathe=0.0,
+                               mblur=(0, 10 * impact(t, self.t0 + 0.02, 0.2) + (14 if t > tc else 0)))
+        # 刃口一线寒光沿刃上行
+        Fw, A2 = D.warp(self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, wind=0)
+        lum = Fw.mean(-1)
+        fr = D.metal_sheen(fr, A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.12), lum, t, (975, 0), 90, speed=lerp(1100, 200, u), width=50, amt=0.7)
         if t < tc:
             items = []
             for p_, on in zip(self.P, O[42][13:15]):
                 p = cp(t, on, 0.16)
                 if p > 0: items.append((p_['ch'], p_['x'], p_['y'], 330, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, CINNABAR))
             L = D.text_layer(items, fname='xing')
-            fr = T.compose(fr, L, shadow=0.0, outline=0, glow=0.3, glow_color=(0.8, 0.1, 0.05), glow_sigma=20)
+            fr = D.ink_text(fr, L, bleed=0.3, sig=8)
         else:
             q = cl((t - tc) / 0.45)
-            fr = T.slash_cut(fr, '罪状', 0.02 + 0.98 * q, places=self.P, fname='xing', color=tuple(CINNABAR), angle=-82, cut_at=0.02,
-                             offset=-10, slide=0.3, appear=0.0, style_kw=dict(shadow=0.0, outline=0, glow=0.35, glow_color=(0.85, 0.12, 0.05)))
+            fr = T.slash_cut(fr, '罪状', 0.02 + 0.98 * q, places=self.P, fname='xing', color=tuple(CINNABAR), angle=-87, cut_at=0.02,
+                             offset=-10, slide=0.35, appear=0.0, style_kw=dict(shadow=0.0, outline=0, glow=0.35, glow_color=(0.85, 0.12, 0.05)))
+            fr = D.ink_spray(fr, t, tc, (975, 400), n=60, seed=121, power=800, col=CINNABAR)
         return shake_cam(fr, t, [tc], 12, z=1.0 + 0.04 * u), 0.8
 
 
@@ -571,7 +639,7 @@ class S13_PaperCut(Shot):
         u = self.u(t)
         Ac, sp = Companions.mask()
         x0, y0, x1, y1 = sp.bbox
-        s = 760 / ((y1 - y0) * sp.h)
+        s = 700 / ((y1 - y0) * sp.h)
         cx = (x0 + x1) / 2 * sp.w; by = y1 * sp.h
         ox = -40 + 80 * u
         M = np.float32([[s, 0, 960 + ox - cx * s], [0, s, 905 - by * s]])
@@ -589,7 +657,7 @@ class S13_PaperCut(Shot):
         fr = fr + (gl * A)[..., None] * EMBER * 2.2 + gl[..., None] * EMBER * 0.25 * cl((t - 175.5) / 0.3)
         fr = fr * (1 - (ch * 0.6)[..., None])
         if t > 175.5: fr = D.embers(fr, t, 13, n=40, area=(0, 700, W, H - BAR), amt=0.8)
-        for (txt, xx, ons) in (('谁又来为', 650 + ox, O[43][0:4]), ('被牺牲的', 1275 + ox, O[43][4:8])):
+        for (txt, xx, ons) in (('谁又来为', 250 + ox, O[43][0:4]), ('被牺牲的', 1680 + ox, O[43][4:8])):
             fr = vcol(fr, txt, xx, 250, 72, ons, t, 'ink', {'牺': CINNABAR, '牲': CINNABAR}, fname='kai', adv=1.12)
         return K.cam(fr, 1.0 + 0.03 * u), 0.85
 
@@ -615,7 +683,7 @@ class S14_Burn(Shot):
         fr = fr + (gl * np.maximum(A, 0.25))[..., None] * EMBER * 2.4
         fr = fr * (1 - ch[..., None] * 0.8)
         fr = D.embers(fr, t, 14, n=110, amt=1.1, rise=(80, 260))
-        fr = vcol(fr, '牺牲', 1500, 380, 220, [O[43][5], O[43][6]], t, CINNABAR, fname='kai', adv=1.05)
+        fr = vcol(fr, '牺牲', 1700, 360, 200, [O[43][5], O[43][6]], t, (0.95, 0.85, 0.7), fname='kai', adv=1.1, ink=False)
         return K.cam(fr, 1.0 + 0.06 * u, 0, -20 * u), 0.4
 
 
@@ -677,7 +745,7 @@ class S16_Closed(Shot):
         fr = D.ash(fr, t, 16, n=70, amt=0.55, col=(0.6, 0.57, 0.53))
         # 一粒余烬飘向画面中心（→ 瞳孔 匹配）
         q = cl((t - self.t0) / (self.t1 - self.t0))
-        ex, ey = lerp(700, 960, eo(q, 2)), lerp(820, 560, eo(q, 2))
+        ex, ey = lerp(380, 0.29 * W, eo(q, 2)), lerp(900, 0.555 * H, eo(q, 2))
         m = np.zeros((H, W), np.float32); cv2.circle(m, (int(ex), int(ey)), 5, 1.0, -1, cv2.LINE_AA)
         fr = fr + (cv2.GaussianBlur(m, (0, 0), 2) * 2 + cv2.GaussianBlur(m, (0, 0), 14) * 3)[..., None] * EMBER
         fr = vcol(fr, '从今往后', 300, 280, 112, O[44][0:4], t, WHITE, fname='xing', ink=False, adv=1.1)
@@ -712,7 +780,7 @@ class S17_Eye(Shot):
             fr = T.compose(fr, L, **T.auto_style('red'))
         if tk - 0.02 <= t < tk + 0.2:   # 白刃寒光横扫
             q = (t - tk + 0.02) / 0.22
-            fr = TR._slash_streak(fr, (lerp(-200, 2100, eo(q, 2)), 520), (math.cos(math.radians(-12)), math.sin(math.radians(-12))), q, length=2600, width=4)
+            fr = TR._slash_streak(fr, (lerp(-200, 2100, eo(q, 2)), 520), np.array((math.cos(math.radians(-12)), math.sin(math.radians(-12)))), q, length=2600, width=4)
             fr = fr + 0.25 * (1 - q)
         z = 1.0 + 0.12 * eo(u, 2)
         return shake_cam(fr, t, [tk], 10, z=z, center=self.pupil), 0.0
@@ -740,49 +808,94 @@ class S18_Draw(Shot):
         return K.cam(fr, 1.03, -20 + 40 * u, 0), 0.0
 
 
+def stroke_head(ch, fname, x, y, s, p):
+    """笔序前沿在画面里的位置（brush_glyph 进度 p 时）"""
+    B = T._brush_prep(ch, fname, s, 0)
+    O_, a = B['O'], B['a']; G = a.shape[0]
+    fy, fx = np.nonzero((np.abs(O_ - p) < 0.02) & (a > 0.5))
+    if not len(fy): return None
+    return (x - G / 2 + fx.mean(), y - G / 2 + fy.mean())
+
+
 class S19_Forge(Shot):
-    """ECU 刃面斜贯全屏：「主张」两个行书字在刃面上烧红锻出，火星迸溅"""
+    """ECU 刃面斜贯全屏、继续出鞘滑动；刀刃擦出的火星在刀上方的空气里「写」出行书「主张」（火星就是笔锋，
+    写完的笔画从白金冷却成暗红余烬）。——字不刻在刀上（副歌一 S046 已用 carved_on_blade），而是刀「写」出来的。"""
     t0, t1 = 181.0, 181.91
+    CH = [('主', 700, 330, 300), ('张', 1230, 300, 320)]
     def __init__(self):
         self.sp = D.spr('S103/slow_draw')
+        for ch, x, y, sz in self.CH: T._brush_prep(ch, 'xing', sz, 0)
 
     def render(self, t):
         u = self.u(t)
         fr = ember_bg(190, 0.6)
-        fr, Aw = D.real_figure(fr, self.sp, t, (0.46, 0.27), (960 - 80 * u, 560), 4.2, rot=14, expo=1.0, sat=0.5,
-                               rim=COLD, rim_amt=2.0, wind=0)
-        th = math.radians(-14)
-        d = np.array([math.cos(th), math.sin(th)])
+        fr = D.embers(fr, t, 191, n=50, amt=0.6, size=(1, 2.5))
+        bx = 980 - 160 * u
+        fr, Aw = D.real_figure(fr, self.sp, t, (0.46, 0.27), (bx, 700), 4.0, rot=14, expo=0.95, sat=0.5,
+                               rim=COLD, rim_amt=2.0, wind=0, breathe=0.0)
+        Fw, A2 = D.warp(self.sp, t, (0.46, 0.27), (bx, 700), 4.0, rot=14, wind=0)
+        metal = A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.1)
+        fr = D.metal_sheen(fr, metal, Fw.mean(-1), t, (0, 0), -14, speed=lerp(200, 2000, eo(u, 2)), width=80, amt=1.4)
         hits = []
-        for k, (ch, on) in enumerate(zip('主张', O[44][10:12])):
-            p = cp(t, on, 0.15)
+        for k, ((ch, x, y, sz), on) in enumerate(zip(self.CH, O[44][10:12])):
+            tv = V(on); a0 = tv - 0.26; a1 = tv + 0.06
+            p = cl((t - a0) / (a1 - a0))
             if p <= 0: continue
-            hits.append(V(on))
-            c = np.array([960 - 80 * u, 560]) + d * (-230 + 460 * k) + np.array([0, 0])
-            heat = math.exp(-max(0, t - V(on)) / 0.6)
-            col = tuple(np.clip(RED * (1 - heat) + np.array([1.0, 0.75, 0.35]) * heat, 0, 1.5))
-            L = D.text_layer([(ch, c[0], c[1], 230, min(1, p * 1.5), 1 + 0.3 * (1 - eo(p)), 14.0, col)], fname='xing')
-            fr = T.compose(fr, L, shadow=0.0, glow=0.8, glow_color=(1.0, 0.4, 0.1), glow_sigma=22)
-            fr = K.sparks(fr, t, 1900 + k, tuple(c), n=60, life=0.5, speed=(300, 1000), dirc=(0, -1), spread=1.3, grav=1400, burst=True, t0=V(on), amt=1.2)
+            if t >= tv: hits.append(tv)
+            A = T.brush_glyph(ch, 'xing', sz, p, 0, 0.35, 0.6)
+            L = T.Layer(); L.paste(A, x, y, (1, 1, 1))
+            heat = math.exp(-max(0, t - a1) / 0.5)
+            hot = np.array([1.0, 0.86, 0.6], np.float32) * heat + np.array([0.95, 0.22, 0.06], np.float32) * (1 - heat)
+            Ab = cv2.GaussianBlur(L.A, (0, 0), 14)
+            fr = fr * (1 - L.A[..., None] * 0.6) + L.A[..., None] * hot * (1.3 + 0.6 * heat) + Ab[..., None] * np.array([1.0, 0.4, 0.1], np.float32) * (0.5 + 0.6 * heat)
+            hd = stroke_head(ch, 'xing', x, y, sz, p) if p < 1 else None
+            if hd is not None:      # 笔锋 = 一团火星
+                g = np.zeros((H, W), np.float32); cv2.circle(g, (int(hd[0]), int(hd[1])), 10, 1.0, -1, cv2.LINE_AA)
+                fr = fr + (cv2.GaussianBlur(g, (0, 0), 4) * 2.5 + cv2.GaussianBlur(g, (0, 0), 30) * 1.5)[..., None] * np.array([1.0, 0.7, 0.35], np.float32)
+                fr = K.sparks(fr, t, 1900 + k * 7 + int(p * 20), hd, n=26, life=0.35, speed=(150, 600), dirc=(0, 1), spread=1.4, grav=900, amt=1.0)
+        # 刃口持续擦出的火星（向上飞向字）
+        fr = K.sparks(fr, t, 1950, (bx - 200, 640), n=70, life=0.5, speed=(400, 1100), dirc=(0.3, -1), spread=0.5, grav=600, area=(300, 30), amt=0.9)
         fr = vcol(fr, '我', 1752, 262, 72, [O[44][9]], t, WHITE, fname='xing', ink=False)
-        return shake_cam(fr, t, hits, 8, z=1.0 + 0.05 * u), 0.0
+        return shake_cam(fr, t, hits, 7, z=1.0 + 0.05 * u), 0.0
 
 
 class S20_Wall(Shot):
-    """LS 宋体字砖墙从地面层层砌起，正中「规矩」两砖亮金；行书「谁定的规矩」是他的质问"""
+    """仰拍 LS：宋体字砖墙由下而上砌起、透视压顶（墙顶收窄、像压下来）；湿石质感、雨、雷光从右上扫过；正中「规矩」两砖金光渗出；
+    前景：鬼屠背影仰望（新精灵 wall_stand_back）。行书竖排「谁定的规矩」= 他的质问"""
     t0, t1 = 181.91, 182.81
     def __init__(self):
-        self.B = T.wall_bricks('律令天条正邪大局理所应当忍让规矩牺牲本分名分上下尊卑', highlight='规矩', hl_color='gold', cols=13, rows=7,
-                               brick=(150, 92), center=(960, 560), seed=4)
+        self.B = T.wall_bricks('律令天条正邪大局理所应当忍让规矩牺牲本分名分上下尊卑', highlight='规矩', hl_color='gold', cols=15, rows=9,
+                               brick=(150, 92), center=(960, 500), seed=4)
+        self.sp = D.spr('wall_stand_back')
+        src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
+        dst = np.float32([[330, -60], [W - 330, -60], [W + 260, H - 40], [-260, H - 40]])
+        self.Mp = cv2.getPerspectiveTransform(src, dst)
+        x, y = K.grid()
+        st = cv2.resize(D._tile(205)[:H // 2, :W // 2], (W, H))
+        self.stone = (0.75 + 0.5 * st) * (0.55 + 0.45 * (1 - y / H))
+        self.hl = None
 
     def render(self, t):
         u = self.u(t)
-        fr = D.storm(t, 201, c=(960, 150), spin=0.04, base=(0.02, 0.022, 0.03), lit=(0.22, 0.24, 0.3), eye=200)
-        p = eo(cl((t - self.t0) / 0.75), 2)
-        fr = T.text_wall(fr, p, mode='build', bricks=self.B, brick=(150, 92), seed=4)
-        fr = K.fog(fr, t, 45, amt=0.45, speed=(90, -10), y0=0.8, y1=1.0, color=(0.3, 0.31, 0.35))
-        fr = vcol(fr, '谁定的规矩', 560, 862, 96, O[45][0:5], t, WHITE, {'规': GOLD, '矩': GOLD}, fname='xing', ink=False, horiz=True, adv=1.15)
-        return shake_cam(fr, t, [V(O[45][3]), V(O[45][4])], 5, z=1.0 + 0.08 * eo(u, 2), oy=-10 * u), 0.0
+        fr = D.storm(t, 201, c=(960, -80), spin=0.04, base=(0.02, 0.022, 0.03), lit=(0.22, 0.24, 0.3), eye=200)
+        p = eo(cl((t - self.t0) / 0.7), 2)
+        wl = T.text_wall(np.zeros((H, W, 3), np.float32), p, mode='build', bricks=self.B, brick=(150, 92), seed=4)
+        wl = cv2.warpPerspective(wl, self.Mp, (W, H))
+        m = np.clip(wl.max(-1) * 5, 0, 1)
+        gold = np.clip((wl[..., 0] - wl[..., 2]) * 3, 0, 1) * m           # 金砖
+        flash = 0.6 * impact(t, 182.2, 0.14) + 0.9 * impact(t, V(O[45][3]), 0.1)
+        x, y = K.grid()
+        light = 0.55 + 0.9 * flash * np.exp(-(((x - 1500) / 900) ** 2 + ((y - 100) / 600) ** 2))
+        wl = wl * self.stone[..., None] * light[..., None] * (1 - gold[..., None]) + wl * gold[..., None] * (1.4 + 0.6 * math.sin(t * 13))
+        fr = fr * (1 - m[..., None]) + wl
+        fr = D.godrays(fr, gold, (960, 480), amt=0.5 * p)
+        fr = K.rain(fr, t, 20, n=600, amt=0.35, angle=12)
+        fr = K.fog(fr, t, 45, amt=0.5, speed=(90, -10), y0=0.75, y1=1.0, color=(0.22, 0.23, 0.27))
+        h = lerp(560, 600, u)
+        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (980, 1030), D.fit_scale(self.sp, h), expo=0.55 + 0.4 * flash, sat=0.5,
+                              rim=(1.0, 0.8, 0.5), rim_amt=3.0 + 4 * flash, rim_dir=(0.0, -1.0), wind=9)
+        fr = vcol(fr, '谁定的规矩', 230, 250, 104, O[45][0:5], t, WHITE, {'规': GOLD, '矩': GOLD}, fname='xing', ink=False, adv=1.12)
+        return shake_cam(fr, t, [V(O[45][3]), V(O[45][4])], 5, z=1.0 + 0.06 * eo(u, 2), oy=-14 * u), 0.0
 
 
 class S21_Charge(Shot):
@@ -791,6 +904,8 @@ class S21_Charge(Shot):
     def __init__(self):
         self.sp = D.spr('S105/charge_front')
         self.B = T.wall_bricks('律令天条正邪大局理所应当规矩名分尊卑', cols=4, rows=10, brick=(150, 92), center=(0, 540), seed=8)
+        x, y = K.grid()
+        self.stone = (0.7 + 0.6 * cv2.resize(D._tile(215)[:H // 2, :W // 2], (W, H))) * (0.5 + 0.5 * np.abs(x - 960) / 960)
 
     def render(self, t):
         u = self.u(t)
@@ -799,6 +914,7 @@ class S21_Charge(Shot):
         h = lerp(560, 760, ei(u, 1.5))
         fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 1000 + 40 * u), D.fit_scale(self.sp, h), expo=0.85, sat=0.6,
                               rim=COLD, rim_amt=3.2, rim_dir=(0.6, -0.8), wind=10, mblur=(0, 6 * u))
+        fr = K.rain(fr, t, 21, n=500, amt=0.3, angle=8)
         fr = K.radial_blur(fr, (960, 520), 0.03 + 0.05 * u)
         g = cl((t - self.t0) / (self.t1 - self.t0))
         for side in (-1, 1):
@@ -806,7 +922,8 @@ class S21_Charge(Shot):
             fr2 = T.text_wall(np.zeros_like(fr), 1.0, mode='stand', bricks=[dict(b, x=b['x'] + x) for b in self.B], brick=(150, 92), seed=8)
             m = np.clip(fr2.max(-1) * 4, 0, 1)
             m = cv2.GaussianBlur(m, (0, 0), 3)[..., None]
-            fr = fr * (1 - m) + cv2.GaussianBlur(fr2, (0, 0), 3) * 1.1
+            fl = 0.5 + 1.2 * impact(t, 183.05, 0.12)
+            fr = fr * (1 - m) + cv2.GaussianBlur(fr2, (0, 0), 3) * self.stone[..., None] * fl
         fr = vcol(fr, '我偏', 300, 300, 130, O[45][5:7], t, WHITE, fname='xing', ink=False)
         return K.cam(fr, 1.0 + 0.04 * u, *K.shake(t, 6, 3, 21)[:2]), 0.0
 
@@ -912,7 +1029,7 @@ class S25_Leap(Shot):
                                rim=(1.0, 0.45, 0.35), rim_amt=3.5, rim_dir=(0.7, -0.7), wind=12)
         q = cl((t - self.t0) / 0.45)
         if q < 1:
-            fr = TR._slash_streak(fr, (lerp(500, 1500, eo(q)), lerp(900, 200, eo(q))), (0.8, -0.6), q, length=1400, width=5, color=(1.0, 0.75, 0.65))
+            fr = TR._slash_streak(fr, (lerp(500, 1500, eo(q)), lerp(900, 200, eo(q))), np.array((0.8, -0.6)), q, length=1400, width=5, color=(1.0, 0.75, 0.65))
         fr = vcol(fr, '我', 300, 300, 130, [O[46][3]], t, WHITE, fname='xing', ink=False)
         return K.cam(fr, 1.02 + 0.05 * u, 0, -15 * u), 0.0
 
@@ -957,7 +1074,7 @@ class S27_Bullet(Shot):
         fr = vcol(fr, '刀不答', 1500, 300, 150, O[47][0:3], t, WHITE, {'刀': RED}, fname='xing', ink=False)
         if tk <= t < tk + 0.2:
             q = (t - tk) / 0.2
-            fr = TR._slash_streak(fr, (lerp(500, 1300, q), lerp(200, 900, q)), (0.6, 0.8), q, length=1800, width=3)
+            fr = TR._slash_streak(fr, (lerp(500, 1300, q), lerp(200, 900, q)), np.array((0.6, 0.8)), q, length=1800, width=3)
         return shake_cam(fr, t, [tk], 6, z=1.0 + 0.04 * u, ox=-30 + 60 * u), 0.0
 
 
@@ -1046,8 +1163,8 @@ CUTS = {
     'S03_TypeSlam': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, impact=0.06, flash=0.0)),
     'S04_Snow': ('smoke_through', 0.12, 0.2, dict(color=(0.93, 0.91, 0.86), seed=4)),
     'S05_Ren': ('ink_bleed', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
-    'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(960, 540), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
-    'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1240, 600))),
+    'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(680, 600), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
+    'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1270, 580))),
     'S08_Seals': ('whip_pan_blur', 0.08, 0.12, dict(direction='down')),
     'S09_Brush': ('ink_bleed', 0.1, 0.25, dict(seed=9, center=(960, 540))),
     'S10_Giant': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),

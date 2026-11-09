@@ -253,3 +253,11 @@
 | 11-09 01:30 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 3 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | submitted | - | try1 seen squarely from behind, standing perfectly still with fee |
 | 11-09 01:30 | A/kneel_beg | RH_image2 | 4K 16:9 | 3 | dcacb003-4d50-4198-bf20-818431504e2c | submitted | - | A组 kneel_beg try1 |
 | 11-09 01:30 | A/villain_fall | RH_image2 | 4K 16:9 | 3 | 9f74a166-620f-42d7-ac29-417641e434ad | submitted | - | A组 villain_fall try1 |
+| 11-09 01:34 | A/kneel_beg | RH_image2 | 4K 16:9 | 0 | dcacb003-4d50-4198-bf20-818431504e2c | completed | /workspace/work/a_cands/kneel_beg_dcacb003_0.png | A组 候选 |
+| 11-09 01:34 | A/villain_fall | RH_image2 | 4K 16:9 | 0 | 9f74a166-620f-42d7-ac29-417641e434ad | completed | /workspace/work/a_cands/villain_fall_9f74a166_0.png | A组 候选 |
+| 11-09 01:34 | A/kneel_beg | RH_image2 | 4K 16:9 | 0 | dcacb003-4d50-4198-bf20-818431504e2c | 采用 | assets/gen/A/kneel_beg_raw.png | A组 采用 |
+| 11-09 01:34 | A/villain_fall | RH_image2 | 4K 16:9 | 0 | 9f74a166-620f-42d7-ac29-417641e434ad | 采用 | assets/gen/A/villain_fall_raw.png | A组 采用 |
+| 11-09 01:34 | D组/blade_up_cu | RH_image2 | 4K 16:9 | 0 | 9d01184f-4f52-45b2-bc60-0afdea9c5b27 | completed | d_cands/blade_up_cu_try1_0.png | try1 |
+| 11-09 01:34 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 0 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | completed | d_cands/wall_stand_back_try1_0.png | try1 |
+| 11-09 01:35 | D组/blade_up_cu | RH_image2 | 4K 16:9 | 0 | 9d01184f-4f52-45b2-bc60-0afdea9c5b27 | 采用 | assets/gen/D_bridge/blade_up_cu_raw.png | try1 采用 |
+| 11-09 01:35 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 0 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | 采用 | assets/gen/D_bridge/wall_stand_back_raw.png | try1 采用 |

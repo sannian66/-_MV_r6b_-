@@ -1,5 +1,5 @@
 {
- "spent": 24,
+ "spent": 30,
  "jobs": {
   "walk_back": {
    "tries": [
@@ -77,6 +77,26 @@
      "tid": "486068a3-f67f-4522-8f56-0eabd78779be",
      "pts": 3,
      "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/d_cands/companions_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "blade_up_cu": {
+   "tries": [
+    {
+     "tid": "9d01184f-4f52-45b2-bc60-0afdea9c5b27",
+     "pts": 3,
+     "file": "/workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/d_cands/blade_up_cu_try1_0.png"
+    }
+   ],
+   "state": "done"
+  },
+  "wall_stand_back": {
+   "tries": [
+    {
+     "tid": "da4f10f3-5af0-4c7a-a8de-553d94e361d7",
+     "pts": 3,
+     "file": "/workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/d_cands/wall_stand_back_try1_0.png"
     }
    ],
    "state": "done"
