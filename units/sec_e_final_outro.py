@@ -945,7 +945,7 @@ class E27b(Shot):   # 斩：纯刀光——一道巨大的金白弧光自左上�
         u = self.u(t)
         fr = np.zeros((H, W, 3), np.float32) + np.array([0.03, 0.018, 0.015], np.float32)
         fr = fx2.light_beam(fr, (1500, 60), (800, 1000), 40, 500, t=t, strength=0.25, seed=27)
-        pr = eout(c01(u / 0.45), 4)
+        pr = eout(c01(0.3 + u / 0.45), 4)
         yy, xx = E.grid()
         c = (2300, -900); R = 1900
         d = np.hypot(xx - c[0], yy - c[1])
@@ -1233,7 +1233,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E27b': ('hard', 0, 0, {}),
     'E27c': ('hard', 0, 0, {}),
     'E28': ('blade_black', 0.04, 0.10, dict(angle=35, width=170)),
-    'E29': ('ink_swallow', 0.12, 0.25, dict(center=(1000, 500), seed=9)),
+    'E29': ('ink_swallow', 0.18, 0.18, dict(center=(1000, 500), seed=9)),
     'E30': ('hard', 0, 0, {}),
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
     'E32': ('occlusion', 0.10, 0.18, dict(kind='blade', direction=1)),

@@ -338,9 +338,15 @@ def draw_sent(fr, s, t, cam=(0.0, 0.0, 1.0)):
     else:
         if getattr(s, 'back', 0) > 0:
             a4 = cv2.resize(L.A, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
-            m = cv2.GaussianBlur(cv2.dilate(a4, np.ones((9, 9), np.uint8)), (0, 0), 9)
-            m = np.clip(m * 2.2, 0, 1) * s.back
-            fr = fr * (1 - cv2.resize(m, (W, H))[..., None] * 0.82)
+            bx_ = L.box(0)
+            m = np.zeros_like(a4)
+            if bx_ is not None:                      # 整句一块柔和暗衬（椭圆渐变），不是逐字黑团
+                x0_, y0_, x1_, y1_ = [v / 4 for v in bx_]
+                cv2.ellipse(m, (int((x0_ + x1_) / 2), int((y0_ + y1_) / 2)), (int((x1_ - x0_) * 0.62 + 10), int((y1_ - y0_) * 0.62 + 10)),
+                            0, 0, 360, 1.0, -1)
+                m = cv2.GaussianBlur(m, (0, 0), 10)
+            m = np.clip(m, 0, 1) * s.back
+            fr = fr * (1 - cv2.resize(m, (W, H))[..., None] * 0.7)
         out = T.compose(fr, L, shadow=0.8, shadow_sigma=22, glow=0.45, glow_sigma=16, glow_color=None)
         # 电白冷辉
         bx = L.box(30)

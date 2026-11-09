@@ -753,7 +753,7 @@ class C15(Shot):
         fr, _ = put(fr, t, 'C/leap_arc', x, y, 420, look='sil', rim=(0.9, 0.93, 1.0), rim_amt=3.6, rim_dir=(0.3, -1), flash=fl,
                     mblur=(0, 30 * (1 - sm(0.15, 0.45, k))), wind=10 * ramp)
         fr = rain(fr, self.t0 + 0.45 + (t - self.t0 - 0.45) * (0.08 if k > 0.45 else 1), 150, inten=1.1, angle=10,
-                  freeze=sm(0.35, 0.6, k) * 0.85)
+                  freeze=sm(0.35, 0.6, k) * 0.5)
         return fr
 
 
@@ -958,11 +958,13 @@ class C19(Shot):
         C, M = layers[True]
         fr = fr * (1 - M[..., None]) + C * M[..., None] * (1 - 0 * M[..., None])
         pose = 'S073/spin1' if t < ts else 'S073/spin2'
-        fr, _ = put(fr, t, pose, 960, 1000, 700, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, rotblur=-25 * pulse(t, ts, 0.1), wind=9)
-        fr = arc_streak(fr, (960, 640), 520, 170, 160, -200, (t - ts) / 0.4, width=10)
+        fr, _ = put(fr, t, pose, 960, 1000, 700, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, rotblur=-9 * pulse(t, ts, 0.1), wind=9)
+        fr = arc_streak(fr, (960, 600), 470, 150, 160, -200, (t - ts) / 0.4, width=7, amt=1.0)
         if t >= ts:
-            fr = sparks(fr, t, 193, tuple(c), n=260, life=0.6, speed=(400, 1300), dirc=(0, -1), spread=3.1, grav=900, t0=ts, burst=True,
-                        area=(300, 120), color=(1.0, 0.7, 0.35), amt=1.3)
+            for j, sp in enumerate(self.sp):      # 火星只在每个枪头切口迸出（不在他身上堆成白团）
+                a = sp['a']; P = c + np.array([math.cos(a), math.sin(a)]) * sp['rad'] * close * sp['dep']
+                fr = sparks(fr, t, 193 + j, tuple(P), n=24, life=0.45, speed=(200, 700), dirc=(math.cos(a), math.sin(a)), spread=0.9,
+                            grav=900, t0=ts + 0.012 * j, burst=True, color=(1.0, 0.7, 0.35), amt=1.0)
         C, M = layers[False]
         fr = fr * (1 - M[..., None]) + C * M[..., None]
         fr = rain(fr, t, 190, inten=1.0, angle=-14)
@@ -978,11 +980,11 @@ class C20(Shot):
         fl = bolt_env(t, tb) + 0.8 * bolt_env(t, tz)
         fr = storm(t, 20, horizon=1300, flash=0.3 + fl, fc=(600, 300), ground=False)
         a = sm(td - 0.06, td + 0.1, t) * (0.35 + 0.65 * min(1, fl + 0.3))
-        fr = paste_glyph(fr, '定', 600, 500, 560, GOLD_T, alpha=a, glow=0.9, glow_c=(1.0, 0.6, 0.2), shadow=0, scale=1 + 0.06 * u)
+        fr = paste_glyph(fr, '定', 480, 430, 430, GOLD_T, alpha=a, glow=0.9, glow_c=(1.0, 0.6, 0.2), shadow=0, scale=1 + 0.06 * u)
         fr = bolt(fr, t, tb, 201, (300, 80), (500, 900), inten=0.9)
         fr, _ = put(fr, t, 'S074/head_turn', 1330, 1100, 1100, anchor='foot', rim=(0.9, 0.92, 1.0), rim_amt=3.0, rim_dir=(-0.9, -0.4),
                     flash=fl, expo=0.75, look=None, wind=6, sat=0.5)
-        fr = K.vol_light(fr, (640, 500), 300, GOLD, 0.5 * pulse(t, tz, 0.15))
+        fr = K.vol_light(fr, (480, 430), 260, GOLD, 0.5 * pulse(t, tz, 0.15))
         fr = rain(fr, t, 200, inten=0.8, angle=8)
         return fr
 
@@ -1148,9 +1150,9 @@ class C26(Shot):
     def render(self, t):
         u = self.u(t)
         tr = self.t0 + (t - self.t0) * 0.4
-        fl = 0.8 + 0.6 * math.sin(t * 13) ** 2
+        fl = 0.55 + 0.45 * math.sin(t * 13) ** 2
         fr = storm(t, 26, horizon=1100, flash=fl, fc=(960, 500), ground=False)
-        fr = fr + 0.25
+        fr = fr + 0.08
         fr, _ = self.wall.draw(fr, tr, x0=-250, y0=-200, x1=2170, y1=1150, tilt=0.15, collapse=0.08 + 0.75 * eout(u, 2),
                                collapse_center=(0.5, 0.55), light_color=COLD, rim=1.0, dust=1.5)
         fr = dust(fr, t, 261, n=200, amt=0.6, drift=(0, 160), region=(0, BAR, W, H - BAR))
@@ -1303,7 +1305,6 @@ class C31(Shot):
         x = 1120 - 360 * eout(k / 0.5)
         fr, _ = put(fr, t, 'S084/knock_back', x + 40, 1140, 1050, rim=COLD, rim_amt=2.3, expo=0.95, wind=10, mblur=(-60 * pulse(t, ti, 0.2), 0),
                     flash=0.8 * pulse(t, ti, 0.15))
-        fr = shock_ring(fr, (1150, 960), k / 0.6, rx=1400, flat=0.14, amt=1.0)
         fr = dust(fr, t, 311, n=220, amt=0.9 * min(1, k * 5) * (1 - sm(0.4, 1.2, k)), drift=(-300, -60), region=(300, 700, W, 1000))
         fr = rain(fr, t, 310, inten=1.0, angle=10)
         self.ca = 6 if 0 <= k < 0.1 else 0
@@ -1511,8 +1512,14 @@ class C37(Shot):
             nz = cv2.resize(np.random.default_rng(int(t * 30)).random((g // 12, g // 12)).astype(np.float32), (g, g))
             core = np.clip(edge * (0.6 + 0.8 * nz), 0, 1) + a * 0.12
             prog = sm(tp - 0.38, tp + 0.04, t)
-            yy = np.linspace(0, 1, g, dtype=np.float32)[:, None]
-            core = core * (yy < prog * 1.05)
+            if not hasattr(self, 'field'):          # 电光逐笔：随机分形场 + 自上而下偏置，像电流沿笔画爬
+                fld = cv2.GaussianBlur(np.random.default_rng(37).random((g, g)).astype(np.float32), (0, 0), g / 30)
+                fld = (fld - fld.min()) / (fld.max() - fld.min() + 1e-6)
+                yy = np.linspace(0, 1, g, dtype=np.float32)[:, None]
+                self.field = fld * 0.45 + yy * 0.55
+            rev = np.clip((prog * 1.08 - self.field) * 25, 0, 1)
+            front = np.clip(1 - np.abs(prog * 1.08 - self.field) * 18, 0, 1) * (prog < 1)
+            core = core * rev + a * front * 1.5
             L = T.Layer(); L.paste(core, 960, 530, (0.92, 0.95, 1.0))
             if t > ts:
                 q = sm(ts, ts + 0.35, t)
@@ -1522,8 +1529,8 @@ class C37(Shot):
                     msk = ((yyf < 530) if sgn < 0 else (yyf >= 530)).astype(np.float32)
                     M = np.float32([[1, 0, -sgn * 40 * q], [0, 1, sgn * 70 * q]])
                     L.A[:] = np.maximum(L.A, cv2.warpAffine(A2 * msk, M, (W, H)))
-            fr = T.compose(fr, L, shadow=0, glow=1.4, glow_sigma=18, glow_color=(0.6, 0.75, 1.0))
-            fr = T.compose(fr, L, shadow=0, glow=0.6, glow_sigma=60, glow_color=(0.5, 0.6, 1.0))
+            fr = T.compose(fr, L, shadow=0.5, shadow_sigma=20, glow=0.9, glow_sigma=14, glow_color=(0.6, 0.75, 1.0))
+            fr = T.compose(fr, L, shadow=0, glow=0.25, glow_sigma=50, glow_color=(0.5, 0.6, 1.0))
         fr = slash_streak(fr, (160, 560), (1760, 500), (t - ts) / 0.4, width=10, col=(1.0, 0.25, 0.15), amt=2.2)
         fr = rain(fr, t, 370, inten=0.8, angle=10)
         self.ca = 6 if 0 <= t - tp < 0.12 else 0
@@ -1625,35 +1632,37 @@ class C40b(Shot):
 
 
 class C41(Shot):
-    """MCU 秤盘砸向镜头：断下的青铜秤盘翻滚着扑来，金印「正」从盘里甩出、纸人四散 → 160.72 定格 → 故障 → 「答」金闪 → 切黑。"""
+    """MCU 金印扑向镜头（第三棒重做，去掉“光环”秤盘）：断下的秤盘在背景里翻着坠下，金印「正」从盘里甩出、翻滚着直扑镜头，
+    纸人四散；160.72 定格（雨停在半空）→ 金印正面撞上镜头前一刻的特写 → 「答」金闪 → 段尾故障切黑。"""
     def render(self, t):
         u = self.u(t)
         tf = V(160.72)
         te = min(t, tf)
         q = sm(self.t0, tf, te)
-        fr = storm(t, 41, horizon=1300, flash=0.4 + 0.6 * pulse(t, tf, 0.1), ground=False)
-        # 秤盘：画在独立层上，整体旋转 + 放大（扑向镜头）
+        fr = storm(t, 41, horizon=1300, flash=0.35 + 0.6 * pulse(t, tf, 0.1), ground=False, fc=(960, 300))
+        # 背景：断开的秤盘翻着坠下（小、远、失焦）
         Lc = np.zeros((H, W, 3), np.float32)
-        rx = lerp(300, 820, ein(q, 1.6))
-        Lc = CP._bowl(Lc, (960, 470), rx, rx * 0.36, (-0.4, -0.9), rim=(0.85, 0.9, 1.0), rim_amt=1.0, seed=411)
-        Lm = (Lc.max(-1) > 0.004).astype(np.float32)
-        M = cv2.getRotationMatrix2D((960, 520), lerp(-8, 24, q), 1.0)
-        Lc = cv2.warpAffine(Lc, M, (W, H)); Lm = cv2.warpAffine(Lm, M, (W, H))
-        if t < tf:
-            k = int(18 * q) * 2 + 1; Lc = cv2.blur(Lc, (k, k)); Lm = cv2.blur(Lm, (k, k))
+        Lc = CP._bowl(Lc, (1450, 300 + 500 * q * q), 220, 90, (-0.4, -0.9), rim=(0.85, 0.9, 1.0), rim_amt=0.8, seed=411)
+        M = cv2.getRotationMatrix2D((1450, 300 + 500 * q * q), lerp(-20, 60, q), 1.0)
+        Lc = cv2.GaussianBlur(cv2.warpAffine(Lc, M, (W, H)), (0, 0), 3)
+        Lm = np.clip(Lc.max(-1) * 8, 0, 1)
         fr = fr * (1 - Lm[..., None]) + Lc
-        # 甩出的纸人与金印
+        fr = sparks(fr, t, 412, (1450, 300), n=80, life=1.0, speed=(60, 300), dirc=(0, 1), spread=1.2, grav=500, amt=0.8,
+                    color=(1.0, 0.65, 0.3), area=(300, 60))
+        # 纸人四散
         r = np.random.default_rng(41)
-        for i in range(16):
-            A, fib = puppet_sprite(80 + i % 8, int(lerp(60, 150, q) * r.uniform(0.8, 1.2)))
-            a = r.uniform(0, 6.28); d = lerp(80, 900, q) * r.uniform(0.5, 1.1)
-            fr = draw_puppet(fr, A, fib, 960 + math.cos(a) * d, 440 + math.sin(a) * d * 0.6, r.uniform(-1, 1) * 400 * q, back=0.9)
+        for i in range(14):
+            A, fib = puppet_sprite(80 + i % 8, int(lerp(60, 170, q) * r.uniform(0.8, 1.2)))
+            a = r.uniform(0, 6.28); d = lerp(120, 900, q) * r.uniform(0.5, 1.1)
+            fr = draw_puppet(fr, A, fib, 960 + math.cos(a) * d, 460 + math.sin(a) * d * 0.55, r.uniform(-1, 1) * 400 * q, back=0.9)
+        # 金印：翻滚着扑向镜头，越来越大（运动模糊在定格前）
         g = gold_seal()
-        fr, _ = g.draw(fr, lerp(1000, 1380, q), lerp(520, 330, q), lerp(140, 300, q), yaw=-30 + 200 * q, pitch=lerp(-10, 30, q),
-                       rim=(1, 0.8, 0.45), rim_amt=1.4, flash=pulse(t, tf, 0.1), mblur=False, roll=lerp(0, 40, q))
-        fr = rain(fr, te, 410, inten=0.9, angle=10, freeze=0.6 if t > tf else None)
+        sz = lerp(160, 640, ein(q, 2.2))
+        fr, _ = g.draw(fr, lerp(1000, 900, q), lerp(560, 860, ein(q, 2)), sz, yaw=lerp(-30, 8, q) + 160 * (1 - q) * q, pitch=lerp(-10, -4, q),
+                       rim=(1, 0.8, 0.45), rim_amt=1.4, flash=pulse(t, tf, 0.1), mblur=t < tf, roll=lerp(25, 0, q))
+        fr = rain(fr, te, 410, inten=0.9, angle=10, freeze=0.35 if t > tf else None)
         if t > tf:
-            fr = K.vol_light(fr, (1380, 330), 260, GOLD, 0.9 * pulse(t, tf + 0.05, 0.15))
+            fr = K.vol_light(fr, (960, 560), 420, GOLD, 0.6 * pulse(t, tf + 0.05, 0.15))
         return fr
 
 
@@ -1854,7 +1863,8 @@ class Sec:
         ins = INSERTS.get(f)
         if ins == 'white': fr = fr * 1.9 + 0.04 * np.array([0.9, 0.95, 1.0], np.float32); ca = max(ca, 3)   # 电光过曝（保留画面结构，不是白帧）
         elif ins == 'neg':
-            l = fr.mean(-1, keepdims=True); fr = np.clip(1.0 - l * 1.3, 0, 1) * np.array([0.62, 0.07, 0.05], np.float32); ca = max(ca, 5)   # 朱红负片（不是白帧）
+            l = np.clip(fr.mean(-1, keepdims=True), 0, 1)
+            fr = fr * 0.45 + np.clip(1.0 - l * 1.6, 0, 1) ** 2 * np.array([0.55, 0.05, 0.04], np.float32); ca = max(ca, 5)   # 朱红负片叠原画（保留结构，不是色卡）
         sid = self.ids[self.idx(t)]
         fr = fr * (EXPO_ALL * EXPO.get(sid, 1.0))
         fr = fr + 0.014 * (1 - np.clip(fr, 0, 1))

@@ -531,7 +531,7 @@ def ink_swallow(A, B, p, center=(W / 2, H / 2), seed=5, band=0.32):
     outer = np.clip((d - r) * 10, 0, 1)                      # 1 = 还在 A
     inner = np.clip((r - band - d) * 10, 0, 1)               # 1 = 已是 B
     ink = np.array([0.018, 0.015, 0.016], np.float32)
-    mid = ink + B * 0.35
+    mid = ink + B * 0.35 + A * 0.22
     out = A * outer[..., None] + B * inner[..., None] + mid * np.clip(1 - outer - inner, 0, 1)[..., None]
     edge = np.exp(-((d - r) / 0.025) ** 2)
     return out + edge[..., None] * np.array([0.8, 0.38, 0.12], np.float32) * 0.6
