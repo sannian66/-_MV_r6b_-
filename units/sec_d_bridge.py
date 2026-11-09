@@ -272,7 +272,7 @@ class S05_Ren(Shot):
     t0, t1 = 165.88, 167.25
     paper = 1.0
     REN = (1010, 540, 610)
-    DROP = (680, 600)
+    DROP = (577, 726)          # [r7] 对齐新天平左盘朱「人」
 
     def __init__(self):
         x, y, s = self.REN
@@ -385,40 +385,45 @@ def arc_pts(c, ax, ay, a0, a1, n=40):
 
 
 class S06_Scale(Shot):
-    """LS 白纸上的毛笔天平（大写意：干湿笔触、飞白、墨池、淡墨投影）：左盘一枚朱红「人」，右盘堆起上千个墨「人」——
-    竟然平衡；句子「什么叫以一人换千人」坐在横梁上逐字落下，「一人」朱红。镜头缓推 + 微仰。"""
+    """LS 白纸上的水墨天平（[r7] 换成生图水墨美术 assets/gen/D_r7/scale：干湿笔触、飞白、墨分五色的体积、左上受光/右侧背光），
+    投影落在纸上；左盘一枚朱红「人」，右盘堆起上千个墨「人」—— 竟然平衡；句子「什么叫以一人换千人」坐在横梁上逐字落下，
+    「一人」朱红。左上主光 + 斜射光束 + 浮尘 + 纸纹浮雕。镜头缓推 + 微仰；横梁（连秤盘）绕支点轻摆，立柱不动。"""
     t0, t1 = 167.25, 168.62
     paper = 1.0
-    PIV = (960, 300)
-    LP, RP = (650, 640), (1270, 640)
+    PIV = (960, 330)
+    LP, RP = (577, 752), (1494, 752)
+    _ART = {}
+
+    @classmethod
+    def art(cls):
+        if 'a' in cls._ART: return cls._ART['a']
+        im = cv2.imread(ROOT + '/assets/gen/D_r7/scale_cut.png', cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.0
+        rgb = im[..., 2::-1].copy(); a = im[..., 3].copy()
+        s = 0.536; src_piv = (1275.0, 208.0)
+        M = np.float32([[s, 0, cls.PIV[0] - src_piv[0] * s], [0, s, cls.PIV[1] - src_piv[1] * s]])
+        R = cv2.warpAffine(rgb, M, (W, H), flags=cv2.INTER_AREA); A = cv2.warpAffine(a, M, (W, H), flags=cv2.INTER_AREA)
+        # 墨色分级：画里的亮面压成暖纸色的高光，暗部保持焦墨；稍暖
+        lum = R.mean(-1, keepdims=True)
+        R = np.clip((R - 0.04) * 1.08, 0, 1) * np.array([1.0, 0.97, 0.92], np.float32)
+        x, y = K.grid()
+        post = ((np.abs(x - cls.PIV[0]) < 82) & (y > cls.PIV[1] + 40)).astype(np.float32)
+        post = cv2.GaussianBlur(post, (0, 0), 1.5)
+        cls._ART['a'] = (R, A, post)
+        return cls._ART['a']
 
     def __init__(self):
         sh = (H, W)
-        post = brush_mask(sh, (962, 895), (958, 300), 46, 1, 0.55)       # [r7] 加粗
-        foot = brush_mask(sh, None, None, 38, 2, 0.5, pts=[(750, 908), (860, 892), (960, 886), (1060, 892), (1170, 904)])
-        self.post = np.maximum(post, foot)
-        # 墨池：底座洇开的淡墨
+        self.R, self.A, self.postm = self.art()
         x, y = K.grid()
         nn = cv2.resize(D._tile(61)[:H // 4, :W // 4], (W, H))
-        self.pool = np.clip(1 - np.sqrt(((x - 960) / 330) ** 2 + ((y - 905) / 44) ** 2) - (nn - 0.5) * 0.7, 0, 1) ** 0.7 * 0.5
-        # 背后一轮淡墨晕（像月，也像秤砣的影）
+        self.pool = np.clip(1 - np.sqrt(((x - 960) / 360) ** 2 + ((y - 912) / 40) ** 2) - (nn - 0.5) * 0.7, 0, 1) ** 0.7 * 0.35
         n2 = cv2.resize(D._tile(62)[:H // 4, :W // 4], (W, H))
-        self.moon = np.clip((1 - np.sqrt(((x - 960) / 420) ** 2 + ((y - 470) / 400) ** 2)) * 3 - (n2 - 0.5) * 2.2, 0, 1) * 0.13
-        beam = brush_mask(sh, None, None, 32, 3, 0.5, pts=[(552, 312), (760, 300), (960, 296), (1160, 300), (1378, 310)])
-        cap = np.zeros(sh, np.float32); cv2.circle(cap, self.PIV, 28, 1.0, -1, cv2.LINE_AA)
-        ch = np.zeros(sh, np.float32)
-        for i, (cx, cy) in enumerate((self.LP, self.RP)):
-            for dx in (-160, 0, 160):
-                ch = np.maximum(ch, brush_mask(sh, (cx, 314), (cx + dx, cy - 4), 7, 10 + i * 3 + dx // 80, 0.3))
-            bowl = brush_mask(sh, None, None, 22, 20 + i, 0.45, pts=arc_pts((cx, cy), 184, 52, 4, 176))
-            lip = brush_mask(sh, None, None, 9, 30 + i, 0.5, pts=arc_pts((cx, cy), 184, 13, 186, 354))
-            ch = np.maximum(ch, np.maximum(bowl, lip))
-        self.beam = np.maximum(np.maximum(beam, cv2.GaussianBlur(cap, (0, 0), 1.5)), ch)
+        self.moon = np.clip((1 - np.sqrt(((x - 960) / 440) ** 2 + ((y - 500) / 420) ** 2)) * 3 - (n2 - 0.5) * 2.2, 0, 1) * 0.10
         r = np.random.default_rng(66)
         items = []
         for i in range(950):
             a = r.uniform(-1, 1); hgt = (1 - a * a) ** 0.75
-            items.append(('人', self.RP[0] + a * 168, self.RP[1] - 8 - r.uniform(0, 1) ** 0.7 * hgt * 200, r.uniform(12, 28), 0.95, 1.0, r.uniform(-50, 50)))
+            items.append(('人', self.RP[0] + a * 160, self.RP[1] - 8 - r.uniform(0, 1) ** 0.7 * hgt * 190, r.uniform(12, 28), 0.95, 1.0, r.uniform(-50, 50)))
         items.sort(key=lambda c: -c[2])
         self.heap = D.text_layer(items, fname='serif_b')
         self.one = D.text_layer([('人', self.LP[0], self.LP[1] - 50, 112, 1.0, 1.0, 0.0, CINNABAR)], fname='serif_black')
@@ -428,22 +433,25 @@ class S06_Scale(Shot):
         L2 = T.Layer(); L2.A = cv2.warpAffine(L.A, M, (W, H)); L2.C = cv2.warpAffine(L.C, M, (W, H)); L2.bb = [0, 0, W, H]
         return L2
 
-    def scene(self, t):
+    def scene(self, t, sent_a=1.0, ty=0):
         fr = D.paper(15).copy() * D.fiber(5)[..., None]
-        fr = D.wash(fr, 0.07, 0.0, 0.5, seed=9)
-        fr = D.fall_chars(fr, t, '人', 61, density=5, sizes=(14, 34), alpha=0.45, near_blur=3)
+        fr = D.wash(fr, 0.06, 0.0, 0.5, seed=9)
+        fr = R7.paper_relief(fr, 66, amt=0.08)
+        fr = D.fall_chars(fr, t, '人', 61, density=5, sizes=(14, 34), alpha=0.40, near_blur=3)
         ang = 0.9 * math.sin(t * 2.1)
         M = cv2.getRotationMatrix2D(self.PIV, ang, 1.0)
-        bm = cv2.warpAffine(self.beam, M, (W, H))
-        # [r7] 主光（左上暖）+ 纸纹浮雕；天平的投影落右下（近实远虚），墨线有浓淡与湿墨受光
-        fr = R7.paper_relief(fr, 66, amt=0.08)
-        allm = np.maximum(self.post, bm)
-        fr = R7.ink_cast(fr, allm, ld=(-0.75, -0.6), dist=46, blur=8, amt=0.36)
+        Ab = cv2.warpAffine(self.A * (1 - self.postm), M, (W, H)); Rb = cv2.warpAffine(self.R, M, (W, H))
+        Ap = self.A * self.postm
+        Aall = np.maximum(Ab, Ap)
+        # 投影：左上主光 → 影落右下（近实远虚）
+        fr = R7.ink_cast(fr, Aall, ld=(-0.75, -0.6), dist=48, blur=8, amt=0.40)
         fr = fr * (1 - self.moon[..., None])
         fr = fr * (1 - self.pool[..., None] * 0.55) + self.pool[..., None] * INK * 0.55 * (fr / 0.93)
-        fr = fr * (1 - self.post[..., None] * 0.93) + self.post[..., None] * INK * 0.93 * (fr / 0.93)
-        fr = fr * (1 - bm[..., None] * 0.93) + bm[..., None] * INK * 0.93 * (fr / 0.93)
-        fr = R7.ink_sheen(fr, allm, ld=(-0.75, -0.6), w=5, amt=0.42, core=0.3)
+        for Aa, Rr in ((Ap, self.R), (Ab, Rb)):
+            col = 0.55 * Rr + 0.45 * Rr * (fr / 0.93)            # 半透纸：纸纹从墨里透出
+            fr = fr * (1 - Aa[..., None]) + col * Aa[..., None]
+        # 朝光一侧的边缘再提一线湿墨反光
+        fr = R7.rim_edge(fr, Aall, (-0.75, -0.6), 3, 0.18, (1.0, 0.95, 0.85), glow=4, gamt=0.0)
         fr = D.ink_text(fr, self._rot(self.heap, M), bleed=0.1)
         fr = D.ink_text(fr, self._rot(self.one, M), bleed=0.2, sig=6)
         fr = D.ink_spray(fr, 200.0, 199.0, (960, 890), n=50, seed=606, power=500, size=(2, 7))
@@ -454,9 +462,9 @@ class S06_Scale(Shot):
         for i, (ch, p) in enumerate(zip('什么叫以一人换千人', prog)):
             if p <= 0: continue
             big = i < 3                                            # [r5] 递进 3/3：「什么叫」在句首放大成 96px
-            xx = (520 + i * 104) if big else (820 + (i - 3) * 87.5); yy = (242 if big else 260) - 40 * (1 - eo(p))   # [r7] 下移收进安全框
+            xx = (500 + i * 96) if big else (800 + (i - 3) * 90); yy = (262 if big else 278) + ty - 40 * (1 - eo(p))   # [r7] 坐在横梁上，收进安全框
             c = CINNABAR if i in (2, 4, 5) else 'ink'
-            items.append((ch, xx, yy, 96 if big else 60, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, c))
+            items.append((ch, xx, yy, 88 if big else 60, min(1, p * 1.5) * sent_a, 1 + 0.35 * (1 - eo(p)), 0.0, c))
         L = D.text_layer(items, fname='serif_sb')
         fr = D.ink_text(fr, self._rot(L, M), bleed=0.12)
         return fr
@@ -464,7 +472,7 @@ class S06_Scale(Shot):
     def render(self, t):
         u = self.u(t)
         fr = self.scene(t)
-        return K.cam(fr, 1.0 + 0.07 * eo(u, 2), 0, 30 * (1 - u), rot=-0.6 * u, center=(960, 380)), 1.0   # [r7] 推镜中心上移：顶行不被推出画
+        return K.cam(fr, 1.0 + 0.07 * eo(u, 2), 0, 24 * (1 - u), rot=-0.6 * u, center=(960, 300)), 1.0   # [r7] 推镜中心上移：顶行不被推出画
 
 
 class S07_Heap(Shot):
@@ -1316,7 +1324,7 @@ class S26_Judge(Shot):
         u = self.u(t)
         if self.sc is None: self.sc = S06_Scale()
         ts = V(O[46][4]); tj = V(O[46][5])
-        pap = self.sc.scene(t)
+        pap = self.sc.scene(t, sent_a=1 - cl((t - V(O[46][4])) / 0.2), ty=10)    # [r7] 劈开错位前句子先隐去，不随半张纸滑出画
         pap = D.song(pap, [('我', 400, 330, 140, 1.0, 'k'), ('来', 400, 500, 140, cp(t, O[46][4], 0.1), 'k')])
         s = eo(cl((t - ts - 0.04) / 0.45), 2)
         back = None
@@ -1621,7 +1629,7 @@ CUTS = {
     'S03_TypeSlam': ('hard_cut_x', 0, 0.07, dict(impact=0.08, tint=(0.10, 0.09, 0.09), amt=0.45, ca=7, jolt=(0, 16))),   # [r6] 纸面镜头不白闪：墨压暗 + 色散 + 下顿
     'S04_Snow': ('smoke_through', 0.12, 0.2, dict(color=(0.93, 0.91, 0.86), seed=4)),
     'S05_Ren': ('ink_bleed_hd', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
-    'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(680, 600), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
+    'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(577, 726), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
     'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1270, 580))),
     'S08_Seals': ('seal_iris', 0.1, 0.14, dict(center=(760, 400), ch='理')),
     'S09_Brush': ('ink_bleed_hd', 0.001, 0.28, dict(seed=9, center=(1560, 260))),

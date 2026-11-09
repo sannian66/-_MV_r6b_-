@@ -155,91 +155,101 @@
    "tries": [
     {
      "tid": "595af4b0-a05b-4005-81e2-6787001af170",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/v01_bell_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "v02_plaza": {
    "tries": [
     {
      "tid": "1e77cfa2-af78-4b83-b080-ce12b7602a58",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/v02_plaza_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "hu_hands": {
    "tries": [
     {
      "tid": "75ccc766-c7f9-4435-ac29-157b9c376120",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/hu_hands_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "steelyard": {
    "tries": [
     {
      "tid": "0b0a1eec-b0b4-4285-a7e6-6b43d030be10",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/steelyard_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "heaven_stele": {
    "tries": [
     {
      "tid": "7e6d3909-3a1c-43eb-8380-8876b493d1f1",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/heaven_stele_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "stand_defy": {
    "tries": [
     {
      "tid": "6a7ecb72-1d35-4e33-8149-dc2c9bf48402",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/stand_defy_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "guard_h": {
    "tries": [
     {
      "tid": "81042e45-0860-468f-80c4-a30c65945723",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/guard_h_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "palm_open2": {
    "tries": [
     {
      "tid": "a295f6eb-a254-4549-9ab6-b02c6871ffc2",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/palm_open2_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "grab_turn2": {
    "tries": [
     {
      "tid": "66c3c2db-4e85-4c1a-b5b1-993327d4e428",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/grab_turn2_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "blade_face2": {
    "tries": [
     {
      "tid": "0221a2c2-8190-4338-93a0-e0d6b3243920",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/5ef139c0-bc08-4b3b-ba11-a31305c292d4/work/b_cands/blade_face2_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   }
  }
 }

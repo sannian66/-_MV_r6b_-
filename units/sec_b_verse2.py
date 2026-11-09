@@ -176,137 +176,153 @@ def sil_over(fr, tmp, rim_col, rim_w=5, amt=1.0, blur=0.0):
 
 
 # =====================================================================================
-# V01 86.19–87.53 ELS→MS：墨退，夜雨倾盆；真刀斜插泥里，雨顺刃流下、积水倒影；后景雨雾中城墙轮廓
-#   前＝虚焦草叶（焦点由草→刀）；中＝斜插的刀；后＝雾中城墙/城楼。小款「鬼屠」+ 屠字朱印（与副歌一 S047 同款）
+# 第六棒：86.19–89.40 按章程归 B 组，副歌一 S047（插地刀）/S048（追进雨滴）不改 → 换概念，与之完全不同：
+# V01 86.19–87.53 LS 钟楼：暴雨夜宫城钟楼里一口巨钟（生图 v01_bell），86.66 落拍撞钟——钟体震颤、声波折射环扩散、梁上积尘震落、
+#     地面积水起涟漪、窗外远雷；「权力的钟声」召来下一句的「世人」。前＝雨丝/飘尘，中＝巨钟，后＝窗外雷云宫阙。
+# V02 87.53–89.40 ELS 顶拍：钟声化作一圈声波环掠过整座宫城广场（生图 v02_plaza），广场上跪满纸扎百官，镜头自上而下压近 + 微旋；
+#     88.91 雷闪照亮殿顶琉璃、地面反光。图形匹配：钟口圆 → 广场上扩散的声波环。
+def _plate(name, scale=1.12):
+    from PIL import Image
+    im = np.asarray(Image.open(GEN_B + name + '_raw.png').convert('RGB').resize((int(W * scale), int(H * scale)), Image.LANCZOS)).astype(np.float32) / 255
+    return im ** 1.0
+
+
+GEN_B = ROOT + '/assets/gen/B_r4/'
+
+
+def plate_view(P, zoom, cx, cy, ang=0.0, ox=0.0, oy=0.0):
+    """从放大底板 P 里取景：以底板坐标 (cx,cy) 为中心、zoom 倍（相对屏幕 1:1）、旋转 ang 度，输出 W×H"""
+    M = cv2.getRotationMatrix2D((float(cx), float(cy)), ang, zoom)
+    M[0, 2] += W / 2 - cx + ox; M[1, 2] += H / 2 - cy + oy
+    return cv2.warpAffine(P, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+
+def ring_warp(fr, c, r, w, amp, sy=1.0):
+    """声波折射环：半径 r、宽 w 的环带把画面沿径向推开 amp 像素（sy<1 = 透视压扁的椭圆环）"""
+    x, y = K.grid()
+    dx = x - c[0]; dy = (y - c[1]) / sy
+    d = np.sqrt(dx * dx + dy * dy) + 1e-3
+    g = np.exp(-((d - r) / w) ** 2) * np.sin((d - r) / w * 2.4)
+    mx = (x - dx / d * amp * g).astype(np.float32); my = (y - dy / d * amp * g * sy).astype(np.float32)
+    out = cv2.remap(fr, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    edge = np.exp(-((d - r) / (w * 0.35)) ** 2)
+    return out, edge
+
+
 class V01(Shot):
+    T_HIT = 86.66
+    BELL = (1300, 560)
     def __init__(self):
-        sk = night_sky(4701, top=(0.045, 0.05, 0.065), bot=(0.30, 0.31, 0.34), horizon=0.70)   # 第五棒：提亮（评审：偏暗偏空）
-        wl, wm = city_wall_far(4702, 560, 790, tone=0.075)
-        wl = K.blur_ds(wl, 10); wm = K.blur_ds(wm, 10)
-        sk = sk * (1 - wm[..., None] * 0.55) + wl * wm[..., None] * 0.55
-        x, y = K.grid()
-        self.gm = sstep(828, 850, y)
-        mud = (0.025 + 0.035 * cv2.resize(K.fbm(H // 2, W // 2, 4703, 10, 6), (W, H)))[..., None] * np.array([1.0, 0.98, 0.96], np.float32)
-        self.bg = sk * (1 - self.gm[..., None]) + mud * self.gm[..., None]
-        self.puddle = np.clip((cv2.resize(K.fbm(H // 8, W // 8, 4704, 4, 4), (W, H)) - 0.45) * 5, 0, 1) * self.gm
-        self.grass = K.Grass(4705, n=16, y_base=1030, height=(120, 300), width=(4, 9))     # 第五棒：草叶减量压低（评审：片状草代码味）
-        self.rain = fx2.RainSheet(4706, density=0.9)
+        self.P = _plate('v01_bell', 1.14)
+        h, w = self.P.shape[:2]
+        x, y = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
+        lum = self.P.mean(-1)
+        self.win = np.clip((lum - 0.10) * 4, 0, 1) * (y < h * 0.80)            # 窗外亮区（雷光只照这里）
+        self.win = cv2.GaussianBlur(self.win, (0, 0), 6)[..., None]
+        self.rain = fx2.RainSheet(4706, density=0.8)
         self.spl = fx2.Splashes(4707)
-        self.fog = fx2.Fog(4708)
-        self.blade = BK.spr('B_r4/blade_stuck')
-        T.warm('鬼屠', 'song', 40)
+        r = np.random.default_rng(4710)
+        self.dust = r.uniform(0, 1, (260, 4))
 
     def render(self, t):
-        u = self.u(t)
-        e = eio(u)
-        fr = self.bg.copy()
-        fr = self.fog.draw(fr, t, density=0.75, y0=480, y1=860, color=(0.40, 0.42, 0.47), speed=(40, 0), top_fade=300)
-        # 第五棒：刀后一团冷月雾光（逆光勾出刀的轮廓，画面有视觉中心）
-        x, y = K.grid()
-        fr += np.exp(-(((x - 1120) / 420) ** 2 + ((y - 470) / 300) ** 2))[..., None] * np.array([0.16, 0.18, 0.22], np.float32)
-        # 刀：焦点转移（开头刀虚、草实 → 刀实、草虚）
-        focus = sstep(0.15, 0.75, u)
-        base = (1060, 958)
-        # 第四棒：程序灰板刀 → 生图真刀 blade_stuck（缠红绳柄、圆镡、湿钢、泥堆）；冷月顶光轮廓
-        fr, _ = BK.put_at(fr, self.blade, t, BS_MUD, (base[0], base[1] + 25), BS_W * 1.15, rim=dict(col=(0.75, 0.84, 1.0), amt=4.0, dir=(0.5, 1.0)),
-                          grade=dict(expo=1.15, sat=0.85, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.15), wind_amp=0, breathe=0,
-                          shade=None, wrap=0.15, defocus=6 * (1 - focus))
-        # 积水倒影（上下翻 + 涟漪抖动）
-        ref = fr[::-1].copy()
-        ref = np.roll(ref, int(2 * (2 * 846 - H)) - 0, 0) if False else cv2.warpAffine(ref, np.float32([[1, 0, 0], [0, 1, 2 * 846 - H]]), (W, H))
-        nz = cv2.resize(K.tile_crop(K.tile(256, 4709, 6, 3), t * 30, t * 70, H // 8, W // 8), (W, H))
-        ref = cv2.remap(ref, *[a.astype(np.float32) for a in (K.grid()[0] + (nz - 0.5) * 14, K.grid()[1])], cv2.INTER_LINEAR)
-        fr = fr + ref * (self.puddle * 0.55)[..., None]
-        # 雨水沿刃下流（亮点）
-        g0 = bs_pt(BS_GUARD, (base[0], base[1] + 25), BS_W * 1.15); g1 = bs_pt(BS_ENTRY, (base[0], base[1] + 25), BS_W * 1.15)
-        for k_ in range(6):                                  # 雨水沿刃下流（亮珠）
-            s_ = ((t * 0.8 + k_ * 0.17) % 1.0)
-            px = g0[0] + (g1[0] - g0[0]) * s_ + 6 * math.sin(k_ * 2); py = g0[1] + 30 + (g1[1] - g0[1] - 30) * s_
-            cv2.circle(fr, (int(px), int(py)), 3, (0.85, 0.9, 1.0), -1, cv2.LINE_AA)
-        fr = self.spl.draw(fr, t, y_far=840, y_near=1000, rate=140, size=1.0, amt=0.8)
-        fr = fx2.ripples(fr, t, [(base[0] - 30, base[1] + 6), (base[0] + 40, base[1] + 10)], [86.3, 86.9], amt=0.5, flat=0.18)
-        fr = self.rain.draw(fr, t, intensity=0.75, angle=10, light=(1120, 450), light_r=700)
-        # 前景草叶（虚焦，随焦点转移由实到虚）
-        gmask = self.grass.mask(t, wind=1.2, blur=2 + 22 * focus)
-        fr = fr * (1 - gmask[..., None] * 0.75) + gmask[..., None] * np.array([0.03, 0.035, 0.04], np.float32)
-        fr = fr * np.array([0.92, 0.97, 1.08], np.float32)
-        fr = cam(fr, 1.08 - 0.06 * e, 0, 50 - 70 * e)               # 摇臂升 + 微拉
-        # 墨退（与副歌一 S047 同一遮罩、同一时间、同一墨色）
+        u = self.u(t); e = eio(u)
+        th = V(self.T_HIT)
+        hk = 0.0 if t < th else math.exp(-(t - th) / 0.35)
+        ring_t = max(0.0, t - th)
+        # 远雷：撞钟后 0.25s 窗外云层亮一下
+        thunder = pulse(t, th + 0.28, 0.18) * (t > th)
+        P = self.P * (1 + self.win * (0.25 + 2.2 * thunder))
+        bx, by = self.BELL[0] * 1.14, self.BELL[1] * 1.14
+        zoom = 0.93 + 0.07 * e
+        dx, dy, dr = shake(t, 3 + 22 * hk, 13, 471)
+        fr = plate_view(P, zoom, W * 1.14 / 2 + 60 * e, H * 1.14 / 2 - 20 * e, 0.0, dx, dy)
+        fr = fr * 1.25
+        bell = (self.BELL[0], self.BELL[1] + 40)
+        if t >= th:                                   # 声波：两道折射环从钟体扩散；钟面一道冷光掠过（金属鸣响）
+            for k in range(3):
+                rr = 120 + 1500 * (ring_t - 0.12 * k) ** 0.8 if ring_t > 0.12 * k else -1
+                if rr > 0:
+                    fr, edge = ring_warp(fr, bell, rr, 26 + 10 * k, 16 * hk, sy=0.85)
+                    fr = fr + edge[..., None] * COLDC * 0.10 * hk
+            x, y = K.grid()
+            sheen = np.exp(-(((x - (1050 + 520 * clamp01(ring_t / 0.5))) / 60) ** 2)) * np.exp(-(((y - 560) / 330) ** 4))
+            fr = fr + sheen[..., None] * np.array([0.45, 0.50, 0.58], np.float32) * hk * 0.5
+        # 梁上积尘震落（撞钟后）
+        if t >= th:
+            buf = np.zeros((H // 2, W // 2), np.float32)
+            for (a, b, c_, d_) in self.dust:
+                tt = ring_t - c_ * 0.15
+                if tt < 0: continue
+                px = (200 + a * 1600 + 20 * math.sin(tt * 3 + d_ * 9)) / 2; py = (60 + b * 120 + 420 * tt * tt + 160 * tt) / 2
+                cv2.circle(buf, (int(px), int(py)), 1, 0.6 + 0.4 * d_, -1, cv2.LINE_AA)
+            fr = fr + cv2.GaussianBlur(buf, (0, 0), 0.8).repeat(2, 0).repeat(2, 1)[..., None] * np.array([0.55, 0.55, 0.6], np.float32) * 0.7
+        fr = fx2.ripples(fr, t, [(1290, 960), (900, 1000), (1600, 990)], [th, th + 0.05, th + 0.1], amt=0.7, flat=0.2, speed=260, life=1.0)
+        fr = self.spl.draw(fr, t, y_far=900, y_near=1060, rate=90, size=0.9, amt=0.6)
+        fr = self.rain.draw(fr, t, intensity=0.8, angle=12, light=(1600, 380), light_r=800)
+        fr = fr * np.array([0.94, 0.98, 1.06], np.float32)
+        # 墨退（与副歌一 S047 同一遮罩、同一时间、同一墨色）：接缝处朱墨斑连续
         if t < T_IN + 0.3:
             m = K.ink_blot(0.93 + 0.07 * eout((t - T_IN) / 0.2, 2), seed=47, center=(960, 600), reverse=True)
             fr = over(fr, m, RED * 0.22 + 0.015)
-        pk = clamp01((t - 86.6) / 0.6)
-        if pk > 0:
-            fr = T.ink_bleed_in(fr, '鬼屠', [pk, clamp01(pk * 1.2 - 0.1)], style='h', size=34, fname='serif_r', color='white',
-                                box=(120, 830, 300, 900), style_kw=dict(shadow=0.6, glow=0.1))
-            fr = T.stamp_seal(fr, '屠', 330, 865, 54, clamp01((t - 86.95) / 0.5), style='yin', seed=47)
-        return fr, 0
+        return fr, (3 if abs(t - th) < 0.04 else 0)
 
 
-# =====================================================================================
-# V02 87.53–89.40 ECU：刀镡上悬着一滴雨，雨滴里倒映城墙与太上皇背光剪影（scepter 精灵 look=sil）；88.91 雷闪；镜头追进雨滴
 class V02(Shot):
     T_THUNDER = 88.905
     def __init__(self):
-        sc = night_sky(4801, top=(0.03, 0.035, 0.05), bot=(0.22, 0.23, 0.26), horizon=0.62, cloud=1.0)
-        self.scene0 = sc                             # 第五棒：去倒影里的城墙（上墙下人分得太齐像拼贴）
-        self.sp = spr('S050/scepter')
-        self.bolt = fx2.Lightning(4803, p0=(1500, 0), p1=(1180, 600), branches=5)
-        # 背景：刀镡/刀柄的微距虚焦（真刀贴图放大）
-        bgc = np.zeros((H, W, 3), np.float32) + np.array([0.02, 0.022, 0.026], np.float32)
-        # 第四棒：微距背景 = 同一把生图刀（blade_stuck 第 2 次：ECU 圆镡+红绳柄，焦外），水滴就挂在镡下沿
-        bg, _ = BK.put_at(bgc, BK.spr('B_r4/blade_stuck'), 0.0, BS_DROP, (975, 390), 9000.0, rim=dict(col=(0.75, 0.84, 1.0), amt=3.0, dir=(0.4, 1.0)),
-                          grade=dict(expo=0.85, sat=0.8, tint=(0.94, 0.97, 1.05), lift=0.0, gamma=1.1), wind_amp=0, breathe=0, shade=None, wrap=0.1)
-        self.bg = K.blur_ds(bg, 3) * 0.75
-        x, y = K.grid(); r = np.random.default_rng(4805)
-        for _ in range(26):                          # 焦外雨珠光斑
-            cx_, cy_, rr = r.uniform(0, W), r.uniform(120, 960), r.uniform(10, 46)
-            self.bg += (np.exp(-(((x - cx_) ** 2 + (y - cy_) ** 2) / rr ** 2) ** 3) * r.uniform(0.03, 0.09))[..., None] * COLDC
+        self.P = _plate('v02_plaza', 1.25)
+        h, w = self.P.shape[:2]
+        P = self.P
+        red = np.clip((P[..., 0] - P[..., 2]) * 3 - 0.15, 0, 1) * np.clip(P[..., 0] * 2 - 0.4, 0, 1)
+        self.lan = cv2.GaussianBlur(red, (0, 0), 10)[..., None]                    # 宫灯/反光区（闪烁）
+        x, y = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
+        self.roof = (np.clip(1 - y / (h * 0.16), 0, 1))[..., None]                  # 殿顶（雷光）
+        r = np.random.default_rng(4810)
+        self.drops = r.uniform(0, 1, (700, 3))
 
     def render(self, t):
-        u = self.u(t)
+        u = self.u(t); e = eio(u)
         tl = V(self.T_THUNDER)
-        env = 0.0 if t < tl else math.exp(-(t - tl) / 0.25)
-        # 倒影小场景（背光剪影：太上皇执杖，站在城头）
-        sc = self.scene0.copy()
-        if t >= tl - 0.05:
-            sc = self.bolt.draw(sc, t, tl, intensity=1.0)
-        # 第五棒 9/n：倒影里的太上皇整身入框（原 820px 顶出画、剪影读成「猫」）→ 640px 全身、正常受光（白发可读），雷闪时冷边加亮
-        sc, _ = put(sc, self.sp, t, 600, (960, 820), grade=GR_COLD, rim=dict(col=(0.85, 0.88, 1.0), amt=1.6 + 3 * env, dir=(0.6, -0.8)),
-                    wind_amp=3, shade=None, wrap=0.15)
-        sc = sc * (0.8 + 0.6 * env)
-        fr = self.bg.copy()
-        fr = fr * (1 + 1.2 * env)
-        fr = K.rain(fr, t, 4804, n=220, amt=0.22, speed=900, angle=4, near=0.5, length=(60, 160))
-        z = 1.0 + 2.2 * ein(clamp01(u), 2.2)
-        cx, cy = 960, 470 + 50 * u
-        R = 150
-        x, y = K.grid()
-        Rz = R * z
-        # 第五棒 9/n：正圆光圈（≈副歌一 S045）→ 垂坠水滴形：上部收窄拉长、下部饱满
-        up = np.clip((cy - y) / max(Rz, 1), 0, 2)
-        dist = np.sqrt(((x - cx) * (1 + 0.55 * up ** 1.6)) ** 2 + ((y - cy) * np.where(y < cy, 0.78, 0.97)) ** 2)
-        rn = np.clip(dist / max(Rz, 1), 0, 1)
-        fe = rn ** 0.9                                # 第五棒 9/n：近线性折射（原 0.65 中心过度放大，倒影只剩一截躯干）
-        k = 0.62 / (0.9 + 0.3 * (1 - u))
-        sx = (960 + (x - cx) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)
-        sy = (540 - (y - cy) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)   # 倒置
-        inner = cv2.remap(sc, sx, sy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-        m = np.clip((Rz - dist) / (3 + 0.02 * Rz), 0, 1)
-        m = cv2.GaussianBlur(m, (0, 0), 1.5)
-        ang_ = np.arctan2(y - cy, x - cx)
-        caus = np.exp(-((dist - Rz * 0.86) / (3 + 0.05 * Rz)) ** 2) * np.clip(np.cos(ang_ - 0.9), 0, 1) ** 3 * 0.55   # 右下一弯焦散
-        dark = np.exp(-((dist - Rz * 0.97) / (2 + 0.05 * Rz)) ** 2) * 0.55                                            # 折射暗边
-        rim = caus
-        spec = np.exp(-(((x - cx + Rz * 0.35) ** 2 + (y - cy + Rz * 0.42) ** 2) / (Rz * 0.1 + 2) ** 2)) * 0.9
-        # 水滴挂在刀镡下沿：上方一条细水颈
-        neck = np.exp(-((x - cx) / (8 + 0.04 * Rz)) ** 2) * np.clip((cy - Rz * 1.15 - y) / 30, 0, 1) * np.clip((y - (cy - Rz * 1.9)) / 60, 0, 1) * (1 - u)
-        fr = fr * (1 - m[..., None]) + inner * m[..., None] * 0.92
-        fr = fr * (1 - dark[..., None])
-        fr += (rim * m + spec * m + neck * 0.3)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
-        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 1.9 + COLDC * 0.04          # 第四棒：雷光照亮（乘性），不再抬白
-        elif t > tl: fr = fr * (1 + 0.5 * pulse(t, tl + 0.04, 0.15))
+        env = 0.0 if t < tl else math.exp(-(t - tl) / 0.28)
+        flick = 0.85 + 0.15 * math.sin(t * 17.0) * math.sin(t * 5.3)
+        P = self.P * (1 + self.lan * (0.6 * flick)) * (1 + self.roof * 2.5 * env) * (1 + 0.6 * env)
+        h, w = P.shape[:2]
+        zoom = 0.82 + 0.20 * ein(u, 1.6)                 # 顶拍压近（crane down）
+        fr = plate_view(P, zoom, w / 2, h / 2 + 30 - 60 * e, -3.0 + 3.0 * e)
+        fr = fr * 1.05
+        # 钟声化作声波环掠过广场（从画面上方大殿方向扩来，透视压扁）
+        rt = t - self.t0
+        for k in range(2):
+            rr = 80 + 1500 * max(0.0, rt - 0.18 * k) ** 0.85
+            if rt > 0.18 * k:
+                fr, edge = ring_warp(fr, (960, 140), rr, 34, 14 * math.exp(-rt / 1.2), sy=0.55)
+                fr = fr + edge[..., None] * COLDC * 0.12 * math.exp(-rt / 1.0)
+        # 顶拍的雨：雨滴从镜头上方落向地面 → 屏幕上是自中心外放的短雨丝 + 地面溅点
+        buf = np.zeros((H // 2, W // 2), np.float32)
+        for (a, b, s_) in self.drops:
+            ph = (t * (1.3 + s_) + a) % 1.0
+            ang = b * 2 * math.pi
+            r0 = 60 + 1100 * ph ** 1.6; r1 = r0 + 18 + 70 * ph
+            p0 = (int((960 + math.cos(ang) * r0) / 2), int((560 + math.sin(ang) * r0 * 0.8) / 2)); p1 = (int((960 + math.cos(ang) * r1) / 2), int((560 + math.sin(ang) * r1 * 0.8) / 2))
+            cv2.line(buf, p0, p1, 0.18 + 0.5 * ph, 1, cv2.LINE_AA)
+        fr = fr + cv2.resize(buf, (W, H))[..., None] * COLDC * 0.45
+        fr = fr * np.array([0.93, 0.97, 1.06], np.float32)
+        if tl <= t: fr = fr * (1 + 0.35 * pulse(t, tl + 0.05, 0.12))
         return fr, (3 if abs(t - tl) < 0.04 else 0)
+
+
+def ring_wipe(A, B, p, center=(1300, 600), sy=0.85):
+    """B 组第六棒：声波环开门——B 从钟体扩散的折射环里长出来（环带折射 + 冷光边），与 V01 撞钟的声波同形"""
+    x, y = K.grid()
+    e = eio(p)
+    d = np.sqrt((x - center[0]) ** 2 + ((y - center[1]) / sy) ** 2)
+    r = 40 + 2400 * e
+    m = np.clip((r - d) / 40, 0, 1)[..., None]
+    Aw, edge = ring_warp(A, center, r, 40, 22 * math.sin(math.pi * e), sy)
+    return Aw * (1 - m) + B * m + edge[..., None] * COLDC * 0.35 * math.sin(math.pi * e)
+
+
+BK.BTRANS['ring_wipe'] = ring_wipe
 
 
 # =====================================================================================
@@ -1452,8 +1468,8 @@ class V25(Shot):
 # ===================================================================================== 段落装配
 SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25]
 CUTS = {
-    'V02': ('zoom_dark', 0.06, 0.14, dict(center=(960, 470))),     # 第四棒：去中点白场
-    'V03': ('iris_moon', 0.06, 0.16, dict(center=(960, 470), radius=200, mode='open', ring=False)),   # 第三棒：雨滴圆 → 打开成队列
+    'V02': ('ring_wipe', 0.06, 0.16, dict(center=(1300, 600))),    # 第六棒：钟声折射环开门（钟口圆 → 广场声波环）
+    'V03': ('zoom_dark', 0.08, 0.14, dict(center=(960, 560))),     # 第六棒：顶拍压进跪拜的人群 → 平视纸人队列
     'V04': ('gold', 0, 0, {}),
     'V05': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=1, seed=5)),
     'V06': ('match_cut', 0.0, 0.12, dict(shape='circle', center=(930, 400), radius=220, glow=np.zeros(3, np.float32))),   # 第五棒：去金圈（≈副歌一 S045 光圈）
@@ -1477,7 +1493,7 @@ CUTS = {
     'V24': ('zoom_dark', 0.08, 0.14, dict(center=(960, 640))),     # 第四棒：去中点白场
     'V25': ('hard', 0, 0, {}),
 }
-FG = {'V01': ('rain', 0.4), 'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25), 'V09': ('rain', 0.3), 'V13': ('rain', 0.35),
+FG = {'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25), 'V09': ('rain', 0.3), 'V13': ('rain', 0.35),
       'V14': ('ember', 0.5), 'V15': ('rain', 0.45)}
 EXPO = {}
 

@@ -403,3 +403,16 @@
 | 11-09 05:10 | B组/guard_h | RH_image2 | 4K 16:9 | 0 | 81042e45-0860-468f-80c4-a30c65945723 | completed | b_cands/guard_h_try1_0.png | try1 |
 | 11-09 05:10 | B组/palm_open2 | RH_image2 | 4K 16:9 | 0 | a295f6eb-a254-4549-9ab6-b02c6871ffc2 | completed | b_cands/palm_open2_try1_0.png | try1 |
 | 11-09 05:10 | B组/grab_turn2 | RH_image2 | 4K 16:9 | 0 | 66c3c2db-4e85-4c1a-b5b1-993327d4e428 | completed | b_cands/grab_turn2_try1_0.png | try1 |
+| 11-09 05:11 | B组/blade_face2 | RH_image2 | 4K 16:9 | 0 | 0221a2c2-8190-4338-93a0-e0d6b3243920 | completed | b_cands/blade_face2_try1_0.png | try1 |
+| 11-09 05:11 | B组/v02_plaza | RH_image2 | 4K 16:9 | 0 | 1e77cfa2-af78-4b83-b080-ce12b7602a58 | 采用 | assets/gen/B_r4/v02_plaza_raw.png | try1 采用 |
+| 11-09 05:11 | B组/hu_hands | RH_image2 | 4K 16:9 | 0 | 75ccc766-c7f9-4435-ac29-157b9c376120 | 采用 | assets/gen/B_r4/hu_hands_raw.png | try1 采用 |
+| 11-09 05:11 | B组/steelyard | RH_image2 | 4K 16:9 | 0 | 0b0a1eec-b0b4-4285-a7e6-6b43d030be10 | 采用 | assets/gen/B_r4/steelyard_raw.png | try1 采用 |
+| 11-09 05:11 | B组/heaven_stele | RH_image2 | 4K 16:9 | 0 | 7e6d3909-3a1c-43eb-8380-8876b493d1f1 | 采用 | assets/gen/B_r4/heaven_stele_raw.png | try1 采用 |
+| 11-09 05:11 | B组/stand_defy | RH_image2 | 4K 16:9 | 0 | 6a7ecb72-1d35-4e33-8149-dc2c9bf48402 | 采用 | assets/gen/B_r4/stand_defy_raw.png | try1 采用 |
+| 11-09 05:11 | B组/guard_h | RH_image2 | 4K 16:9 | 0 | 81042e45-0860-468f-80c4-a30c65945723 | 采用 | assets/gen/B_r4/guard_h_raw.png | try1 采用 |
+| 11-09 05:11 | B组/palm_open2 | RH_image2 | 4K 16:9 | 0 | a295f6eb-a254-4549-9ab6-b02c6871ffc2 | 采用 | assets/gen/B_r4/palm_open2_raw.png | try1 采用 |
+| 11-09 05:11 | B组/grab_turn2 | RH_image2 | 4K 16:9 | 0 | 66c3c2db-4e85-4c1a-b5b1-993327d4e428 | 采用 | assets/gen/B_r4/grab_turn2_raw.png | try1 采用 |
+| 11-09 05:11 | B组/blade_face2 | RH_image2 | 4K 16:9 | 0 | 0221a2c2-8190-4338-93a0-e0d6b3243920 | 采用 | assets/gen/B_r4/blade_face2_raw.png | try1 采用 |
+| 11-09 05:12 | D组/D_r7/scale | RH_image2 | 4K 16:9 | 3 | 62082483-b58a-4655-be47-e379901e985d | 待定 | assets/gen/D_r7/scale_raw.png | [D组] 第七棒 S06/S07/S26 水墨天平美术 try1 |
+| 11-09 05:12 | B组/v01_bell | RH_image2 | 4K 16:9 | 0 | 595af4b0-a05b-4005-81e2-6787001af170 | completed | b_cands/v01_bell_try1_0.png | try1 |
+| 11-09 05:12 | B组/v01_bell | RH_image2 | 4K 16:9 | 0 | 595af4b0-a05b-4005-81e2-6787001af170 | 采用 | assets/gen/B_r4/v01_bell_raw.png | try1 采用 |
