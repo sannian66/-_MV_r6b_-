@@ -63,8 +63,9 @@ def bead_sprite(seed=0, tone=(0.30, 0.10, 0.05)):
 
 
 class Abacus:
-    def __init__(self, seed=0):
+    def __init__(self, seed=0, beam_h=BEAM_H, corners=False):
         self.seed = seed
+        self.bh = beam_h
         r = np.random.default_rng(seed)
         rgb = np.zeros((AH, AW, 3), np.float32); al = np.zeros((AH, AW), np.float32)
         # 档（竹档：细竹杆，带一道高光）
@@ -87,14 +88,14 @@ class Abacus:
             rgb[y0:y1, x0:x1] = wd * shade[..., None]; al[y0:y1, x0:x1] = 1
         bar(0, 0, AW, M0, True, seed + 10); bar(0, AH - M0, AW, AH, True, seed + 11)
         bar(0, 0, M0, AH, False, seed + 12); bar(AW - M0, 0, AW, AH, False, seed + 13)
-        bar(M0, BEAM_Y, AW - M0, BEAM_Y + BEAM_H, True, seed + 14)
+        bar(M0, BEAM_Y, AW - M0, BEAM_Y + beam_h, True, seed + 14)
         # 梁上定位点（铜钉）
         for i in range(0, NR, 3):
-            cx, cy = int(self.rx[i]), BEAM_Y + BEAM_H // 2
+            cx, cy = int(self.rx[i]), BEAM_Y + beam_h // 2
             cv2.circle(rgb, (cx, cy), 9, (0.55, 0.42, 0.2), -1, cv2.LINE_AA)
             cv2.circle(rgb, (cx - 3, cy - 3), 3, (1.0, 0.9, 0.7), -1, cv2.LINE_AA)
         # 黄铜包角
-        for (cx, cy) in ((0, 0), (AW, 0), (0, AH), (AW, AH)):
+        for (cx, cy) in (((0, 0), (AW, 0), (0, AH), (AW, AH)) if corners else ()):
             m = np.zeros((AH, AW), np.uint8)
             cv2.rectangle(m, (cx - 170, cy - 170), (cx + 170, cy + 170), 255, -1)
             mm = (m > 0) & (al > 0) & ~((np.arange(AW)[None, :] > M0) & (np.arange(AW)[None, :] < AW - M0) & (np.arange(AH)[:, None] > M0) & (np.arange(AH)[:, None] < AH - M0))
@@ -111,7 +112,7 @@ class Abacus:
         ys.append(top0 + BH * 0.5 + (bot0 - top0 - 2 * BH) * u)
         ys.append(top0 + BH * 1.5 + (bot0 - top0 - 2 * BH) * u)
         c = counts[i]
-        lt = BEAM_Y + BEAM_H; lb = AH - M0
+        lt = BEAM_Y + self.bh; lb = AH - M0
         gap = (lb - lt) - 5 * BH
         for k in range(5):
             # 被拨上去的珠（k < c）贴梁；其余在底部
@@ -137,5 +138,5 @@ class Abacus:
                 rgb[y0:y0 + h, x0:x0 + w] = reg * (1 - A[..., None]) + C * A[..., None]
                 al[y0:y0 + h, x0:x0 + w] = np.maximum(al[y0:y0 + h, x0:x0 + w], A)
                 if glow is not None and glow[i] > 0 and k >= 2:
-                    rgb[y0:y0 + h, x0:x0 + w] += (A * glow[i])[..., None] * np.array([0.9, 0.55, 0.2], np.float32) * 0.5
+                    rgb[y0:y0 + h, x0:x0 + w] += (A * min(1.0, glow[i]))[..., None] * np.array([0.9, 0.55, 0.2], np.float32) * 0.28
         return rgb, al

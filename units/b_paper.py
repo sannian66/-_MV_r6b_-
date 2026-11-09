@@ -162,7 +162,7 @@ class NameFigure:
             col = col + edge[..., None] * rim_col[None, None] * 0.35
         if wet > 0:
             sp = np.clip((_noise(P['h'], P['w'], self.seed + 77, 5) * 0.5 + _noise(P['h'], P['w'], self.seed + 78, 16) * 0.5 - (0.8 - 0.35 * wet)) * 4, 0, 1)
-            col = col * (1 - 0.28 * sp[..., None]) + sp[..., None] * np.array([0.02, 0.03, 0.05], np.float32) * 0.3
+            col = col * (1 - 0.28 * sp[..., None]) + sp[..., None] * np.array([0.05, 0.045, 0.04], np.float32) * 0.3
             ink = np.maximum(ink, cv2.GaussianBlur(ink, (0, 0), 6 + 10 * wet) * 0.8 * wet)
         col = col * (1 - ink[..., None] * 0.92 * ink_k) + ink[..., None] * ink_k * np.array([0.03, 0.025, 0.03], np.float32)
         if grade is not None:

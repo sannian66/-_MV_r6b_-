@@ -491,209 +491,268 @@ class V08(Shot):
 
 
 # =====================================================================================
-# V09 96.10–97.52 MS：雨中天平：左盘纸人不断落下越堆越高，横梁纹丝不动（右盘金印）。匹配：权杖竖线 → 天平立柱
-#   「牺牲多少才」宋体字随纸人一起落进秤盘，「牺牲」朱
-import props as PR
+# V09 96.10–97.52 MS 低机位斜看：雨夜案上一架乌木算盘（第三棒：天平 → 算盘，A/C/D 三组都用了天平）。
+#   每唱一个字，一档算珠被「啪」地拨上梁（金光 + 溅水），字一个个烫金刻在梁上：「牺牲多少才」——人命被拨来拨去。匹配：权杖竖线 → 竹档竖线
+from PIL import Image as _PImg, ImageDraw as _PDraw, ImageFont as _PFont
+import b_abacus as BA
+import b_paper as BP
+
+_BFONT = {}
+
+
+def _bfont(name, sz):
+    k = (name, sz)
+    if k not in _BFONT:
+        _BFONT[k] = _PFont.truetype(ROOT + '/fonts/' + name, sz)
+    return _BFONT[k]
+
+
+def beam_text(chars, cols, size, font='NotoSerifSC-Black.otf', beam_h=BA.BEAM_H):
+    """在算盘平面贴图上，把字刻在梁上（落在两档之间）；返回每字一张 (AH,AW) 遮罩"""
+    out = []
+    for ch, c in zip(chars, cols):
+        im = _PImg.new('L', (BA.AW, BA.AH), 0); d = _PDraw.Draw(im)
+        x = BA.M0 + (BA.AW - 2 * BA.M0) * c / BA.NR                    # c 为整数 → 落在第 c-1 与第 c 档之间
+        d.text((x, BA.BEAM_Y + beam_h / 2 + 2), ch, fill=255, font=_bfont(font, size), anchor='mm')
+        out.append(np.asarray(im, np.float32) / 255.)
+    return out
+
+
+def gild(rgb, m, glow=0.0):
+    """梁上阴刻金字：凹槽暗边 + 金箔 + 上沿高光"""
+    sh = np.clip(np.roll(m, 3, 0) - m, 0, 1); hl = np.clip(np.roll(m, -2, 0) - m, 0, 1)
+    gold = np.array([0.95, 0.70, 0.30], np.float32)
+    rgb = rgb * (1 - m[..., None]) + m[..., None] * gold * (0.75 + 0.6 * glow)
+    rgb = rgb - sh[..., None] * 0.08 + hl[..., None] * np.array([1.0, 0.9, 0.7], np.float32) * 0.35
+    return rgb
 
 
 class V09(Shot):
+    QUAD = np.float32([[-60, 300], [1720, 150], [2320, 860], [-420, 1260]])          # 平面 → 画面（算盘平放在案上、低机位斜看）
     def __init__(self):
-        self.bal = PR.Balance(5401, people=70)
-        sk = night_sky(5402, top=(0.02, 0.022, 0.028), bot=(0.10, 0.10, 0.11), horizon=0.8)
+        self.ab = BA.Abacus(5401, beam_h=170)
+        r = np.random.default_rng(5405)
+        self.c0 = list(r.choice([0, 0, 1, 2, 3], BA.NR).astype(float))
+        self.up0 = list(r.choice([0, 0, 1], BA.NR).astype(float))
+        self.cols = [2, 4, 6, 8, 10]                                                   # 每字拨哪一档（字刻在这档右侧梁上）
+        self.txt = beam_text('牺牲多少才', [2, 4, 6, 8, 10], 150, beam_h=170)
+        sk = night_sky(5402, top=(0.02, 0.022, 0.028), bot=(0.08, 0.08, 0.09), horizon=0.6)
         x, y = K.grid()
-        sk += np.exp(-(((x - 960) / 520) ** 2 + ((y - 300) / 300) ** 2))[..., None] * COLDC * 0.08
-        self.bg = sk
+        table = wood_plane(5406)
+        tm = sstep(380, 470, y)
+        self.bg = sk * (1 - tm[..., None]) + table * tm[..., None]
+        self.Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [BA.AW, 0], [BA.AW, BA.AH], [0, BA.AH]]), self.QUAD)
         self.rain = fx2.RainSheet(5403, density=0.8)
-        self.figs = [PA.PaperFigure(5410 + i, view='side') for i in range(6)]
-        self.fog = fx2.Fog(5404)
-        T.warm('牺牲多少才', 'serif_black', 120)
+        self.spl = fx2.Splashes(5404)
+        self.fog = fx2.Fog(5407)
+
+    def state(self, t):
+        c = list(self.c0); g = [0.0] * BA.NR
+        for k, col in enumerate(self.cols):
+            tk = V(CT(22, k))
+            q = clamp01((t - (tk - 0.06)) / 0.12)
+            c[col] = self.c0[col] + (5 - self.c0[col]) * q
+            g[col] = pulse(t, tk, 0.25) * (t >= tk) * 2.0
+        return c, g
 
     def render(self, t):
         u = self.u(t)
-        e = eio(u)
         fr = self.bg.copy()
-        fr = self.fog.draw(fr, t, density=0.4, y0=600, y1=960, color=(0.3, 0.31, 0.33))
-        pile = 0.25 + 0.75 * clamp01((t - self.t0) / 1.3)
-        tmp = np.zeros_like(fr)
-        tmp, info = self.bal.draw(tmp, t, 960, 330, 1500, tilt=0.0, sway=0.15, left_people=pile, right='seal', rim_color=GOLD, rim=1.2)
-        # 线稿天平 → 有体积的青铜：结构线加粗、暗铜填充、顶光高光、逆光辉光
-        m = np.clip(tmp.max(-1) * 6, 0, 1)
-        m2 = cv2.dilate(m, np.ones((7, 7), np.uint8))
-        x_, y_ = K.grid()
-        bronze = np.array([0.20, 0.14, 0.07], np.float32) * (0.6 + 0.6 * sstep(900, 100, y_))[..., None]
-        fr = fr * (1 - m2[..., None]) + m2[..., None] * bronze + tmp * 0.9
-        fr += np.clip(m2 - np.roll(m2, 4, 0), 0, 1)[..., None] * GOLD * 0.5 + K.blur_ds(m2, 26)[..., None] * GOLD * 0.18
-        pl = np.array(info.get('pan_L', (420, 640)), float)
-        # 落下的纸人（不同时刻、旋转下坠）
-        for i, f_ in enumerate(self.figs):
-            ti = self.t0 + 0.05 + i * 0.22
-            q = (t - ti) / 0.55
-            if 0 < q < 1:
-                yy = -150 + (pl[1] - 40 + 150) * q ** 2
-                fr, _ = f_.draw(fr, pl[0] - 90 + 40 * i, yy, 120, t, tilt=200 * q * (1 if i % 2 else -1), light='back', light_color=GOLD, rim=1.0)
-        # 字：从上落进左盘，落定后叠在纸人堆上
-        pr = prs(22, [0, 1, 2, 3, 4], t, 0.3)
-        L = T.Layer(); Lr = T.Layer()
-        for i, (ch, pc) in enumerate(zip('牺牲多少才', pr)):
-            if pc <= 0: continue
-            q = eio(pc)
-            tx, ty = max(170, pl[0] - 200) + i * 118, pl[1] - 150 - (12 if i % 2 else 0)
-            yy = 160 + (ty - 160) * q ** 1.6
-            T.place(Lr if ch in '牺牲' else L, ch, tx, yy, 108, color='red' if ch in '牺牲' else 'white', fname='serif_black',
-                    rot=(1 - q) * (30 if i % 2 else -30) + (4 if i % 2 else -3) * q)
-        fr = T.compose(fr, L, shadow=0.8, glow=0.1)
-        fr = T.compose(fr, Lr, **T.auto_style('red'))
-        fr = self.rain.draw(fr, t, intensity=1.0, angle=8, light=(960, 300), light_r=600)
-        fr = cam(fr, 1.0 + 0.08 * e, 0, -20 * e)
-        return fr, 0
+        c, g = self.state(t)
+        rgb, al = self.ab.flat(c, self.up0, glow=g)
+        for k, m in enumerate(self.txt):
+            tk = V(CT(22, k))
+            pk = clamp01((t - (tk - 0.04)) / 0.16)
+            if pk > 0:
+                rgb = gild(rgb, m * pk, glow=pulse(t, tk, 0.3) * (t >= tk))
+        # 「牺牲」两字朱红（金里透红）
+        for k in (0, 1):
+            tk = V(CT(22, k))
+            if t >= tk - 0.04:
+                rgb = rgb * (1 - self.txt[k][..., None] * 0.5) + self.txt[k][..., None] * np.array([0.85, 0.08, 0.05], np.float32) * 0.5
+        W_ = cv2.warpPerspective(rgb, self.Mq, (W, H), flags=cv2.INTER_LINEAR)
+        A_ = cv2.warpPerspective(al, self.Mq, (W, H), flags=cv2.INTER_LINEAR)
+        # 案面投影 + 远处雾化（景深）
+        shd = cv2.GaussianBlur(np.roll(A_, 26, 0), (0, 0), 18)
+        fr = fr * (1 - 0.6 * shd[..., None])
+        x, y = K.grid()
+        far = np.clip((620 - y) / 500, 0, 1)
+        Wb = cv2.GaussianBlur(W_, (0, 0), 4)
+        W_ = W_ * (1 - far[..., None]) + Wb * far[..., None]
+        # 冷顶光 + 金字反光
+        W_ = W_ * (0.6 + 0.5 * np.exp(-(((x - 700) / 900) ** 2 + ((y - 500) / 500) ** 2)))[..., None]
+        fr = fr * (1 - A_[..., None]) + W_ * A_[..., None]
+        fr = fr + A_[..., None] * far[..., None] * np.array([0.10, 0.11, 0.13], np.float32) * 0.6
+        # 拨珠金光（bloom）
+        hot = np.clip(fr - 0.75, 0, None)
+        fr = fr + K.blur_ds(hot.max(-1), 20)[..., None] * GOLD * 0.8
+        # 拨珠瞬间溅起雨珠
+        for k, col in enumerate(self.cols):
+            tk = V(CT(22, k))
+            if tk <= t < tk + 0.6:
+                fx_, fy_ = BA.M0 + (BA.AW - 2 * BA.M0) * (col + 0.5) / BA.NR, BA.BEAM_Y + 170 + 30
+                p = cv2.perspectiveTransform(np.float32([[[fx_, fy_]]]), self.Mq)[0, 0]
+                fr = K.sparks(fr, t, 5410 + k, (float(p[0]), float(p[1])), n=50, life=0.5, speed=(200, 700), dirc=(0, -1), spread=1.5, grav=1500,
+                              size=1.6, area=(60, 10), color=(0.75, 0.8, 0.9), amt=1.0, t0=tk, burst=True)
+        fr = self.spl.draw(fr, t, y_far=420, y_near=1000, rate=110, amt=0.55)
+        fr = self.fog.draw(fr, t, density=0.25, y0=200, y1=600, color=(0.25, 0.26, 0.28))
+        fr = self.rain.draw(fr, t, intensity=1.0, angle=8, light=(760, 260), light_r=700)
+        hk = max(hitp(t, CT(22, k), 0.08) for k in range(5))
+        dx, dy, dr = shake(t, 8 * hk, 14, 54)
+        fr = cam(fr, 1.0 + 0.07 * eio(u) + 0.02 * hk, dx - 40 * eio(u), dy - 10 * eio(u), dr)
+        return fr, (2 if hk > 0.5 else 0)
+
+
+def wood_plane(seed):
+    """湿漉漉的乌木案面（透视纹理 + 反光）"""
+    x, y = K.grid()
+    wd = BA.wood(H, W * 2, seed, base=(0.05, 0.03, 0.022))
+    z = np.clip((y - 380) / 700, 0.02, 1)
+    u_ = ((x - 960) / (z * 1.6 + 0.2) + W) % (W * 2)
+    v_ = np.clip(380 + (1 / z) * 30 % H, 0, H - 1)
+    pl = cv2.remap(wd, u_.astype(np.float32), v_.astype(np.float32) * 0 + y.astype(np.float32), cv2.INTER_LINEAR)
+    sheen = np.exp(-(((x - 760) / 520) ** 2 + ((y - 560) / 120) ** 2)) * 0.10
+    return (pl + sheen[..., None] * np.array([0.7, 0.75, 0.85], np.float32)).astype(np.float32)
 
 
 # =====================================================================================
-# V10 97.52–98.48 ECU：天平指针与刻度盘：又一摞纸人砸下（98.37 重拍，画面震），指针仍直立不动；「算够」刻在刻度盘弧上
+# V10 97.52–98.48 ECU 贴档微距：算珠沿竹档撞上梁（98.37 重拍：整档 5 颗一记砸上去，画面震、水花炸开）；「算够」大字烫金刻在梁上
 class V10(Shot):
     T_HIT = 98.373
+    QUAD = np.float32([[-2400, -1080], [5200, -1780], [3600, 2820], [-3300, 4020]])  # 只取算盘中段（4–8 档）放大到满屏、斜透视
     def __init__(self):
-        x, y = K.grid()
-        c = (960, 1020); self.c = c
-        d = np.sqrt((x - c[0]) ** 2 + (y - c[1]) ** 2); ang = np.arctan2(y - c[1], x - c[0])
-        n = cv2.resize(K.fbm(H // 4, W // 4, 5501, 8, 5), (W, H))
-        brushed = cv2.resize(np.random.default_rng(5502).random((H // 2, 4)).astype(np.float32), (W, H))
-        face = (d < 760).astype(np.float32)
-        metal = (0.16 + 0.10 * n + 0.05 * np.sin(ang * 40) * 0.2 + 0.05 * brushed)[..., None] * np.array([1.0, 0.82, 0.55], np.float32)
-        ring = ((d > 700) & (d < 760)).astype(np.float32)
-        metal = metal * (1 - ring[..., None]) + ring[..., None] * np.array([0.45, 0.33, 0.16], np.float32) * (0.8 + 0.4 * np.cos(ang * 2 + 1))[..., None]
-        bg = BK.dark_bg(5503, 0.01, 0.03)
-        fr = bg * (1 - face[..., None]) + metal * face[..., None]
-        # 刻度（刻线 + 阴刻）
-        for k in range(-40, 41):
-            a = math.radians(-90 + k * 2.0)
-            r0 = 620 if k % 5 else 560
-            p0 = (int(c[0] + math.cos(a) * r0), int(c[1] + math.sin(a) * r0)); p1 = (int(c[0] + math.cos(a) * 690), int(c[1] + math.sin(a) * 690))
-            cv2.line(fr, p0, p1, (0.03, 0.025, 0.02), 4 if k % 5 == 0 else 2, cv2.LINE_AA)
-            cv2.line(fr, (p0[0] + 2, p0[1] + 2), (p1[0] + 2, p1[1] + 2), (0.5, 0.40, 0.22), 1, cv2.LINE_AA)
-        self.face = fr.astype(np.float32)
-        self.d = d
-        self.drops = np.random.default_rng(5504).uniform(0, 1, (60, 3))
-        T.warm('算够', 'serif_black', 120)
+        self.ab = BA.Abacus(5501, beam_h=120)
+        self.txt = beam_text('算够', [5, 7], 112, beam_h=120)
+        self.Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [BA.AW, 0], [BA.AW, BA.AH], [0, BA.AH]]), self.QUAD)
+        self.bg = BK.dark_bg(5503, 0.01, 0.03)
+        self.rain = fx2.RainSheet(5504, density=0.5)
 
     def render(self, t):
         u = self.u(t)
-        fr = self.face.copy()
+        c = [5, 4, 5, 3, 2, 5, 0.0, 4, 5, 2, 3, 5, 1]
+        g = [0.0] * BA.NR
+        q = clamp01((t - (V(self.T_HIT) - 0.10)) / 0.10)
+        c[6] = 5 * q ** 2
+        g[6] = pulse(t, V(self.T_HIT), 0.3) * (t >= V(self.T_HIT)) * 1.0
+        rgb, al = self.ab.flat(c, [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1], glow=g)
+        for k, m in enumerate(self.txt):
+            tk = V(CT(22, 5 + k))
+            pk = clamp01((t - (tk - 0.04)) / 0.16)
+            if pk > 0:
+                rgb = gild(rgb, m * pk, glow=pulse(t, tk, 0.3) * (t >= tk) + 0.3)
+        Mq = self.Mq.copy()
+        W_ = cv2.warpPerspective(rgb, Mq, (W, H), flags=cv2.INTER_LINEAR)
+        A_ = cv2.warpPerspective(al, Mq, (W, H), flags=cv2.INTER_LINEAR)
         x, y = K.grid()
-        c = self.c
-        # 玻璃罩上的雨珠（高光点 + 暗折射）
-        for dx_, dy_, r_ in self.drops:
-            px, py = int(dx_ * W), int(120 + dy_ * 840); rr = int(4 + r_ * 12)
-            cv2.circle(fr, (px, py), rr, (0.06, 0.055, 0.05), -1, cv2.LINE_AA)
-            cv2.circle(fr, (px - rr // 3, py - rr // 3), max(1, rr // 3), (0.85, 0.85, 0.9), -1, cv2.LINE_AA)
-        # 「算够」刻在弧上（阴刻：暗字 + 下缘高光），逐字烫金
-        pr = prs(22, [5, 6], t, 0.22)
-        L = T.Layer()
-        for i, (ch, pc) in enumerate(zip('算够', pr)):
-            if pc <= 0: continue
-            a = math.radians(-90 + (-14 if i == 0 else 14))
-            T.place(L, ch, c[0] + math.cos(a) * 470, c[1] + math.sin(a) * 470, 130, color='white', fname='serif_black',
-                    rot=-(math.degrees(a) + 90), alpha=min(1, pc * 2))
-        A = L.A
-        fr = fr * (1 - A[..., None] * 0.8) + A[..., None] * np.array([0.02, 0.015, 0.01], np.float32)
-        fr += np.clip(np.roll(A, -3, 0) - A, 0, 1)[..., None] * np.array([0.6, 0.45, 0.25], np.float32)
-        fr += A[..., None] * GOLD * 0.25 + A[..., None] * GOLD * 0.7 * sum(pulse(t, V(CT(22, k)), 0.25) * (t >= V(CT(22, k))) for k in (5, 6))
-        # 指针：纹丝不动（冲击时只抖 0.3°，然后回正）
+        # 浅景深：焦平面在梁（画面中部斜带），前后都虚
+        foc = np.exp(-(((y - 0.18 * (x - 960)) - 460) / 260) ** 2)
+        Wb = cv2.GaussianBlur(W_, (0, 0), 9); Ab = cv2.GaussianBlur(A_, (0, 0), 9)
+        W_ = W_ * foc[..., None] + Wb * (1 - foc[..., None]); A_ = A_ * foc + Ab * (1 - foc)
+        W_ = W_ * (0.7 + 0.7 * np.exp(-(((x - 900) / 800) ** 2 + ((y - 380) / 400) ** 2)))[..., None]
+        fr = self.bg * (1 - A_[..., None]) + W_ * A_[..., None]
+        hot = np.clip(fr - 0.8, 0, None)
+        fr = fr + K.blur_ds(hot.max(-1), 24)[..., None] * GOLD * 0.5
         hk = hitp(t, self.T_HIT, 0.15)
-        a = math.radians(-90 + 0.6 * hk * math.sin(t * 60))
-        tip = (c[0] + math.cos(a) * 680, c[1] + math.sin(a) * 680)
-        pm = np.zeros((H, W), np.float32)
-        cv2.line(pm, (int(c[0]), int(c[1])), (int(tip[0]), int(tip[1])), 1.0, 16, cv2.LINE_AA)
-        cv2.circle(pm, (int(c[0]), int(c[1]) - 10), 60, 1.0, -1, cv2.LINE_AA)
-        sh = np.roll(np.roll(pm, 14, 1), 10, 0)
-        fr = fr * (1 - 0.5 * K.blur_ds(sh, 8)[..., None])
-        fr = over(fr, pm, np.array([0.55, 0.40, 0.18], np.float32))
-        fr += (pm * np.exp(-((x - c[0] + 6) / 6) ** 2))[..., None] * 0.6
-        # 冲击：上方一摞纸人砸下的阴影掠过 + 碎纸飞
-        if t >= V(self.T_HIT) - 0.12:
-            q = clamp01((t - (V(self.T_HIT) - 0.12)) / 0.12)
-            shadow = sstep(-200 + 600 * q, 200 + 600 * q, -y + 600) * (1 - hitp(t, self.T_HIT, 0.25) * 0) * 0.5 * (1 - clamp01((t - V(self.T_HIT)) / 0.3))
-            fr = fr * (1 - shadow[..., None])
         if t >= V(self.T_HIT):
-            fr = K.sparks(fr, t, 5505, (960, 160), n=40, life=0.6, speed=(200, 700), dirc=(0, 1), spread=1.6, grav=600, size=3.0,
-                          area=(700, 20), color=(0.85, 0.78, 0.62), amt=0.9, t0=V(self.T_HIT), burst=True)
-        dx, dy, dr = shake(t, 26 * hk, 14, 55)
-        fr = cam(fr, 1.0 + 0.04 * eio(u) + 0.05 * hk, dx, dy, dr)
+            p = cv2.perspectiveTransform(np.float32([[[BA.M0 + (BA.AW - 2 * BA.M0) * 6.5 / BA.NR, BA.BEAM_Y + 120 + 20]]]), Mq)[0, 0]
+            fr = K.sparks(fr, t, 5505, (float(p[0]), float(p[1])), n=160, life=0.6, speed=(300, 1300), dirc=(0, -1), spread=2.2, grav=1500,
+                          size=2.2, area=(140, 10), color=(0.8, 0.85, 0.95), amt=1.0, t0=V(self.T_HIT), burst=True)
+        fr = self.rain.draw(fr, t, intensity=0.6, angle=6)
+        dx, dy, dr = shake(t, 30 * hk, 14, 55)
+        fr = cam(fr, 1.0 + 0.05 * eio(u) + 0.06 * hk, dx + 30 * eio(u), dy, dr)
         return fr, (4 if hk > 0.5 else 0)
 
 
 # =====================================================================================
-# V11 98.48–99.47 CU：右盘金印特写，99.0「量」作印文重重落下，雨水从印面溅开；「分」宋体小字
+# V11 98.48–99.47 CU 俯：算盘边的账簿（同 P01 生死簿的竖格人名），99.0 金印「量」重重盖在一列人名上、雨水溅开；「分」宋体
 class V11(Shot):
     T_LIANG = 99.0
     def __init__(self):
-        self.bg = BK.dark_bg(5602, 0.012, 0.04)
+        import sec_b_pre1 as P1
+        pg = P1.ledger(5602, cols=11, size=52, x0=120, x1=1800, y0=140, y1=940)
+        x, y = K.grid()
+        self.page = pg * (0.35 + 0.55 * np.exp(-(((x - 960) / 900) ** 2 + ((y - 560) / 520) ** 2)))[..., None] * np.array([0.9, 0.92, 1.0], np.float32)
+        wet = np.clip((cv2.resize(K.fbm(H // 6, W // 6, 5605, 6, 4), (W, H)) - 0.55) * 3, 0, 1)
+        self.page = self.page * (1 - 0.35 * wet[..., None])
         self.rain = fx2.RainSheet(5603, density=0.7)
         self.spl = fx2.Splashes(5604)
         T.warm('分', 'serif_black', 140)
 
     def render(self, t):
         u = self.u(t)
-        x, y = K.grid()
-        fr = self.bg.copy()
-        # 秤盘（金属浅盘，俯视椭圆）+ 积水
-        pan = (((x - 960) / 820) ** 2 + ((y - 700) / 220) ** 2 < 1).astype(np.float32)
-        lip = (((x - 960) / 820) ** 2 + ((y - 700) / 220) ** 2 < 1).astype(np.float32) - (((x - 960) / 790) ** 2 + ((y - 696) / 204) ** 2 < 1).astype(np.float32)
-        fr = fr * (1 - pan[..., None]) + pan[..., None] * np.array([0.10, 0.08, 0.05], np.float32) * (0.7 + 0.5 * cv2.resize(K.fbm(H // 4, W // 4, 5605, 6, 4), (W, H)))[..., None]
-        fr += np.clip(lip, 0, 1)[..., None] * GOLD * 0.35
-        # 金印俯视落下（stamp_seal：p 0→0.3 自高处落下，0.3 = 99.0 落印）
+        fr = self.page.copy()
         ps = clamp01((t - (V(self.T_LIANG) - 0.3 * 0.9)) / 0.9)
         if ps > 0:
-            fr = T.stamp_seal(fr, '量', 960, 610, 380, ps, style='yang', rot=-3, seed=56, color='gold')
+            fr = T.stamp_seal(fr, '量', 1000, 560, 400, ps, style='yang', rot=-3, seed=56, color='gold')
         hk = hitp(t, self.T_LIANG, 0.14)
         if t >= V(self.T_LIANG):
-            fr = K.sparks(fr, t, 5606, (960, 700), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
-                          area=(500, 20), color=(0.75, 0.8, 0.9), amt=1.0, t0=V(self.T_LIANG), burst=True)
-            fr = fx2.ripples(fr, t, [(960, 760)], [V(self.T_LIANG)], amt=0.9, flat=0.27, speed=700, life=0.8)
-        fr = self.spl.draw(fr, t, y_far=700, y_near=990, rate=80, amt=0.6)
+            fr = K.sparks(fr, t, 5606, (1000, 700), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.6, grav=1400, size=1.4,
+                          area=(420, 20), color=(0.75, 0.8, 0.9), amt=1.0, t0=V(self.T_LIANG), burst=True)
         pr = prs(22, [7], t)[0]
         if pr > 0:
-            L = T.Layer(); T.place(L, '分', 360, 360, 150, color='white', fname='serif_black', alpha=min(1, pr * 2), scale=1.3 - 0.3 * eout(pr))
-            fr = T.compose(fr, L, shadow=0.85)
-        fr = self.rain.draw(fr, t, intensity=0.9, angle=6)
+            L = T.Layer(); T.place(L, '分', 420, 420, 190, color='white', fname='serif_black', alpha=min(1, pr * 2), scale=1.3 - 0.3 * eout(pr))
+            fr = T.compose(fr, L, shadow=0.95, outline=3)
+        fr = self.rain.draw(fr, t, intensity=0.8, angle=6)
         dx, dy, dr = shake(t, 22 * hk, 13, 56)
-        fr = cam(fr, 1.06 + 0.05 * eio(u) + 0.04 * hk, dx, dy - 20 * eio(u), dr)
+        fr = cam(fr, 1.08 + 0.05 * eio(u) + 0.04 * hk, dx, dy - 20 * eio(u), dr - 2 + 1.5 * u)
         return fr, (4 if hk > 0.5 else 0)
 
 
 # =====================================================================================
-# V12 99.47–100.58 ECU 下摇：纸人从秤盘边被挤落、慢放坠入黑暗，雨打湿纸人、墨色化开；「被牺牲的人」马善政竖排随纸人下坠、遇雨晕开
+# V12 99.47–100.58 ECU：一个名帖纸人（身上写着名字）从账簿边被风雨卷落，翻转着朝镜头坠下、越来越大，雨打湿它、名字的墨化开；
+#   「被牺牲的人」马善政竖排，随它下坠、遇雨晕开
 class V12(Shot):
     def __init__(self):
-        self.fig = PA.PaperFigure(5701, view='front')
+        self.fig = BP.NameFigure(5701, name='许平', view='front')
+        self.far = [BP.NameFigure(5720 + i, name=BP.NAMES[i], view=('front', 'side')[i % 2]) for i in range(7)]
         self.bg = BK.dark_bg(5702, 0.006, 0.025)
+        ab = BA.Abacus(5706, beam_h=120)
+        rgb, al = ab.flat([5, 2, 3, 5, 0, 1, 4, 5, 2, 0, 3, 5, 1])
+        Q = np.float32([[-300, -900], [2300, -1000], [2200, 240], [-200, 300]])
+        Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [BA.AW, 0], [BA.AW, BA.AH], [0, BA.AH]]), Q)
+        self.abW = cv2.GaussianBlur(cv2.warpPerspective(rgb, Mq, (W, H)), (0, 0), 7) * 0.6
+        self.abA = cv2.GaussianBlur(cv2.warpPerspective(al, Mq, (W, H)), (0, 0), 7)
         self.rain = fx2.RainSheet(5703, density=0.6)
+        self.mist = fx2.Fog(5705)
         T.warm('被牺牲的人', 'kai', 110)
 
-    def pos(self, t):
+    def pose(self, t):
         q = clamp01((t - self.t0) / (self.t1 - self.t0))
-        return 820 + 60 * math.sin(q * 2.4), 300 + 420 * q, 220 * q     # x, y, 旋转
+        x = 700 + 120 * math.sin(q * 2.6)
+        yfoot = 140 + 200 * q                              # 头朝下栽落（tilt≈180：脚在上）
+        h = 640 + 460 * q ** 1.3
+        tilt = 140 + 70 * q + 6 * math.sin(q * 9)
+        card = 28 * math.sin(q * 7.5)                    # 纸在风里翻面
+        return x, yfoot, h, tilt, card, q
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
         x, y = K.grid()
-        # 上方：秤盘边缘（金线）随下摇离开画面
-        edge_y = 200 - 520 * eio(u)
-        fr += np.exp(-((y - edge_y) / 8) ** 2)[..., None] * GOLD * 0.5 * (x < 1300)[..., None]
-        fr += np.exp(-((y - edge_y - 30) / 60) ** 2)[..., None] * GOLD * 0.06
-        px, py, rot = self.pos(t)
-        wet = clamp01(u * 1.3)
-        fr, _ = self.fig.draw(fr, px, py + 260, 520, t, tilt=rot, blur=1.5, wet=wet, ink=0.5 * wet, light='back', light_color=GOLD, rim=0.8)
-        # 墨在纸人周围化开（被雨打湿）
-        blot = np.exp(-(((x - px) ** 2 + (y - py) ** 2) / (120 + 260 * wet) ** 2))
-        nz = cv2.resize(K.fbm(H // 8, W // 8, 5704, 6, 4), (W, H))
-        fr = fr * (1 - (blot * nz * 0.6 * wet)[..., None])
+        # 上方：算盘底框（虚焦）随下摇离开画面；远处还有更多纸人在坠落（景深虚化）
+        oy = -380 * eio(u)
+        Mt = np.float32([[1, 0, 0], [0, 1, oy]])
+        aW = cv2.warpAffine(self.abW, Mt, (W, H)); aA = cv2.warpAffine(self.abA, Mt, (W, H))
+        fr = fr * (1 - aA[..., None]) + aW * aA[..., None]
+        for i, f_ in enumerate(self.far):
+            ph = (i * 0.37) % 1.0
+            qq = (u * 0.8 + ph) % 1.0
+            fx_ = 160 + i * 250 + 40 * math.sin(t * 2 + i)
+            fr = f_.draw(fr, fx_, -200 + 1300 * qq, 150 + 30 * (i % 3), tilt=90 * math.sin(i * 1.7 + t * 1.5) + 180, card=40 * math.sin(t * 5 + i),
+                         light='back', alpha=0.55, blur=5 + 2 * (i % 3), rim_col=(0.5, 0.55, 0.7), grade=(0.55, 0.57, 0.62))
+        fr = self.mist.draw(fr, t, density=0.35, y0=300, y1=1000, color=(0.18, 0.19, 0.22))
+        # 运动拖影：前 3 个时刻的半透明残影
+        for k, dt in enumerate((0.09, 0.05, 0.0)):
+            px, py, h, tl, cd, q = self.pose(t - dt)
+            wet = 0.45 * clamp01(q * 1.2)
+            fr = self.fig.draw(fr, px, py, h, tilt=tl, card=cd, light='back', wet=wet, alpha=(0.15, 0.25, 1.0)[k], blur=(6, 3, 0.6)[k] + 1.2 * q,
+                               rim_col=(0.75, 0.82, 1.0), ink_k=1.0)
         pr = prs(23, [0, 1, 2, 3, 4], t, 0.22)
-        P = [dict(ch=c, x=1280, y=260 + i * 128 + 60 * eio(u), size=112, rot=0, font='kai', idx=i, emph=c in '牺牲') for i, c in enumerate('被牺牲的人')]
-        fr = T.ink_bleed_in(fr, '被牺牲的人', pr, places=P, color='white', emph_color=(0.84, 0.10, 0.07), bleed=1.4,
-                            style_kw=dict(shadow=0.85, glow=0.1))
-        fr = self.rain.draw(fr, t * 0.6 + self.t0 * 0.4, intensity=0.8, angle=4)           # 慢放雨
+        P = [dict(ch=c, x=1360, y=250 + i * 128 + 60 * eio(u), size=112, rot=0, font='kai', idx=i, emph=c in '牺牲') for i, c in enumerate('被牺牲的人')]
+        fr = fr * (1 - 0.4 * K.blur_ds(((np.abs(x - 1360) < 90) & (y > 180) & (y < 960)).astype(np.float32), 30)[..., None])
+        fr = T.ink_bleed_in(fr, '被牺牲的人', pr, places=P, color='white', emph_color=(0.90, 0.14, 0.09), bleed=1.4,
+                            style_kw=dict(shadow=0.9, glow=0.1))
+        fr = self.rain.draw(fr, t * 0.6 + self.t0 * 0.4, intensity=0.8, angle=4)
         fr = cam(fr, 1.04, 0, 0, 2 * u)
         return fr, 0
 
@@ -708,7 +767,7 @@ class V13(Shot):
         self.gm = sstep(830, 850, y)
         mud = (0.02 + 0.035 * cv2.resize(K.fbm(H // 2, W // 2, 5802, 10, 6), (W, H)))[..., None] * np.ones(3, np.float32)
         self.bg = sk * (1 - self.gm[..., None]) + mud * self.gm[..., None]
-        self.fig = PA.PaperFigure(5701, view='front')
+        self.fig = BP.NameFigure(5701, name='许平', view='front')
         self.rain = fx2.RainSheet(5803, density=1.0)
         self.spl = fx2.Splashes(5804)
         self.fog = fx2.Fog(5805)
@@ -722,7 +781,7 @@ class V13(Shot):
         if t < tl:                                    # 纸人落地（与 V12 同姿态、同屏幕位置）
             q = clamp01((t - self.t0) / 0.2)
             tmp = np.zeros_like(fr)
-            tmp, _ = self.fig.draw(tmp, 820, 560 + 280 * q ** 2, 300, t, tilt=220 + 40 * q, light='back', rim=0.0)
+            tmp = self.fig.draw(tmp, 820, 760 + 200 * q ** 2, 600, tilt=175 + 10 * q, light='back')
             fr = sil_over(fr, tmp, COLDC, rim_w=3, amt=1.0)
         else:
             k = eout(clamp01((t - tl) / 1.1), 2)       # 起身：从半跪抬升
