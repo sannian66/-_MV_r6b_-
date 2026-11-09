@@ -235,13 +235,18 @@ class S05_Ren(Shot):
     凝成一滴沿纸滑落到左下（→ 下一镜秤盘左盘那枚朱红「人」，圆形匹配剪辑）"""
     t0, t1 = 165.88, 167.25
     paper = 1.0
-    REN = (960, 540, 760)
+    REN = (1010, 540, 610)
     DROP = (680, 600)
 
     def __init__(self):
         x, y, s = self.REN
         self.pap = cv2.resize(D.paper(14)[300:780, 540:1380], (W, H))
         a = T.ink_bleed_glyph('忍', 'serif_black', s, 1.0, seed=5); G = a.shape[0]
+        g = T.glyph('忍', 'serif_black', s, True)
+        if g.shape != a.shape: g = cv2.resize(g, a.shape[::-1])
+        self.ren = g
+        self.ren_d = cv2.distanceTransform((g > 0.5).astype(np.uint8), cv2.DIST_L2, 3)
+        self.ren_n = cv2.resize(D._tile(57)[:G // 6 + 1, :G // 6 + 1], (G, G))
         n, lab, st, cen = cv2.connectedComponentsWithStats((a > 0.5).astype(np.uint8))
         # 「刃」的那一点：左上方的小连通域
         cand = [i for i in range(1, n) if st[i, 4] < st[1:, 4].max() * 0.4 and cen[i][1] < G / 2 and cen[i][0] < G / 2]
@@ -265,16 +270,24 @@ class S05_Ren(Shot):
         else:
             fr = vcol(fr, '什么叫', 300, 330, 110, [self.t0] * 3, t, 'ink', fname='serif_black', adv=1.15)
         if t >= tin:
+            # 第三棒：「忍」踩拍落定后保持完整清晰的宋体（≥15 帧可读），最后 0.2s 才从笔画边缘碎开、洇进下一镜
             q = cl((t - tin) / 0.1)
-            p = cl((t - tin) / 0.32)
-            a = T.ink_bleed_glyph('忍', 'serif_black', s, 0.15 + 0.85 * p, seed=5)
-            sc = 1.0 + 0.6 * (1 - eo(q, 2))
+            sc = 1.0 + 0.45 * (1 - eo(q, 2))
+            a = self.ren
             if sc > 1.01: a = cv2.resize(a, None, fx=sc, fy=sc)
-            L = T.Layer(); L.paste(a, x, y, INK, alpha=0.4 + 0.6 * q)
-            if q < 1: L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 8 * (1 - q))
-            fr = D.ink_text(fr, L, bleed=0.25, sig=10)
+            tb = self.t1 - 0.2                                   # 开始碎
+            if t > tb:
+                e = cl((t - tb) / 0.2)
+                ae = self.ren_d - (self.ren_n - 0.5) * 18 - e * 34   # 距边越近、噪声越大越先碎
+                a = self.ren * np.clip(ae / 3 + 0.0, 0, 1)
+            L = T.Layer(); L.paste(a, x, y, INK, alpha=0.5 + 0.5 * q)
+            if q < 1: L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 6 * (1 - q))
+            fr = D.ink_text(fr, L, bleed=0.06, sig=3)
+            if t > tb:      # 碎墨屑沿笔画外缘飞散
+                fr = D.ink_spray(fr, t, tb, (x + 120, y), n=90, seed=57, power=700, size=(3, 11), life=0.5, grav=300)
+                fr = D.ink_spray(fr, t, tb, (x - 160, y - 120), n=60, seed=58, power=600, size=(3, 9), life=0.5, grav=300)
             if t >= tr:
-                fr = D.ink_spray(fr, t, tr, (x, y + 300), n=70, seed=55, power=900)
+                fr = D.ink_spray(fr, t, tr, (x, y + 300), n=50, seed=55, power=700)
                 # 刃上那一点：洇成朱墨
                 c = cl((t - tr - 0.05) / 0.3)
                 m = self.dotA * c
@@ -717,7 +730,6 @@ class S15_Hole(Shot):
             fr = T.burn_in(fr, '陪葬', p, places=[dict(ch='陪', x=760, y=420, size=300, rot=0.0, font='xing', idx=0, emph=True),
                                                   dict(ch='葬', x=1160, y=430, size=300, rot=0.0, font='xing', idx=1, emph=True)],
                            fname='xing', color='red', mode='ash', split=0.55, seed=3, emph='陪葬', emph_color='red')
-        if t > 176.96: fr = vcol(fr, '的', 1752, 262, 58, [O[43][7]], t, WHITE, ink=False)
         fr = fr + impact(t, V(O[43][8]), 0.2) * 0.25
         return K.cam(fr, 1.0 + 0.04 * u, 0, 40 - 90 * eo(u, 2)), 0.0
 
