@@ -492,8 +492,392 @@ class V08(Shot):
         return fr, (3 if gk > 0.6 else 0)
 
 
+# =====================================================================================
+# V09 96.10–97.52 MS：雨中天平：左盘纸人不断落下越堆越高，横梁纹丝不动（右盘金印）。匹配：权杖竖线 → 天平立柱
+#   「牺牲多少才」宋体字随纸人一起落进秤盘，「牺牲」朱
+import props as PR
+
+
+class V09(Shot):
+    def __init__(self):
+        self.bal = PR.Balance(5401, people=70)
+        sk = night_sky(5402, top=(0.02, 0.022, 0.028), bot=(0.10, 0.10, 0.11), horizon=0.8)
+        x, y = K.grid()
+        sk += np.exp(-(((x - 960) / 520) ** 2 + ((y - 300) / 300) ** 2))[..., None] * COLDC * 0.08
+        self.bg = sk
+        self.rain = fx2.RainSheet(5403, density=0.8)
+        self.figs = [PA.PaperFigure(5410 + i, view='side') for i in range(6)]
+        self.fog = fx2.Fog(5404)
+        T.warm('牺牲多少才', 'serif_black', 120)
+
+    def render(self, t):
+        u = self.u(t)
+        e = eio(u)
+        fr = self.bg.copy()
+        fr = self.fog.draw(fr, t, density=0.4, y0=600, y1=960, color=(0.3, 0.31, 0.33))
+        pile = 0.25 + 0.75 * clamp01((t - self.t0) / 1.3)
+        fr, info = self.bal.draw(fr, t, 960, 360, 1180, tilt=0.0, sway=0.15, left_people=pile, right='seal', rim_color=GOLD, rim=1.2)
+        pl = np.array(info.get('pan_L', (420, 640)), float)
+        # 落下的纸人（不同时刻、旋转下坠）
+        for i, f_ in enumerate(self.figs):
+            ti = self.t0 + 0.05 + i * 0.22
+            q = (t - ti) / 0.55
+            if 0 < q < 1:
+                yy = -150 + (pl[1] - 40 + 150) * q ** 2
+                fr, _ = f_.draw(fr, pl[0] - 90 + 40 * i, yy, 120, t, tilt=200 * q * (1 if i % 2 else -1), light='back', light_color=GOLD, rim=1.0)
+        # 字：从上落进左盘，落定后叠在纸人堆上
+        pr = prs(22, [0, 1, 2, 3, 4], t, 0.3)
+        L = T.Layer(); Lr = T.Layer()
+        for i, (ch, pc) in enumerate(zip('牺牲多少才', pr)):
+            if pc <= 0: continue
+            q = eio(pc)
+            tx, ty = pl[0] - 150 + (i % 3) * 120, pl[1] - 120 - (i // 3) * 110
+            yy = 160 + (ty - 160) * q ** 1.6
+            T.place(Lr if ch in '牺牲' else L, ch, tx, yy, 108, color='red' if ch in '牺牲' else 'white', fname='serif_black',
+                    rot=(1 - q) * (30 if i % 2 else -30) + (6 if i % 2 else -5) * q)
+        fr = T.compose(fr, L, shadow=0.8, glow=0.1)
+        fr = T.compose(fr, Lr, **T.auto_style('red'))
+        fr = self.rain.draw(fr, t, intensity=1.0, angle=8, light=(960, 300), light_r=600)
+        fr = cam(fr, 1.0 + 0.08 * e, 0, -20 * e)
+        return fr, 0
+
+
+# =====================================================================================
+# V10 97.52–98.48 ECU：天平指针与刻度盘：又一摞纸人砸下（98.37 重拍，画面震），指针仍直立不动；「算够」刻在刻度盘弧上
+class V10(Shot):
+    T_HIT = 98.373
+    def __init__(self):
+        x, y = K.grid()
+        c = (960, 1020); self.c = c
+        d = np.sqrt((x - c[0]) ** 2 + (y - c[1]) ** 2); ang = np.arctan2(y - c[1], x - c[0])
+        n = cv2.resize(K.fbm(H // 4, W // 4, 5501, 8, 5), (W, H))
+        brushed = cv2.resize(np.random.default_rng(5502).random((H // 2, 4)).astype(np.float32), (W, H))
+        face = (d < 760).astype(np.float32)
+        metal = (0.16 + 0.10 * n + 0.05 * np.sin(ang * 40) * 0.2 + 0.05 * brushed)[..., None] * np.array([1.0, 0.82, 0.55], np.float32)
+        ring = ((d > 700) & (d < 760)).astype(np.float32)
+        metal = metal * (1 - ring[..., None]) + ring[..., None] * np.array([0.45, 0.33, 0.16], np.float32) * (0.8 + 0.4 * np.cos(ang * 2 + 1))[..., None]
+        bg = BK.dark_bg(5503, 0.01, 0.03)
+        fr = bg * (1 - face[..., None]) + metal * face[..., None]
+        # 刻度（刻线 + 阴刻）
+        for k in range(-40, 41):
+            a = math.radians(-90 + k * 2.0)
+            r0 = 620 if k % 5 else 560
+            p0 = (int(c[0] + math.cos(a) * r0), int(c[1] + math.sin(a) * r0)); p1 = (int(c[0] + math.cos(a) * 690), int(c[1] + math.sin(a) * 690))
+            cv2.line(fr, p0, p1, (0.03, 0.025, 0.02), 4 if k % 5 == 0 else 2, cv2.LINE_AA)
+            cv2.line(fr, (p0[0] + 2, p0[1] + 2), (p1[0] + 2, p1[1] + 2), (0.5, 0.40, 0.22), 1, cv2.LINE_AA)
+        self.face = fr.astype(np.float32)
+        self.d = d
+        self.drops = np.random.default_rng(5504).uniform(0, 1, (60, 3))
+        T.warm('算够', 'serif_black', 120)
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.face.copy()
+        x, y = K.grid()
+        c = self.c
+        # 玻璃罩上的雨珠（高光点 + 暗折射）
+        for dx_, dy_, r_ in self.drops:
+            px, py = int(dx_ * W), int(120 + dy_ * 840); rr = int(4 + r_ * 12)
+            cv2.circle(fr, (px, py), rr, (0.02, 0.02, 0.025), -1, cv2.LINE_AA)
+            cv2.circle(fr, (px - rr // 3, py - rr // 3), max(1, rr // 3), (0.85, 0.85, 0.9), -1, cv2.LINE_AA)
+        # 「算够」刻在弧上（阴刻：暗字 + 下缘高光），逐字烫金
+        pr = prs(22, [5, 6], t, 0.22)
+        L = T.Layer()
+        for i, (ch, pc) in enumerate(zip('算够', pr)):
+            if pc <= 0: continue
+            a = math.radians(-90 + (-14 if i == 0 else 14))
+            T.place(L, ch, c[0] + math.cos(a) * 470, c[1] + math.sin(a) * 470, 130, color='white', fname='serif_black',
+                    rot=-(math.degrees(a) + 90), alpha=min(1, pc * 2))
+        A = L.A
+        fr = fr * (1 - A[..., None] * 0.8) + A[..., None] * np.array([0.02, 0.015, 0.01], np.float32)
+        fr += np.clip(np.roll(A, -3, 0) - A, 0, 1)[..., None] * np.array([0.6, 0.45, 0.25], np.float32)
+        fr += A[..., None] * GOLD * 0.5 * sum(pulse(t, V(CT(22, k)), 0.25) * (t >= V(CT(22, k))) for k in (5, 6))
+        # 指针：纹丝不动（冲击时只抖 0.3°，然后回正）
+        hk = hitp(t, self.T_HIT, 0.15)
+        a = math.radians(-90 + 0.6 * hk * math.sin(t * 60))
+        tip = (c[0] + math.cos(a) * 680, c[1] + math.sin(a) * 680)
+        pm = np.zeros((H, W), np.float32)
+        cv2.line(pm, (int(c[0]), int(c[1])), (int(tip[0]), int(tip[1])), 1.0, 16, cv2.LINE_AA)
+        cv2.circle(pm, (int(c[0]), int(c[1]) - 10), 60, 1.0, -1, cv2.LINE_AA)
+        sh = np.roll(np.roll(pm, 14, 1), 10, 0)
+        fr = fr * (1 - 0.5 * K.blur_ds(sh, 8)[..., None])
+        fr = over(fr, pm, np.array([0.55, 0.40, 0.18], np.float32))
+        fr += (pm * np.exp(-((x - c[0] + 6) / 6) ** 2))[..., None] * 0.6
+        # 冲击：上方一摞纸人砸下的阴影掠过 + 碎纸飞
+        if t >= V(self.T_HIT) - 0.12:
+            q = clamp01((t - (V(self.T_HIT) - 0.12)) / 0.12)
+            shadow = sstep(-200 + 600 * q, 200 + 600 * q, -y + 600) * (1 - hitp(t, self.T_HIT, 0.25) * 0) * 0.5 * (1 - clamp01((t - V(self.T_HIT)) / 0.3))
+            fr = fr * (1 - shadow[..., None])
+        if t >= V(self.T_HIT):
+            fr = K.sparks(fr, t, 5505, (960, 160), n=40, life=0.6, speed=(200, 700), dirc=(0, 1), spread=1.6, grav=600, size=3.0,
+                          area=(700, 20), color=(0.85, 0.78, 0.62), amt=0.9, t0=V(self.T_HIT), burst=True)
+        dx, dy, dr = shake(t, 26 * hk, 14, 55)
+        fr = cam(fr, 1.0 + 0.04 * eio(u) + 0.05 * hk, dx, dy, dr)
+        return fr, (4 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V11 98.48–99.47 CU：右盘金印特写，99.0「量」作印文重重落下，雨水从印面溅开；「分」宋体小字
+class V11(Shot):
+    T_LIANG = 99.0
+    def __init__(self):
+        self.seal = PR.GiantSeal('量', 5601)
+        self.bg = BK.dark_bg(5602, 0.012, 0.04)
+        self.rain = fx2.RainSheet(5603, density=0.7)
+        self.spl = fx2.Splashes(5604)
+        T.warm('分', 'serif_black', 140)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        fr = self.bg.copy()
+        # 秤盘（金属浅盘，俯视椭圆）+ 积水
+        pan = (((x - 960) / 820) ** 2 + ((y - 840) / 150) ** 2 < 1).astype(np.float32)
+        lip = (((x - 960) / 820) ** 2 + ((y - 840) / 150) ** 2 < 1).astype(np.float32) - (((x - 960) / 790) ** 2 + ((y - 836) / 136) ** 2 < 1).astype(np.float32)
+        fr = fr * (1 - pan[..., None]) + pan[..., None] * np.array([0.10, 0.08, 0.05], np.float32) * (0.7 + 0.5 * cv2.resize(K.fbm(H // 4, W // 4, 5605, 6, 4), (W, H)))[..., None]
+        fr += np.clip(lip, 0, 1)[..., None] * GOLD * 0.35
+        fall = clamp01((t - (V(self.T_LIANG) - 0.32)) / 0.32)
+        fr, info = self.seal.draw(fr, t, 960, 820, 520, fall=ein(fall, 2) if fall < 1 else 1.0, tilt=8, rim_color=GOLD, rim=1.4)
+        hk = hitp(t, self.T_LIANG, 0.14)
+        if t >= V(self.T_LIANG):
+            fr = K.sparks(fr, t, 5606, (960, 820), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
+                          area=(500, 20), color=(0.75, 0.8, 0.9), amt=1.0, t0=V(self.T_LIANG), burst=True)
+            fr = fx2.ripples(fr, t, [(960, 840)], [V(self.T_LIANG)], amt=0.9, flat=0.18, speed=700, life=0.8)
+        fr = self.spl.draw(fr, t, y_far=700, y_near=990, rate=80, amt=0.6)
+        pr = prs(22, [7], t)[0]
+        if pr > 0:
+            L = T.Layer(); T.place(L, '分', 360, 360, 150, color='white', fname='serif_black', alpha=min(1, pr * 2), scale=1.3 - 0.3 * eout(pr))
+            fr = T.compose(fr, L, shadow=0.85)
+        fr = self.rain.draw(fr, t, intensity=0.9, angle=6)
+        dx, dy, dr = shake(t, 22 * hk, 13, 56)
+        fr = cam(fr, 1.06 + 0.05 * eio(u) + 0.04 * hk, dx, dy - 20 * eio(u), dr)
+        return fr, (4 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V12 99.47–100.58 ECU 下摇：纸人从秤盘边被挤落、慢放坠入黑暗，雨打湿纸人、墨色化开；「被牺牲的人」马善政竖排随纸人下坠、遇雨晕开
+class V12(Shot):
+    def __init__(self):
+        self.fig = PA.PaperFigure(5701, view='front')
+        self.bg = BK.dark_bg(5702, 0.006, 0.025)
+        self.rain = fx2.RainSheet(5703, density=0.6)
+        T.warm('被牺牲的人', 'kai', 110)
+
+    def pos(self, t):
+        q = clamp01((t - self.t0) / (self.t1 - self.t0))
+        return 820 + 60 * math.sin(q * 2.4), 300 + 420 * q, 220 * q     # x, y, 旋转
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.bg.copy()
+        x, y = K.grid()
+        # 上方：秤盘边缘（金线）随下摇离开画面
+        edge_y = 200 - 520 * eio(u)
+        fr += np.exp(-((y - edge_y) / 8) ** 2)[..., None] * GOLD * 0.5 * (x < 1300)[..., None]
+        fr += np.exp(-((y - edge_y - 30) / 60) ** 2)[..., None] * GOLD * 0.06
+        px, py, rot = self.pos(t)
+        wet = clamp01(u * 1.3)
+        fr, _ = self.fig.draw(fr, px, py + 150, 300, t, tilt=rot, wet=wet, ink=0.5 * wet, light='back', light_color=GOLD, rim=0.8)
+        # 墨在纸人周围化开（被雨打湿）
+        blot = np.exp(-(((x - px) ** 2 + (y - py) ** 2) / (120 + 260 * wet) ** 2))
+        nz = cv2.resize(K.fbm(H // 8, W // 8, 5704, 6, 4), (W, H))
+        fr = fr * (1 - (blot * nz * 0.6 * wet)[..., None])
+        pr = prs(23, [0, 1, 2, 3, 4], t, 0.22)
+        P = [dict(ch=c, x=1280, y=260 + i * 128 + 60 * eio(u), size=112, rot=0, font='kai', idx=i, emph=c in '牺牲') for i, c in enumerate('被牺牲的人')]
+        fr = T.ink_bleed_in(fr, '被牺牲的人', pr, places=P, color='white', emph_color=(0.84, 0.10, 0.07), bleed=1.4,
+                            style_kw=dict(shadow=0.85, glow=0.1))
+        fr = self.rain.draw(fr, t * 0.6 + self.t0 * 0.4, intensity=0.8, angle=4)           # 慢放雨
+        fr = cam(fr, 1.04, 0, 0, 2 * u)
+        return fr, 0
+
+
+# =====================================================================================
+# V13 100.58–102.14 MS：坠落的纸人剪影落地——匹配剪辑：同一位置同一姿态变成鬼屠，从泥水里起身（rise）；「可曾有机会」马善政右侧
+class V13(Shot):
+    def __init__(self):
+        self.sp = spr('S054/rise')
+        sk = night_sky(5801, top=(0.02, 0.022, 0.03), bot=(0.12, 0.125, 0.14), horizon=0.78)
+        x, y = K.grid()
+        self.gm = sstep(830, 850, y)
+        mud = (0.02 + 0.035 * cv2.resize(K.fbm(H // 2, W // 2, 5802, 10, 6), (W, H)))[..., None] * np.ones(3, np.float32)
+        self.bg = sk * (1 - self.gm[..., None]) + mud * self.gm[..., None]
+        self.fig = PA.PaperFigure(5701, view='front')
+        self.rain = fx2.RainSheet(5803, density=1.0)
+        self.spl = fx2.Splashes(5804)
+        self.fog = fx2.Fog(5805)
+        T.warm('可曾有机会', 'kai', 110)
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.bg.copy()
+        fr = self.fog.draw(fr, t, density=0.5, y0=500, y1=860, color=(0.32, 0.34, 0.37))
+        tl = self.t0 + 0.2
+        if t < tl:                                    # 纸人落地（与 V12 同姿态、同屏幕位置）
+            q = clamp01((t - self.t0) / 0.2)
+            tmp = np.zeros_like(fr)
+            tmp, _ = self.fig.draw(tmp, 820, 560 + 280 * q ** 2, 300, t, tilt=220 + 40 * q, light='back', rim=0.0)
+            fr = sil_over(fr, tmp, COLDC, rim_w=3, amt=1.0)
+        else:
+            k = eout(clamp01((t - tl) / 1.1), 2)       # 起身：从半跪抬升
+            fr, _ = put(fr, self.sp, t, 640 + 80 * k, (840, 900 + 80 * (1 - k)), rim=dict(col=(0.70, 0.80, 1.0), amt=2.4, dir=(0.5, -1.0)),
+                        wind_amp=6, shade=(500, 1500, 0.25, 600, 0.3))
+            if t < tl + 0.2:
+                fr = K.sparks(fr, t, 5806, (840, 880), n=80, life=0.5, speed=(200, 600), dirc=(0, -1), spread=1.3, grav=1300,
+                              area=(260, 10), color=(0.7, 0.75, 0.85), amt=1.0, t0=tl, burst=True)
+        fr = self.spl.draw(fr, t, y_far=850, y_near=1000, rate=120, amt=0.7)
+        fr = self.rain.draw(fr, t, intensity=1.1, angle=10)
+        pr = prs(23, [5, 6, 7, 8, 9], t)
+        P = [dict(ch=c, x=1480 + (i % 2) * 40, y=250 + i * 120, size=104, rot=0, font='kai', idx=i, emph=False) for i, c in enumerate('可曾有机会')]
+        fr = T.ink_bleed_in(fr, '可曾有机会', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.12))
+        if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 0.6 + 0.5
+        e = eio(u)
+        fr = cam(fr, 1.0 + 0.18 * e, 0, -60 * e)
+        return fr, (3 if abs(t - tl) < 0.04 else 0)
+
+
+# =====================================================================================
+# V14 102.14–103.14 ECU：「反抗」二字：宋体被火从下往上烧成志莽行书（字体即立场），朱红火光，雨中蒸汽
+class V14(Shot):
+    def __init__(self):
+        self.bg = BK.dark_bg(5901, 0.01, 0.03, tint=(1.15, 1.0, 0.95))
+        self.emb = fx2.Embers(5902, n=220, box=(300, 300, 1620, 960), mode='fire', rise=260)
+        self.fog = fx2.Fog(5903)
+        self.rain = fx2.RainSheet(5904, density=0.6)
+        T.warm('反抗', 'song', 400)
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.bg.copy()
+        x, y = K.grid()
+        pr = prs(23, [10, 11], t, 0.25)
+        m = [clamp01((t - (V(CT(23, k)) - 0.05)) / 0.45) for k in (10, 11)]
+        P = [dict(ch='反', x=700, y=540, size=400, rot=0, font='xing', idx=0, emph=False),
+             dict(ch='抗', x=1220, y=540, size=400, rot=0, font='xing', idx=1, emph=False)]
+        heat = max(m)
+        fr += np.exp(-(((x - 960) / 800) ** 2 + ((y - 760) / 260) ** 2))[..., None] * RED * 0.5 * heat
+        if pr[0] > 0:
+            fr = T.font_morph(fr, '反抗', [min(1.0, mm) for mm in m], fa='song', fb='xing', places=P, color='white',
+                              colorB=(0.88, 0.12, 0.06), burst=True, style_kw=dict(shadow=0.6, glow=0.6, glow_color=(1.0, 0.3, 0.08)))
+            # 火线：沿字自下而上（烧过处转为朱红行书）
+            for pp, mm in zip(P, m):
+                if 0 < mm < 1:
+                    fy = pp['y'] + 220 - 440 * mm
+                    band = np.exp(-((y - fy) / 18) ** 2) * (np.abs(x - pp['x']) < 230)
+                    fr += band[..., None] * np.array([1.0, 0.5, 0.15], np.float32) * 0.9
+        fr = self.emb.draw(fr, t, intensity=0.4 + heat, wind=(30, 0))
+        fr = self.fog.draw(fr, t, density=0.3 * heat, y0=300, y1=900, color=(0.55, 0.5, 0.48), speed=(10, -60))
+        fr = self.rain.draw(fr, t, intensity=0.6, angle=6)
+        hk = hitp(t, CT(23, 11), 0.12)
+        dx, dy, dr = shake(t, 4 + 14 * hk, 10, 59)
+        fr = cam(fr, 1.0 + 0.08 * eio(u) + 0.04 * hk, dx, dy, dr)
+        return fr, (3 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V15 103.14–104.30 LS：鬼屠在暴雨中行走（walk_look_up），103.99 闪电照亮，他抬头；「不听天命」两列竖排，「天命」被朱红斜线划掉
+class V15(Shot):
+    T_BOLT = 103.987
+    def __init__(self):
+        self.sp = spr('S055/walk_look_up')
+        sk = night_sky(6001, top=(0.02, 0.022, 0.03), bot=(0.10, 0.105, 0.12), horizon=0.8)
+        wl, wm = city_wall_far(6002, 600, 820, tone=0.05, crenel=False)
+        wl = K.blur_ds(wl, 4); wm = K.blur_ds(wm, 4)
+        self.bg = sk * (1 - wm[..., None]) + wl * wm[..., None]
+        x, y = K.grid()
+        self.gm = sstep(820, 840, y)
+        self.bg = self.bg * (1 - self.gm[..., None]) + self.gm[..., None] * 0.03
+        self.bolt = fx2.Lightning(6003, p0=(1500, 120), p1=(1700, 700), branches=6)
+        self.rain = fx2.RainSheet(6004, density=1.2)
+        self.spl = fx2.Splashes(6005)
+        T.warm('不听天命', 'kai', 120)
+
+    def render(self, t):
+        u = self.u(t)
+        e = eio(u)
+        tl = V(self.T_BOLT)
+        env = 0.0 if t < tl - 0.02 else math.exp(-max(0, t - tl) / 0.3)
+        fr = self.bg * (1 + 2.5 * env)
+        if t >= tl - 0.06:
+            fr = self.bolt.draw(fr, t, tl, intensity=1.1)
+        walk = 1060 - 80 * e
+        bob = 6 * abs(math.sin(t * 6.5))
+        fr, _ = put(fr, self.sp, t, 640, (walk, 860 - bob), rim=dict(col=(0.75, 0.82, 1.0), amt=2.0 + 4 * env, dir=(0.7, -0.7)),
+                    grade=dict(expo=0.62 + 0.4 * env, sat=0.5, tint=(0.9, 0.96, 1.06), lift=0.0, gamma=1.2), wind_amp=8,
+                    shade=(500, 1500, 0.2, 600, 0.3))
+        # 积水反光
+        ref = fr[::-1].copy(); ref = cv2.warpAffine(ref, np.float32([[1, 0, 0], [0, 1, 2 * 860 - H]]), (W, H))
+        fr = fr + ref * (self.gm * 0.25)[..., None]
+        fr = self.spl.draw(fr, t, y_far=830, y_near=1000, rate=160, amt=0.8)
+        fr = self.rain.draw(fr, t, intensity=1.2, angle=14, light=(1500, 150) if env > 0.1 else None, light_r=900, cam=(80 * e, 0))
+        pr = prs(24, [0, 1, 2, 3], t)
+        P = [dict(ch='不', x=520, y=300, size=120, rot=0, font='kai', idx=0, emph=False), dict(ch='听', x=520, y=430, size=120, rot=0, font='kai', idx=1, emph=False),
+             dict(ch='天', x=380, y=380, size=150, rot=0, font='serif_black', idx=2, emph=False), dict(ch='命', x=380, y=540, size=150, rot=0, font='serif_black', idx=3, emph=False)]
+        L = T.Layer()
+        for pp, pc in zip(P, pr):
+            if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='gold' if pp['font'] == 'serif_black' else 'white',
+                               fname=pp['font'], alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+        fr = T.compose(fr, L, shadow=0.85, glow=0.15)
+        ps = clamp01((t - (V(CT(24, 3)) + 0.12)) / 0.16)
+        if ps > 0: fr = T.strike(fr, P, [2, 3], ps, color='red', width=0.16, seed=60)
+        fr = cam(fr, 1.0 + 0.05 * e, 30 * e, 0, (0.8 * math.sin(t * 1.7)))
+        return fr, (3 if abs(t - tl) < 0.04 else 0)
+
+
+# =====================================================================================
+# V16 104.30–105.88 ELS 仰天：雨从天心直落向镜头（放射雨丝），云眼里金色宋体「上苍」，被暴雨冲刷溶解；「不问」毛草
+class V16(Shot):
+    def __init__(self):
+        x, y = K.grid()
+        self.c = (960, 470)
+        d = np.sqrt((x - 960) ** 2 + (y - 470) ** 2); a = np.arctan2(y - 470, x - 960)
+        n = cv2.resize(K.fbm(H // 4, W // 4, 6101, 5, 6), (W, H))
+        swirl = cv2.resize(K.tile(512, 6102, 6, 5), (W, H))
+        self.d, self.a, self.n, self.sw = d, a, n, swirl
+        r = np.random.default_rng(6103)
+        self.streaks = r.uniform(0, 1, (900, 3))
+        T.warm('上苍', 'serif_black', 330); T.warm('不问', 'cao', 170)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        d, a = self.d, self.a
+        rot = a + 0.25 * t + 600 / (d + 200)
+        tex = self.sw[(np.clip(d * 0.4 + t * 40, 0, 1e6).astype(np.int32)) % H, ((rot % (2 * math.pi)) / (2 * math.pi) * W).astype(np.int32) % W]
+        cloud = 0.02 + 0.13 * np.clip(tex * 0.7 + self.n * 0.5 - 0.2, 0, 1) ** 1.4
+        eye = np.exp(-(d / 260) ** 2)
+        fr = lum3(cloud, (0.95, 0.98, 1.08)) * (1 - eye[..., None]) + eye[..., None] * GOLD * 0.35
+        # 「上苍」金宋体悬于云眼 → 被雨冲刷溶解（粒子化 + 下流）
+        diss = clamp01((t - (V(CT(24, 7)) - 0.0)) / 0.7)
+        pr = prs(24, [6, 7], t)
+        L = T.Layer()
+        for i, ch in enumerate('上苍'):
+            if pr[i] > 0: T.place(L, ch, 790 + i * 340, 470, 330, color='gold', fname='serif_black', alpha=min(1, pr[i] * 2))
+        if diss > 0:
+            nz = cv2.resize(K.fbm(H // 4, W // 4, 6104, 12, 4), (W, H))
+            L.A = L.A * np.clip((nz - diss * 1.1 + 0.15) * 6, 0, 1)
+            run = cv2.resize(L.A[::4, ::4], (W, H))
+            M = np.float32([[1, 0, 0], [0, 1, 160 * diss]])
+            L.A = np.maximum(L.A, cv2.warpAffine(run, M, (W, H)) * 0.45 * diss * np.clip(nz * 2 - 0.6, 0, 1))
+        fr = T.compose(fr, L, shadow=0.4, glow=0.6, glow_color=(1.0, 0.6, 0.25))
+        # 放射雨丝（从天心落向镜头）
+        buf = np.zeros((H // 2, W // 2), np.float32)
+        for k, (s0, aa, sp) in enumerate(self.streaks):
+            ph = (t * (0.6 + sp) + s0) % 1.0
+            ang = aa * 2 * math.pi
+            r0 = 40 + 900 * ph ** 2; r1 = r0 + 30 + 160 * ph ** 2
+            p0 = (int((960 + math.cos(ang) * r0) / 2), int((470 + math.sin(ang) * r0) / 2)); p1 = (int((960 + math.cos(ang) * r1) / 2), int((470 + math.sin(ang) * r1) / 2))
+            cv2.line(buf, p0, p1, 0.25 + 0.6 * ph, 1, cv2.LINE_AA)
+        fr += cv2.resize(buf, (W, H))[..., None] * COLDC * 0.6
+        pb = prs(24, [4, 5], t)
+        fr = T.scatter_stack(fr, '不问', pb, places=[dict(ch='不', x=330, y=300, size=170, rot=-8, font='cao', idx=0, emph=False),
+                                                       dict(ch='问', x=420, y=520, size=200, rot=6, font='cao', idx=1, emph=True)],
+                             color='white', emph_color=(0.84, 0.10, 0.07), t_local=u, style_kw=dict(shadow=0.8))
+        fr = cam(fr, 1.0 + 0.08 * eio(u), 0, 0, -8 * eio(u), center=self.c)
+        return fr, 0
+
+
 # ===================================================================================== 段落装配
-SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08]
+SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16]
 CUTS = {
     'V02': ('zoom_through', 0.06, 0.14, dict(center=(960, 470))),
     'V03': ('flash_white', 0.0, 0.17, {}),
@@ -502,8 +886,17 @@ CUTS = {
     'V06': ('match_cut', 0.0, 0.12, dict(shape='circle', center=(930, 400), radius=220)),
     'V07': ('gold', 0, 0, {}),
     'V08': ('whip_pan_blur', 0.05, 0.10, dict(direction='down')),
+    'V09': ('match_cut', 0.0, 0.12, dict(shape='rect', center=(960, 520), radius=160)),
+    'V10': ('hard', 0, 0, {}),
+    'V11': ('slash_wipe', 0.05, 0.12, dict(angle=-70)),
+    'V12': ('whip_pan_blur', 0.05, 0.10, dict(direction='down')),
+    'V13': ('none', 0, 0, {}),
+    'V14': ('flash_red', 0.03, 0.12, {}),
+    'V15': ('ink_bleed', 0.06, 0.20, dict(seed=15)),
+    'V16': ('whip_pan_blur', 0.05, 0.10, dict(direction='up')),
 }
-FG = {'V01': ('rain', 0.4), 'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25)}
+FG = {'V01': ('rain', 0.4), 'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25), 'V09': ('rain', 0.3), 'V13': ('rain', 0.35),
+      'V14': ('ember', 0.5), 'V15': ('rain', 0.45)}
 EXPO = {}
 
 
