@@ -624,10 +624,11 @@ class V10(Shot):
     def render(self, t):
         u = self.u(t); td = CT(3, 10)
         fr = night((0.008, 0.008, 0.012), (0.025, 0.022, 0.024))
-        fr = A.glow(fr, (1350, 160), 520, 0.35, (0.9, 0.75, 0.5))
+        fr = A.glow(fr, (1350, 260), 520, 0.22, (0.9, 0.75, 0.5))
+        fr = fog(fr, t, 2, 500, 860, 0.35, (0.16, 0.12, 0.10), speed=(-25, 0))
         # 盘：青铜盘底（噪声铜锈 + 同心刻纹 + 盘沿金色高光随运镜滑动）
         q = 2; Lm = np.zeros((H // q, W // q), np.float32); Le = np.zeros_like(Lm)
-        c = (int(900 / q), int(-260 / q)); ax = (int(1250 / q), int(560 / q))
+        c = (int(900 / q), int(-60 / q)); ax = (int(1250 / q), int(560 / q))
         cv2.ellipse(Lm, c, ax, 0, 0, 180, 1.0, -1, cv2.LINE_AA)
         cv2.ellipse(Le, c, ax, 0, 0, 180, 1.0, 4, cv2.LINE_AA)
         yy2, xx2 = np.mgrid[0:H // q, 0:W // q].astype(np.float32)
@@ -635,7 +636,7 @@ class V10(Shot):
         rings = 0.5 + 0.5 * np.sin(rr * 90) ** 8
         nz = cv2.resize(A.tex(101, 512, 5, 6), (W // q, H // q))
         spec = np.exp(-((xx2 * q - (700 + 500 * u)) / 260) ** 2) * np.clip(rr - 0.7, 0, 1) * 3
-        bronze = (0.35 + 0.9 * nz)[..., None] * np.array([0.10, 0.07, 0.035], np.float32) * (0.7 + 0.3 * rings[..., None]) \
+        bronze = (0.35 + 0.9 * nz)[..., None] * np.array([0.22, 0.15, 0.07], np.float32) * (0.7 + 0.3 * rings[..., None]) \
                  + spec[..., None] * np.array([0.5, 0.36, 0.16], np.float32)
         verd = np.clip((nz - 0.62) * 4, 0, 1)[..., None] * np.array([0.02, 0.06, 0.05], np.float32)
         Lm3 = cv2.resize(Lm, (W, H))[..., None]
@@ -648,7 +649,7 @@ class V10(Shot):
                          (-0.20, -0.62), (-0.18, -0.30), (-0.30, 0), (0.30, 0), (0.18, -0.30), (0.20, -0.62), (0.24, -0.38), (0.30, -0.40),
                          (0.22, -0.74), (0.06, -0.80), (0.09, -0.86), (0.07, -0.97)])
         for i, (x, s_, a0) in enumerate(self.ppl):
-            yr = -260 + 560 * math.sqrt(max(0.0, 1 - ((x - 900) / 1250) ** 2))
+            yr = -60 + 560 * math.sqrt(max(0.0, 1 - ((x - 900) / 1250) ** 2))
             tf = self.t0 + 0.10 * i
             falling = i % 3 == 0
             for gst in ((0.0, 1.0), (0.04, 0.35), (0.08, 0.15)) if falling else ((0.0, 1.0),):
@@ -665,31 +666,31 @@ class V10(Shot):
         fr = fr * (1 - Lp[..., None]) + Lp[..., None] * paper * 0.45 + lit * GOLDV * 0.5
         # 红绳 + 朱墨滴（先在绳端胀大，再拉长坠落）
         rx = 960 - 50 * u
-        cv2.line(fr, (int(rx), 280), (int(rx), 560), (0.55, 0.05, 0.04), 4, cv2.LINE_AA)
-        fr = A.glow(fr, (rx, 420), 30, 0.15, (0.8, 0.1, 0.05), aspect=0.2)
+        cv2.line(fr, (int(rx), 480), (int(rx), 640), (0.55, 0.05, 0.04), 4, cv2.LINE_AA)
+        fr = A.glow(fr, (rx, 570), 30, 0.15, (0.8, 0.1, 0.05), aspect=0.2)
         qd = clamp01((t - (td - 0.40)) / 0.40)
         if t < td:
             grow = clamp01((t - self.t0) / max(0.1, td - 0.4 - self.t0))
-            yd = 568 + (830 - 568) * qd ** 2
+            yd = 648 + (870 - 648) * qd ** 2
             fr = A.glow(fr, (rx, yd), 7 + 6 * grow, 1.6, (0.80, 0.06, 0.04), aspect=1 - 0.5 * qd)
             fr = A.glow(fr, (rx - 3, yd - 4), 3, 0.8, (1.0, 0.7, 0.6))
         # 墨池：镜面倒影（盘沿金线 + 纸人倒影，水波扰动）
         yy = np.arange(H, dtype=np.float32)[:, None, None]
-        pool = np.clip((yy - 820) / 14, 0, 1)
-        n = H - 820
-        refl = cv2.flip(fr[820 - n:820], 0)
+        pool = np.clip((yy - 860) / 14, 0, 1)
+        n = H - 860
+        refl = cv2.flip(fr[860 - n:860], 0)
         ph = np.sin(np.arange(n, dtype=np.float32)[:, None] / 5 + t * 10) * 5
         mx = (np.arange(W, dtype=np.float32)[None] + ph).astype(np.float32); my = np.repeat(np.arange(n, dtype=np.float32)[:, None], W, 1)
         refl = cv2.remap(refl, mx, my, cv2.INTER_LINEAR)
-        fr[820:] = fr[820:] * (1 - pool[820:]) + (refl * 0.35 * np.array([1.0, 0.8, 0.75], np.float32) + 0.004) * pool[820:]
+        fr[860:] = fr[860:] * (1 - pool[860:]) + (refl * 0.5 * np.array([1.0, 0.8, 0.75], np.float32) + 0.004) * pool[860:]
         a = t - td
         if a >= 0:
-            fr = fx2.ripples(fr, t, [(rx, 860)], [td], color=(0.75, 0.12, 0.07), speed=420, amt=1.0, life=1.4)
+            fr = fx2.ripples(fr, t, [(rx, 890)], [td], color=(0.75, 0.12, 0.07), speed=420, amt=1.0, life=1.4)
             fr = fr * (1 + 0.3 * math.exp(-a / 0.1))
         L = T.Layer()
         for i, (ch, k) in enumerate((('称', 9), ('量', 10))):
             p = clamp01((t - (CT(3, k) - 0.12)) / 0.4)
-            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 190, p, seed=9 + i, bleed=1.0), rx - 150 + 300 * i, 690, (0.82, 0.08, 0.06))
+            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 190, p, seed=9 + i, bleed=1.0), rx - 160 + 320 * i, 750, (0.82, 0.08, 0.06))
         fr = T.compose(fr, L, shadow=0.6, glow=0.4, glow_color=(0.9, 0.12, 0.06))
         return fr, (3 if 0 <= a < 0.08 else 0)
 
