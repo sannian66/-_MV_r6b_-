@@ -359,8 +359,9 @@ class A08(Shot):
         if env > 0.02 or (V(14.28) - 0.05 < t < V(14.28) + 0.9):            # 巨影：闪电时从云里显出
             lit = np.clip(env * 2, 0, 1)
             fr = A.glow(fr, (1000, 380), 560, 0.9 * lit, (0.75, 0.8, 0.95))
-            fr, _ = A.place(fr, t, S('S011/backlit'), (1000, 900), h=900, look='sil', rim=(0.85, 0.9, 1.0), rim_amt=5.0, wind=5,
-                            alpha=0.15 + 0.75 * lit)
+            # 第二棒：改用 tsh_raise 举手剪影（预告 V16 召印；S011/backlit 只留给 V07）
+            fr, _ = A.place(fr, t, S('A/tsh_raise', 'dm'), (980, 980), h=980, look='sil', rim=(0.85, 0.9, 1.0), rim_amt=5.0, wind=5,
+                            alpha=0.12 + 0.8 * lit, defocus=2.0)
         fr = A.moon(fr, 1500, 230, 62, 0.9, halo=0.5)
         fr = A.clouds(fr, t, 31, speed=(25, 0), y0=120, y1=600, amt=0.9, col=(0.13, 0.14, 0.18), light=(1000, 330), light_r=600,
                       light_col=(0.9, 0.92, 1.0), thr=0.44)
