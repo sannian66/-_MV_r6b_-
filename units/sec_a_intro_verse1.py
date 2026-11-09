@@ -1476,13 +1476,24 @@ class V18(Shot):
         pit = np.zeros((H, W), np.float32)
         cv2.fillConvexPoly(pit, np.array([(-300, -200), (820, -60), (640, 420), (-420, 260)], np.int32), 1.0)
         self.pit = cv2.GaussianBlur(pit, (0, 0), 10)
+        # 第六棒（critic_A_r3 P1-10）：印坑 → 人物站位的引导线：三道暖金裂缝自坑沿（左上）一路裂到鬼屠脚下
+        self.cr = [K.crack_path(a_, b_, 180 + i) for i, (a_, b_) in enumerate((((700, 330), (1160, 880)), ((560, 380), (1000, 960)),
+                                                                                ((780, 200), (1400, 760))))] if hasattr(K, 'crack_path') else []
     def render(self, t):
         u = self.u(t)
-        fr = A.vgrad((0.07, 0.065, 0.06), (0.045, 0.045, 0.05)) * self.ground
-        fr = fr * (1 - 0.8 * self.pit[..., None])
-        e = np.clip(self.pit - cv2.warpAffine(self.pit, np.float32([[1, 0, -8], [0, 1, -8]]), (W, H)), 0, 1)
-        fr = fr + e[..., None] * np.array([0.6, 0.25, 0.15], np.float32) * 0.8                  # 印坑边缘余热
-        fr = A.glow(fr, (300, 150), 600, 0.3, (0.9, 0.7, 0.5))
+        fr = A.vgrad((0.085, 0.078, 0.07), (0.05, 0.05, 0.055)) * self.ground
+        fr = fr * (1 - 0.92 * self.pit[..., None])
+        if not hasattr(self, 'zg'):                                                              # 坑底露出的「正」字一角（凹槽）
+            Lg = T.Layer(); T.place(Lg, '正', 250, 40, 900, 'white', 'kai', texture=False); self.zg = Lg.A * self.pit
+        fr = fr + cv2.GaussianBlur(self.zg, (0, 0), 2)[..., None] * np.array([1.0, 0.55, 0.2], np.float32) * 0.10
+        e = np.clip(self.pit - cv2.warpAffine(self.pit, np.float32([[1, 0, -9], [0, 1, -9]]), (W, H)), 0, 1)
+        fr = fr + e[..., None] * np.array([0.95, 0.62, 0.32], np.float32) * 0.65                  # 坑沿迎光斜面（暖金）
+        e2 = np.clip(self.pit - cv2.warpAffine(self.pit, np.float32([[1, 0, 10], [0, 1, 10]]), (W, H)), 0, 1)
+        fr = fr * (1 - 0.6 * e2[..., None])
+        for c in self.cr:
+            m = K.draw_crack((H, W), c, 3, branches=3, seed=7, prog=1.0)
+            fr = fr * (1 - 0.85 * m[..., None]) + (m[..., None] * 0.8 + cv2.GaussianBlur(m, (0, 0), 6)[..., None] * 1.3) * np.array([1.0, 0.55, 0.2], np.float32) * (0.6 + 0.12 * math.sin(t * 7))
+        fr = A.glow(fr, (1500, 200), 600, 0.25, (0.9, 0.7, 0.5))
         at = (1180 + 40 * u, 880)
         sh = np.zeros((H // 2, W // 2), np.float32)                                              # 长影
         cv2.line(sh, (int(at[0] / 2), int(at[1] / 2)), (int((at[0] + 520) / 2), int((at[1] + 300) / 2)), 1.0, 22, cv2.LINE_AA)
@@ -1495,7 +1506,8 @@ class V18(Shot):
         fr = fx2.ripples(fr, t, [(at[0] - 30, at[1] + 4), (at[0] + 50, at[1] + 2)], [self.t0 + 0.1, self.t0 + 0.6], speed=160, amt=0.5, life=1.0)
         fr, info = A.place(fr, t, S('A/stand_ha'), at, h=560, rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.5), wind=13,
                            grade=dict(expo=0.80, sat=0.38, tint=(0.97, 0.98, 1.02)), breathe=0.0)
-        fr = fog(fr, t, 1, 300, 1000, 0.5, (0.30, 0.28, 0.26), speed=(380, 60), light=(300, 150))
+        fog_ = 1  # 第六棒：雾只走人物以下，不盖印坑
+        fr = fog(fr, t, 1, 600, 1000, 0.4, (0.30, 0.28, 0.26), speed=(380, 60), light=(1500, 200))
         fr = RAIN.draw(fr, t, 0.7, angle=20, light=(300, 150), layers=(0, 1, 2))
         fr = ASH.draw(fr, t, 0.8, wind=(420, 40))
         return fr, 0
