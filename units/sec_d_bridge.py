@@ -154,7 +154,7 @@ class S03_TypeSlam(Shot):
     """仰拍地平：「大」「局」两枚宋体铅字块（带厚度）砸进纸面，墨尘翻起"""
     t0, t1 = 164.05, 164.98
     paper = 1.0
-    CH = [('大', 700, 560, 520, O[40][3]), ('局', 1290, 610, 640, O[40][4])]
+    CH = [('大', 700, 560, 520, O[40][3]), ('局', 1290, 620, 540, O[40][4])]
 
     def render(self, t):
         u = self.u(t)
@@ -676,7 +676,7 @@ class S14_Burn(Shot):
         x, y = K.grid()
         bg = D.paper(23) * (0.55 - 0.25 * u) * np.array([1.0, 0.85, 0.7], np.float32)
         fr = bg.copy()
-        intact, gl, ch = burn(None, t, 175.75, 520, 78, x, y)
+        intact, gl, ch = burn(None, t, 175.85, 330, 78, x, y)
         Ab = A * intact
         red = CINNABAR * (0.85 + 0.25 * D.paper(24)[..., :1] / 0.93)
         fr = fr * (1 - Ab[..., None]) + red * Ab[..., None]

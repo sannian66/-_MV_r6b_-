@@ -261,3 +261,4 @@
 | 11-09 01:34 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 0 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | completed | d_cands/wall_stand_back_try1_0.png | try1 |
 | 11-09 01:35 | D组/blade_up_cu | RH_image2 | 4K 16:9 | 0 | 9d01184f-4f52-45b2-bc60-0afdea9c5b27 | 采用 | assets/gen/D_bridge/blade_up_cu_raw.png | try1 采用 |
 | 11-09 01:35 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 0 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | 采用 | assets/gen/D_bridge/wall_stand_back_raw.png | try1 采用 |
+| 11-09 10:00 | E组 | RH_image2 | 4K 16:9 | 0 | 395c4836/599266ee | 采用 | assets/gen/E_r2/top_down、paper_effigy | [E组] 第二棒两张 try1 均采用（top_down 用 e_recut multi=0.003 保留插地刀）；E 组累计 33 点 |
