@@ -50,6 +50,9 @@ JOBS = {
     'back_walk': (GT, 'MS', 'Full body rear view from behind: he walks away from camera toward the distance, back to camera, long high ponytail and black '
                              'robe hem swaying, the dao in its scabbard at his left hip, dark red sash trailing, shoulders squared, mid-stride. Whole figure '
                              'inside the frame with margin, face not visible.'),
+    'stand_ha': (GT, 'LS', 'High-angle view from above and behind (camera about 45 degrees down): full body, he stands alone with feet apart, '
+                            'dao held low in his right hand with the tip touching the ground, head tilted up looking up over his shoulder toward the sky, '
+                            'robe hem and red sash blown sideways by strong wind. Whole figure inside the frame with margin.'),
 }
 VILLAIN_LOOK = ('Gritty realistic Chinese wuxia film costume, weathered fabric, scarred rough face, no modern items. ')
 

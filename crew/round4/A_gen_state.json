@@ -1,5 +1,5 @@
 {
- "spent": 33,
+ "spent": 36,
  "jobs": {
   "eyes": [
    {
@@ -98,6 +98,14 @@
     "pts": 3,
     "file": "/workspace/work/a_cands/back_walk_8582230b_0.png",
     "accepted": true
+   }
+  ],
+  "stand_ha": [
+   {
+    "task_id": "122c34d2-790d-46fc-bd00-d4c93f22b81b",
+    "status": "running",
+    "pts": 3,
+    "file": null
    }
   ]
  }

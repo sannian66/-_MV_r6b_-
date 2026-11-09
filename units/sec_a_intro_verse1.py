@@ -93,9 +93,8 @@ class A01(Shot):
         fr = self.bg.copy()
         lx = 1180 + 120 * t                                              # 云后光源缓慢横移（光束随之扫）
         fr = A.glow(fr, (lx, 300), 520, 0.30, (0.55, 0.62, 0.82))
-        fr = fx2.god_rays(fr, (lx, 280), strength=0.45, length=1.1, color=(0.7, 0.78, 0.95), t=t * 2.5, src_r=160)
-        fr = A.clouds(fr, t, 3, speed=(70, 0), y0=110, y1=640, amt=1.0, col=(0.16, 0.18, 0.23), light=(lx, 300), light_r=480, thr=0.40)
-        fr = A.clouds(fr, t, 5, speed=(140, 0), y0=420, y1=760, amt=0.7, col=(0.10, 0.11, 0.15), light=(lx, 300), light_r=600, thr=0.48)
+        fr = fx2.god_rays(fr, (lx, 280), strength=0.28, length=1.0, color=(0.7, 0.78, 0.95), t=t * 2.5, src_r=160)
+        fr = A.clouds(fr, t, 3, speed=(70, 0), y0=0, y1=640, amt=1.0, col=(0.16, 0.18, 0.23), light=(lx, 300), light_r=480, thr=0.40)
         for i, (by, amp, tone) in enumerate(((720, 160, (0.05, 0.06, 0.08)), (800, 120, (0.03, 0.035, 0.05)), (900, 90, (0.012, 0.014, 0.02)))):
             fr, _ = A.ridge(fr, by, amp, 40 + i, tone=tone, rim=(0.5, 0.58, 0.75), rim_amt=0.35 - 0.1 * i, dx=-t * (20 + 40 * i))
             fr = fog(fr, t, i, by - 80, by + 60, 0.35, (0.30, 0.34, 0.42), speed=(40 + 30 * i, 0))
@@ -406,6 +405,7 @@ class A07a(Shot):
         u = self.u(t)
         fr = self.bg.copy()
         fr = A.glow(fr, (960, 120), 700, 0.22, (0.45, 0.52, 0.7))
+        fr = A.glow(fr, (960, 200), 900, 0.18, (0.4, 0.46, 0.62), aspect=0.5)            # 城楼后天光：让飞檐轮廓从夜空里分出来
         fr = A.clouds(fr, t, 91, speed=(80, 10), y0=0, y1=420, amt=0.9, col=(0.10, 0.11, 0.14), dark=0.7, thr=0.42,
                       light=(960, 120), light_r=800, light_col=(0.6, 0.66, 0.85))
         fr = fog(fr, t, 0, 260, 600, 0.35, (0.16, 0.18, 0.23), speed=(50, 0))
@@ -420,7 +420,7 @@ class A07a(Shot):
         fr = A.glow(fr, (960, 940), 260, 0.25, (1.0, 0.6, 0.3), aspect=0.7)                       # 门洞深处火光
         for i, (x, y) in enumerate(self.wins):
             fl = 0.75 + 0.25 * math.sin(t * 13 + i * 1.7)
-            fr = A.glow(fr, (x, y), 16, 0.9 * fl, (1.0, 0.6, 0.28), aspect=1.6)
+            fr = A.glow(fr, (x, y), 9, 0.9 * fl, (1.0, 0.6, 0.28), aspect=0.8)
         for i, (x, y) in enumerate(self.lanterns):                                                   # 檐下红灯笼（随风摆）
             sw = 10 * math.sin(t * 2.6 + i)
             cv2.line(fr, (int(x), int(y - 46)), (int(x + sw * 0.5), int(y - 26)), (0.02, 0.02, 0.02), 2, cv2.LINE_AA)
@@ -724,7 +724,7 @@ class V07(Shot):
             cv2.line(fr, (x, 160), (int(x + sw * 0.6), y - 50), (0.01, 0.01, 0.01), 2, cv2.LINE_AA)
             fr = A.glow(fr, (x + sw, y), 34, 1.6, (1.0, 0.22, 0.08), aspect=1.3)
             fr = A.glow(fr, (x + sw, y), 120, 0.25, (1.0, 0.3, 0.1))
-        fr, info = A.place(fr, t, S('S011/backlit'), (960, 602), h=470 * (1 + 0.04 * u), look='sil', rim=GOLD, rim_amt=5.0, wind=7)
+        fr, info = A.place(fr, t, S('S011/backlit'), (960, 602), h=400 * (1 + 0.04 * u), look='sil', rim=GOLD, rim_amt=5.0, wind=7)
         fr = GDUST.draw(fr, t, 0.5, wind=(30, -20))
         return fr, 0
 
@@ -1224,7 +1224,7 @@ class V19(Shot):
         fr = A.glow(fr, (960, 100), 600, 0.4, (1.0, 0.82, 0.55))
         fr = RAIN.draw(fr, t, 0.6, angle=4, light=(960, 100), layers=(0, 1))
         hh = 780 * (1 + 0.08 * eio(u))
-        fr, info = A.place(fr, t, S('S018/look_up'), (1220, 1060 + 30 * u), h=hh, anc=(0.5, 1.0), rim=COLD, rim_amt=3.0,
+        fr, info = A.place(fr, t, S('S018/look_up'), (1220, 1110 + 30 * u), h=hh, anc=(0.5, 1.0), rim=COLD, rim_amt=3.0,
                            rim_dir=(0.0, -1.0), wind=10, grade=dict(expo=0.82, sat=0.38, tint=(0.97, 0.99, 1.03)),
                            mblur=(0, 10 * eio(u)))
         g = math.exp(-max(0, t - V(41.40)) / 0.12) * (t >= V(41.40))
@@ -1400,7 +1400,15 @@ def credits(fr, t):
         if not (a_ - 0.01 <= t < b_ + 0.35): continue
         p = clamp01((t - a_) / 0.55)                     # 第二棒：0.55s 显全（A01 1.2s 时两条署名都已完整）
         out = clamp01((t - b_) / 0.3)
-        g = T.credit_block(fr, role, names, x, y, p, role_size=30, name_size=62, seal_text=seal, seed=len(role))
+        if names.isascii():                                   # 第四棒：拉丁名横排（不再旋转竖排）——职务竖排，人名横排在职务下方
+            g = T.credit_block(fr, role, '', x, y, p, role_size=30, name_size=62, seal_text=None, seed=len(role))
+            L = T.Layer(); f = T._font('song', 54)
+            from PIL import Image as _I, ImageDraw as _D
+            w_ = int(f.getlength(names)) + 10; im = _I.new('L', (w_, 70), 0); _D.Draw(im).text((w_ / 2, 35), names, font=f, fill=255, anchor='mm')
+            L.paste(np.asarray(im).astype(np.float32) / 255, x + 30, y + 30 * 4 * 1.08 + 70, (0.95, 0.94, 0.92), eout(clamp01(p * 1.6 - 0.4)))
+            g = T.compose(g, L, shadow=0.7, glow=0.1)
+        else:
+            g = T.credit_block(fr, role, names, x, y, p, role_size=30, name_size=62, seal_text=seal, seed=len(role))
         fr = fr + (g - fr) * (1 - out)
     return fr
 
@@ -1416,16 +1424,16 @@ LY_TXT = {0: '长夜压在我刀锋之上', 1: '五百重甲拦不住一道寒�
 _Wt, _R, _G = (0.95, 0.93, 0.88), (0.86, 0.12, 0.08), (1.0, 0.78, 0.40)
 LY2 = [
     (0, [(0, 230, _Wt), (1, 230, _Wt)], 560, 470, 17.00, False),                                   # 「长夜」压在乌云下
-    (0, [(k, 84, _R if k == 5 else _Wt) for k in range(2, 9)], 560, 600, 17.92, False),             # 压在我刀锋之上
+    (0, [(k, 84, _R if k == 5 else _Wt) for k in range(2, 9)], 1300, 330, 17.92, False),             # 压在我刀锋之上
     (1, [(4, 190, _Wt), (5, 190, _Wt), (6, 190, _R), (7, 90, _Wt), (8, 90, _Wt)], 560, 820, 21.15, False),   # 拦不住·一道（V04–V05 左下暗区）
-    (2, [(0, 190, _Wt), (1, 190, _Wt), (2, 190, _G), (3, 190, _G)], 960, 380, 23.44, False),        # 谁在高处（自殿檐压下）
+    (2, [(0, 190, _Wt), (1, 190, _Wt), (2, 190, _G), (3, 190, _G)], 960, 900, 23.44, False),        # 谁在高处（自殿檐压下）
     (2, [(4, 96, _Wt), (5, 96, _Wt), (6, 96, _Wt)], 1480, 330, 25.20, False),                       # 定对错（→ 罪状朱印）
     (4, [(k, 80, _R if k == 1 else _Wt) for k in range(0, 5)], 1360, 880, 30.74, False),            # 我杀过恶徒
     (4, [(k, 80, _Wt) for k in range(5, 10)], 640, 880, 32.55, False),                              # 也放过混账
     (6, [(0, 120, _Wt), (1, 220, _R), (2, 220, _R)], 520, 420, 38.08, False),                       # 若「正义」
     (6, [(3, 110, _Wt), (4, 220, _G), (5, 220, _G), (6, 110, _Wt), (7, 110, _Wt)], 960, 300, 39.45, False),  # 由「权势」执掌
     (7, [(0, 96, _Wt), (1, 96, _Wt), (2, 180, _G), (3, 180, _G), (4, 96, _Wt), (5, 180, _R), (6, 180, _R), (7, 96, _Wt)],
-     900, 330, 42.66, True),                                                                        # 那我「宁愿」做「乱世」的（随刀光逐字点亮）
+     900, 300, 42.66, True),                                                                        # 那我「宁愿」做「乱世」的（随刀光逐字点亮）
 ]
 
 
