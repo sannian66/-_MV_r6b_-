@@ -962,7 +962,7 @@ class S23_Eye(Shot):
     def render(self, t):
         u = self.u(t)
         fr = D.storm(t, 231, c=(960, 480), spin=0.09, twist=0.8, base=(0.02, 0.022, 0.032), lit=(0.30, 0.33, 0.42), eye=170, bright=1.0,
-                     glow=(1300, 300, 1.2 * impact(t, V(O[46][0]), 0.15) + 0.6 * impact(t, 184.85, 0.12)))
+                     glow=(1300, 300, 0.6 * impact(t, V(O[46][0]), 0.15) + 0.4 * impact(t, 184.85, 0.12)))
         th = V(O[46][0])
         fr = D.lightning(fr, t, 184.85, (300, 120), (760, 500), seed=11, amt=1.2)
         fr = D.lightning(fr, t, th, (1500, 120), (1050, 470), seed=12, amt=1.8, life=0.25)
@@ -970,7 +970,7 @@ class S23_Eye(Shot):
         if p > 0:
             L = D.text_layer([('天', 960, 480, 470, p * (0.85 + 0.15 * math.sin(t * 30)), 1.0 + 0.15 * (1 - p))], fname='serif_black', color=(0.86, 0.9, 1.0))
             fr = T.compose(fr, L, shadow=0.0, glow=0.9, glow_color=(0.6, 0.7, 1.0), glow_sigma=30)
-        fr = fr + impact(t, th, 0.06) * 0.35
+        fr = fr + impact(t, th, 0.06) * 0.15
         return K.cam(fr, 1.0 + 0.08 * u, 0, -30 * u, rot=6 * u, center=(960, 480)), 0.0
 
 
@@ -1068,14 +1068,14 @@ class S27_Bullet(Shot):
             self.bg = (0.02 + 0.035 * np.exp(-(((x - 700) / 700) ** 2 + ((y - 400) / 400) ** 2)))[..., None] * np.array([0.8, 0.9, 1.15], np.float32)
         fr = self.bg.copy()
         fr = D.droplets(fr, t, 271, n=110, orbit=-0.3 + 0.6 * u, focus=0.9)
-        fr, _ = D.real_figure(fr, self.sp, t, (0.485, 0.2), (760 + 30 * u, 330), 1.55, expo=0.95, sat=0.55,
+        fr, _ = D.real_figure(fr, self.sp, t, (0.485, 0.2), (760 + 30 * u, 390), 1.45, expo=0.95, sat=0.55,
                               rim=COLD, rim_amt=3.5, rim_dir=(-0.8, -0.5), wind=0, breathe=0.0)
         fr = D.droplets(fr, t, 272, n=40, orbit=-0.8 + 1.6 * u, focus=0.2)
         tk = V(O[47][0])
         fr = vcol(fr, '刀不答', 1500, 300, 150, O[47][0:3], t, WHITE, {'刀': RED}, fname='xing', ink=False)
         if tk <= t < tk + 0.2:
             q = (t - tk) / 0.2
-            fr = TR._slash_streak(fr, (lerp(500, 1300, q), lerp(200, 900, q)), np.array((0.6, 0.8)), q, length=1800, width=3)
+            fr = TR._slash_streak(fr, (lerp(500, 1300, q), lerp(200, 900, q)), np.array((0.6, 0.8)), q, length=1800, width=1, amt=0.6)
         return shake_cam(fr, t, [tk], 6, z=1.0 + 0.04 * u, ox=-30 + 60 * u), 0.0
 
 
@@ -1087,10 +1087,12 @@ class S28_Spin(Shot):
 
     def render(self, t):
         u = self.u(t)
-        fr = D.storm(t, 281, c=(960, 300), spin=0.12, base=(0.03, 0.028, 0.03), lit=(0.35, 0.32, 0.3), eye=200)
+        x_, y_ = K.grid()
+        fr = (0.015 + 0.05 * np.exp(-(((x_ - 960) / 800) ** 2 + ((y_ - 560) / 420) ** 2)))[..., None] * np.array([1.1, 0.95, 0.8], np.float32)
+        fr = K.fog(fr, t, 282, amt=0.35, speed=(140, 0), y0=0.55, y1=1.0, color=(0.2, 0.18, 0.16))
         fr = D.droplets(fr, t, 281, n=150, burst=(V(O[47][2]), (900, 560)), focus=0.6)
         rb = 26 * math.exp(-(t - self.t0) / 0.25)
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (1000, 1000), D.fit_scale(self.sp, 700), expo=0.9, sat=0.65,
+        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (1000, 1000), D.fit_scale(self.sp, 700), expo=1.15, sat=0.65,
                               tint=(1.05, 0.98, 0.9), rim=GOLDR, rim_amt=3.5, rim_dir=(0.0, -1.0), wind=12, rotblur=rb)
         fr = K.sparks(fr, t, 2801, (900, 560), n=140, life=0.8, speed=(400, 1400), dirc=(0, -1), spread=3.0, grav=200, burst=True,
                       t0=V(O[47][2]), color=tuple(GOLD), amt=1.4)

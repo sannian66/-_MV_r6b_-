@@ -421,7 +421,7 @@ def droplets(fr, t, seed, n=160, frozen=True, orbit=0.0, burst=None, gold=0.0, f
         cv2.ellipse(L, (int(x / 2 - wd * 0.3), int(y / 2 - ln * 0.15)), (max(1, int(wd * 0.4)), max(1, int(ln * 0.3))), 0, 0, 360, a, -1, cv2.LINE_AA)
     L = cv2.resize(cv2.GaussianBlur(L, (0, 0), 0.8) + cv2.GaussianBlur(L, (0, 0), 4) * 0.5, (W, H))
     D = cv2.resize(cv2.GaussianBlur(D, (0, 0), 1.2), (W, H))
-    out = fr * (1 - D[..., None] * 0.35) + L[..., None] * np.array([0.8, 0.86, 0.95], np.float32) * 0.9
+    out = fr * (1 - D[..., None] * 0.45) + L[..., None] * np.array([0.8, 0.86, 0.95], np.float32) * 0.45
     out = out + L[..., None] * GOLD * gold
     if G.any():
         Gb = cv2.GaussianBlur(G, (0, 0), 1.0) * 1.5 + cv2.GaussianBlur(G, (0, 0), 6) * 1.5
