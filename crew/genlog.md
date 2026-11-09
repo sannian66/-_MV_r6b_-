@@ -152,3 +152,6 @@
 | 11-08 22:09 | S084 | RH_image2 | 4K 16:9 | 0 | fb84e5a2-d843-490c-beb4-dff31dd73960 | 采用 | assets/gen/S084/knock_back_raw.png | knock_back try1 采用 |
 | 11-08 22:09 | S073 | RH_image2 | 4K 16:9 | 0 | 109e32d9-b371-476b-8fa1-61a3f78dc96b | 采用 | assets/gen/S073/spin1_raw.png | spin1 try1 采用 |
 | 11-08 22:09 | S018 | RH_image2 | 4K 16:9 | 0 | 05c8e7eb-62ae-4a4b-8985-9cb35b03e01c | 采用 | assets/gen/S018/turn_raw.png | turn try1 采用 |
+| 11-09 00:43 | S056 | RH_image2 | 4K 16:9 | 3 | 26886895-499f-41e5-b175-b087763c8639 | submitted | - | palm_fist 重抽 try2（第四任，用户 08:43 同意）|
+| 11-09 00:43 | S056 | RH_image2 | 4K 16:9 | 3 | 911163e9-f88b-4c8a-af7b-9862a2eb6867 | submitted | - | palm_fist 重抽 try3（第四任，用户 08:43 同意）|
+| 11-09 00:46 | S056 | RH_image2 | 4K 16:9 | 0 | 911163e9-f88b-4c8a-af7b-9862a2eb6867 | 采用 | assets/gen/S056/palm_fist_raw.png | palm_fist try3 采用（湿拳，滴水）；try2 26886895 未用 |

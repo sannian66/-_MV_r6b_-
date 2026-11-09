@@ -234,9 +234,9 @@ S = {
  'S051': dict(poses=[(None, 'S051/grip_scepter|crop=0,0,0.36,1')], at=(820, 1080), h=1000, look='ink', move=dict(z=0.06)),
  'S054': dict(poses=[(None, 'S054/rise')], at=(960, 960), h=420, look='ink', move=dict(z=0.55), wind=3),
  'S055': dict(poses=[(None, 'S055/walk_look_up')], at=(1150, 1020), h=680, move=dict(dx=-160), bob=8, rim=COLD, fx=['rain', 'fog_feet', 'rain_near']),
- 'S056': dict(poses=[(None, 'S056/palm_open|crop=0,0.32,0.40,1'), (107.6, 'S056/palm_fist|crop=0.66,0.04,0.92,0.62')], at=(980, 560), anc=(0.5, 0.5), h=800,
+ 'S056': dict(poses=[(None, 'S056/palm_open|crop=0,0.32,0.40,1'), (107.6, 'S056/palm_fist')], at=(1000, 560), anc=(0.5, 0.5), h=820,
               rim=COLD, rim_amt=3.2, grade=dict(expo=0.84, sat=0.6, tint=(0.92, 0.97, 1.05), lift=0.0, gamma=1.1),
-              fx=['backglow', 'flash', 'rain_near', 'splash', 'bokeh'], move=dict(z=0.05)),   # 11-09 第四任：拳头裁紧不顶头、提亮 + 背后冷光（原发闷）
+              fx=['backglow', 'flash', 'rain_near', 'splash', 'bokeh'], move=dict(z=0.05)),   # 11-09 第四任：palm_fist 重抽（湿拳特写，无脸）+ recut_flat 抠图 + 背后冷光
  'S057': dict(poses=[(None, 'S057/grab_turn')], at=(980, 1090), h=880, rim=COLD, fx=['rain_near', 'whip'], move=dict(z=0.05)),
  'S058': dict(poses=[(None, 'S010/slash_h|flip')], at=(960, 980), h=560, look='neg', fx=['reflect'], move=dict(dx=40)),
  'S059': dict(poses=[(None, 'S010/slash_h')], at=(900, 1010), h=700, rim=COLD, fx=['slash', 'flash'], slash_t=113.2, slash=dict(sweep=170, dir=-1, squash=0.28)),
