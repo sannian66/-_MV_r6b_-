@@ -16,6 +16,7 @@ from c_kit import (W, H, FPS, BAR, RED, GOLD, COLD, WARM, clamp, sm, eout, ein, 
 import typo as T, trans as TR, fx2
 import props as PR
 import c_props as CP
+import c_trans as CX
 from c1kit import finish, to8, sparks, dust, crack_path, draw_crack, paper_dark, fbm
 
 READY = False
@@ -1321,59 +1322,66 @@ class C41(Shot):
 
 
 SHOTS = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12, C13, C14, C15,
-         C16, C17, C18, C19, C20, C21, C22, C23, C24, C25, C26, C27, C28, C29, C30, C31, C32, C33, C34, C35, C36, C37, C38,
-         C39, C40, C41]
-# 切点（声音时刻，秒）：拍 / 人声首字；帧 = 视觉帧（最近帧再提前 1 帧）。首尾 = 段落边界。
-CUT_T = [117.80, 118.95, 120.53, 121.46, 122.83, 123.74, 124.88, 125.70, 126.27, 127.41, 128.78, 130.17, 131.08, 132.30, 133.22,
-         134.50, 135.60, 136.56, 137.49, 138.39, 139.32, 140.69, 142.06, 143.43, 144.82, 145.73, 146.63, 147.56, 148.49, 149.30,
-         150.30, 151.70, 152.60, 153.07, 153.97, 155.36, 156.27, 157.18, 158.62, 159.47, 160.38]
+         C16, C17, C18, C19, C20, C21, C22, C23, C24, C25, C26, C27, C28, C29, C30, C31, C32, C33, C34, C35, C35b, C36, C37, C38,
+         C39, C40, C40b, C41]
+# 切点（声音时刻，秒）：拍 / 人声首字 / 起音；帧 = 视觉帧（最近帧再提前 1 帧）。首尾 = 段落边界。
+# 第三棒：按 librosa 起音复核，6 个偏离切点改到最近强起音（118.95→118.92、128.78→128.87、134.50→134.57、135.60→135.63、
+# 148.49→148.34、149.30→149.15）；C15 133.22→133.135；新增 C35b（154.545「扛」前）、C40b（159.93「是」）；C39 158.62→158.54。
+CUT_T = [117.80, 118.92, 120.53, 121.46, 122.83, 123.74, 124.88, 125.70, 126.27, 127.41, 128.87, 130.17, 131.08, 132.30, 133.135,
+         134.57, 135.63, 136.56, 137.49, 138.39, 139.32, 140.69, 142.06, 143.43, 144.82, 145.73, 146.63, 147.56, 148.34, 149.15,
+         150.30, 151.70, 152.60, 153.07, 153.97, 154.545, 155.36, 156.27, 157.18, 158.54, 159.47, 159.93, 160.38]
+assert len(CUT_T) == len(SHOTS)
 CUT_F = [F0] + [round(x * FPS) - 1 for x in CUT_T[1:]] + [F1]
 for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
     _S.t0, _S.t1 = _a / FPS, _b / FPS
 
-# 入切转场：(名称, pre 秒, post 秒, kw)。'hard' = 切后 2 帧冲击（推近 + 提亮）；其余走 lib/trans.py。
+# 入切转场：(名称, pre 秒, post 秒, kw)。'hard' = 切后 2 帧冲击（推近 + 提亮）；c_trans 自写的 push/luma/seam/over/whip 中间帧都带两镜内容；
+# 其余走 lib/trans.py。第三棒：flash_white 0 处、whip 1 处（C03）、白插帧改电光过曝。
 CUTS = {
     'C02': ('match_line', 0.0, 0.12, {}),                                # 朱笔竖笔 ↔ 红丝线（图形匹配）
-    'C03': ('whip_pan_blur', 0.10, 0.12, dict(direction='down')),        # 摇臂沿丝线下摇
+    'C03': ('whip', 0.10, 0.12, dict(direction=1)),                      # 全段唯一甩镜：沿丝线甩到皮影幕
     'C04': ('glitch_cut', 0.07, 0.10, dict(seed=4)),
-    'C05': ('zoom_through', 0.10, 0.12, dict(center=(1620, 640))),        # 秤盘 → 箱口（推进穿越）
+    'C05': ('push', 0.10, 0.12, dict(center=(1620, 640))),               # 秤盘 → 箱口（推进穿越）
     'C06': ('hard', 0, 0, {}),
-    'C07': ('flash_white', 0.0, 0.16, dict(color=(0.85, 0.9, 1.0))),     # 黑箱 → 闪电照亮的脸
-    'C08': ('zoom_through', 0.06, 0.08, dict(center=(1050, 400), strength=0.6)),   # 同轴跳进眼睛
+    'C07': ('seam', 0.0, 0.20, dict(y=600)),                             # 箱盖金缝张开 → 闪电照亮的脸
+    'C08': ('push', 0.06, 0.08, dict(center=(1050, 400), z=0.5)),        # 同轴跳进眼睛
     'C09': ('slash_wipe', 0.05, 0.12, dict(angle=-55)),
     'C10': ('hard', 0, 0, {}),
     'C11': ('slash_wipe', 0.05, 0.12, dict(angle=-2)),                   # 横刀光 ↔ 横刀身（图形匹配）
-    'C12': ('whip_pan_blur', 0.08, 0.10, dict(direction='right')),
-    'C13': ('zoom_through', 0.10, 0.14, dict(center=(1000, 600), variant='glint')),   # 钻进刃口反光
-    'C14': ('smoke_through', 0.10, 0.14, {}),                          # 风眼云团穿出 → 雨中立人
+    'C12': ('push', 0.06, 0.10, dict(center=(1300, 560), z=0.6)),        # 刀身 → 刃口（同轴推进）
+    'C13': ('luma', 0.08, 0.12, {}),                                     # 赤热刃口亮处长出风眼
+    'C14': ('push', 0.08, 0.12, dict(center=(960, 260), z=-0.25)),       # 风眼拉出 → 他头顶的同一个风眼
     'C15': ('hard', 0, 0, {}),
-    'C16': ('flash_white', 0.0, 0.20, {}),                               # 副歌入口：白闪
+    'C16': ('over', 0.0, 0.17, dict(center=(960, 420))),                 # 副歌入口：吸气 3 帧 → 电光过曝炸开（非白帧）
     'C17': ('hard', 0, 0, {}),
     'C18': ('occlusion', 0.12, 0.12, dict(kind='spear', direction=1)),  # 枪林掠过遮挡
-    'C19': ('whip_pan_blur', 0.08, 0.10, dict(direction='left')),
-    'C20': ('ink_bleed', 0.06, 0.14, {}),                              # 斩开的甲士墨溅 → 太上皇
+    'C19': ('hard', 0, 0, {}),
+    'C20': ('ink_bleed', 0.06, 0.14, {}),                                # 斩落的枪缨墨溅 → 太上皇
     'C21': ('slash_wipe', 0.05, 0.14, dict(angle=-62)),                  # 对角刀线 = 分屏线
     'C22': ('hard', 0, 0, {}),
-    'C23': ('zoom_through', 0.08, 0.12, dict(center=(960, 400))),        # 墙远景 → 墙面（同墙推进）
-    'C24': ('whip_pan_blur', 0.08, 0.10, dict(direction='right')),
+    'C23': ('push', 0.08, 0.12, dict(center=(960, 400))),                # 墙远景 → 墙面（同墙推进）
+    'C24': ('occlusion', 0.10, 0.10, dict(kind='pillar', direction=1)),  # 横移：墙柱掠过前景
     'C25': ('hard', 0, 0, {}),
     'C26': ('shatter', 0.0, 0.22, dict(center=(1065, 560))),
-    'C27': ('smoke_through', 0.08, 0.12, {}),                          # 崩墙尘烟 → 缺口
-    'C28': ('hard', 0, 0, {}),
+    'C27': ('luma', 0.08, 0.14, {}),                                     # 崩墙后的亮天 → 缺口亮天（亮处匹配）
+    'C28': ('push', 0.06, 0.10, dict(center=(960, 480), z=0.5)),         # 推进缺口里的光
     'C29': ('occlusion', 0.10, 0.10, dict(kind='pillar', direction=-1)),   # 坠石遮挡
     'C30': ('flash_red', 0.0, 0.14, {}),
     'C31': ('hard', 0, 0, {}),
-    'C32': ('whip_pan_blur', 0.08, 0.10, dict(direction='up')),
+    'C32': ('split_slide', 0.06, 0.12, dict(angle=90.0)),                # 掌风压下：画面上下错开
     'C33': ('hard', 0, 0, {}),
     'C34': ('slash_wipe', 0.05, 0.12, dict(angle=-62)),
     'C35': ('hard', 0, 0, {}),
-    'C36': ('flash_red', 0.0, 0.12, dict(one_frame=True)),             # 扛印 → 1 帧朱闪 → 全景
+    'C35b': ('hard', 0, 0, {}),                                          # 同轴跳切：全身硬扛 → 中近景咬牙（「扛」）
+    'C36': ('flash_red', 0.0, 0.12, dict(one_frame=True)),               # 扛印 → 1 帧朱闪 → 全景
     'C37': ('hard', 0, 0, {}),
     'C38': ('slash_wipe', 0.05, 0.12, dict(angle=-4)),                   # 斩字的横线 ↔ 横刀（图形匹配）
     'C39': ('hard', 0, 0, {}),
-    'C40': ('whip_pan_blur', 0.08, 0.10, dict(direction='left')),
+    'C40': ('hard', 0, 0, {}),
+    'C40b': ('hard', 0, 0, {}),                                          # 斩断天平 → 回头面部特写（「我」）
     'C41': ('hard', 0, 0, {}),
 }
+BREATH = {'C16': 3, 'C07': 2}      # 进副歌 / 进「我不低头」前压暗吸气（帧）
 
 # 每镜运镜（叠加在镜头内运动上）：z 推拉、x/y 平移、rot 滚转、hh 手持幅度、ease
 MOV = {
@@ -1381,16 +1389,16 @@ MOV = {
     'C04': dict(z=(1.0, 1.08), x=(-30, 30)), 'C05': dict(), 'C06': dict(z=(1.0, 1.05)),
     'C07': dict(z=(1.0, 1.08), hh=5), 'C08': dict(z=(1.0, 1.05), hh=3), 'C09': dict(z=(1.04, 1.0), y=(30, -30), rot=(3, 1), hh=6),
     'C10': dict(z=(1.0, 1.05), x=(0, 40)), 'C11': dict(z=(1.0, 1.03)), 'C12': dict(z=(1.0, 1.08), rot=(0, -2)),
-    'C13': dict(), 'C14': dict(z=(1.0, 1.06), hh=4), 'C15': dict(z=(1.0, 1.04), y=(40, -20)),
+    'C13': dict(), 'C14': dict(z=(1.0, 1.06), y=(-20, 10), hh=4), 'C15': dict(z=(1.0, 1.04), y=(40, -20)),
     'C16': dict(z=(1.0, 1.08)), 'C17': dict(z=(1.03, 1.0), y=(-40, 0), hh=6), 'C18': dict(z=(1.0, 1.12), hh=8),
-    'C19': dict(z=(1.0, 1.04), rot=(-4, 4), hh=6), 'C20': dict(z=(1.0, 1.1)), 'C21': dict(z=(1.0, 1.03)),
+    'C19': dict(z=(1.0, 1.05), rot=(-3, 3), hh=6), 'C20': dict(z=(1.0, 1.1)), 'C21': dict(z=(1.0, 1.03)),
     'C22': dict(z=(1.0, 1.05), rot=(-1.5, 0.5)), 'C23': dict(z=(1.0, 1.12)), 'C24': dict(hh=7),
     'C25': dict(z=(1.0, 1.08), y=(30, -30), hh=6), 'C26': dict(z=(1.1, 1.0)), 'C27': dict(z=(1.0, 1.06)),
-    'C28': dict(z=(1.0, 1.04)), 'C29': dict(z=(1.06, 1.0), hh=4), 'C30': dict(z=(1.0, 1.08), hh=6),
-    'C31': dict(z=(1.0, 0.95), hh=6), 'C32': dict(z=(1.0, 1.04), hh=5), 'C33': dict(z=(1.04, 1.0), hh=8),
-    'C34': dict(z=(1.0, 1.06), rot=(3, -2), hh=6), 'C35': dict(z=(1.0, 1.06), y=(-30, 20), hh=4),
+    'C28': dict(z=(1.0, 1.06)), 'C29': dict(z=(1.08, 1.0), hh=4), 'C30': dict(z=(1.0, 1.08), hh=6),
+    'C31': dict(z=(1.0, 0.95), hh=6), 'C32': dict(z=(1.0, 1.06), hh=5), 'C33': dict(z=(1.04, 1.0), hh=8),
+    'C34': dict(z=(1.0, 1.06), rot=(3, -2), hh=6), 'C35': dict(z=(1.0, 1.05), y=(-30, 10), hh=4), 'C35b': dict(z=(1.04, 1.0), hh=9),
     'C36': dict(z=(1.0, 1.04), y=(30, -20)), 'C37': dict(z=(1.0, 1.08)), 'C38': dict(z=(1.0, 1.04)),
-    'C39': dict(z=(1.08, 1.0), hh=3), 'C40': dict(z=(1.0, 1.1), hh=6), 'C41': dict(z=(1.0, 1.12)),
+    'C39': dict(z=(1.0, 1.10), hh=3), 'C40': dict(z=(1.0, 1.08), hh=7), 'C40b': dict(z=(1.06, 1.0), hh=4), 'C41': dict(z=(1.0, 1.12)),
 }
 EXPO = {'C13': 1.0, 'C28': 1.0, 'C06': 1.0}
 EXPO_ALL = 1.22
@@ -1488,9 +1496,13 @@ class Sec:
                 k = (t - c) / max(post, 1e-3)
                 out = out + np.exp(-((np.arange(W)[None, :] - 900) / 6.0) ** 2)[..., None] * RED * 1.5 * (1 - k)
                 return out, max(caa, cb), cm
-            out = TR.transition(name, np.clip(A, 0, 4), np.clip(B, 0, 4), p, **kw)
+            if name in CX.NAMES: out = CX.NAMES[name](np.clip(A, 0, 4), np.clip(B, 0, 4), p, **kw)
+            else: out = TR.transition(name, np.clip(A, 0, 4), np.clip(B, 0, 4), p, **kw)
             return out, max(caa, cb, 2), cm
         fr, ca, cm = self.shot_frame(i, t)
+        if i + 1 < len(self.shots) and self.ids[i + 1] in BREATH:      # 吸气：切点前 n 帧压暗
+            n = BREATH[self.ids[i + 1]]; k = (self.shots[i + 1].t0 - t) * FPS
+            if 0 < k <= n + 1e-6: fr = CX.dark_breath(fr, min(1.0, (n + 1 - k) / n))
         name = CUTS.get(self.ids[i], ('hard',))[0]
         if name == 'hard' and i > 0:
             k = int((t - s.t0) * FPS + 1e-6)
@@ -1504,7 +1516,7 @@ class Sec:
         t = f / FPS
         fr, ca, cm = self.raw(t)
         ins = INSERTS.get(f)
-        if ins == 'white': fr = fr * 0.3 + 0.95; ca = max(ca, 3)
+        if ins == 'white': fr = fr * 1.9 + 0.04 * np.array([0.9, 0.95, 1.0], np.float32); ca = max(ca, 3)   # 电光过曝（保留画面结构，不是白帧）
         elif ins == 'neg':
             l = fr.mean(-1, keepdims=True); fr = np.clip(1.0 - l * 1.3, 0, 1) * np.array([0.95, 0.97, 1.0], np.float32); ca = max(ca, 5)
         sid = self.ids[self.idx(t)]

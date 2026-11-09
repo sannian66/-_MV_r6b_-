@@ -11,6 +11,7 @@ import b_kit as BK
 import c1kit as K
 import typo as T
 import trans as TR
+import b_paper as BP
 
 READY = False
 F0, F1 = 1321, 1784
@@ -175,7 +176,7 @@ class P03(Shot):
     HALF = 270
     def __init__(self):
         self.bg = BK.paper(203, (0.78, 0.72, 0.60))
-        self.fig = PA.PaperFigure(31, view='front')
+        self.fig = BP.NameFigure(31, name='张三', view='front')
         T.warm('谁配画', 'cao', 200)
 
     def scene(self, t, prog, half, c):
@@ -187,7 +188,8 @@ class P03(Shot):
         sh = np.zeros((H, W), np.float32)
         cv2.ellipse(sh, (int(c[0] + hh * 0.12), int(c[1] + hh * 0.48)), (int(hh * 0.28), int(hh * 0.07)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
         fr = fr * (1 - 0.5 * cv2.GaussianBlur(sh, (0, 0), 10)[..., None])
-        fr, _ = self.fig.draw(fr, c[0], c[1] + hh * 0.48, hh, t, sway=0.6, light='front', light_color=(1.0, 0.8, 0.5), rim=0.6)
+        fr = self.fig.draw(fr, c[0], c[1] + hh * 0.48, hh, tilt=1.2 * math.sin(t * 1.7), light='front', rim_col=(0.55, 0.40, 0.25),
+                           grade=(1.0, 0.96, 0.9))
         fr = brush_box(fr, c, half, prog, seed=33, width=max(10, half * 0.11))
         return fr
 
@@ -244,90 +246,183 @@ class P04(Shot):
 
 
 # =====================================================================================
-# P05 LS 仰：夜色高墙 + 黑漆金字匾「规矩」，「谁的规矩」凹刻进砖面、随砖缝断开
+# 第三棒：P05/P06 从「砖墙」改为「朱漆宫门 + 门钉」（与副歌一砖墙母题区分）
+def palace_gate(w, h, seed, cols=7, rows=7, stud_r=34, margin=0.08, leaves=2):
+    """朱漆宫门正面贴图：两扇门 + 竖向门板缝 + 龟裂旧漆 + 铜门钉（半球受光）+ 中缝铺首门环。
+    返回 (rgb, seam 缝遮罩, studs 门钉遮罩, centers 门钉中心列表)"""
+    r = np.random.default_rng(seed)
+    x, y = K.grid(h, w)
+    n1 = cv2.resize(K.fbm(h // 8, w // 8, seed, 6, 5), (w, h))
+    n2 = cv2.resize(K.fbm(h // 3, w // 3, seed + 1, 12, 4), (w, h))
+    lac = np.array([0.21, 0.025, 0.022], np.float32)
+    rgb = lac * (0.55 + 0.6 * n1[..., None]) * (0.9 + 0.2 * n2[..., None])
+    # 竖向木纹 + 漆面龟裂（暗线）
+    grain = cv2.resize(r.random((h // 6 + 1, w // 2 + 1)).astype(np.float32), (w, h))
+    grain = cv2.GaussianBlur(grain, (0, 0), sigmaX=0.8, sigmaY=12)
+    rgb = rgb * (0.85 + 0.3 * grain[..., None])
+    cr = cv2.resize(K.fbm(h // 2, w // 2, seed + 2, 24, 4), (w, h))
+    crack = np.clip(1 - np.abs(cr - 0.5) * 60, 0, 1) * (n1 > 0.45)
+    rgb = rgb * (1 - 0.55 * crack[..., None])
+    worn = np.clip((n2 - 0.72) * 6, 0, 1)                     # 掉漆露木
+    rgb = rgb * (1 - worn[..., None]) + worn[..., None] * np.array([0.11, 0.07, 0.045], np.float32) * (0.7 + 0.5 * grain[..., None])
+    seam = np.zeros((h, w), np.float32)
+    lw = w / leaves
+    for L in range(leaves + 1):
+        cv2.line(seam, (int(L * lw), 0), (int(L * lw), h), 1.0, 9, cv2.LINE_AA)
+    for L in range(leaves):
+        x0s = L * lw + lw * margin; x1s = (L + 1) * lw - lw * margin
+        for j in range(1, cols, 2):                                # 板缝落在两列门钉之间
+            xx = int(x0s + (x1s - x0s) * j / cols + r.uniform(-4, 4))
+            cv2.line(seam, (xx, 0), (xx, h), 0.7, 3, cv2.LINE_AA)
+    rgb = rgb * (1 - 0.8 * seam[..., None])
+    rgb = rgb + np.clip(np.roll(seam, 3, 1) - seam, 0, 1)[..., None] * np.array([0.30, 0.08, 0.05], np.float32) * 0.5
+    studs = np.zeros((h, w), np.float32); cen = []
+    sh = np.zeros((h, w, 3), np.float32)
+    for L in range(leaves):
+        x0 = L * lw + lw * margin; x1 = (L + 1) * lw - lw * margin
+        for i in range(rows):
+            for j in range(cols):
+                cx = x0 + (x1 - x0) * (j + 0.5) / cols; cy = h * margin + (h * (1 - 2 * margin)) * (i + 0.5) / rows
+                cen.append((cx, cy))
+    rr = stud_r
+    yy, xx = np.mgrid[-rr - 6:rr + 7, -rr - 6:rr + 7].astype(np.float32)
+    d = np.sqrt(xx ** 2 + yy ** 2) / rr
+    m = np.clip((1 - d) * rr * 0.6, 0, 1)
+    nz = np.sqrt(np.clip(1 - d ** 2, 0, 1))
+    lx, ly, lz = -0.45, -0.6, 0.66
+    diff = np.clip((xx / rr) * lx + (yy / rr) * ly + nz * lz, 0, 1)
+    spec = np.clip((xx / rr) * lx + (yy / rr) * ly + nz * lz, 0, 1) ** 24
+    bronze = np.array([0.42, 0.28, 0.11], np.float32)
+    patch = bronze * (0.18 + 0.95 * diff[..., None]) + spec[..., None] * np.array([1.0, 0.9, 0.7], np.float32) * 0.9
+    shadow = np.clip(1 - np.sqrt((xx - rr * 0.25) ** 2 + (yy - rr * 0.35) ** 2) / (rr * 1.15), 0, 1)
+    ph, pw = m.shape
+    for (cx, cy) in cen:
+        X0, Y0 = int(cx - pw // 2), int(cy - ph // 2)
+        if X0 < 0 or Y0 < 0 or X0 + pw > w or Y0 + ph > h: continue
+        reg = rgb[Y0:Y0 + ph, X0:X0 + pw]
+        reg *= (1 - 0.6 * shadow[..., None])
+        tint = 0.85 + 0.3 * r.random()
+        rgb[Y0:Y0 + ph, X0:X0 + pw] = reg * (1 - m[..., None]) + patch * tint * m[..., None]
+        studs[Y0:Y0 + ph, X0:X0 + pw] = np.maximum(studs[Y0:Y0 + ph, X0:X0 + pw], m)
+    return rgb.astype(np.float32), seam, studs, cen
+
+
 class P05(Shot):
+    """LS 仰：夜色里朱漆宫门（门钉成阵）+ 黑漆金字匾「规矩」；「谁的规矩」金箔浮字被门缝/板缝切断（左扇谁的、右扇规矩）"""
     def __init__(self):
-        wall, seam = K.brick_wall(2600, 1700, 150, 64, 7, 905)
-        q = np.float32([[-260, 120], [2180, 120], [1960, 1080 + 260], [-40, 1080 + 260]])   # 仰拍梯形（上宽下窄）
-        self.wall = K.warp_quad(wall, q, (H + 300, W)); self.seam = K.warp_quad(seam[..., None].repeat(3, -1), q, (H + 300, W))[..., 0]
+        g, seam, studs, _ = palace_gate(2400, 1700, 905, cols=7, rows=7, stud_r=40)
+        q = np.float32([[-160, 330], [2080, 330], [1820, 1080 + 320], [100, 1080 + 320]])   # 仰拍梯形（上宽下窄）
+        self.gate = K.warp_quad(g, q, (H + 300, W)); self.seam = K.warp_quad(seam[..., None].repeat(3, -1), q, (H + 300, W))[..., 0]
+        self.studs = K.warp_quad(studs[..., None].repeat(3, -1), q, (H + 300, W))[..., 0]
+        self.m = np.zeros((H + 300, W), np.float32); cv2.fillConvexPoly(self.m, np.int32(q), 1.0)
+        # 门楣（深色额枋，带一排金线）
         self.sky = K.sky(seed=905, cloud=0.8, horizon=0.2, stars=0.2)
         self.plq = __import__('props').Plaque('规矩', seed=5, fname='song')
-        T.warm('谁的规矩', 'serif_black', 150)
+        T.warm('谁的规矩', 'serif_black', 170)
 
     def render(self, t):
         u = self.u(t)
-        oy = 170 - 260 * eio(u)            # 下摇：匾 → 墙脚
+        oy = 170 - 260 * eio(u)            # 下摇：匾 → 门
         fr = np.zeros((H + 300, W, 3), np.float32)
         fr[:] = cv2.resize(self.sky, (W, H + 300))
-        m = np.zeros((H + 300, W), np.float32); cv2.fillConvexPoly(m, np.int32([[-260, 120], [2180, 120], [1960, 1380], [-40, 1380]]), 1.0)
-        wl = self.wall * 1.15
-        # 冷月顶光 + 匾下暖反光
         x, y = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H + 300, dtype=np.float32))
-        wl = wl * (0.55 + 0.6 * np.exp(-((y - 200) / 600) ** 2))[..., None] + np.exp(-(((x - 960) / 420) ** 2 + ((y - 420) / 160) ** 2))[..., None] * GOLD * 0.10
-        fr = fr * (1 - m[..., None]) + wl * m[..., None]
+        # 门楣额枋
+        lin = ((y > 150) & (y < 330) & (x > -100) & (x < 2020)).astype(np.float32)
+        fr = fr * (1 - lin[..., None]) + lin[..., None] * np.array([0.05, 0.035, 0.03], np.float32) * (0.8 + 0.4 * np.exp(-((x - 960) / 700) ** 2))[..., None]
+        fr += (np.exp(-((y - 318) / 3) ** 2) * (x > -100))[..., None] * GOLD * 0.35
+        # 门：冷月顶光 + 匾下暖光 + 灯笼侧光（门钉逐个被扫亮）
+        gl = self.gate * (0.50 + 0.75 * np.exp(-((y - 380) / 650) ** 2))[..., None]
+        gl += np.exp(-(((x - 960) / 520) ** 2 + ((y - 520) / 220) ** 2))[..., None] * GOLD * 0.10
+        sweep = np.exp(-((x - (-200 + 2400 * clamp01((t - self.t0) / 1.3))) / 260) ** 2)
+        gl += (self.studs * sweep)[..., None] * GOLD * 0.55
+        fr = fr * (1 - self.m[..., None]) + gl * self.m[..., None]
         off = int(150 - oy * 0.5)
-        fr = np.ascontiguousarray(fr[off:off + H]); seam = self.seam[off:off + H]
-        fr, _ = self.plq.draw(fr, t, 960, 300 - off, 720, sheen=clamp01((t - self.t0) / 1.2) * 1.4 - 0.2)
-        # 刻字：每字切成砖块碎片（砖缝处断开）
+        fr = np.ascontiguousarray(fr[off:off + H]); seam = self.seam[off:off + H]; studs = self.studs[off:off + H]
+        fr, _ = self.plq.draw(fr, t, 960, 240 - off, 640, sheen=clamp01((t - self.t0) / 1.2) * 1.4 - 0.2)
+        # 金箔浮字：左扇「谁的」右扇「规矩」，被中缝与板缝切断（缝里漏出暗红）
         pr = tp(9, [0, 1, 2, 3], t, 0.2)
         L = T.Layer()
+        pos = [(560, 0), (790, 0), (1130, 0), (1360, 0)]
         for i, (ch, pc) in enumerate(zip('谁的规矩', pr)):
-            if pc > 0: T.place(L, ch, 600 + i * 240, 760 - off, 190, color='white', fname='serif_black', alpha=min(1, pc * 2.5))
-        A = L.A * (1 - np.clip(seam * 1.6, 0, 1))
-        inner = A * 0.85
-        hl = np.clip(np.roll(A, 3, 0) - A, 0, 1)
-        sh = np.clip(np.roll(A, -3, 0) - A, 0, 1)
-        fr = fr * (1 - inner[..., None] * 0.75) + inner[..., None] * np.array([0.03, 0.025, 0.025], np.float32)
-        fr = fr + hl[..., None] * 0.35 * np.array([0.8, 0.85, 1.0], np.float32) - sh[..., None] * 0.05
+            if pc > 0: T.place(L, ch, pos[i][0], 760 - off * 0.6, 200, color='white', fname='serif_black', alpha=min(1, pc * 2.5),
+                               scale=1 + 0.25 * (1 - eout(pc)))
+        A = L.A * (1 - np.clip(seam * 1.8, 0, 1))
+        hl = np.clip(A - np.roll(A, 3, 0), 0, 1)
+        sh = np.clip(A - np.roll(A, -4, 0), 0, 1)
+        leaf = GOLD * (0.65 + 0.35 * cv2.resize(K.fbm(H // 8, W // 8, 953, 6, 4), (W, H)))[..., None]
+        fr = fr * (1 - A[..., None]) + A[..., None] * leaf
+        fr = fr + hl[..., None] * np.array([1.0, 0.92, 0.7], np.float32) * 0.45 - sh[..., None] * 0.25
         glow = sum(pulse(t, V(CT(9, k)), 0.18) * (t >= V(CT(9, k))) for k in range(4))
-        fr = fr + inner[..., None] * GOLD * (0.15 + 0.4 * glow)
+        fr = fr + K.blur_ds(A, 14)[..., None] * GOLD * (0.12 + 0.4 * glow)
+        fr = np.clip(fr, 0, None)
         fr = BK.rain(fr, t, 951, amt=0.3, n=400, angle=6)
-        fr = K.fog(fr, t, 952, amt=0.22, y0=0.6, y1=1.0)
+        fr = K.fog(fr, t, 952, amt=0.2, y0=0.65, y1=1.0)
         fr = cam(fr, 1.0 + 0.06 * eio(u), 0, 0)
         return fr, 0
 
 
 # =====================================================================================
-# P06 CU：匾下涌出朱红血水，沿砖缝网格往下流；「血」巨字从砖缝渗出并下流；「用…来装潢」宋体竖排
+# P06 CU：门钉特写，朱红血水从每颗门钉下渗出、顺门板缝往下流（用血来装潢）；「血」巨字从门缝渗出并下流
 class P06(Shot):
     T_XUE = V(49.62)
     def __init__(self):
-        wall, seam = K.brick_wall(2200, 1300, 240, 100, 10, 906)
-        self.wall = wall[:H, :W] * 1.1; self.seam = seam[:H, :W]
-        T.warm('血', 'cao', 520); T.warm('用来装潢', 'serif_sb', 72)
+        g, seam, studs, cen = palace_gate(2300, 1500, 906, cols=7, rows=5, stud_r=62, margin=0.05, leaves=1)
+        q = np.float32([[-190, -170], [2110, -110], [2110, 1190], [-190, 1250]])           # 近正面、轻微倾斜
+        self.g = K.warp_quad(g, q); self.seam = K.warp_quad(seam[..., None].repeat(3, -1), q)[..., 0]
+        self.studs = K.warp_quad(studs[..., None].repeat(3, -1), q)[..., 0]
+        M = cv2.getPerspectiveTransform(np.float32([[0, 0], [2300, 0], [2300, 1400], [0, 1400]]), q)
+        c = cv2.perspectiveTransform(np.float32(cen)[None], M)[0]
+        self.cen = [(float(a), float(b)) for a, b in c if -50 < a < W + 50 and -50 < b < H + 50]
+        T.warm('血', 'xing', 520); T.warm('用来装潢', 'serif_sb', 72)
         self.flow_n = cv2.resize(K.fbm(H // 8, W // 8, 906, base=4, octaves=4), (W, H))
+        r = np.random.default_rng(907)
+        st = cv2.resize(r.random((8, W // 14)).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
+        self.streak = np.clip(st, 0, 1)
+        self.drip = cv2.resize(r.random((1, W // 40)).astype(np.float32), (W, H), interpolation=cv2.INTER_NEAREST) ** 3
+        self.drip = cv2.GaussianBlur(self.drip, (0, 0), 6)
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        hl = np.zeros((H, W), np.float32)
+        for (cx, cy) in self.cen:
+            hl += np.exp(-(((xx - cx + 18) ** 2 + (yy - cy + 22) ** 2) / 22 ** 2))
+        self.stud_hl = 0.5 + 2.0 * np.clip(hl, 0, 1)
 
     def render(self, t):
         u = self.u(t)
         x, y = K.grid()
-        fr = self.wall * (0.5 + 0.55 * np.exp(-((x - 900) / 900) ** 2))[..., None]
-        fr = fr * np.array([0.95, 0.98, 1.05], np.float32)
-        # 血流前沿：从顶部沿砖缝向下推进（竖缝快、横缝慢）
-        front = 120 + (H + 200) * ein(clamp01((t - self.t0) / 1.25), 1.4) - self.flow_n * 260
-        vs = self.seam * (y < front)
-        blood = np.clip(vs * 1.3, 0, 1)
-        top = np.clip((260 - y) / 140, 0, 1) * clamp01((t - self.t0) / 0.3)       # 顶部匾底一片血
-        blood = np.maximum(blood, top * (0.6 + 0.4 * self.flow_n))
-        wet = cv2.GaussianBlur(blood, (0, 0), 6)
-        fr = fr * (1 - wet[..., None] * 0.5)
-        fr = over(fr, blood, np.array([0.42, 0.02, 0.015], np.float32))
-        spec = np.clip(cv2.Sobel(cv2.GaussianBlur(blood, (0, 0), 2), cv2.CV_32F, 0, 1, ksize=3), 0, 1)
-        fr = fr + spec[..., None] * np.array([0.9, 0.4, 0.35], np.float32) * 0.6
+        fr = self.g * 0.9 * (0.40 + 0.75 * np.exp(-(((x - 820) / 1000) ** 2 + ((y - 380) / 700) ** 2)))[..., None]
+        # 血幕：从匾底沿门面整片往下淌（朱漆原来是血），前沿不齐、竖向流痕；门钉被血包住后泛红光
+        q_ = clamp01((t - self.t0) / 1.25)
+        front = 60 + (H + 150) * ein(q_, 1.25) - self.flow_n * 300 - self.drip * 220 * q_
+        cover = sstep(front + 30, front - 30, y)
+        streak = self.streak
+        blood = np.clip(cover * (0.75 + 0.35 * streak), 0, 1)
+        blood = np.maximum(blood, np.clip(self.seam * 1.2, 0, 1) * (y < front + 50) * 0.5)
+        wet = cv2.GaussianBlur(blood, (0, 0), 8)
+        fr = fr * (1 - wet[..., None] * 0.45)
+        fr = fr * (1 - blood[..., None] * 0.75) + blood[..., None] * np.array([0.30, 0.012, 0.01], np.float32) * (0.6 + 0.6 * streak[..., None])
+        lum = self.g.mean(-1, keepdims=True)
+        sb = (self.studs * blood)[..., None]
+        fr = fr * (1 - sb) + sb * lum * np.array([2.2, 0.22, 0.16], np.float32) * (0.8 + 0.5 * self.stud_hl[..., None])
+        bb = cv2.GaussianBlur(blood, (0, 0), 2.5)
+        spec = np.clip(-cv2.Sobel(bb, cv2.CV_32F, 1, 0, ksize=3) * 1.5, 0, 1) + np.clip(-cv2.Sobel(bb, cv2.CV_32F, 0, 1, ksize=3), 0, 1) * 0.5
+        fr = fr + spec[..., None] * np.array([1.0, 0.62, 0.52], np.float32) * 0.8
         # 「血」巨字：49.62 字头墨洇显出，之后下流
         pb = clamp01((t - (self.T_XUE - 0.12)) / 0.3)
         if pb > 0:
-            a = T.ink_bleed_glyph('血', 'cao', 520, max(0.02, pb), seed=6, bleed=1.0)
-            L = T.Layer(); L.paste(a, 760, 520, (0.70, 0.04, 0.03))
+            a = T.ink_bleed_glyph('血', 'xing', 520, max(0.02, pb), seed=6, bleed=1.0)
+            L = T.Layer(); L.paste(a, 760, 500, (1.0, 0.16, 0.08))
             L = T.drip_layer(L, clamp01((t - self.T_XUE) / 0.8), n=7, seed=6, length=0.5)
-            fr = T.compose(fr, L, shadow=0.55, glow=0.25, glow_color=(0.6, 0.05, 0.03))
-        # 用 血 来 装 潢（宋体竖排，血位留红点）
+            fr = fr * (1 - 0.8 * K.blur_ds(L.A, 30)[..., None])
+            fr = T.compose(fr, L, shadow=0.8, glow=0.3, glow_color=(0.6, 0.05, 0.03))
+        # 用 血 来 装 潢（宋体竖排，暗衬）
         pr = tp(9, [4, 5, 6, 7, 8], t, 0.18)
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('用血来装潢', pr)):
             if pc <= 0: continue
-            col = (0.84, 0.10, 0.07) if ch == '血' else (0.95, 0.93, 0.88)
-            T.place(L, ch, 1560, 300 + i * 105, 76, color=col, fname='serif_sb', alpha=min(1, pc * 2), scale=1 + 0.4 * (1 - eout(pc)))
-        fr = T.compose(fr, L, shadow=0.75, glow=0.12)
+            col = (0.95, 0.20, 0.12) if ch == '血' else (0.96, 0.94, 0.88)
+            T.place(L, ch, 1600, 290 + i * 108, 80, color=col, fname='serif_sb', alpha=min(1, pc * 2), scale=1 + 0.4 * (1 - eout(pc)))
+        fr = fr * (1 - 0.45 * K.blur_ds((np.abs(x - 1600) < 70) * (y > 220) * (y < 840) * 1.0, 30)[..., None])
+        fr = T.compose(fr, L, shadow=0.85, glow=0.12)
         k = pulse(t, self.T_XUE, 0.12) * (t >= self.T_XUE)
         fr = cam(fr, 1.0 + 0.04 * eio(u) + 0.06 * k, 0, 40 - 80 * eio(u))
         return fr, (3 if k > 0.5 else 0)

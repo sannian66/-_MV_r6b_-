@@ -225,7 +225,7 @@ CREAM = (0.93, 0.88, 0.76)
 
 class Sent:
     def __init__(self, li, ks, x, y, size=64, mode='fly', layout='h', red='', gold='', font=None, out=None, exit='shatter',
-                 track=0.18, color=None, lead=0.20, sizes=None, offs=None, text=None, glitch='', hold=None):
+                 track=0.18, color=None, lead=0.20, sizes=None, offs=None, text=None, glitch='', hold=None, back=0.0):
         self.li, self.ks = li, list(ks)
         cs = chars(li)
         self.text = text or ''.join(cs[k] for k in self.ks)
@@ -248,6 +248,14 @@ class Sent:
             cy = y
             for i, s in enumerate(self.sizes):
                 self.P.append((x + self.offs[i][0], cy + s / 2 + self.offs[i][1])); cy += s * (1 + track)
+        # 第三棒：字幕安全区（有效画面 1920×840 内四边留 ≥60px，再加 14px 余量给镜头漂移）——整句平移进安全区，不裁字
+        if self.P:
+            M_ = 74
+            x0 = min(px - s_ * 0.55 for (px, py), s_ in zip(self.P, self.sizes)); x1 = max(px + s_ * 0.55 for (px, py), s_ in zip(self.P, self.sizes))
+            y0 = min(py - s_ * 0.55 for (px, py), s_ in zip(self.P, self.sizes)); y1 = max(py + s_ * 0.55 for (px, py), s_ in zip(self.P, self.sizes))
+            ddx = max(0, M_ - x0) - max(0, x1 - (W - M_)); ddy = max(0, BAR + M_ - y0) - max(0, y1 - (H - BAR - M_))
+            if ddx or ddy: self.P = [(px + ddx, py + ddy) for px, py in self.P]
+        self.back = back      # >0：字后局部暗衬（灰对灰时保证可读）
         for c, s in zip(self.text, self.sizes): T.glyph(c, self.font, s, False)
 
     def col(self, c):
@@ -328,6 +336,11 @@ def draw_sent(fr, s, t, cam=(0.0, 0.0, 1.0)):
                 L.paste(a, cx, cy, RED_T, alpha=0.95 * (1 - q_out))
         out = T.compose(fr, L, shadow=0.75, shadow_sigma=18, glow=0.18, glow_sigma=10)
     else:
+        if getattr(s, 'back', 0) > 0:
+            a4 = cv2.resize(L.A, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
+            m = cv2.GaussianBlur(cv2.dilate(a4, np.ones((9, 9), np.uint8)), (0, 0), 9)
+            m = np.clip(m * 2.2, 0, 1) * s.back
+            fr = fr * (1 - cv2.resize(m, (W, H))[..., None] * 0.82)
         out = T.compose(fr, L, shadow=0.8, shadow_sigma=22, glow=0.45, glow_sigma=16, glow_color=None)
         # 电白冷辉
         bx = L.box(30)
