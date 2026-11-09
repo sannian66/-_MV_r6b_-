@@ -359,3 +359,7 @@
 | 11-09 04:03 | C组/c10_tablets | RH_image2 | 4K 16:9 | 0 | cb8e95cc-3e22-42fb-8dca-2e308a2346af | completed | /workspace/work/c_cands5/c10_tablets_try1_0.png | [C组] 第五棒 try1 |
 | 11-09 04:03 | C组/c23_bronze | RH_image2 | 4K 16:9 | 0 | 780476a2-192b-4210-8eb9-821a9412b440 | completed | /workspace/work/c_cands5/c23_bronze_try1_0.png | [C组] 第五棒 try1 |
 | 11-09 04:03 | C组/c16_drip | RH_image2 | 4K 16:9 | 0 | de51d1de-32c0-4ba6-ab7c-443245348fdb | completed | /workspace/work/c_cands5/c16_drip_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:06 | D组/sword_planted | RH_image2 | 4K 16:9 | 0 | 531053a4-6467-4204-9efa-c104351ffe61 | completed | d_cands/sword_planted_try1_0.png | try1 |
+| 11-09 04:06 | D组/raise_low | RH_image2 | 4K 16:9 | 0 | 2a80c463-976d-439d-989b-079e53b8125d | completed | d_cands/raise_low_try1_0.png | try1 |
+| 11-09 04:06 | D组/sword_planted | RH_image2 | 4K 16:9 | 0 | 531053a4-6467-4204-9efa-c104351ffe61 | 采用 | assets/gen/D_bridge/sword_planted_raw.png | try1 采用 |
+| 11-09 04:06 | D组/raise_low | RH_image2 | 4K 16:9 | 0 | 2a80c463-976d-439d-989b-079e53b8125d | 采用 | assets/gen/D_bridge/raise_low_raw.png | try1 采用 |

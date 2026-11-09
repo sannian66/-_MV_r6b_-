@@ -135,19 +135,21 @@
    "tries": [
     {
      "tid": "531053a4-6467-4204-9efa-c104351ffe61",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/d_cands/sword_planted_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   },
   "raise_low": {
    "tries": [
     {
      "tid": "2a80c463-976d-439d-989b-079e53b8125d",
-     "pts": 3
+     "pts": 3,
+     "file": "/workspace/projects/d79262c3-6e04-4a12-8e03-b8eb93f884fc/work/d_cands/raise_low_try1_0.png"
     }
    ],
-   "state": "running"
+   "state": "done"
   }
  }
 }

@@ -14,6 +14,7 @@ import c1kit as K
 import typo as T
 import trans as TR
 import d_kit as D
+import d_r5 as R5
 from d_kit import V, cp, seal_p, INK, CINNABAR, GOLD, RED, W, H, BAR
 
 READY = False
@@ -951,54 +952,50 @@ class S19_Forge(Shot):
 
 
 class S20_Wall(Shot):
-    """[r4 重做] 大俯拍 LS：字墙已倒成满地湿石字砖（相机在他头顶后退跟拍），他从画面上方朝镜头冲来、踏过字砖；
-    他刚踏过的三块砖亮起暖白宋体「谁 定 的」（横排，在他身后）；唱到「规矩」时他前方左右两块砖迸出金光、
-    「规」「矩」金色巨字从地面立起像两扇门，他从两字之间冲过去 → 接 S21 撞墙。
-    （去掉和副歌一 73.5s「砖墙 + 墙前小人背影」撞车的构图；同屏只一组「规矩」）"""
+    """[r5 重做] 大俯拍 LS：满地摊开的巨幅竹简（湿、反冷光；竖条竹片 + 竹节 + 两道编绳 + 墨书律令），相机在他头顶后退跟拍，
+    他从画面上方朝镜头冲来、踏过竹简；他刚踏过的三片竹简亮起暖白宋体「谁 定 的」；唱到「规矩」时前方左右两片竹简迸出金光、
+    「规」「矩」金色巨字从地面立起像两扇门，他从两字之间冲过去 → 接 S21 斩断悬挂的律令木牌。
+    （第五棒 P0：去掉与副歌一 S033–S036 撞车的灰色正交字砖网格，材质换成竹简）"""
     t0, t1 = 181.91, 182.81
     def __init__(self):
-        self.B = T.wall_bricks('律令天条正邪大局理所应当忍让名分上下尊卑本分', cols=15, rows=13, brick=(150, 92), center=(960, 540), seed=4)
         self.sp = D.spr('run_top')
         src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
-        dst = np.float32([[150, 0], [W - 150, 0], [W + 120, H], [-120, H]])
+        dst = np.float32([[170, 0], [W - 170, 0], [W + 140, H], [-140, H]])
         self.Mp = cv2.getPerspectiveTransform(src, dst)
-        st = cv2.resize(D._tile(205)[:H // 2, :W // 2], (W, H))
-        self.stone = 0.7 + 0.6 * st
-        self.wet = np.clip((cv2.resize(D._tile(207)[:H // 4, :W // 4], (W, H)) - 0.55) * 4, 0, 1)
+        self.rgb, self.gap, self.txt = R5.bamboo_scroll(4)
+        self.wet = np.clip((cv2.resize(D._tile(207)[:H // 4, :W // 4], (W, H)) - 0.5) * 3, 0, 1)
 
     def render(self, t):
         u = self.u(t)
         x, y = K.grid()
-        scroll = -150 * u                                     # 相机后退：地面向上走
-        Bs = [dict(b, y=b['y'] + scroll) for b in self.B]
-        wl = T.text_wall(np.zeros((H, W, 3), np.float32), 1.0, mode='build', bricks=Bs, brick=(150, 92), seed=4)
-        wl = cv2.warpPerspective(wl, self.Mp, (W, H))
-        m = np.clip(wl.max(-1) * 5, 0, 1)
+        oy = int(900 - 170 * u)                                # 相机后退：竹简向上走
+        sl = (slice(oy, oy + H), slice(200 - 40, 200 - 40 + W))
+        base = self.rgb[sl]; gap = self.gap[sl]
         flash = 0.5 * impact(t, 182.2, 0.14) + 0.8 * impact(t, V(O[45][3]), 0.1)
-        key = 0.35 + 0.45 * np.exp(-(((x - 1300) / 1100) ** 2 + ((y - 200) / 800) ** 2)) + 0.6 * flash
-        fr = np.array([0.012, 0.013, 0.017], np.float32) * np.ones((H, W, 3), np.float32)
-        fr = fr * (1 - m[..., None]) + wl * (self.stone * key)[..., None]
-        # 积水高光（冷）随相机移动
-        wet = np.roll(self.wet, int(scroll), 0)
-        fr = fr + (wet * key * 0.12)[..., None] * np.array(COLD, np.float32)
-        # 「规」「矩」两块砖先渗金光 → 金字从地面立起（门）
+        key = 0.55 + 0.6 * np.exp(-(((x - 1300) / 1100) ** 2 + ((y - 200) / 800) ** 2)) + 0.6 * flash
+        fr = base * key[..., None]
+        fr = fr * (1 - gap[..., None] * 0.85)
+        fr = cv2.warpPerspective(fr, self.Mp, (W, H), borderMode=cv2.BORDER_REPLICATE)
+        # 湿面冷高光（随相机移动）+ 远端雾
+        wet = np.roll(self.wet, -int(170 * u), 0)
+        fr = fr + (wet * key * 0.16)[..., None] * np.array(COLD, np.float32)
+        g = (y / H)[..., None]
+        fr = fr * (0.55 + 0.45 * g) + (1 - g) * np.array([0.03, 0.032, 0.04], np.float32) * 0.6
         its = []
         for k, (ch, gx, gy) in enumerate((('规', 470, 660), ('矩', 1450, 660))):
             on = O[45][3 + k]
             pre = cl((t - (V(on) - 0.3)) / 0.3)
             if pre > 0:
-                g = np.exp(-(((x - gx) / 110) ** 2 + ((y - gy - 70) / 60) ** 2)) * pre
-                fr = fr + g[..., None] * GOLD * 1.2
+                gl = np.exp(-(((x - gx) / 60) ** 2 + ((y - gy - 70) / 170) ** 2)) * pre       # 一整片竹简渗金（竖条形）
+                fr = fr + gl[..., None] * GOLD * 1.3
             pq = cp(t, on, 0.2)
             if pq > 0:
                 its.append((ch, gx, gy + 70 * (1 - eo(pq)), lerp(90, 330, eo(pq)), min(1, pq * 3), 'g'))
-        # 「谁定的」：他刚踏过的砖（身后、画面上方）依次亮起
         lit = []
         for k, c in enumerate('谁定的'):
             pk = cp(t, O[45][k], 0.16)
             if pk > 0: lit.append((c, 700 + 260 * k, 262, 150, pk, 'w'))
         fr = D.song(fr, lit, glow=0.3)
-        # 人物：俯拍朝镜头冲刺，逐渐变大
         h = lerp(560, 660, ei(u, 1.3))
         fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 930 + 40 * u), D.fit_scale(self.sp, h), expo=1.0 + 0.3 * flash, sat=0.55,
                                rim=COLD, rim_amt=4.0 + 3 * flash, rim_dir=(0.6, -0.8), wind=10)
@@ -1009,50 +1006,48 @@ class S20_Wall(Shot):
 
 
 class S21_Charge(Shot):
-    """低机位 LS：字砖墙被他撞穿、整面崩塌（远景砖块翻滚坠落，墙洞后透出冷光）→ 中景他正面冲向镜头 → 前景几块字砖朝镜头飞过（三层纵深）；
-    宋体巨字「我」+「偏」（第三棒：去漩涡底）"""
+    """[r5 重做] CU 仰拍悬挂的律令木牌林（三层纵深：远处一排小牌在雾里、中景一排、近景两三块大牌虚焦压画边），
+    麻绳吊着、在风里摇；183.10 一道刀光从画外斜斩而过（人不出现），中近景木牌齐齐断成两截、下半截翻滚坠落，
+    木屑飞回拼成「我」（木纹碎块 + 冷轮廓光），「偏」随后。（第五棒 P0：S21 不再用 charge_front，与 S22 拉开；材质换木牌）"""
     t0, t1 = 182.81, 183.69
+    TC = 183.06
     def __init__(self):
-        self.sp = D.spr('S105/charge_front')
-        self.B = T.wall_bricks('律令天条正邪大局理所应当规矩名分尊卑上下本分', cols=15, rows=9, brick=(150, 92), center=(960, 470), seed=8)
-        F = T.wall_bricks('规矩名分尊卑天条律令', cols=7, rows=3, brick=(150, 92), center=(960, 520), seed=9)
-        self.F = [b for b in F if abs(b['x'] - 960) > 330]          # 只留两侧，中间让给人物
+        self.P = R5.Plaques(seed=21, n_far=13, n_mid=7, n_near=3, ytop=40, cut=(self.TC, (-100, 780), (2000, 330)), gold_chars='规矩律令法')
 
     def render(self, t):
         u = self.u(t)
-        fl = impact(t, 183.05, 0.12)
-        fr = D.night(t, 211, top=(0.04, 0.042, 0.055), glow=(960, 430, 330, (0.6, 0.66, 0.85), 0.55 + 0.8 * fl))
-        fr = T.text_wall(fr, 0.12 + 0.75 * u, mode='collapse', bricks=self.B, brick=(150, 92), seed=8, angle=-88, center=(960, 470))
-        fr = fr * (0.55 + 0.45 * fl)
-        fr = D.lightning(fr, t, 183.05, (1500, 120), (1150, 430), seed=3, amt=1.0)
-        fr = K.fog(fr, t, 212, amt=0.45, speed=(-80, -20), y0=0.6, y1=1.0, color=(0.28, 0.28, 0.3))
-        h = lerp(520, 780, ei(u, 1.5))
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (980, 1000 + 40 * u), D.fit_scale(self.sp, h), expo=0.85, sat=0.6,
-                              rim=COLD, rim_amt=4.0, rim_dir=(0.0, -1.0), wind=10, mblur=(0, 6 * u))
-        fr = K.rain(fr, t, 21, n=400, amt=0.25, angle=8)
-        fr = T.text_wall(fr, 0.05 + 0.6 * u, mode='fly', bricks=self.F, brick=(150, 92), seed=9, center=(980, 520))
-        # [r4] 「我」「偏」由崩落的字砖碎石在右上拼合（石纹 + 冷轮廓光），不再是左侧白宋体
-        for ch, x_, y_, sz, on, sd in (('我', 1470, 400, 330, O[45][5], 31), ('偏', 1500, 760, 210, O[45][6], 32)):
+        fl = impact(t, self.TC, 0.12) + 0.6 * impact(t, 183.35, 0.1)
+        fr = D.night(t, 211, top=(0.03, 0.032, 0.042), bot=(0.008, 0.008, 0.012), glow=(1150, 260, 460, (0.5, 0.58, 0.85), 0.28 + 0.9 * fl), clouds=0.6, drift=70)
+        fr = D.lightning(fr, t, 183.35, (1650, 100), (1350, 360), seed=3, amt=0.9)
+        fr = self.P.render(fr, t, light=1.25, rim=COLD, rim_amt=0.55, flash=fl, fog=(0.03, 0.033, 0.045))
+        if self.TC - 0.03 <= t < self.TC + 0.22:
+            q = (t - self.TC + 0.03) / 0.25
+            fr = TR._slash_streak(fr, (lerp(-100, 2000, eo(q)), lerp(780, 330, eo(q))), np.array((0.977, -0.21)), q, length=2400, width=7, color=(1.0, 0.92, 0.85))
+        fr = K.sparks(fr, t, 2101, (960, 560), n=90, life=0.6, speed=(300, 1000), dirc=(0, -1), spread=2.6, grav=900, burst=True,
+                      t0=self.TC, color=(0.85, 0.6, 0.35), amt=0.9)
+        fr = K.rain(fr, t, 21, n=380, amt=0.25, angle=8)
+        fr = K.fog(fr, t, 212, amt=0.3, speed=(-80, -20), y0=0.6, y1=1.0, color=(0.16, 0.16, 0.2))
+        for ch, x_, y_, sz, on, sd in (('我', 1460, 430, 330, O[45][5], 31), ('偏', 1500, 770, 200, O[45][6], 32)):
             tv = V(on)
             pq = cl((t - (tv - 0.24)) / 0.24)
-            if pq > 0: fr = D.shard_glyph(fr, ch, x_, y_, sz, pq, seed=sd, spread=620)
-        return K.cam(fr, 1.0 + 0.04 * u, *K.shake(t, 6, 3, 21)[:2]), 0.0
+            if pq > 0: fr = D.shard_glyph(fr, ch, x_, y_, sz, pq, seed=sd, spread=620, col=(0.50, 0.34, 0.20), rim=(0.75, 0.82, 1.0))
+        return K.cam(fr, 1.03 + 0.05 * u, *K.shake(t, 4 + 10 * impact(t, self.TC, 0.15), 3, 21)[:2], rot=1.0 - 2.0 * u), 0.0
 
 
 class S22_Chuang(Shot):
-    """朱红宋体巨字「闯」立在镜头前（墙已塌，碎砖与尘雾在后），他从字后冲来，184.18 一头撞碎：字裂成碎片朝镜头炸飞；
-    左侧「我偏要」收句（第三棒：行书 → 宋体，去漩涡底）"""
+    """朱红宋体巨字「闯」立在镜头前（身后是被斩断、还在狂摆的律令木牌残桩与坠落的半截木牌、尘雾），他从字后冲来，
+    184.18 一头撞碎：字裂成碎片朝镜头炸飞；左侧「我偏要」收句（第五棒：背景去灰砖墙）"""
     t0, t1 = 183.69, 184.67
     def __init__(self):
         self.sp = D.spr('S105/charge_front')
-        self.B = T.wall_bricks('律令天条正邪大局理所应当规矩名分尊卑上下本分', cols=15, rows=9, brick=(150, 92), center=(960, 470), seed=8)
-        self.P = [dict(ch='闯', x=1160, y=660, size=560, rot=0.0, font='serif_black', idx=0, emph=True)]
+        self.P = R5.Plaques(seed=22, n_far=12, n_mid=7, n_near=0, ytop=-40, cut=(183.45, (-100, 520), (2000, 420)))
+        self.P2 = [dict(ch='闯', x=1160, y=660, size=560, rot=0.0, font='serif_black', idx=0, emph=True)]
 
     def render(self, t):
         u = self.u(t)
         th = V(O[45][8])
         fr = D.night(t, 221, top=(0.045, 0.045, 0.055), glow=(1060, 480, 420, (0.55, 0.5, 0.5), 0.35))
-        fr = T.text_wall(fr, 0.87 + 0.13 * u, mode='collapse', bricks=self.B, brick=(150, 92), seed=8, angle=-88, center=(960, 470))
+        fr = self.P.render(fr, t, light=0.7, rim=(1.0, 0.55, 0.45), rim_amt=0.8, blur_far=3.5)
         fr = K.fog(fr, t, 222, amt=0.55, speed=(-60, -30), y0=0.35, y1=1.0, color=(0.3, 0.29, 0.3))
         q = cl((t - self.t0) / (th - self.t0))
         h = lerp(820, 1250, ei(q, 2)) + (600 * eo(cl((t - th) / 0.4)) if t > th else 0)
@@ -1061,10 +1056,10 @@ class S22_Chuang(Shot):
         fr = K.radial_blur(fr, (1060, 520), 0.015 + 0.03 * q)
         if t < th:
             p_in = cp(t, O[45][7], 0.25)
-            L = D.text_layer([('闯', 1160, 820 - 160 * ei(q, 2), 430 + 130 * ei(q, 2), min(1, p_in * 2), 1.0, 0.0, RED)], fname='serif_black')   # [r4] 先在身前低位，冲近时升起迎面
+            L = D.text_layer([('闯', 1160, 820 - 160 * ei(q, 2), 430 + 130 * ei(q, 2), min(1, p_in * 2), 1.0, 0.0, RED)], fname='serif_black')
             fr = T.compose(fr, L, **T.auto_style('red'))
         else:
-            fr = T.shatter_out(fr, '闯', cl((t - th) / 0.5), places=self.P, fname='serif_black', color='red', impact=(1100, 560), power=1.6, seed=7)
+            fr = T.shatter_out(fr, '闯', cl((t - th) / 0.5), places=self.P2, fname='serif_black', color='red', impact=(1100, 560), power=1.6, seed=7)
         its = [('我', 250, 280, 120, 1.0, 'w'), ('偏', 250, 420, 120, 1.0, 'w'), ('要', 250, 600, 190, cp(t, O[45][7], 0.14), 'w')]
         fr = D.song(fr, its)
         fr = fr + impact(t, th, 0.08) * 0.8

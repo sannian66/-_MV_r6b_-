@@ -152,7 +152,7 @@ class Plaques:
                 Cw = Cw * lit
                 fogk = (1 - z) * 0.65
                 Cw = Cw * (1 - fogk) + np.array(fog, np.float32) * fogk
-                edge = np.clip(Aw - np.roll(np.roll(Aw, 4, 1), 3, 0), 0, 1)
+                edge = cv2.GaussianBlur(np.clip(Aw - np.roll(np.roll(Aw, 4, 1), 3, 0), 0, 1), (0, 0), 1.5)
                 Cw = Cw + edge[..., None] * np.array(rim, np.float32) * rim_amt * (0.4 + 0.8 * z) * (1 + 2 * flash)
                 out = out * (1 - Aw[..., None]) + Cw * Aw[..., None]
                 if k == 0:   # 绳
