@@ -177,13 +177,13 @@ class P03(Shot):
     def __init__(self):
         self.bg = BK.paper(203, (0.78, 0.72, 0.60))
         self.fig = BP.NameFigure(31, name='张三', view='front')
-        T.warm('谁配画', 'cao', 200)
+        T.warm('谁配画', 'xing', 200)
 
     def scene(self, t, prog, half, c):
         fr = self.bg.copy()
         x, y = K.grid()
         fr = fr * (0.42 + 0.65 * np.exp(-(((x - c[0]) / 900) ** 2 + ((y - c[1] + 100) / 600) ** 2)))[..., None] * np.array([1.0, 0.93, 0.82], np.float32)
-        hh = half * 1.55
+        hh = half * 1.75
         # 纸人投影 + 纸人
         sh = np.zeros((H, W), np.float32)
         cv2.ellipse(sh, (int(c[0] + hh * 0.12), int(c[1] + hh * 0.48)), (int(hh * 0.28), int(hh * 0.07)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
@@ -198,9 +198,9 @@ class P03(Shot):
         prog = clamp01((t - self.t0 - 0.05) / 0.75)
         fr = self.scene(t, prog, self.HALF, BOX_C)
         pr = tp(8, [6, 7, 8], t, 0.18)
-        fr = T.scatter_stack(fr, '谁配画', pr, places=[dict(ch='谁', x=1480, y=300, size=150, rot=-6, font='cao', idx=0, emph=False),
-                                                         dict(ch='配', x=1600, y=470, size=170, rot=5, font='cao', idx=1, emph=False),
-                                                         dict(ch='画', x=1470, y=680, size=230, rot=-3, font='cao', idx=2, emph=True)],
+        fr = T.scatter_stack(fr, '谁配画', pr, places=[dict(ch='谁', x=1480, y=300, size=160, rot=-6, font='xing', idx=0, emph=False),
+                                                         dict(ch='配', x=1600, y=480, size=180, rot=5, font='xing', idx=1, emph=False),
+                                                         dict(ch='画', x=1470, y=700, size=230, rot=-3, font='xing', idx=2, emph=True)],
                              color=(0.10, 0.08, 0.07), emph_color=(0.62, 0.06, 0.04), t_local=u, style_kw=dict(shadow=0.2))
         fr = cam(fr, 1.0 + 0.03 * eio(u), -20 * eio(u), 0, 0.8 * u)
         return fr, 0
@@ -215,23 +215,23 @@ class P04(Shot):
     def __init__(self):
         self.p3 = P03()
         self.finger = spr('S021/finger')
-        T.warm('善恶', 'cao', 170); T.warm('框', 'cao', 230)
+        T.warm('善恶', 'xing', 170); T.warm('框', 'xing', 230)
 
     def render(self, t):
         u = self.u(t)
         fr = self.p3.scene(t, 1.0, self.HALF, self.C)
-        # 指尖：从上方压下按住框上沿（finger 精灵：指尖在精灵内约 (0.50, 0.97)）
+        # 指尖：从上方压下按住框上沿（finger 精灵：指尖在精灵内 (0.497, 0.300)；第三棒修正，原锚点 0.96 让手整只在画外）
         k = eout(clamp01((t - self.t0) / 0.5), 3)
         tip = (self.C[0] - 40, self.C[1] - self.HALF - 6 - 220 * (1 - k))
         fr = fr * (1 - 0.35 * cv2.GaussianBlur((np.abs(K.grid()[0] - tip[0] - 60) < 220).astype(np.float32) * (K.grid()[1] < tip[1] + 30), (0, 0), 60)[..., None])
-        fr, _ = put_at(fr, self.finger, t, (0.50, 0.96), tip, 1500, grade=dict(expo=0.55, sat=0.4, tint=(1.04, 0.96, 0.86), lift=0.0, gamma=1.2),
+        fr, _ = put_at(fr, self.finger, t, (0.497, 0.300), tip, 2600, grade=dict(expo=0.55, sat=0.4, tint=(1.04, 0.96, 0.86), lift=0.0, gamma=1.2),
                        rim=RIM_WARM, wind_amp=0, breathe=0.0, shade=None, wrap=0.25)
         # 「善恶框」：善恶毛草；「框」外画朱红真框，字头时合拢
         pr = tp(8, [9, 10, 11], t, 0.18)
         L = T.Layer()
-        for ch, xx, yy, s, pc in (('善', 1450, 330, 150, pr[0]), ('恶', 1590, 500, 150, pr[1])):
-            if pc > 0: T.place(L, ch, xx, yy, s, color=(0.10, 0.08, 0.07), fname='cao', alpha=min(1, pc * 2), scale=1 + (1 - eout(pc)) * 1.2)
-        if pr[2] > 0: T.place(L, '框', 1520, 720, 200, color=(0.62, 0.06, 0.04), fname='cao', alpha=min(1, pr[2] * 2), scale=1 + (1 - eout(pr[2])) * 1.2)
+        for ch, xx, yy, s, pc in (('善', 1450, 330, 160, pr[0]), ('恶', 1590, 500, 160, pr[1])):
+            if pc > 0: T.place(L, ch, xx, yy, s, color=(0.10, 0.08, 0.07), fname='xing', alpha=min(1, pc * 2), scale=1 + (1 - eout(pc)) * 1.2)
+        if pr[2] > 0: T.place(L, '框', 1520, 720, 200, color=(0.62, 0.06, 0.04), fname='xing', alpha=min(1, pr[2] * 2), scale=1 + (1 - eout(pr[2])) * 1.2)
         fr = T.compose(fr, L, shadow=0.2)
         kq = clamp01((t - (self.T_KUANG - 0.25)) / 0.25)
         if kq > 0:
