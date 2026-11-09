@@ -541,3 +541,111 @@ def slide(img, dx, dy=0.0):
     """平移（镜像边界，不像 np.roll 那样在接缝处出现竖直硬边）。"""
     h, w = img.shape[:2]
     return cv2.warpAffine(img, np.float32([[1, 0, dx], [0, 1, dy]]), (w, h), borderMode=cv2.BORDER_REFLECT)
+
+
+# =========================================================================================== 第四棒新增
+def push_h(A, B, p, seam=(1.0, 0.45, 0.3), blur=40):
+    """横推：B 自左推入、A 被推向右；中间帧 = B 的右半 | 发光接缝 | A 的左半（E16 金脸 vs E17 朱脸正面相对）。带水平动态模糊。"""
+    e = eio(p); off = int(round(W * e))
+    out = np.empty_like(A)
+    out[:, off:] = A[:, :W - off] if off < W else A[:, :0]
+    if off > 0: out[:, :off] = B[:, W - off:]
+    v = abs(math.sin(math.pi * p))
+    k = int(blur * v) | 1
+    if k > 2: out = cv2.blur(out, (k, 1))
+    xx = np.arange(W, dtype=np.float32)[None, :, None]
+    g = np.exp(-((xx - off) / 3.0) ** 2) * 2.0 + np.exp(-((xx - off) / 40.0) ** 2) * 0.5
+    return out + g * np.asarray(seam, np.float32) * v
+
+
+def door_open(A, B, p, cx=960, col=GOLDW):
+    """开门：A 沿竖缝 cx 一线金光裂开，两扇向左右滑出（带厚边阴影），露出身后的 B（B 从 1.06 拉回 1.0）。中间帧 = A 左扇 | B | A 右扇。"""
+    e = eio(p) ** 1.3; d = int(round((W / 2 + 60) * e))
+    z = 1.06 - 0.06 * e
+    Bz = cv2.resize(B, None, fx=z, fy=z); y0 = (Bz.shape[0] - H) // 2; x0 = (Bz.shape[1] - W) // 2
+    out = Bz[y0:y0 + H, x0:x0 + W].copy() * (0.55 + 0.45 * e)
+    xx = np.arange(W, dtype=np.float32)[None, :, None]
+    if d < W:
+        L = A[:, d:cx] if cx - d > 0 else None
+        if L is not None: out[:, :cx - d] = L
+        if cx + d < W: out[:, cx + d:] = A[:, cx:W - d]
+        sh = np.exp(-np.abs(xx - (cx - d)) / 50) * (xx > cx - d) + np.exp(-np.abs(xx - (cx + d)) / 50) * (xx < cx + d)
+        out = out * (1 - 0.6 * sh * (d > 0))
+        out = out + (np.exp(-((xx - (cx - d)) / 2.5) ** 2) + np.exp(-((xx - (cx + d)) / 2.5) ** 2)) * np.asarray(col, np.float32) * 1.5
+    if p < 0.12: out = out + np.exp(-((xx - cx) / (4 + 200 * p)) ** 2) * np.asarray(col, np.float32) * 2.0
+    return out
+
+
+def _latin_up(word, size, color):
+    """署名里的拉丁字母：直立横排（不旋转），按竖排列宽收字号。"""
+    from PIL import Image, ImageDraw
+    f = T._font('song', int(size * 0.62))
+    w = int(f.getlength(word)) + 8; h = int(size * 0.9)
+    im = Image.new('L', (w, h), 0); ImageDraw.Draw(im).text((w / 2, h / 2), word, font=f, fill=255, anchor='mm')
+    return np.asarray(im).astype(np.float32) / 255
+
+
+def credit_block_up(*a, **k):
+    """T.credit_block 的 E 组版本：拉丁字母（Cait、AI）直立横排，不再顺时针旋转 90°。不改共享库行为（临时替换后立即还原）。"""
+    orig = T._latin_vertical
+    T._latin_vertical = _latin_up
+    try:
+        return T.credit_block(*a, **k)
+    finally:
+        T._latin_vertical = orig
+
+
+def stone_tex(r, tw=380, th=960, law=None, s=42):
+    """碑面石材（第四棒，替 SteleHall._tex）：大块 fbm + 细粒 + 斑点、雨水垂流痕、底部苔痕、裂纹、边缘磨损暗角、
+    阴刻律令（受光上沿亮/下沿暗）、碑额「天理」朱砂填色（斑驳脱落）。"""
+    seed = int(r.integers(1e6))
+    n1 = cv2.resize(K.fbm(th // 4, tw // 4, seed, base=4, octaves=5), (tw, th))
+    n2 = cv2.resize(K.fbm(th // 2, tw // 2, seed + 1, base=40, octaves=3), (tw, th))
+    sp = (r.random((th, tw)) ** 18).astype(np.float32)
+    lum = 0.20 + 0.16 * n1 + 0.06 * (n2 - 0.5) - 0.10 * sp
+    rr = r.random((th, tw)).astype(np.float32)
+    streak = cv2.GaussianBlur(rr, (0, 0), sigmaX=2.5, sigmaY=70)
+    streak = np.clip((streak - streak.mean()) * 9, -1, 1)
+    yv = np.linspace(0, 1, th, dtype=np.float32)[:, None]
+    lum = lum - 0.07 * np.clip(streak, 0, 1) * (0.3 + 0.7 * yv) + 0.03 * np.clip(-streak, 0, 1)
+    col = lum[..., None] * np.array([0.84, 0.87, 0.92], np.float32)
+    moss = np.clip((cv2.resize(K.fbm(th // 4, tw // 4, seed + 2, base=8, octaves=4), (tw, th)) - 0.55) * 4, 0, 1) * sstep(0.55, 0.95, yv)
+    col = col * (1 - 0.45 * moss[..., None]) + moss[..., None] * np.array([0.16, 0.18, 0.11], np.float32) * 0.45
+    ink = np.zeros((th, tw), np.float32)
+    LAWS = law or LAW
+    for c in range(4):
+        x = tw - 60 - c * 76; y = 170
+        while y < th - 90:
+            ch = LAWS[int(r.integers(len(LAWS)))]
+            gl = T.glyph(ch, 'song', s, False); g = gl.shape[0]
+            x0, y0 = int(x - g / 2), int(y - g / 2)
+            ink[y0:y0 + g, x0:x0 + g] = np.maximum(ink[y0:y0 + g, x0:x0 + g], gl[:min(g, th - y0), :min(g, tw - x0)])
+            y += s * 1.15
+    red = np.zeros((th, tw), np.float32)
+    for k, ch in enumerate('天理'):
+        gl = T.glyph(ch, 'serif_black', 84, False); g = gl.shape[0]
+        x0, y0 = int(tw / 2 - g / 2 + (k - 0.5) * 92), int(80 - g / 2)
+        red[max(0, y0):y0 + g, x0:x0 + g] = np.maximum(red[max(0, y0):y0 + g, x0:x0 + g], gl[max(0, -y0):, :])
+    ink = np.maximum(ink, red)
+    wear = np.clip((n2 - 0.25) * 3, 0, 1)
+    ink = ink * (0.65 + 0.35 * wear)
+    hl = np.clip(np.roll(ink, 2, 0) - ink, 0, 1); sh = np.clip(ink - np.roll(ink, 2, 0), 0, 1)
+    img = col * (1 - 0.6 * ink[..., None]) + hl[..., None] * 0.22 - sh[..., None] * 0.1
+    cin = red * np.clip((n2 - 0.3) * 2.5, 0, 1) * (0.5 + 0.5 * n1)
+    img = img * (1 - cin[..., None]) + cin[..., None] * np.array([0.42, 0.06, 0.04], np.float32)
+    # 裂纹
+    cr = np.zeros((th, tw), np.float32)
+    for _ in range(int(r.integers(1, 4))):
+        p = np.array([r.uniform(0, tw), r.uniform(0, th * 0.3)]); pts = [p.copy()]
+        a = r.uniform(1.2, 1.9)
+        for _k in range(int(r.integers(14, 30))):
+            a += r.uniform(-0.5, 0.5); p = p + 18 * np.array([math.cos(a), math.sin(a)]); pts.append(p.copy())
+        cv2.polylines(cr, [np.int32(pts)], False, 1.0, int(r.integers(1, 3)), cv2.LINE_AA)
+    img = img * (1 - 0.6 * cr[..., None]) + np.roll(cr, 1, 1)[..., None] * 0.06
+    # 边缘倒角：上/左受光、右/下暗；四边磨损
+    ex = np.minimum(np.arange(tw), tw - 1 - np.arange(tw))[None, :].astype(np.float32)
+    ey = np.minimum(np.arange(th), th - 1 - np.arange(th))[:, None].astype(np.float32)
+    ed = np.minimum(ex, ey) + 6 * n2
+    img = img * (0.72 + 0.28 * sstep(0, 26, ed))[..., None]
+    img[:6] *= 1.35; img[:, :5] *= 1.2
+    return np.clip(img, 0, 1)

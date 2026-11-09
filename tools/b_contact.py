@@ -1,5 +1,5 @@
 """[B组] 联系表 / 关键帧（按本组 SHOTS/CUT 表取帧，不用 tools/sec_contact.py）
-  python3 tools/b_contact.py render <tag> i0 i1     渲第 i0..i1 帧条目到 /workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/<tag>/（分块跑，>1 帧须 tools/cpu_slot.sh 包裹）
+  python3 tools/b_contact.py render <tag> i0 i1     渲第 i0..i1 帧条目到 $B_CACHE（默认 ../b_cache）/<tag>/（分块跑，>1 帧须 tools/cpu_slot.sh 包裹）
   python3 tools/b_contact.py sheet  <tag> out.jpg   拼图
 tag: contact（每镜中点帧，预副歌一 14 + 主歌二 25） | keys（转场中间帧 + 歌词关键帧）"""
 import sys, os, json
@@ -8,6 +8,7 @@ os.environ.setdefault('SPRITE_MODE', '1')
 from PIL import Image, ImageDraw, ImageFont
 import sec_b_pre1 as P1, sec_b_verse2 as V2
 FPS = 30
+CACHE = os.environ.get('B_CACHE', os.path.realpath(ROOT + '/../b_cache'))
 
 
 def items(tag):
@@ -31,7 +32,7 @@ def items(tag):
 
 
 def render(tag, i0, i1):
-    d = f'/workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/{tag}'; os.makedirs(d, exist_ok=True)
+    d = f'{CACHE}/{tag}'; os.makedirs(d, exist_ok=True)
     for i, (key, f, lab) in enumerate(items(tag)):
         if not (i0 <= i <= i1): continue
         m = P1 if key == 'pre1' else V2
@@ -44,7 +45,7 @@ def sheet(tag, out):
     its = items(tag); cols = 6; rows = (len(its) + cols - 1) // cols
     sh = Image.new('RGB', (cols * 640 // 2 * 2, rows * 360))
     for i, (key, f, lab) in enumerate(its):
-        p = f'/workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/{tag}/{i:03d}.jpg'
+        p = f'{CACHE}/{tag}/{i:03d}.jpg'
         if not os.path.exists(p): continue
         im = Image.open(p); ImageDraw.Draw(im).text((6, 4), f'{lab}  f{f}', fill=(240, 220, 120), font=font)
         sh.paste(im, ((i % cols) * 640, (i // cols) * 360))
@@ -52,6 +53,17 @@ def sheet(tag, out):
     sh.save(out, quality=82); print(out, len(its), os.path.getsize(out))
 
 
+def split(src, outdir, maxw=1920, maxh=1400):
+    """把联系表切成 ≤maxw×maxh 的块（大图 read_file 读不出来）"""
+    im = Image.open(src); os.makedirs(outdir, exist_ok=True)
+    if im.size[0] > maxw: im = im.resize((maxw, int(im.size[1] * maxw / im.size[0])), Image.LANCZOS)
+    n = 0
+    for y in range(0, im.size[1], maxh):
+        im.crop((0, y, im.size[0], min(im.size[1], y + maxh))).save(f'{outdir}/{os.path.basename(src)[:-4]}_{n}.jpg', quality=88); n += 1
+    print(n)
+
+
 if __name__ == '__main__':
+    if sys.argv[1] == 'split': split(sys.argv[2], sys.argv[3]); sys.exit()
     if sys.argv[1] == 'render': render(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
     else: sheet(sys.argv[2], sys.argv[3])

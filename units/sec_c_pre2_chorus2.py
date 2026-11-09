@@ -9,6 +9,7 @@ ROOT = '/workspace/work/mv'
 for p in (ROOT, ROOT + '/lib', ROOT + '/units'):
     if p not in sys.path: sys.path.insert(0, p)
 import numpy as np, cv2
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import c_kit as K
 from c_kit import (W, H, FPS, BAR, RED, GOLD, COLD, WARM, clamp, sm, eout, ein, eio, lerp, V, pulse, CT, camxf, handheld,
                    dirblur, radial, storm_sky, wet_ground, rain, fog, bolt, bolt_env, vol_light, put, Sent, draw_sent,
@@ -829,20 +830,48 @@ class C17(Shot):
 
 
 class C18(Shot):
-    """LS 两翼冲锋：雷光下两侧重甲军阵平枪冲来，中间鬼屠起身拔刀（S072）。"""
-    def __init__(self): self.army = None
+    """LS 两翼冲锋（第四棒重做：去掉程序化 crowd 方阵，换生图甲士 soldiers3 拆出的 3 个精灵）：
+    低机位，两翼重甲步兵分 5 排从雨幕里冲来（远排逆光剪影 + 雾，近排实色 + 冷轮廓光 + 前景虚化擦镜），
+    中间留一条通道，鬼屠在通道里起身拔刀（S072）；136.64 闪电把盔缨与枪尖全部勾亮。"""
+    SPR = ('C/sold_a', 'C/sold_b', 'C/sold_c')
+    def __init__(self):
+        r = np.random.default_rng(18)
+        self.units = []
+        for row, z in enumerate((6.0, 4.6, 3.5, 2.6, 1.9, 1.35)):
+            for side in (-1, 1):
+                n = 4 if row < 3 else 3 if row < 5 else 1
+                for i in range(n):
+                    xw = side * (0.55 + (i + (0.5 if row % 2 else 0)) * 0.62 + r.uniform(-0.08, 0.08))
+                    self.units.append(dict(z=z + r.uniform(-0.1, 0.1), xw=xw, k=int(r.integers(3)), flip=bool(r.integers(2)) ^ (side > 0),
+                                           ph=r.uniform(0, 6.28)))
+        self.units.sort(key=lambda d: -d['z'])
+    def _draw(self, fr, t, d, adv, fl):
+        z = d['z'] - adv
+        if z < 0.9: return fr
+        hz = 560
+        x = 960 + d['xw'] * 820 / z
+        y = hz + 470 / z + 10 * abs(math.sin(t * 9 + d['ph'])) / z      # 跑动起伏
+        h = 780 / z
+        if x < -h or x > W + h: return fr
+        far = min(1.0, max(0.0, (z - 2.0) / 3.5))
+        near = z < 1.6
+        fr, _ = put(fr, t, self.SPR[d['k']], x, y, h, flip=d['flip'], look='sil' if far > 0.5 else None, rim=COLD,
+                    rim_amt=2.0 + 1.6 * fl, rim_dir=(0, -1), expo=0.7 * (1 - 0.45 * far), sat=0.55, flash=fl, wind=4,
+                    defocus=(3.0 if near else 1.0 * far), alpha=1.0 - 0.35 * far, breathe=0.0)
+        return fr
     def render(self, t):
-        import crowd
-        if self.army is None: self.army = crowd.Army(seed=18, rows=14, cols=24, banners=8, torches=18)
         u = self.u(t)
-        fl = 0.8 * bolt_env(t, V(136.64))
-        fr = storm(t, 18, horizon=600, flash=0.5 + fl, fc=(960, 120), refl=0.4)
-        # 方阵直接画进雷暴（自带大气透视/景深/甲光），中线分开让出通道，鬼屠在通道里起身
-        fr, _info = self.army.draw(fr, t, cam=dict(x=0, y=2.2, z=0, pitch=4, f=1500), advance=1.2 + 2.4 * u, march=1.0, level=1.0,
-                                   part=0.55, rim_color=COLD, rim=1.0 + 1.5 * fl, fog_color=(0.06, 0.07, 0.09), fog_dist=70,
-                                   torch=0.5, glint=1.0 + fl, origin=(0.0, 0.0, 9.0))
-        fr = fog(fr, t, 18, density=0.55, y0=560, y1=900, color=(0.35, 0.38, 0.45), speed=(0, 0), light=(960, 300), light_r=700)
-        fr, _ = put(fr, t, 'S072/rise_draw', 960, 1000 - 30 * eout(u), 640, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, wind=7)
+        fl = 0.8 * bolt_env(t, V(136.64)) + 0.3 * pulse(t, V(136.95), 0.12)
+        fr = storm(t, 18, horizon=560, flash=0.5 + fl, fc=(960, 140), refl=0.5)
+        fr = bolt(fr, t, V(136.64), 181, (1250, 60), (1380, 520), inten=1.0)
+        adv = 0.55 * u                                                   # 两翼逼近
+        hero_z = 1.6
+        for d in self.units:
+            if d['z'] - adv >= hero_z: fr = self._draw(fr, t, d, adv, fl)
+        fr = fog(fr, t, 18, density=0.55, y0=520, y1=860, color=(0.33, 0.36, 0.43), speed=(30, 0), light=(960, 300), light_r=700)
+        fr, _ = put(fr, t, 'S072/rise_draw', 960, 1000 - 30 * eout(u), 640, rim=COLD, rim_amt=2.6, flash=fl, expo=0.95, wind=7)
+        for d in self.units:
+            if d['z'] - adv < hero_z: fr = self._draw(fr, t, d, adv, fl)
         fr = rain(fr, t, 180, inten=1.1, angle=12)
         return fr
 
@@ -1424,78 +1453,42 @@ class C35b(Shot):
         return fr
 
 
+_PLATE = {}
+def plate(name, w=W, h=H):
+    """生图整幅底板（assets/gen/<name>_raw.png）→ float32 线性 0..1，缩放到覆盖 w×h。"""
+    if name not in _PLATE:
+        im = cv2.imread(ROOT_DIR + f'/assets/gen/{name}_raw.png', cv2.IMREAD_COLOR)[..., ::-1]
+        sc = max(w * 1.12 / im.shape[1], h * 1.12 / im.shape[0])
+        im = cv2.resize(im, (round(im.shape[1] * sc), round(im.shape[0] * sc)), interpolation=cv2.INTER_AREA)
+        _PLATE[name] = im.astype(np.float32) / 255.0
+    return _PLATE[name]
+
+
+def plate_view(name, cx, cy, zoom):
+    """从底板取以 (cx,cy)（底板归一化坐标）为中心、缩放 zoom 的 W×H 视窗。"""
+    P = plate(name)
+    ph, pw = P.shape[:2]
+    s = zoom
+    M = np.float32([[s, 0, W / 2 - s * cx * pw], [0, s, H / 2 - s * cy * ph]])
+    return cv2.warpAffine(P, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+
 class C36(Shot):
-    """ELS 旗海「天」（第三棒重构，去掉黑团块军阵）：雷暴下一望无际的旗海与插地的枪——人都跪下了、看不见，只剩旗，
-    被天边的闪电逆光照透成暗红；155.96「天」一道横贯天际的闪电，旗海一齐被照亮。积水倒映旗影。"""
-    def __init__(self):
-        r = np.random.default_rng(36)
-        self.items = []
-        for row in range(12):
-            z = 1.0 + row * 0.7
-            n = int(16 + row * 2.0)
-            for i in range(n):
-                self.items.append(dict(z=z * r.uniform(0.95, 1.05), x=r.uniform(-1.15, 1.15), kind='banner' if r.random() < 0.45 else 'spear',
-                                       seed=int(r.integers(1e6)), ph=r.uniform(0, 6.28), lean=r.uniform(-4, 4)))
-        self.items.sort(key=lambda d: -d['z'])
+    """ELS 跪伏千军「天」（第四棒：换生图底板 army_kneel，去掉程序旗海）：C18 冲锋的同一支军，这时全部跪在积水里低头，
+    旗杆插地，中间一条空通道直通天边——没有人站着。镜头沿通道低空推进；155.96「天」一道横贯天际的闪电把盔顶、旗、水面一齐照亮，
+    同时字「天不」压在天上（暗衬）。叙事：众人都跪下了，只剩问天的人。"""
     def render(self, t):
         u = self.u(t)
         tt = V(155.96)
-        fl = bolt_env(t, tt) * 1.3 + 0.5 * bolt_env(t, V(155.40))
-        hz = 700
-        fr = storm(t, 36, horizon=hz, flash=0.45 + fl, fc=(960, 380), refl=0.7, oy=-40 * u)
-        fr = bolt(fr, t, tt, 361, (60, 300), (1860, 360), inten=1.3, branches=12, width=4)
-        fr = bolt(fr, t, V(155.40), 362, (1400, 140), (1500, 620), inten=0.8)
-        fr = K.vol_light(fr, (960, hz - 40), 900, (0.8, 0.85, 1.0), 0.25 + 0.5 * fl)       # 天边逆光
-        h2, w2 = H // 2, W // 2
-        C = np.zeros((h2, w2, 3), np.float32); M = np.zeros((h2, w2), np.float32)
-        G = np.zeros((h2, w2), np.float32)                                               # 透光（红）
-        cam = 0.0 + 40 * u
-        for it in self.items:
-            z = it['z']; sc = 1.0 / z
-            gy = hz + 300 * sc                                                           # 落地点（低机位）
-            x = 960 + (it['x'] * 1400 - cam) * sc * 1.6
-            if x < -100 or x > W + 100: continue
-            ht = 760 * sc * (0.85 + 0.3 * ((it['seed'] % 97) / 97))
-            fog_k = min(1.0, (z - 1) / 7.0)
-            dark = 0.02 + 0.10 * fog_k
-            lean = math.radians(it['lean'])
-            top = (x + math.sin(lean) * ht, gy - ht)
-            cv2.line(C, (int(x / 2), int(gy / 2)), (int(top[0] / 2), int(top[1] / 2)), (dark, dark, dark * 1.1), max(1, int(5 * sc)), cv2.LINE_AA)
-            cv2.line(M, (int(x / 2), int(gy / 2)), (int(top[0] / 2), int(top[1] / 2)), 1.0, max(1, int(5 * sc)), cv2.LINE_AA)
-            if it['kind'] == 'spear':
-                tp = (top[0] + math.sin(lean) * 40 * sc, top[1] - 40 * sc)
-                cv2.line(C, (int(top[0] / 2), int(top[1] / 2)), (int(tp[0] / 2), int(tp[1] / 2)), (0.35 + fl * 0.3,) * 3, max(1, int(4 * sc)), cv2.LINE_AA)
-                continue
-            # 旗：竖长条，自旗杆顶向风向飘（正弦波），逆光透出暗红
-            A0, fib = banner_tex(it['seed'] % 7, 60, 220)
-            bw, bh = max(3, int(150 * sc / 2)), max(6, int(330 * sc / 2))
-            a = cv2.resize(A0, (bw, bh)); f_ = cv2.resize(fib, (bw, bh))
-            yy = np.arange(bh, dtype=np.float32)[:, None]; xx = np.arange(bw, dtype=np.float32)[None, :]
-            wave = (np.sin(xx / bw * 5.0 - t * 7 + it['ph']) * (xx / bw) * bh * 0.08).astype(np.float32)
-            a = cv2.remap(a, np.repeat(xx, bh, 0), (yy + wave).astype(np.float32), cv2.INTER_LINEAR)
-            x0, y0 = int(top[0] / 2) + 1, int(top[1] / 2) + 2
-            x1, y1 = min(w2, x0 + bw), min(h2, y0 + bh)
-            if x1 <= max(0, x0) or y1 <= max(0, y0): continue
-            ax0, ay0 = max(0, -x0), max(0, -y0)
-            aa = a[ay0:y1 - y0, ax0:x1 - x0]; ff = f_[ay0:y1 - y0, ax0:x1 - x0]
-            sl = (slice(max(0, y0), y1), slice(max(0, x0), x1))
-            col = np.array([0.075, 0.012, 0.012], np.float32) * (0.6 + 0.6 * ff[..., None]) * (1 - 0.4 * fog_k) + dark
-            C[sl] = C[sl] * (1 - aa[..., None]) + col * aa[..., None]
-            M[sl] = np.maximum(M[sl], aa)
-            G[sl] = np.maximum(G[sl], aa * (0.5 + 0.5 * ff) * (1 - fog_k * 0.6))
-        C = cv2.resize(C, (W, H)); M = cv2.resize(M, (W, H)); G = cv2.resize(G, (W, H))
-        # 倒影（压扁、模糊、半透明）
-        hzr = hz
-        Cr = cv2.GaussianBlur(cv2.flip(C, 0), (0, 0), 3); Mr = cv2.GaussianBlur(cv2.flip(M, 0), (0, 0), 3)
-        sh = int(2 * (hz + 300) - H)
-        Cr = np.roll(Cr, sh, 0); Mr = np.roll(Mr, sh, 0); Mr[:hz + 300] = 0
-        fr = fr * (1 - 0.3 * Mr[..., None]) + Cr * 0.3 * Mr[..., None]
-        fr = fr * (1 - M[..., None]) + C * M[..., None]
-        fr = fr + G[..., None] * np.array([0.9, 0.12, 0.06], np.float32) * (0.10 + 0.55 * fl)      # 闪电透旗
-        edge = np.clip(M - cv2.erode(M, np.ones((3, 3), np.uint8)), 0, 1)
-        fr = fr + edge[..., None] * COLD * (0.15 + 0.8 * fl)
-        fr = fog(fr, t, 36, density=0.4, y0=hz - 60, y1=hz + 300, color=(0.32, 0.35, 0.42), speed=(60, 0))
-        fr = rain(fr, t, 360, inten=0.9, angle=10)
+        fl = bolt_env(t, tt) * 1.2 + 0.4 * bolt_env(t, V(155.40))
+        fr = plate_view('C/army_kneel', 0.49, 0.50 - 0.02 * u, lerp(1.0, 1.09, eio(u)))
+        fr = fr * (0.8 + 0.7 * fl)                                                     # 平时略压，闪电照亮
+        yy = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]
+        fr = fr * (1 + 0.6 * fl * np.clip(1 - yy * 1.6, 0, 1) * np.array([0.9, 0.95, 1.1], np.float32))
+        fr = bolt(fr, t, tt, 361, (60, 260), (1860, 300), inten=1.3, branches=12, width=4)
+        fr = bolt(fr, t, V(155.40), 362, (1400, 140), (1500, 470), inten=0.7)
+        fr = fog(fr, t, 36, density=0.35, y0=470, y1=720, color=(0.30, 0.33, 0.40), speed=(50, 0))
+        fr = rain(fr, t, 360, inten=0.9, angle=8)
         return fr
 
 

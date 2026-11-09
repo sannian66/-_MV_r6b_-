@@ -285,3 +285,6 @@
 | 11-09 03:04 | D组/defy_up | RH_image2 | 4K 16:9 | 0 | 2d3efba1-433d-419b-b964-cbf036a91437 | 采用 | assets/gen/D_bridge/defy_up_raw.png | try1 采用 |
 | 11-09 03:04 | A/hand_draw_cu | RH_image2 | 4K 16:9 | 0 | 49a0d5c7-2e13-4a72-ae61-b98252a88f68 | completed | /workspace/work/a_cands/hand_draw_cu_49a0d5c7_0.png | A组 候选 |
 | 11-09 03:05 | A/hand_draw_cu | RH_image2 | 4K 16:9 | 0 | 49a0d5c7-2e13-4a72-ae61-b98252a88f68 | 采用 | assets/gen/A/hand_draw_cu_raw.png | A组 采用 |
+| 11-09 03:05 | C组/face_lit | RH_image2 | 4K 16:9 | 0 | aca831ec-d59a-460a-a30a-d92105c6176a | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/face_lit_try1_0.png | try1 |
+| 11-09 03:05 | D组/draw_side | RH_image2 | 4K 16:9 | 3 | 90a26926-c54d-4330-9653-cbe33e1af485 | submitted | - | try1 in strict side profile facing LEFT, body turned sideways, sl |
+| 11-09 03:05 | C组/brace_cu | RH_image2 | 4K 16:9 | 0 | 396ef948-8613-4d3d-9fd5-1817da443207 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/brace_cu_try1_0.png | try1 |
