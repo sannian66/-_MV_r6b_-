@@ -281,7 +281,7 @@ class A07(Shot):
         fr, info = self.blade.draw(fr, t, (-260, 600), (2250, 430), 340, sheen=clamp01((t - V(11.52)) / 0.7), frost=0.1, glow=0.6,
                                    moon=(0.30, 0.33, 0.40))
         bm = info.get('mask') if isinstance(info, dict) else None
-        out = clamp01((t - V(13.0)) / 0.5)
+        out = clamp01((t - V(13.35)) / 0.45)                          # 第三棒：按 HANDOFF §1 13.35 起消散（延续进 A08 烟）
         tl = TITLE.draw(np.zeros_like(fr), t, out=out, sheen=clamp01((t - V(11.52)) / 0.7))
         tl = cv2.warpAffine(tl, cv2.getRotationMatrix2D((960, 480), 3.9, 0.82), (W, H))   # 贴合刀面斜度
         tl = cv2.warpAffine(tl, np.float32([[1, 0, 0], [0, 1, 40]]), (W, H))
@@ -471,7 +471,7 @@ class V03(Shot):
         fr = A.glow(fr, (1500, 120), 600, 0.15, (0.5, 0.55, 0.7))
         # 巨字
         L = T.Layer()
-        for i, (c, x, y, s, k) in enumerate((('五', 380, 360, 330, 0), ('百', 690, 360, 330, 1))   # 第三棒：右移守左侧安全边):
+        for i, (c, x, y, s, k) in enumerate((('五', 380, 360, 330, 0), ('百', 690, 360, 330, 1))):   # 第三棒：右移守左侧安全边
             p = cprog(1, [k], t, 0.3)[0]
             if p > 0: L.paste(T.ink_bleed_glyph(c, 'kai', s, p, seed=i, bleed=0.9), x, y + 20 * (1 - p), (0.92, 0.90, 0.86))
         for i, (c, k) in enumerate((('重', 2), ('甲', 3))):
@@ -1103,7 +1103,7 @@ CUTS = {
     'A05': ('hard', 0, 0, {}),
     'A06': ('slash_wipe', 0.0, 0.14, dict(angle=-3, center=(960, 480))),
     'A07': ('a_zoom', 0.10, 0.14, dict(center=(960, 480))),                         # 第三棒：去 glint 白场，片名位置不动推入刀面
-    'A08': ('smoke_through', 0.14, 0.22, dict(seed=8, direction=1)),                 # 第三棒：flash_white → 片名化灰成烟，烟后露出城墙
+    'A08': ('smoke_through', 0.06, 0.40, dict(seed=8, direction=1)),                 # 第三棒：flash_white → 片名化灰成烟，烟后露出城墙
     'V01': ('ink_bleed', 0.14, 0.22, dict(seed=11, center=(960, 300))),                 # 雾 → 乌云
     'V02': ('hard', 0, 0, {}),
     'V03': ('shatter', 0.04, 0.20, dict(seed=3, center=(1060, 880), n=60)),       # 第三棒：水洼倒影碎裂 → 俯瞰方阵
@@ -1175,7 +1175,7 @@ def energy(t): return float(np.interp(t, _ET, _EV))
 # ---------------- 屏幕层：署名（前奏）——思源宋职务 + 马善政人名竖排 + 名后小朱印，墨晕逐字显出
 CREDITS = [  # (显出起点, 退场起点, 职务, 人名, x, y_top, seal)
     (0.45, 1.95, '出品人', '西几王传媒', 560, 250, '西几王'),
-    (0.50, 1.95, '后期总监', '沉溺', 360, 250, None),
+    (0.60, 1.95, '后期总监', '沉溺', 360, 250, None),               # HANDOFF §1：0.45 出品人 + 0.60 后期总监
     (2.21, 3.85, '编剧 / 导演', '苏打', 420, 300, '苏打'),
     (4.06, 5.80, '美术设计', 'Cait', 1640, 250, None),
     (4.21, 5.80, '音乐', '西几王', 1440, 250, '西几王'),
