@@ -1029,7 +1029,7 @@ class S22_Chuang(Shot):
     def __init__(self):
         self.sp = D.spr('S105/charge_front')
         self.B = T.wall_bricks('律令天条正邪大局理所应当规矩名分尊卑上下本分', cols=15, rows=9, brick=(150, 92), center=(960, 470), seed=8)
-        self.P = [dict(ch='闯', x=1060, y=530, size=620, rot=0.0, font='serif_black', idx=0, emph=True)]
+        self.P = [dict(ch='闯', x=1160, y=660, size=560, rot=0.0, font='serif_black', idx=0, emph=True)]
 
     def render(self, t):
         u = self.u(t)
@@ -1044,10 +1044,10 @@ class S22_Chuang(Shot):
         fr = K.radial_blur(fr, (1060, 520), 0.015 + 0.03 * q)
         if t < th:
             p_in = cp(t, O[45][7], 0.25)
-            L = D.text_layer([('闯', 1060, 530, 620, min(1, p_in * 2), 1.0 + 0.04 * q, 0.0, RED)], fname='serif_black')
+            L = D.text_layer([('闯', 1160, 820 - 160 * ei(q, 2), 430 + 130 * ei(q, 2), min(1, p_in * 2), 1.0, 0.0, RED)], fname='serif_black')   # [r4] 先在身前低位，冲近时升起迎面
             fr = T.compose(fr, L, **T.auto_style('red'))
         else:
-            fr = T.shatter_out(fr, '闯', cl((t - th) / 0.5), places=self.P, fname='serif_black', color='red', impact=(1060, 560), power=1.6, seed=7)
+            fr = T.shatter_out(fr, '闯', cl((t - th) / 0.5), places=self.P, fname='serif_black', color='red', impact=(1100, 560), power=1.6, seed=7)
         its = [('我', 250, 280, 120, 1.0, 'w'), ('偏', 250, 420, 120, 1.0, 'w'), ('要', 250, 600, 190, cp(t, O[45][7], 0.14), 'w')]
         fr = D.song(fr, its)
         fr = fr + impact(t, th, 0.08) * 0.8
@@ -1087,31 +1087,31 @@ class S23_Eye(Shot):
 
 
 class S24_Defy(Shot):
-    """大仰拍 CU：握刀的手自画底举刀指天（刀身纵贯画面、略斜），185.75 雷光劈中刀尖沿刃流下；冷雨迎面落向镜头；
-    右侧宋体「天不」+ 朱红巨字「判」（第三棒：不再露脸——换掉与 S11/S16 不一致的脸，改用手 + 刀）"""
+    """[r4] 大仰拍 CU（反向）：同一张脸（defy_up，与 S11 同一精灵但水平翻转、实拍质感、更近），他举刀指天、怒视风暴；
+    185.75 雷光劈中刀尖、沿刃流下照亮半张脸；冷雨迎面落向镜头；左上宋体「天不」+ 朱红巨字「判」（脸在右，字在左上不压脸）"""
     t0, t1 = 185.57, 186.5
     def __init__(self):
-        self.sp = D.spr('blade_up_cu')
+        self.sp = D.spr('defy_up_flip')      # defy_up 水平翻转
 
     def render(self, t):
         u = self.u(t)
         tl = 185.75
         fl = impact(t, tl, 0.1)
-        fr = D.night(t, 241, top=(0.06, 0.065, 0.09), bot=(0.02, 0.02, 0.03), glow=(760, 150, 520, (0.5, 0.55, 0.75), 0.35 + 1.0 * fl), clouds=0.8, drift=90)
-        fr = D.lightning(fr, t, tl, (1350, 120), (930, 160), seed=13, amt=1.6, branches=5)
-        rot = -10 + 4 * u
-        sc = D.fit_scale(self.sp, 1250)
-        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (860, 1180 - 30 * u), sc, rot=rot, expo=0.8 + 0.5 * fl, sat=0.6,
-                               rim=(0.75, 0.82, 1.0), rim_amt=3.5 + 5 * fl, rim_dir=(0.6, -0.8), wind=0, breathe=0.0)
-        Fw, A2 = D.warp(self.sp, t, D.feet(self.sp), (860, 1180 - 30 * u), sc, rot=rot, wind=0)
-        metal = A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.12) * np.clip((Fw.mean(-1) - 0.2) * 3, 0, 1)
-        if t > tl:   # 雷光沿刃从刀尖流下
-            fr = D.metal_sheen(fr, metal, np.ones_like(Aw), t - tl, (0, 0), 90 + rot, speed=1800, width=120, amt=3.0 * math.exp(-(t - tl) / 0.4))
+        fr = D.night(t, 241, top=(0.06, 0.065, 0.09), bot=(0.02, 0.02, 0.03), glow=(1150, 150, 560, (0.5, 0.55, 0.75), 0.35 + 1.0 * fl), clouds=0.8, drift=90)
+        fr = D.lightning(fr, t, tl, (1250, 120), (1000, 215), seed=13, amt=1.6, branches=5)
+        dst = (1180 + 20 * u, H - BAR + 100 - 24 * u)
+        sc = 0.70 + 0.04 * u
+        fr, Aw = D.real_figure(fr, self.sp, t, (0.55, 1.0), dst, sc, expo=0.8 + 0.6 * fl, sat=0.6,
+                               rim=(0.75, 0.82, 1.0), rim_amt=3.5 + 6 * fl, rim_dir=(0.6, -0.8), wind=6)
+        Fw, A2 = D.warp(self.sp, t, (0.55, 1.0), dst, sc, wind=0)
+        metal = A2 * ((Fw.max(-1) - Fw.min(-1)) < 0.10) * np.clip((Fw.mean(-1) - 0.3) * 3, 0, 1)
+        if t > tl:   # 雷光沿刃流下
+            fr = D.metal_sheen(fr, metal, np.ones_like(Aw), t - tl, (1300, 0), 70, speed=1500, width=140, amt=3.0 * math.exp(-(t - tl) / 0.4))
         fr = K.rain(fr, t, 24, n=600, amt=0.4, angle=4, length=(40, 120))
         tj = V(O[46][2])
-        its = [('天', 1430, 260, 150, 1.0, 'w'), ('不', 1430, 430, 150, cp(t, O[46][1], 0.14), 'w'), ('判', 1500, 700, 330, cp(t, O[46][2], 0.1), 'r')]
+        its = [('天', 330, 270, 150, 1.0, 'w'), ('不', 330, 440, 150, cp(t, O[46][1], 0.14), 'w'), ('判', 560, 690, 330, cp(t, O[46][2], 0.1), 'r')]
         fr = D.song(fr, its)
-        fr = fr + impact(t, tj, 0.08) * RED * 0.4
+        fr = fr * (1 + impact(t, tj, 0.05) * 0.35)
         z = 1.0 + 0.04 * u + 0.06 * impact(t, tj, 0.1)
         return shake_cam(fr, t, [tl, tj], 12, z=z), 0.0
 
@@ -1232,8 +1232,8 @@ class S27_Bullet(Shot):
                               rim=COLD, rim_amt=8.0, rim_dir=(-0.6, -0.8), wind=0, breathe=0.0)
         fr = D.droplets(fr, t, 272, n=40, orbit=-0.8 + 1.6 * u, focus=0.2)
         tk = V(O[47][0])
-        its = [('刀', 1440, 420, 380, cp(t, O[47][0], 0.12), 'r'), ('不', 1360, 770, 150, cp(t, O[47][1], 0.14), 'w'),
-               ('答', 1540, 770, 150, cp(t, O[47][2], 0.14), 'w')]
+        its = [('刀', 1460, 400, 380, cp(t, O[47][0], 0.12), 'r'), ('不', 1330, 760, 230, cp(t, O[47][1], 0.14), 'w'),
+               ('答', 1590, 795, 230, cp(t, O[47][2], 0.14), 'w')]     # [r4] 不答 放大到「刀」的 60%、错位
         fr = D.song(fr, its)
         if tk <= t < tk + 0.2:
             q = (t - tk) / 0.2
