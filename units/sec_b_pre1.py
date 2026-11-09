@@ -52,10 +52,10 @@ def ledger(seed, cols=13, size=46, x0=150, x1=1770, y0=150, y1=930, rule=(0.55, 
 class P01(Shot):
     def __init__(self):
         self.bg = ledger(201)
-        self.hand = spr('tsh_brush_hand')
+        self.hand = BK.spr_feather('tsh_brush_hand', left=0.10, right=0.18, bottom=0.32, keep_col=(0.60, 0.68))
         T.prepare_brush('谁配', 'cao', 250)
-        self.P = [dict(ch='谁', x=900, y=380, size=250, rot=-4, font='cao', idx=0, emph=False),
-                  dict(ch='配', x=930, y=660, size=250, rot=3, font='cao', idx=1, emph=False)]
+        self.P = [dict(ch='谁', x=640, y=420, size=260, rot=-4, font='cao', idx=0, emph=False),
+                  dict(ch='配', x=760, y=700, size=260, rot=3, font='cao', idx=1, emph=False)]
 
     def render(self, t):
         u = self.u(t)
@@ -65,23 +65,22 @@ class P01(Shot):
         light = np.exp(-(((x - 1400) / 900) ** 2 + ((y - 250) / 600) ** 2))
         fr = fr * (0.35 + 0.75 * light[..., None]) * np.array([1.0, 0.92, 0.80], np.float32)
         p0 = clamp01((t - 44.0) / 0.42); p1 = clamp01((t - (44.78 - 0.22)) / 0.42)
-        fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='cao', color=(0.62, 0.06, 0.04), splatter=True,
-                           style_kw=dict(shadow=0.15))
-        # 笔尖跟随正在写的字（笔锋在字心附近画小圈）
+        # 笔尖跟随正在写的字（笔锋在字心附近画小圈）；手在字的右上方，袖子渐隐进暗部
         k = 1 if p1 > 0 else 0
         pc = p1 if k else p0
         pp = self.P[k]
         ang = pc * 9.0
-        tip = (pp['x'] - 60 + 120 * pc + 40 * math.sin(ang), pp['y'] - 90 + 180 * pc + 30 * math.cos(ang * 1.3))
-        if pc >= 1 and k == 1: tip = (pp['x'] + 70, pp['y'] + 120 + 40 * (t - 45.0))
-        # 笔的阴影（落在纸上）
+        tip = (pp['x'] + 40 + 90 * pc + 30 * math.sin(ang), pp['y'] - 70 + 150 * pc + 25 * math.cos(ang * 1.3))
+        if pc >= 1 and k == 1: tip = (pp['x'] + 130, pp['y'] + 90 - 60 * (t - 45.0))
         sh = np.zeros((H // 4, W // 4), np.float32)
         cv2.line(sh, (int((tip[0] + 40) / 4), int((tip[1] + 30) / 4)), (int((tip[0] + 420) / 4), int((tip[1] - 900) / 4)), 1.0, 9, cv2.LINE_AA)
         sh = cv2.resize(cv2.GaussianBlur(sh, (0, 0), 6), (W, H))
         fr = fr * (1 - 0.45 * sh[..., None])
-        # 手：笔尖在精灵内约 (0.635, 0.94)（4K 生图里朱笔尖位置）
-        fr, _ = put_at(fr, self.hand, t, (0.638, 0.86), tip, 2300, grade=GR_WARM, rim=RIM_WARM, wind_amp=0, breathe=0.0,
+        # 手：笔尖在精灵内约 (0.638, 0.88)；镜像（手从右上入画，不挡字）
+        fr, _ = put_at(fr, self.hand, t, (0.638, 0.88), tip, 1500, grade=GR_WARM, rim=RIM_WARM, wind_amp=0, breathe=0.0,
                        shade=None, wrap=0.2)
+        fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='cao', color=(0.62, 0.06, 0.04), splatter=True,
+                           style_kw=dict(shadow=0.15))
         z = 1.0 + 0.08 * eio(u)
         fr = cam(fr, z, 0, 0, 2.0 * eio(u) - 1.0)
         # 入口：墨从黑中洇开成纸（接 A 组）
@@ -465,10 +464,13 @@ def type_block(ch, size=220, seed=0, face=(0.42, 0.42, 0.45), gold=0.0):
     ed = np.minimum(np.minimum(xx, s - xx), np.minimum(yy, s - yy))
     bev = np.clip(1 - ed / 14, 0, 1)
     rgb += (bev * ((xx < yy) * 0.25 - 0.1))[..., None]
-    g = T.glyph(ch, 'serif_black', int(s * 0.78), False)
+    g = T.glyph(ch, 'serif_black', int(s * 0.74), False)      # 方形画布 ≈1.5×size、字心居中 → 居中裁 s×s
     gh, gw = g.shape
-    gm = np.zeros((s, s), np.float32); y0 = (s - gh) // 2; x0 = (s - gw) // 2
-    gm[max(0, y0):max(0, y0) + min(gh, s), max(0, x0):max(0, x0) + min(gw, s)] = g[:min(gh, s), :min(gw, s)]
+    gm = np.zeros((s, s), np.float32)
+    if gh >= s:
+        o = (gh - s) // 2; gm[:] = g[o:o + s, o:o + s]
+    else:
+        o = (s - gh) // 2; gm[o:o + gh, o:o + gw] = g
     hl = np.clip(gm - np.roll(np.roll(gm, 3, 0), 3, 1), 0, 1)
     sd = np.clip(gm - np.roll(np.roll(gm, -3, 0), -3, 1), 0, 1)
     col = np.array(face, np.float32) * 1.6 * (1 - gold) + GOLD * 1.1 * gold
@@ -494,7 +496,7 @@ class P10(Shot):
     def __init__(self):
         r = np.random.default_rng(910)
         S = 230
-        canvas = np.zeros((1500, 2600, 3), np.float32) + 0.02; Am = np.zeros((1500, 2600), np.float32)
+        canvas = np.zeros((1500, 2800, 3), np.float32) + 0.02
         self.pos = {}
         for row in range(6):
             for col in range(11):
@@ -506,7 +508,7 @@ class P10(Shot):
                 canvas[cy - S // 2:cy + S // 2, cx - S // 2:cx + S // 2] = rgb * (1.0 if main else 0.75)
         self.canvas = canvas; self.S = S
         self.q = np.float32([[-300, -60], [2350, -160], [2050, 1240], [-80, 1180]])     # 斜俯透视
-        self.Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [2600, 0], [2600, 1500], [0, 1500]]), self.q)
+        self.Mq = cv2.getPerspectiveTransform(np.float32([[0, 0], [2800, 0], [2800, 1500], [0, 1500]]), self.q)
         self.blk = {c: type_block(c, S, seed=99 + i, gold=0.35) for i, c in enumerate('理所')}
         self.blade = tip_blade()
         T.warm('不信谁的', 'cao', 110)

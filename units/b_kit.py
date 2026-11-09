@@ -62,10 +62,61 @@ def shake(t, amp, freq=9.0, seed=0):
 GEN = ROOT + '/assets/gen/'
 
 
-def spr(name):
+_SPR = {}
+
+
+def defringe(sp, choke=0.12, band=7):
+    """去灰边（第二棒）：半透明边带的颜色换成内部颜色向外扩散（色彩去污染），alpha 收紧一点。
+    原地修改 SpriteLayer（F/A/ring），同一张精灵只做一次。"""
+    A = sp.A
+    core = (A > 0.92).astype(np.float32)
+    core = cv2.erode(core, np.ones((3, 3), np.uint8))
+    num = cv2.GaussianBlur(sp.F * core[..., None], (0, 0), band)
+    den = cv2.GaussianBlur(core, (0, 0), band)[..., None]
+    inner = num / np.clip(den, 1e-4, None)
+    edge = ((A < 0.97) & (den[..., 0] > 1e-3)).astype(np.float32)
+    edge = cv2.GaussianBlur(edge, (0, 0), 1.0)[..., None]
+    sp.F = (sp.F * (1 - edge) + np.minimum(sp.F, inner) * edge).astype(np.float32)
+    sp.A = np.clip((A - choke) / (1 - choke), 0, 1).astype(np.float32)
+    ring = sp.A - cv2.erode(sp.A, np.ones((5, 5), np.uint8))
+    sp.ring = cv2.GaussianBlur(np.clip(ring, 0, 1), (0, 0), 1.5)
+    return sp
+
+
+def spr(name, clean=True):
+    """B 组精灵（独立实例，不污染 SP.layer 共享缓存）；clean=True 时做 defringe 去灰边"""
+    key = (name, clean)
+    if key in _SPR: return _SPR[key]
     p = GEN + 'B_r4/' + name + '_cutd.png'
     if not os.path.exists(p): p = GEN + name + '_cut.png'
-    return SP.layer(p)
+    sp = SP.SpriteLayer(p)
+    if clean: defringe(sp)
+    _SPR[key] = sp
+    return sp
+
+
+def spr_feather(name, left=0.0, right=0.0, top=0.0, bottom=0.0, keep_col=None):
+    """满幅特写精灵（如 tsh_brush_hand）：靠画布边缘的部分渐隐进暗部，避免生图边框成硬边；
+    keep_col=(x0,x1) 归一化列范围在 bottom 渐隐里保留（例如笔杆）"""
+    key = ('feather', name, left, right, top, bottom, keep_col)
+    if key in _SPR: return _SPR[key]
+    p = GEN + 'B_r4/' + name + '_cutd.png'
+    sp = SP.SpriteLayer(p)
+    h, w = sp.A.shape
+    xx = np.linspace(0, 1, w, dtype=np.float32)[None]; yy = np.linspace(0, 1, h, dtype=np.float32)[:, None]
+    m = np.ones((h, w), np.float32)
+    if left: m *= sstep(0, left, xx)
+    if right: m *= sstep(1, 1 - right, xx)
+    if top: m *= sstep(0, top, yy)
+    if bottom:
+        mb = sstep(1, 1 - bottom, yy) * np.ones((1, w), np.float32)
+        if keep_col:
+            kc = sstep(keep_col[0] - 0.02, keep_col[0], xx) * sstep(keep_col[1] + 0.02, keep_col[1], xx)
+            mb = np.maximum(mb, kc * sstep(1.0, 0.96, yy))
+        m *= mb
+    sp.A = sp.A * m; sp.ring = sp.ring * m
+    _SPR[key] = sp
+    return sp
 
 
 GR_COLD = dict(expo=0.72, sat=0.55, tint=(0.90, 0.96, 1.06), lift=0.0, gamma=1.18)
