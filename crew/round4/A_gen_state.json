@@ -76,25 +76,28 @@
   "hand_draw_cu": [
    {
     "task_id": "49a0d5c7-2e13-4a72-ae61-b98252a88f68",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/hand_draw_cu_49a0d5c7_0.png",
+    "accepted": true
    }
   ],
   "blade_rain": [
    {
     "task_id": "706c1683-edaf-4751-8fdf-963922216203",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/blade_rain_706c1683_0.png",
+    "accepted": true
    }
   ],
   "back_walk": [
    {
     "task_id": "8582230b-fcfc-415f-9fb6-27836afb868f",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/back_walk_8582230b_0.png",
+    "accepted": true
    }
   ]
  }

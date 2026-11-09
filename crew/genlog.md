@@ -283,3 +283,5 @@
 | 11-09 03:03 | D组/defy_up | RH_image2 | 4K 16:9 | 0 | 2d3efba1-433d-419b-b964-cbf036a91437 | completed | d_cands/defy_up_try1_0.png | try1 |
 | 11-09 11:20 | E组/E21+E14T | RH_image2 | 4K 16:9 | 0 | 072fbf7f/98dabfbc | 采用 | assets/gen/E_r4/profile_up、low_stride | [E组] 两张 try1 均采用（recut_flat + 边缘带色差软化去发丝灰填充）；E 组累计 39 点 |
 | 11-09 03:04 | D组/defy_up | RH_image2 | 4K 16:9 | 0 | 2d3efba1-433d-419b-b964-cbf036a91437 | 采用 | assets/gen/D_bridge/defy_up_raw.png | try1 采用 |
+| 11-09 03:04 | A/hand_draw_cu | RH_image2 | 4K 16:9 | 0 | 49a0d5c7-2e13-4a72-ae61-b98252a88f68 | completed | /workspace/work/a_cands/hand_draw_cu_49a0d5c7_0.png | A组 候选 |
+| 11-09 03:05 | A/hand_draw_cu | RH_image2 | 4K 16:9 | 0 | 49a0d5c7-2e13-4a72-ae61-b98252a88f68 | 采用 | assets/gen/A/hand_draw_cu_raw.png | A组 采用 |
