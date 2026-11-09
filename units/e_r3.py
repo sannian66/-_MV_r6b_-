@@ -303,14 +303,14 @@ class Shreds:
         self.crin = cv2.resize(K.fbm(H // 2, W // 2, seed + 10, base=90, octaves=3), (W, H))
 
     def draw(self, fr, t, c=(W / 2, H / 2), f=900.0, to_cam=1.0, light=(0.3, -0.6, -0.75), paper=(0.93, 0.86, 0.70),
-             gold=(1.0, 0.78, 0.42), amt=1.0, dof=(1.0, 9.0), zfocus=1.4, emb=1.0, tint_back=(0.25, 0.18, 0.12)):
+             gold=(1.0, 0.78, 0.42), amt=1.0, dof=(1.0, 9.0), zfocus=1.4, emb=1.0, tint_back=(0.25, 0.18, 0.12), znear=0.15):
         lv = np.array(light, np.float32); lv /= np.linalg.norm(lv)
         layers = [np.zeros((H, W, 3), np.float32) for _ in range(3)]; alph = [np.zeros((H, W), np.float32) for _ in range(3)]
         ems = [np.zeros((H, W), np.float32) for _ in range(3)]
         items = []
         for p in self.P:
             z = p['z'] + p['vz'] * t * to_cam
-            if z < 0.15: continue
+            if z < znear: continue
             items.append((z, p, p['x'] + p['vx'] * t, p['y'] + p['vy'] * t, p['rx'] + p['wx'] * t, p['ry'] + p['wy'] * t, p['wz'] * t))
         items.sort(key=lambda q: -q[0])
         for (z, p, x, y, rx, ry, rz) in items:
@@ -335,7 +335,8 @@ class Shreds:
             if p['gold']:
                 cr = self.crin[y0:y1, x0:x1]
                 spec = np.clip(ndl * (0.6 + 0.8 * cr), 0, 1.4) ** 6
-                col = np.asarray(gold, np.float32) * ((0.3 + 0.5 * ndl) * (0.7 + 0.6 * cr) * grad)[..., None] + spec[..., None] * 1.4
+                col = np.asarray(gold, np.float32) * ((0.3 + 0.5 * ndl) * (0.7 + 0.6 * cr) * grad)[..., None] + spec[..., None] * (1.2 if z > 1.0 else 0.35)
+                col = np.minimum(col, 1.3 if z > 1.0 else 0.9)
             else:
                 base = np.asarray(paper, np.float32) * p['tone'] if front else np.asarray(paper, np.float32) * np.asarray(tint_back, np.float32) * 2.2
                 col = base * ((0.45 + 0.55 * ndl) * (0.8 + 0.35 * tx) * grad)[..., None]

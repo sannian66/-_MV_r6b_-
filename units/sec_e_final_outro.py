@@ -248,7 +248,7 @@ class E07(Shot):   # S116 LS（第三棒重做）挂轴缝后，太上皇本人�
         u = self.u(t)
         fr = E.sun_disc(self.sky.copy(), (980, 380), 110, amt=0.9)
         fr = fx2.god_rays(fr, (980, 380), strength=0.45, length=0.8, t=t)
-        rv = eio((t - 200.95) / 0.45)
+        rv = eio((t - 201.2) / 0.4)
         dx = 70 - 140 * eio(u)
         GE = dict(expo=1.0, sat=0.62, tint=(1.06, 0.99, 0.9), lift=0.02, gamma=1.0)
         if rv < 1:      # 帘后：太上皇本人，前侧受光，五官清楚
@@ -407,7 +407,7 @@ class E10(Shot):   # S119（第三棒重做）碎纸扑面：被斩碎的律令�
     def render(self, t):
         fr = self.bg.copy()
         q = (t - self.t0) * 0.45 + 0.6                                          # 慢放
-        fr = self.sh.draw(fr, q, light=(-0.5, -0.4, -0.75), dof=(2.5, 14.0), zfocus=1.3, emb=1.2, paper=(1.0, 0.84, 0.62))
+        fr = self.sh.draw(fr, q, light=(-0.5, -0.4, -0.75), dof=(2.5, 14.0), zfocus=1.3, emb=1.2, paper=(1.0, 0.84, 0.62), znear=0.55)
         fr = E.dust_motes(fr, t, 1191, n=80, amt=0.8, drift=(30, -80), col=(1.0, 0.55, 0.25), size=(1, 4))
         return bloom(fr, 0.8, 0.5)
 
@@ -851,7 +851,7 @@ class E24(Shot):   # S129b ECU 刃身满屏，寒光自柄扫到尖；巨字「�
     def __init__(self):
         self.bg = E.dawn_sky(1291, horizon=0.5, top=(0.06, 0.05, 0.04), mid=(0.25, 0.18, 0.1), hor=(0.6, 0.42, 0.22), cloud=0.3)
         self.l1 = Lyr([('刀', 1440, 520, 440, 'serif_black', REDT, CT(55, 2))], CT(55, 6) - 0.05, seed=190)
-        self.l2 = Sub('就是我', cts(55, [3, 4, 5]), 'left', CT(55, 6) - 0.05, seed=191)
+        self.l2 = Sub('就是我', cts(55, [3, 4, 5]), 330, CT(55, 6) - 0.05, seed=191)
 
     def render(self, t):
         u = self.u(t)
