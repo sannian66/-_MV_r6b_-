@@ -913,10 +913,13 @@ class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他
         xs = np.where(A[r])[0]
         self.cal = dict(y=r - dy, x0=int(xs[0]), x1=int(xs[-1]))
         ch = '我来量'; ts = [CT(54, 3), CT(54, 4), CT(54, 5)]
-        cx = [960 - 130, 960, 960 + 130]   # 双手之间的刀身段
-        self.eng = Lyr([(c, cx[i], self.cal['y'] + 1, 30, 'serif_b', GOLD_T if i < 2 else REDT, ts[i]) for i, c in enumerate(ch)],
-                       CT(55, 0) - 0.1, seed=170, glow=1.1, shadow=0.0, direction=(1.0, 0.0))
-        self.big = Sub('我来量', ts, 'right', CT(55, 0) - 0.1, red='量', seed=171)
+        # 第五棒：刻刀字放大可读（≥60px）。我/来 金色内发光刻痕坐在刀身上（墨描边，亮日上也读得出），量 朱红大字落在刀尖
+        y = self.cal['y']; x0, x1 = self.cal['x0'], self.cal['x1']
+        self.chx = [x0 + 0.27 * (x1 - x0), x0 + 0.47 * (x1 - x0), x1 - 0.05 * (x1 - x0)]
+        self.eng = LyrO([('我', self.chx[0], y + 56, 78, 'serif_black', GOLD_T, ts[0]), ('来', self.chx[1], y + 56, 78, 'serif_black', GOLD_T, ts[1]),
+                         ('量', self.chx[2], y + 84, 132, 'serif_black', REDT, ts[2])],
+                        CT(55, 0) - 0.1, seed=170, outline=5, glow=0.9, shadow=0.6, direction=(1.0, 0.0))
+        self.ts = ts                                                       # 底部重复副句去掉（刀上的字已成立）
 
     def render(self, t):
         u = self.u(t); dy = -20 * u
@@ -935,12 +938,15 @@ class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他
         span = sstep(self.cal['x0'] + 20, self.cal['x0'] + 120, xx) * (1 - sstep(self.cal['x1'] - 120, self.cal['x1'] - 10, xx))
         edge = np.exp(-((yy - (by - 9)) / 1.6) ** 2) * span * (0.5 + 0.5 * np.exp(-((xx - 960) / 260) ** 2))
         fr = fr + edge[..., None] * GOLDW * 1.4
+        # 刀身高光自左扫到右：每个字落下的时刻扫到该字位置（刻痕被光点亮）
+        kx = np.interp(t, [self.t0, self.ts[1], self.ts[2], self.t1], [self.cal['x0'], self.chx[1], self.chx[2], self.cal['x1'] + 60])
+        sw = np.exp(-((xx - kx) / 70) ** 2) * np.exp(-((yy - (by - 6)) / 7) ** 2) * span
+        fr = fr + sw[..., None] * GOLDW * 2.2 + cv2.GaussianBlur(sw, (0, 0), 14)[..., None] * GOLDW * 1.2
         self.by = by
         return bloom(fr, 0.8, 0.5)
 
     def text(self, fr, t):
-        fr = self.eng.draw(fr, t, dy=getattr(self, 'by', self.cal['y']) - self.cal['y'] if self.cal else 0)
-        return self.big.draw(fr, t)
+        return self.eng.draw(fr, t, dy=getattr(self, 'by', self.cal['y']) - self.cal['y'] if self.cal else 0)
 
 
 class E23(Shot):   # S129 MCU 后撤蓄力，速度坡度推近（吸气）
