@@ -85,3 +85,30 @@ def dawn_warm(fr, amt=0.5, hi=(1.10, 0.98, 0.80), lo=(0.96, 0.98, 1.04)):
     w = L ** 0.8
     tint = np.asarray(lo, np.float32) * (1 - w) + np.asarray(hi, np.float32) * w
     return fr * (1 + (tint - 1) * amt)
+
+
+# ------------------------------------------------------------------ 第五棒：副句去模板化
+import e_r3 as _R3
+
+
+class SubD(_R3.Sub):
+    """副句（第五棒）：不再钉死在下三分之一 —— 跟着画面漂（风向：left 档向左上、right 档向右上、center 上浮），
+    逐字带一点错位下落感；暗衬变淡、句首小朱印去掉（只在 seal=True 时保留），读起来不像卡拉 OK 条。"""
+    def __init__(self, text, times, side='right', t_out=None, drift=None, seal=False, **kw):
+        super().__init__(text, times, side, t_out, **kw)
+        if drift is None:
+            drift = {'left': (-30, -14), 'right': (30, -14), 'center': (0, -20)}.get(side, (0, -16)) if isinstance(side, str) else (0, -16)
+        self.dv = drift; self.seal_on = seal
+
+    def draw(self, fr, t, dx=0.0, dy=0.0):
+        v = self.vis(t)
+        if v <= 0: return fr
+        q = t - (self.t0 - 0.25)
+        dx = dx + self.dv[0] * q + 4 * math.sin(q * 2.3); dy = dy + self.dv[1] * q
+        x0, y0, x1, y1 = self.box
+        fr = _R3.plate(fr, x0 + dx, y0 + dy, x1 + dx, y1 + dy, 0.32 * v, feather=50)
+        if self.seal_on:
+            sx, sy = self.seal; s = 11
+            cv2.rectangle(fr, (int(sx - s + dx), int(sy - s + dy)), (int(sx + s + dx), int(sy + s + dy)),
+                          tuple(float(c * v) for c in _R3.REDT), -1, cv2.LINE_AA)
+        return self.l.draw(fr, t, dx=dx, dy=dy)

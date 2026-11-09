@@ -17,7 +17,8 @@ import rest_sprites as RS
 import e_kit as E
 import e_r3 as R3
 import e_r5 as R5
-from e_r3 import Sub, LyrO
+from e_r3 import LyrO
+Sub = R5.SubD          # 第五棒：副句随画面漂移、去句首朱印、暗衬变淡（去卡拉 OK 条模板感）
 from e_kit import (W, H, BAR, GOLD, GOLDW, RED, REDT, WHITE_T, GOLD_T, INK, put, Lyr, row, sstep, c01, eio, eout, ein,
                    G_DAWN, G_HOT, G_SIL)
 

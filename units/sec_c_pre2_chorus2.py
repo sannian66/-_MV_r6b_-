@@ -1130,15 +1130,23 @@ class C24(Shot):
         fr, _ = self.wall.draw(fr, t, x0=-400 - ox * 0.9, y0=BAR - 40, x1=3600 - ox * 0.9, y1=960, tilt=0.0, light_color=WARM, rim=0.5)
         fr = fr * 0.7
         x = 1250 - 80 * u; y = 990
-        tip = (x - 330, y - 140)
-        # 火星长线（墙面上灼痕：从屏幕左侧到刀尖）
+        tip = (x + 370, y - 158)      # 第五棒：火星对准拖在身后的真实刀尖（原来在身前，刀尖与火星脱节）
+        # 火星长线（墙面上灼痕：从刀尖拖向他跑来的右侧画外）
         G = np.zeros((H // 2, W // 2), np.float32)
-        cv2.line(G, (0, int((tip[1] + 30) / 2)), (int(tip[0] / 2), int(tip[1] / 2)), 1.0, 2, cv2.LINE_AA)
+        cv2.line(G, (int(tip[0] / 2), int(tip[1] / 2)), (W // 2, int((tip[1] - 30) / 2)), 1.0, 2, cv2.LINE_AA)
         Gs = cv2.resize(G + cv2.GaussianBlur(G, (0, 0), 6) * 2.5, (W, H))
         fr = fr + Gs[..., None] * np.array([1.0, 0.5, 0.18], np.float32) * 0.9
-        fr = sparks(fr, t, 241, tip, n=160, life=0.5, speed=(300, 1100), dirc=(-1, -0.4), spread=0.5, grav=1500, amt=1.4)
-        fr, _ = put(fr, t, 'S078/run', x, y + 8 * abs(math.sin(t * 9)), 640, rim=WARM, rim_amt=2.0, rim_dir=(-1, -0.3), expo=0.9, wind=10,
-                    mblur=(-18, 0))
+        fr = sparks(fr, t, 241, tip, n=160, life=0.5, speed=(300, 1100), dirc=(1, -0.4), spread=0.5, grav=1500, amt=1.4)
+        # 第五棒（评审 P0「主角半透明」）：主体实体 alpha=1、无整体运动模糊；残影只在运动尾部 2 层 15%/8%；补地面接触阴影 + 火星照亮衣摆
+        yb = y + 8 * abs(math.sin(t * 9))
+        sh = np.zeros((H // 4, W // 4), np.float32)
+        cv2.ellipse(sh, (int(x / 4), int((y + 4) / 4)), (60, 7), 0, 0, 360, 1.0, -1)
+        fr = fr * (1 - 0.75 * cv2.resize(cv2.GaussianBlur(sh, (0, 0), 4), (W, H))[..., None])
+        for gk, ga in ((2, 0.08), (1, 0.15)):
+            fr, _ = put(fr, t - 0.03 * gk, 'S078/run', x + 55 * gk, yb, 640, rim=WARM, rim_amt=1.0, rim_dir=(-1, -0.3), expo=0.6, wind=10,
+                        alpha=ga, mblur=(-14, 0))
+        fr, _ = put(fr, t, 'S078/run', x, yb, 640, rim=WARM, rim_amt=2.6, rim_dir=(-1, -0.3), expo=1.05, wind=10, alpha=1.0, wrap=0.15)
+        fr = K.vol_light(fr, (tip[0] - 160, tip[1] + 30), 260, (1.0, 0.55, 0.22), 0.35)      # 火星照亮衣摆
         fr = K.vol_light(fr, tip, 160, (1.0, 0.5, 0.2), 0.6)
         fr = rain(fr, t, 240, inten=0.9, angle=-6, cam=(ox, 0))
         return fr

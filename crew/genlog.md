@@ -334,3 +334,10 @@
 | 11-09 04:01 | B组/slash_up | RH_image2 | 4K 16:9 | 0 | c627a5c3-ae4c-4b75-ac84-72cbab0afb69 | completed | b_cands/slash_up_try1_0.png | try1 |
 | 11-09 04:01 | D组/sword_planted | RH_image2 | 4K 16:9 | 3 | 531053a4-6467-4204-9efa-c104351ffe61 | submitted | - | try1 ONLY THE SWORD, NO PERSON in the image: his long single-edge |
 | 11-09 04:01 | D组/raise_low | RH_image2 | 4K 16:9 | 3 | 2a80c463-976d-439d-989b-079e53b8125d | submitted | - | try1 full body seen from a very LOW worm-eye angle from in front  |
+| 11-09 04:01 | B组/hand_hilt | RH_image2 | 4K 16:9 | 0 | f96ca8bf-3c6c-48c0-8c75-da5367c32c70 | completed | b_cands/hand_hilt_try1_0.png | try1 |
+| 11-09 04:01 | B组/raise_blade | RH_image2 | 4K 16:9 | 0 | c56546b6-a03e-4ca6-8d16-7cb77093ecb4 | completed | b_cands/raise_blade_try1_0.png | try1 |
+| 11-09 04:01 | B组/look_down | RH_image2 | 4K 16:9 | 0 | 3f212911-10a6-46de-bda3-94d6beb0300b | completed | b_cands/look_down_try1_0.png | try1 |
+| 11-09 04:01 | B组/effigy | RH_image2 | 4K 16:9 | 0 | 1289952f-12d9-4d4c-86d2-6570f480c7b9 | completed | b_cands/effigy_try1_0.png | try1 |
+| 11-09 04:01 | C组/c07_chin | RH_image2 | 4K 16:9 | 0 | 897ea9cb-63f8-4027-afda-fdd019197966 | completed | /workspace/work/c_cands5/c07_chin_try1_0.png | [C组] 第五棒 try1 |
+| 11-09 04:01 | B组/effigy_fall | RH_image2 | 4K 16:9 | 0 | a45a9de8-d319-4222-ac4a-968fc4250e21 | completed | b_cands/effigy_fall_try1_0.png | try1 |
+| 11-09 04:01 | C组/c08_eyes | RH_image2 | 4K 16:9 | 0 | 1e9e2e9d-ae98-4dba-9ee4-474a4027807b | completed | /workspace/work/c_cands5/c08_eyes_try1_0.png | [C组] 第五棒 try1 |

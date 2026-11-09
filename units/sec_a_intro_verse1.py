@@ -838,85 +838,119 @@ class V09(Shot):
         return fr, 0
 
 
-# V10 27.10–28.93 ECU 左秤盘边缘：小人滑落，红绳垂下滴朱墨；28.48 墨滴落地 →「称量」晕开
+# V10 27.10–28.93 LS 低机位·人在秤盘里（第五棒重做，评审 P0：原纸人像占位素材、缺「里」）：
+#     巨大青铜秤盘占下半屏，鬼屠单膝跪在盘中（kneel_pan 精灵，盘沿以下被盘壁挡住），两根铜链自盘沿升出画外；
+#     顶上天平金光（主光，体积光束）+ 背后冷雨轮廓光；雨打盘沿溅水；27.66「里」铸文在盘壁上金光灌注亮起；
+#     链上一滴朱墨落到盘沿 28.10 溅开 →「称」「量」朱墨在盘壁上晕开。盘体随链轻摆。
 class V10(Shot):
-    """ECU 左秤盘边缘（金色盘沿弧线占画面上部）：纸人小剪影沿盘沿滑落，盘下红绳垂直滴朱墨；28.48 落入墨池 →「称量」晕开"""
     def __init__(self):
-        T.warm('称量', 'kai', 190)
-        r = np.random.default_rng(10)
-        self.ppl = [(r.uniform(300, 1500), r.uniform(0.7, 1.2), r.uniform(-20, 20)) for _ in range(26)]
+        T.warm('里', 'kai', 240); T.warm('称量', 'kai', 180)
+        self.tex = cv2.resize(A.tex(101, 512, 5, 6), (W, H)); self.tex2 = cv2.resize(A.tex(103, 512, 40, 3), (W, H))
+        self.CX, self.CY, self.AX, self.AY, self.DEP = 960, 600, 1060, 96, 560
+    def bowl(self, sway):
+        cx, cy, ax, ay, dep = self.CX + sway, self.CY, self.AX, self.AY, self.DEP
+        inner = np.zeros((H, W), np.float32); wall = np.zeros((H, W), np.float32)
+        cv2.ellipse(inner, (int(cx), cy), (ax, ay), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+        cv2.ellipse(wall, (int(cx), cy), (ax, dep), 0, 0, 180, 1.0, -1, cv2.LINE_AA)
+        wall = np.clip(wall - inner * (np.arange(H)[:, None] < cy), 0, 1)
+        wall = np.clip(wall - inner, 0, 1)
+        rimB = np.zeros((H, W), np.float32); rimF = np.zeros((H, W), np.float32)
+        cv2.ellipse(rimB, (int(cx), cy), (ax, ay), 0, 180, 360, 1.0, 6, cv2.LINE_AA)
+        cv2.ellipse(rimF, (int(cx), cy), (ax, ay), 0, 0, 180, 1.0, 9, cv2.LINE_AA)
+        return inner, wall, rimB, rimF
     def render(self, t):
-        u = self.u(t); td = CT(3, 10)
-        fr = night((0.008, 0.008, 0.012), (0.025, 0.022, 0.024))
-        fr = A.glow(fr, (1350, 260), 520, 0.22, (0.9, 0.75, 0.5))
-        fr = fog(fr, t, 2, 500, 860, 0.35, (0.16, 0.12, 0.10), speed=(-25, 0))
-        # 盘：青铜盘底（噪声铜锈 + 同心刻纹 + 盘沿金色高光随运镜滑动）
-        q = 2; Lm = np.zeros((H // q, W // q), np.float32); Le = np.zeros_like(Lm)
-        c = (int(900 / q), int(-60 / q)); ax = (int(1250 / q), int(560 / q))
-        cv2.ellipse(Lm, c, ax, 0, 0, 180, 1.0, -1, cv2.LINE_AA)
-        cv2.ellipse(Le, c, ax, 0, 0, 180, 1.0, 4, cv2.LINE_AA)
-        yy2, xx2 = np.mgrid[0:H // q, 0:W // q].astype(np.float32)
-        rr = np.hypot((xx2 - c[0]) / ax[0], (yy2 - c[1]) / ax[1])
-        rings = 0.5 + 0.5 * np.sin(rr * 90) ** 8
-        nz = cv2.resize(A.tex(101, 512, 5, 6), (W // q, H // q))
-        spec = np.exp(-((xx2 * q - (700 + 500 * u)) / 260) ** 2) * np.clip(rr - 0.7, 0, 1) * 3
-        bronze = (0.35 + 0.9 * nz)[..., None] * np.array([0.22, 0.15, 0.07], np.float32) * (0.7 + 0.3 * rings[..., None]) \
-                 + spec[..., None] * np.array([0.5, 0.36, 0.16], np.float32)
-        verd = np.clip((nz - 0.62) * 4, 0, 1)[..., None] * np.array([0.02, 0.06, 0.05], np.float32)
-        Lm3 = cv2.resize(Lm, (W, H))[..., None]
-        fr = fr * (1 - Lm3) + cv2.resize(bronze + verd, (W, H)) * Lm3
-        Le = cv2.resize(Le, (W, H))
-        fr = fr + (Le * 1.0 + cv2.GaussianBlur(Le, (0, 0), 10) * 0.8)[..., None] * GOLDV * (0.6 + 0.6 * cv2.resize(spec, (W, H))[..., None] + 0.3)
-        # 纸人：剪纸人形（头、肩、垂袖、袍摆），沿盘沿排开，每三个一个失足滑落翻滚（带拖影）
-        Lp = np.zeros((H, W), np.float32)
-        body = np.array([(0, -1.0), (-0.07, -0.97), (-0.09, -0.86), (-0.06, -0.80), (-0.22, -0.74), (-0.30, -0.40), (-0.24, -0.38),
-                         (-0.20, -0.62), (-0.18, -0.30), (-0.30, 0), (0.30, 0), (0.18, -0.30), (0.20, -0.62), (0.24, -0.38), (0.30, -0.40),
-                         (0.22, -0.74), (0.06, -0.80), (0.09, -0.86), (0.07, -0.97)])
-        for i, (x, s_, a0) in enumerate(self.ppl):
-            yr = -60 + 560 * math.sqrt(max(0.0, 1 - ((x - 900) / 1250) ** 2))
-            tf = self.t0 + 0.10 * i
-            falling = i % 3 == 0
-            for gst in ((0.0, 1.0), (0.04, 0.35), (0.08, 0.15)) if falling else ((0.0, 1.0),):
-                fall = max(0.0, t - tf - gst[0]) if falling else 0.0
-                y = yr + 520 * fall ** 2; ang = a0 + 260 * fall
-                hh = 92 * s_
-                th = math.radians(ang); Rm = np.array([[math.cos(th), -math.sin(th)], [math.sin(th), math.cos(th)]])
-                P = (body * hh @ Rm.T + [x + 60 * fall, y + 2]).astype(np.int32)
-                tmp = np.zeros_like(Lp); cv2.fillPoly(tmp, [P], gst[1], cv2.LINE_AA)
-                Lp = np.maximum(Lp, tmp)
-        Lp = cv2.GaussianBlur(Lp, (0, 0), 0.8)
-        paper = (0.70 + 0.3 * cv2.resize(A.tex(102, 256, 10, 4), (W, H)))[..., None] * np.array([0.80, 0.74, 0.62], np.float32)
-        lit = np.clip(Lp - cv2.warpAffine(Lp, np.float32([[1, 0, -3], [0, 1, 3]]), (W, H)), 0, 1)[..., None]
-        fr = fr * (1 - Lp[..., None]) + Lp[..., None] * paper * 0.45 + lit * GOLDV * 0.5
-        # 红绳 + 朱墨滴（先在绳端胀大，再拉长坠落）
-        rx = 960 - 50 * u
-        cv2.line(fr, (int(rx), 480), (int(rx), 640), (0.55, 0.05, 0.04), 4, cv2.LINE_AA)
-        fr = A.glow(fr, (rx, 570), 30, 0.15, (0.8, 0.1, 0.05), aspect=0.2)
-        qd = clamp01((t - (td - 0.40)) / 0.40)
+        u = self.u(t); tl = CT(3, 8); td = V(28.10)
+        sway = 18 * math.sin(t * 2.1)
+        fr = night((0.035, 0.026, 0.016), (0.012, 0.012, 0.016))
+        fr = A.glow(fr, (960, -60), 760, 0.55, (1.0, 0.74, 0.40))                      # 顶上天平金光（主光）
+        fr = fx2.god_rays(fr, (960, -40), strength=0.45, length=1.0, color=(1.0, 0.78, 0.45), t=t, src_r=200)
+        fr = RAIN.draw(fr, t, 0.8, angle=6, light=(960, 0), layers=(0, 1))
+        fr = fog(fr, t, 2, 380, 760, 0.35, (0.20, 0.16, 0.12), speed=(-40, 0), light=(960, 0))
+        # 铜链：自盘沿两侧升出画外（链环交替正/侧）
+        for side in (-1, 1):
+            x0_, y0_ = self.CX + sway + side * (self.AX - 40), self.CY - 10
+            x1_, y1_ = 960 + side * 260 + sway * 0.3, -120
+            n = 22
+            for k in range(n):
+                a_ = k / n; x = x0_ + (x1_ - x0_) * a_; y = y0_ + (y1_ - y0_) * a_
+                ang = math.degrees(math.atan2(y1_ - y0_, x1_ - x0_))
+                if k % 2 == 0:
+                    cv2.ellipse(fr, (int(x), int(y)), (18, 9), ang, 0, 360, (0.30, 0.20, 0.08), 4, cv2.LINE_AA)
+                else:
+                    cv2.ellipse(fr, (int(x), int(y)), (18, 3), ang, 0, 360, (0.45, 0.32, 0.14), 4, cv2.LINE_AA)
+            fr = A.glow(fr, ((x0_ + x1_) / 2, (y0_ + y1_) / 2), 160, 0.06, (1.0, 0.7, 0.35), aspect=0.4)
+        inner, wall, rimB, rimF = self.bowl(sway)
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        # 盘内：暗铜 + 积水反光
+        inn = (0.5 + 0.6 * self.tex)[..., None] * np.array([0.05, 0.035, 0.018], np.float32)
+        fr = fr * (1 - inner[..., None]) + inn * inner[..., None]
+        fr = fr + (rimB * 1.0 + cv2.GaussianBlur(rimB, (0, 0), 6) * 0.6)[..., None] * np.array([1.0, 0.72, 0.36], np.float32) * 0.8
+        # 人：单膝跪在盘中，盘沿以下被盘壁挡住
+        fr, info = A.place(fr, t, S('A/kneel_pan'), (930 + sway, 1030 + 6 * math.sin(t * 2.1 + 0.6)), h=820 * (1 + 0.02 * u), rim=COLD,
+                           rim_amt=3.2, rim_dir=(0.5, -0.85), wind=9, grade=dict(expo=0.80, sat=0.5, gamma=1.12, tint=(1.03, 1.0, 0.96)))
+        fr = A.glow(fr, (930 + sway, 300), 260, 0.10, (1.0, 0.72, 0.4))
+        # 盘壁：青铜（铸纹环带 + 铜锈 + 随摆动滑过的镜面高光）
+        rr = (yy - self.CY) / self.DEP
+        rings = 0.55 + 0.45 * (np.sin(rr * 46) ** 12)
+        spec = np.exp(-((xx - (520 + 900 * u + 3 * sway)) / 220) ** 2) * np.clip(1 - rr * 1.4, 0, 1)
+        bronze = ((0.45 + 0.8 * self.tex) * rings * (1.0 - 0.75 * np.clip(rr, 0, 1)))[..., None] * np.array([0.20, 0.13, 0.06], np.float32)
+        bronze = bronze + spec[..., None] * np.array([0.65, 0.46, 0.22], np.float32)
+        bronze = bronze + np.clip((self.tex - 0.64) * 4, 0, 1)[..., None] * np.array([0.02, 0.07, 0.06], np.float32)
+        wet = (np.clip(np.sin(xx / 17 + self.tex2 * 9) * 0.5 + 0.5, 0, 1) ** 10)[..., None] * np.array([0.10, 0.10, 0.12], np.float32)
+        fr = fr * (1 - wall[..., None]) + (bronze + wet) * wall[..., None]
+        # 「里」：铸文金光灌注（27.66）——先暗刻槽，再自下而上灌满熔金
+        a_l = t - tl
+        G = T.Layer()
+        gp = clamp01((t - (tl - 0.12)) / 0.3)
+        if gp > 0:
+            g = T.glyph('里', 'kai', 240)
+            gx, gy = 640 + sway, 810
+            h_, w_ = g.shape
+            fill = np.clip((np.arange(h_)[:, None] - h_ * (1 - eout(clamp01(a_l / 0.35)))) / 6, 0, 1) if a_l > 0 else np.zeros((h_, 1))
+            groove = g * gp
+            Lg = np.zeros((H, W), np.float32); Lf = np.zeros((H, W), np.float32)
+            ys, xs = int(gy - h_ / 2), int(gx - w_ / 2)
+            Lg[ys:ys + h_, xs:xs + w_] = groove; Lf[ys:ys + h_, xs:xs + w_] = g * fill
+            sh = np.clip(Lg - cv2.warpAffine(Lg, np.float32([[1, 0, 4], [0, 1, 5]]), (W, H)), 0, 1)
+            fr = fr * (1 - 0.8 * Lg[..., None]) + Lg[..., None] * 0.01
+            fr = fr * (1 - 0.5 * sh[..., None])
+            hot = (Lf * 2.2 + cv2.GaussianBlur(Lf, (0, 0), 10) * 1.2 + cv2.GaussianBlur(Lf, (0, 0), 40) * 0.5)
+            fr = fr + hot[..., None] * np.array([1.0, 0.70, 0.30], np.float32) * (1.0 + 0.8 * math.exp(-max(0, a_l) / 0.2))
+            if 0 <= a_l < 0.5:
+                fr = K.sparks(fr, t, 271, (gx, gy + 100), n=50, life=0.6, speed=(150, 500), dirc=(0, -1), spread=1.4, grav=700,
+                              area=(100, 10), amt=0.7, t0=tl, burst=True, color=(1.0, 0.75, 0.4))
+        # 盘沿（前沿金线）+ 雨溅
+        fr = fr + (rimF * 1.4 + cv2.GaussianBlur(rimF, (0, 0), 8) * 0.8)[..., None] * np.array([1.0, 0.76, 0.40], np.float32) * (0.75 + 0.5 * spec[self.CY + self.AY - 4][None, :, None] if False else 0.9)
+        for k in range(7):
+            ts_ = self.t0 + 0.22 * k + 0.05
+            sx = 260 + 230 * k + sway
+            ex = (sx - self.CX - sway) / self.AX
+            sy = self.CY + self.AY * math.sqrt(max(0, 1 - ex * ex))
+            fr = K.sparks(fr, t, 300 + k, (sx, sy), n=14, life=0.35, speed=(120, 320), dirc=(0, -1), spread=1.6, grav=1500, area=(30, 4),
+                          amt=0.5, t0=ts_, burst=True, color=(0.75, 0.82, 0.95))
+        # 朱墨滴：自右链落下，28.10 打在盘沿溅开 →「称」「量」朱墨在盘壁晕开
+        rx = 1380 + sway
         if t < td:
-            grow = clamp01((t - self.t0) / max(0.1, td - 0.4 - self.t0))
-            yd = 648 + (870 - 648) * qd ** 2
-            fr = A.glow(fr, (rx, yd), 7 + 6 * grow, 1.6, (0.80, 0.06, 0.04), aspect=1 - 0.5 * qd)
+            q = clamp01((t - (td - 0.45)) / 0.45)
+            yd = 160 + (self.CY + 60 - 160) * q ** 2
+            grow = clamp01((t - self.t0) / 0.5)
+            fr = A.glow(fr, (rx, yd), 6 + 6 * grow, 1.5, (0.80, 0.06, 0.04), aspect=1 - 0.5 * q)
             fr = A.glow(fr, (rx - 3, yd - 4), 3, 0.8, (1.0, 0.7, 0.6))
-        # 墨池：镜面倒影（盘沿金线 + 纸人倒影，水波扰动）
-        yy = np.arange(H, dtype=np.float32)[:, None, None]
-        pool = np.clip((yy - 860) / 14, 0, 1)
-        n = H - 860
-        refl = cv2.flip(fr[860 - n:860], 0)
-        ph = np.sin(np.arange(n, dtype=np.float32)[:, None] / 5 + t * 10) * 5
-        mx = (np.arange(W, dtype=np.float32)[None] + ph).astype(np.float32); my = np.repeat(np.arange(n, dtype=np.float32)[:, None], W, 1)
-        refl = cv2.remap(refl, mx, my, cv2.INTER_LINEAR)
-        fr[860:] = fr[860:] * (1 - pool[860:]) + (refl * 0.5 * np.array([1.0, 0.8, 0.75], np.float32) + 0.004) * pool[860:]
-        a = t - td
-        if a >= 0:
-            fr = fx2.ripples(fr, t, [(rx, 890)], [td], color=(0.75, 0.12, 0.07), speed=420, amt=1.0, life=1.4)
-            fr = fr * (1 + 0.3 * math.exp(-a / 0.1))
+        else:
+            a = t - td
+            fr = K.sparks(fr, t, 281, (rx, self.CY + 70), n=50, life=0.5, speed=(150, 600), dirc=(0, -1), spread=1.5, grav=1500,
+                          area=(30, 6), amt=0.9, t0=td, burst=True, color=(0.85, 0.08, 0.05))
+            run = clamp01(a / 0.8)
+            Lr = np.zeros((H, W), np.float32)
+            cv2.line(Lr, (int(rx), self.CY + 70), (int(rx + 6), int(self.CY + 70 + 200 * run)), 1.0, 5, cv2.LINE_AA)
+            fr = fr * (1 - 0.8 * Lr[..., None] * wall[..., None]) + (Lr * wall)[..., None] * np.array([0.55, 0.04, 0.03], np.float32)
         L = T.Layer()
         for i, (ch, k) in enumerate((('称', 9), ('量', 10))):
             p = clamp01((t - (CT(3, k) - 0.12)) / 0.4)
-            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 190, p, seed=9 + i, bleed=1.0), rx - 160 + 320 * i, 750, (0.82, 0.08, 0.06))
-        fr = T.compose(fr, L, shadow=0.6, glow=0.4, glow_color=(0.9, 0.12, 0.06))
-        return fr, (3 if 0 <= a < 0.08 else 0)
+            if p > 0: L.paste(T.ink_bleed_glyph(ch, 'kai', 180, p, seed=9 + i, bleed=1.0), 1240 + 250 * i + sway, 810, (0.82, 0.08, 0.06))
+        fr = T.compose(fr, L, shadow=0.5, glow=0.35, glow_color=(0.9, 0.12, 0.06))
+        fr = RAIN.draw(fr, t, 0.7, angle=6, layers=(2,))
+        return fr, (3 if 0 <= a_l < 0.08 else 0)
 
 
 # V11 28.93–29.86 ECU 刀身当面（blade_face 精灵，第二棒替换单眼重复）：竖刀把脸劈成两半，两侧各一只眼；
@@ -1384,7 +1418,7 @@ MOVES3 = {
     'V07': M3('sine_io', 'beat', y=(60, -40), pitch=(-6, 0), note='摇臂升 crane up'),
     'V08': M3('sine_io', 'beat', z=(1.0, 1.06), note='推'),
     'V09': M3('sine_io', 'beat', yaw=(-12, 8), z=(1.0, 1.06), note='环绕 orbit'),
-    'V10': M3('sine_io', 'beat', y=(-40, 50), z=(1.0, 1.05), note='下摇跟墨滴'),
+    'V10': M3('sine_io', 'beat', y=(30, -30), z=(1.0, 1.07), note='第五棒：低机位缓推 + 微升'),
     'V11': M3('sine_io', None, z=(1.0, 1.06), note='极慢推'),
     'V12': M3('sine_io', 'beat', x=(-50, 40), rot=(-2, 1), note='手持 + 横移'),
     'V13': M3('sine_io', 'beat', x=(40, -40), z=(1.04, 1.0), note='反向横移 + 拉'),
