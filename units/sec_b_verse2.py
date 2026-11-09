@@ -1093,7 +1093,7 @@ class V20(Shot):
     def __init__(self):
         self.sp = spr('back_stand')
         x, y = K.grid()
-        sk = night_sky(6501, top=(0.10, 0.11, 0.13), bot=(0.03, 0.035, 0.045), horizon=1.0)     # 倒影里的天（倒置：亮在下）
+        sk = night_sky(6501, top=(0.24, 0.25, 0.29), bot=(0.05, 0.055, 0.07), horizon=1.0)   # 第四棒：倒影天提亮，人物剪影读得出     # 倒影里的天（倒置：亮在下）
         self.sky = sk[::-1].copy()
         mud = (0.015 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6502, 9, 6), (W, H)))[..., None] * np.ones(3, np.float32)
         nz = cv2.resize(K.fbm(H // 8, W // 8, 6503, 3, 4), (W, H))
@@ -1107,7 +1107,7 @@ class V20(Shot):
     def scene(self, t):
         x, y = K.grid()
         refl = self.sky.copy()
-        refl, _ = put(refl, self.sp, t, 720, (640, 900), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
+        refl, _ = put(refl, self.sp, t, 780, (700, 920), look=None, rim=dict(col=(0.75, 0.85, 1.0), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
                       shade=None, wrap=0.2)
         refl = refl[::-1] if False else refl
         # 倒影：人物头朝下（脚在上沿）
