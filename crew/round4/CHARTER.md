@@ -54,7 +54,8 @@ def frame(f: int, cache: dict) -> np.ndarray  # uint8 (1080,1920,3) RGB，成品
 
 ## 同步（用户硬要求：实时，跟着提交走，不靠定时）
 - 仓库装了 hooks（`git config core.hooksPath tools/hooks`）：**每次 commit 前自动导出对话，commit 后立刻前台推送 GitHub（带重试，失败会打印 `PUSH FAILED`）**。
-- 所以：**每完成一个可见步骤就 commit**（一个镜头做完、一张联系表出来、一次返工），commit 信息写「[组名] 做了什么」。shell 调用必须带 `credentials: [{"provider":"github"}]`。也可以直接 `./autosync.sh`。
+- **5 个组共用一个 git index：禁止 `git add -A` / `git commit -a` / `./autosync.sh`。只提交自己的路径：`git add <文件> && git commit -m "[X组] ..." -- <文件>`**（08:57 评审的提交误卷入 E 组 15 个暂存文件后定的）。
+- 所以：**每完成一个可见步骤就 commit**（一个镜头做完、一张联系表出来、一次返工），commit 信息写「[组名] 做了什么」。shell 调用必须带 `credentials: [{"provider":"github"}]`。
 - 看到 `PUSH FAILED` 要立刻处理（通常是 pull --rebase 冲突），不能放着。
 - `>50MB` 文件不入库；out/round4/ 下的联系表 jpg 入库（每张 <2MB），mp4 预览不入库。
 
