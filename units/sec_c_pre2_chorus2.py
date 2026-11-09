@@ -1504,13 +1504,13 @@ class C37(Shot):
         tp = V(156.70); ts = tp + 0.24
         fl = bolt_env(t, tp) * 1.2
         fr = storm(t, 37, horizon=1300, flash=0.25 + fl, fc=(960, 400), ground=False)
-        if t >= tp - 0.1:
+        if t >= tp - 0.38:
             a = T.glyph('判', 'serif_black', 680, False)
             g = a.shape[0]
             edge = np.clip(a - cv2.erode(a, np.ones((9, 9), np.uint8)), 0, 1)
             nz = cv2.resize(np.random.default_rng(int(t * 30)).random((g // 12, g // 12)).astype(np.float32), (g, g))
             core = np.clip(edge * (0.6 + 0.8 * nz), 0, 1) + a * 0.12
-            prog = sm(tp - 0.1, tp + 0.04, t)
+            prog = sm(tp - 0.38, tp + 0.04, t)
             yy = np.linspace(0, 1, g, dtype=np.float32)[:, None]
             core = core * (yy < prog * 1.05)
             L = T.Layer(); L.paste(core, 960, 530, (0.92, 0.95, 1.0))
@@ -1701,7 +1701,7 @@ CUTS = {
     'C26': ('shatter', 0.0, 0.22, dict(center=(1065, 560))),
     'C27': ('luma', 0.08, 0.14, {}),                                     # 崩墙后的亮天 → 缺口亮天（亮处匹配）
     'C28': ('push', 0.06, 0.10, dict(center=(960, 480), z=0.5)),         # 推进缺口里的光
-    'C29': ('occlusion', 0.10, 0.10, dict(kind='pillar', direction=-1)),   # 坠石遮挡
+    'C29': ('luma', 0.06, 0.12, {}),                                     # 「亮」字形光 → 缺口逆光（亮处匹配）
     'C30': ('flash_red', 0.0, 0.14, {}),
     'C31': ('hard', 0, 0, {}),
     'C32': ('split_slide', 0.06, 0.12, dict(angle=90.0)),                # 掌风压下：画面上下错开
@@ -1761,7 +1761,7 @@ SENTS = [
     S(30, [4, 5, 6], 960, 900, size=110, mode='fly', red='不命', exit='shatter', out=V(126.22), track=0.15),
     S(30, [7, 8, 9, 10], 1560, 300, size=86, mode='fly', layout='v', red='不', exit='shatter', out=V(127.36), track=0.12),
     S(31, [0, 1, 2, 3], 960, 250, size=78, mode='fly', red='刀', exit='shatter', out=V(130.10)),
-    S(31, [4, 5, 6, 7], 960, 860, size=110, mode='fly', red='发烫', exit='shatter', out=V(131.02)),
+    S(31, [4, 5, 6, 7], 960, 860, size=110, mode='fly', red='发烫', exit='shatter', out=V(131.50), back=0.5),
     # 副歌二：kinetic 飞入 + 碎裂
     S(32, [1, 2], 1500, 860, size=70, mode='fly', exit='shatter', out=V(135.55)),                                    # 未冷（C16）
     S(32, [3, 4, 5], 960, 260, size=120, mode='fly', red='刀', exit='shatter', out=V(137.40), track=0.25),           # 刀不放
@@ -1777,7 +1777,7 @@ SENTS = [
     S(37, [0, 2, 3], 960, 250, size=70, mode='fly', exit='shatter', out=V(153.00), track=0.6, text='是对错', red='错'),   # 是/对/错（随印）
     S(37, [4, 5, 6, 7], 1380, 820, size=100, mode='fly', red='扛', exit='shatter', out=V(155.25), sizes=[96, 96, 96, 190], back=0.6),   # 我自己扛（C35 → C35b）
     S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.62), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
-    S(39, [0, 1], 420, 860, size=100, mode='fly', exit='shatter', out=V(159.40)),                                    # 这一
+    S(39, [0, 1], 420, 820, size=100, mode='fly', exit='shatter', out=V(159.64), back=0.5),                         # 这一
     S(39, [2, 3, 4, 5], 960, 230, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
     S(39, [6, 7, 8], 1340, 840, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
 ]

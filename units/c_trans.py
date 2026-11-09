@@ -74,11 +74,11 @@ def over(A, B, p, center=(W / 2, H / 3), col=(0.85, 0.9, 1.0)):
     return np.minimum(fr, 1.6 + 0 * fr)
 
 
-def whip(A, B, p, direction=1, dist=900):
+def whip(A, B, p, direction=1, dist=520):
     """甩镜（带内容）：A 朝 direction 甩出、B 从反向甩入，模糊长度随速度；中间帧仍看得到两镜的形体拖影。"""
     e = p * p * (3 - 2 * p)
     v = math.sin(math.pi * p)                     # 速度包络
-    k = max(1, int(140 * v)) | 1
+    k = max(1, int(56 * v)) | 1
 
     def sh(fr, dx):
         M = np.float32([[1, 0, dx], [0, 1, 0]])
