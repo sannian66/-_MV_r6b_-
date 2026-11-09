@@ -1174,3 +1174,33 @@ Seedance 2.0、Seedance 2.5（含历史兼容渠道）的图片、视频和音�
 Seedance 六种模式以租户实际启用的为准：text2video（文字）、image2video_first（一张首帧）、image2video_first_last（依次首帧和尾帧）、multimodal_ref（图片/视频/音频参考）、video_edit（必须提供参考视频）、video_extend（必须提供参考视频）。Kling v3 Omni 与 RunningHub 的 first_last_frame、image_audio 等模式使用各自详情，不套用 Seedance 入参。先读 schema 再填写时长和比例：Seedance 2.5 编辑 duration=-1、aspect_ratio=adaptive；多模态参考的常规时长和比例按当前详情选择。
 
 如果返回 invalid_skill_key 或 skill_key_revoked，请提示用户重置 Skills Key；model_package_required 请改用 models 返回的可用模型；审核错误按 reason、mediaType、assetIndex 和 recovery 区分上述格式恢复、审核处理中和内容拒绝。不要靠切换兼容字段或添加顶层 media_type 来重试同一失败素材。该安装提示适用于 Codex、Claude Code、WorkBuddy、OpenClaw、Hermes 以及其他支持 Skills 调用的智能体。
+
+### Hark · 2026-11-09T02:50:02Z
+
+接手好了，同步三道保险都在跑：每次 commit 立刻推送、后台每 3 分钟自动同步、30 分钟定时任务兜底（正常时不打扰你）。新 Key 已验证可用，RH_image2 4K 一张 3 积分。要我先修 D 段 S08「当」印冲 85，同时补生之前卡住的几张精灵吗？
+
+### Hark · 2026-11-09T02:50:02Z
+
+接手与安装结果
+
+**GitHub 同步**
+- 仓库 sannian66/guitu-s3-mv 已拉到新沙箱，commit 即推送的钩子已启用，首个接手提交 ba5a34f 已推上 GitHub
+- 后台循环：每 3 分钟运行一次 autosync（单次跑约 19 分钟，到点后由定时任务重新拉起）
+- 定时任务「guitu-s3-mv 保底同步」：每 30 分钟一次，下次 11:18。它会补推送、检查有没有落后、重启循环，只在出问题时发消息
+- 顺手修了个坑：对话导出脚本还指向上一个沙箱的路径，下次运行会把 CONVERSATION.md 清掉。前六任的记录已冻结到 CONVERSATION_part5.md，脚本改为读取本次会话
+
+**Nano Banana skill**
+- 已安装为 nano-banana-skill（显示名称 Nano Banana skill），完整保留了 Seedance 先审核再生成、结果轮询、格式恢复和报价这几套规则
+- Key 存进了保险库，只发给 Nano Banana 的域名，不写进任何文件（仓库是公开的）。对话导出里的 Key 仍会自动打码
+- 已验证模型列表接口返回 200：有 20 个图片模型、18 个视频模型（含 seedance-2.0、seedance-2.5-zr），**音频模型目前为空**，所以 TTS 和声音克隆暂时用不了
+
+**之前因 401 卡住、现在能补的精灵**
+- D：defy_up（统一 S11/S24 的脸）
+- E：E21 仰望侧脸、低机位跨步
+- C：c_gen.py 里的 5 张
+- A：刀身特写、纸人群（视评审结果而定）
+- 每张约 3 积分，提交前会逐张报价
+
+### 用户 · 2026-11-09T02:58:20Z
+
+我希望你像剧组一样开工，做吧，打分，高质量交付，获奖级别。
