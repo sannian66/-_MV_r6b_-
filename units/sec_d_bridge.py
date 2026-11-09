@@ -1299,13 +1299,13 @@ class S29_Thrust(Shot):
             sh = np.clip(1 - np.abs((np.arange(W) - x) / (w / 2)), 0, 1) ** 0.5
             Cv = Cv * (1 - m[..., None]) + m[..., None] * pal * (0.6 + 0.6 * sh[None, :, None])
             # 倒刻宋体
-            nc = 3 if k < 2 else 4
+            nc = 3 if k < 2 else 0          # [r4] 正中碑留白给「来」
             cs = w * 0.55
             Lc = T.Layer()
             for j in range(nc):
                 cy = bot - cs * 0.9 - j * cs * 1.15
                 if cy < 40: break
-                T.place(Lc, chars[(i * 3 + j + k * 7) % len(chars)], x, cy, cs, 'white', 'serif_black', rot=0, texture=False)   # [r4] 正向可读
+                T.place(Lc, chars[(i * 3 + (nc - 1 - j) + k * 7) % len(chars)], x, cy, cs, 'white', 'serif_black', rot=0, texture=False)   # [r4] 正向可读
             ca = Lc.A[:H + 200] if Lc.A.shape[0] >= H + 200 else np.pad(Lc.A, ((0, H + 200 - Lc.A.shape[0]), (0, 0)))
             ca = ca * m
             Cv = Cv * (1 - ca[..., None] * 0.75) + np.roll(ca, -3, 0)[..., None] * 0.12 * (k + 1)
@@ -1327,10 +1327,11 @@ class S29_Thrust(Shot):
                 # 碑底受金光（刀尖处）+ 金缝自刀尖向上裂开
                 rimg = np.exp(-((y - self.TIP[1]) / 18) ** 2) * a
                 cr = np.exp(-((self.cx) / (3 + 20 * u)) ** 2) * K.sstep(self.TIP[1] - 420 * eo(u), self.TIP[1] - 40, y) * (y < self.TIP[1] + 4) * a
-                fr = fr + (cr * 1.8 + rimg * 0.6 * u)[..., None] * GOLD
-                fr = D.godrays(fr, cr, (960, 140), amt=0.6 * u)
+                dim = 1.0 - 0.7 * cl((t - V(O[47][4]) + 0.1) / 0.25)      # [r4] 「来」裂出后金缝收光，让字可读
+                fr = fr + (cr * 1.8 * dim + rimg * 0.6 * u)[..., None] * GOLD
+                fr = D.godrays(fr, cr, (960, 140), amt=0.6 * u * dim)
         sc = D.fit_scale(self.sp, 1060 - self.TIP[1])
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 1060), sc, expo=0.8, sat=0.6, tint=(1.04, 0.98, 0.9),
+        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (822, 1060), sc, expo=0.8, sat=0.6, tint=(1.04, 0.98, 0.9),
                               rim=GOLDR, rim_amt=3.0 + 2 * u, rim_dir=(0.0, -1.0), wind=12)
         fr = K.fog(fr, t, 292, amt=0.3, speed=(50, 0), y0=0.8, y1=1.0, color=(0.25, 0.22, 0.2))
         # [r4] 「来」被刀尖金光从正中碑里裂出来（金缝沿笔画推进 → 整字爆亮）

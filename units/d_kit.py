@@ -678,5 +678,9 @@ def crack_glyph(fr, ch, cx, cy, size, p, seed=0, col=(1.0, 0.80, 0.42)):
     out = fr * (1 - _paste_full(G, cx, cy)[..., None] * 0.35 * K.clamp01(p * 3))     # 字位先压暗（刻痕）
     c = np.array(col, np.float32)
     out = out + cv2.GaussianBlur(A, (0, 0), 30)[..., None] * c * 0.55 + cv2.GaussianBlur(A, (0, 0), 6)[..., None] * c * 0.35
-    out = out * (1 - A[..., None]) + A[..., None] * (c * 1.05)
+    # 深色描边 → 金字在金光里也有边
+    ring = np.clip(cv2.dilate(A, np.ones((7, 7), np.uint8)) - A, 0, 1)
+    out = out * (1 - ring[..., None] * 0.7)
+    hi = np.clip(A - np.roll(A, 4, 0), 0, 1)
+    out = out * (1 - A[..., None]) + A[..., None] * (np.array([0.95, 0.62, 0.22], np.float32) * 1.0) + hi[..., None] * 0.6
     return out
