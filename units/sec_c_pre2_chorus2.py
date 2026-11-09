@@ -199,7 +199,7 @@ class C01(Shot):
         z = 1.0 + 0.10 * eio(u); sx = -40 + 90 * eio(u)
         q0 = np.float32([[0, 0], [self.pw, 0], [self.pw, self.ph], [0, self.ph]])
         dst = np.float32([[230, 140], [1770, 170], [1960, 1010], [-60, 990]])
-        dst = (dst - [960, 540]) * z + [960 - sx, 540]
+        dst = ((dst - [960, 540]) * z + [960 - sx, 540]).astype(np.float32)
         Mh = cv2.getPerspectiveTransform(q0, dst)
         fr = candle_room(t) * 0.6
         pw_ = cv2.warpPerspective(P, Mh, (W, H), flags=cv2.INTER_LINEAR)
@@ -210,7 +210,7 @@ class C01(Shot):
         light = cv2.resize(light.astype(np.float32), (W, H))[..., None]
         fr = fr * (1 - A[..., None]) + pw_ * A[..., None] * light * np.array([1.0, 0.93, 0.80], np.float32)
         # 朱笔手：笔尖对准 tip（纸面坐标 → 画面）
-        tp = cv2.perspectiveTransform(np.float32([[tip]]), Mh)[0, 0]
+        tp = cv2.perspectiveTransform(np.float32([[tip]]).reshape(1, 1, 2), Mh)[0, 0]
         # 手的投影
         sh = np.zeros((H // 4, W // 4), np.float32)
         cv2.ellipse(sh, (int((tp[0] + 160) / 4), int((tp[1] + 150) / 4)), (110, 60), -30, 0, 360, 1.0, -1)
@@ -612,18 +612,14 @@ class C18(Shot):
     def __init__(self): self.army = None
     def render(self, t):
         import crowd
-        if self.army is None: self.army = crowd.Army()
+        if self.army is None: self.army = crowd.Army(seed=18, rows=14, cols=24, banners=8, torches=18)
         u = self.u(t)
         fl = 0.8 * bolt_env(t, V(136.64))
         fr = storm(t, 18, horizon=600, flash=0.5 + fl, fc=(960, 120), refl=0.4)
-        ar = np.zeros_like(fr)
-        ar = self.army.draw(ar, t, level=1.0, advance=2.0 * u)
-        ar = ar[0] if isinstance(ar, tuple) else ar
-        lum = ar.mean(-1, keepdims=True)
-        mask = np.clip(lum * 30, 0, 1)
-        ar_s = (ar * 0.35 + (cv2.GaussianBlur(mask, (0, 0), 2)[..., None] - mask[..., None]).clip(0) * COLD * 0.6)
-        m3 = mask[..., None] if mask.ndim == 2 else mask
-        fr = fr * (1 - m3 * 0.95) + ar_s * (1 + fl)
+        # 方阵直接画进雷暴（自带大气透视/景深/甲光），中线分开让出通道，鬼屠在通道里起身
+        fr, _info = self.army.draw(fr, t, cam=dict(x=0, y=2.2, z=0, pitch=4, f=1500), advance=1.2 + 2.4 * u, march=1.0, level=1.0,
+                                   part=0.55, rim_color=COLD, rim=1.0 + 1.5 * fl, fog_color=(0.06, 0.07, 0.09), fog_dist=70,
+                                   torch=0.5, glint=1.0 + fl, origin=(0.0, 0.0, 9.0))
         fr = fog(fr, t, 18, density=0.55, y0=560, y1=900, color=(0.35, 0.38, 0.45), speed=(0, 0), light=(960, 300), light_r=700)
         fr, _ = put(fr, t, 'S072/rise_draw', 960, 1000 - 30 * eout(u), 640, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, wind=7)
         fr = rain(fr, t, 180, inten=1.1, angle=12)
