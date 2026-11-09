@@ -34,10 +34,12 @@ if __name__ == '__main__':
         items = []
         for S in M.SHOTS[1:]:
             c = M.CUTS.get(S.__name__)
-            if c and c[0] not in ('hard', 'whip'):
-                items.append((S.__name__ + ' ' + c[0][:10], S.t0 + (c[2] - c[1]) / 2 * 0.5))
-        items += [('title', 8.10), ('credits', 1.6), ('寒光', 21.5), ('罪状', 24.9), ('称量', 28.7), ('杀', 30.3), ('刻刀', 34.2),
-                  ('正印', 38.8), ('锋', 43.55), ('exit', 44.0)]
+            if c and c[0] != 'hard':
+                mid = S.t0 + (c[2] - c[1]) / 2 if c[0] != 'whip' else S.t0 + 1 / FPS
+                items.append((S.__name__ + ' ' + c[0][:12] + ' mid', mid))
+        items += [('credits', 1.6), ('credits2', 4.6), ('title', 8.6), ('title-ash', 13.5), ('长夜', 17.6), ('五百', 19.1), ('寒光', 21.5),
+                  ('罪状', 24.9), ('沿梁', 26.9), ('称量', 28.7), ('杀', 30.3), ('放', 32.2), ('刻刀', 34.2), ('主张', 36.0),
+                  ('正印', 38.9), ('权势', 39.6), ('锋', 43.55), ('exit', 44.0)]
     else:
         items = [('t', float(x)) for x in sys.argv[3:]]
     sheet(items, out)
