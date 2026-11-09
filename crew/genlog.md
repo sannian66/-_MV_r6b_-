@@ -302,3 +302,5 @@
 | 11-09 03:15 | A/stand_ha | RH_image2 | 4K 16:9 | 0 | 122c34d2-790d-46fc-bd00-d4c93f22b81b | 采用 | assets/gen/A/stand_ha_raw.png | A组 采用 |
 | 11-09 11:20 | C组 | RH_image2 | 4K 16:9 | 0 | aca831ec/396ef948/578e0e8e/a6e34a40/20df00ab | 采用 | assets/gen/C/face_lit、brace_cu、point_cam、soldiers3（拆 sold_a/b/c）、army_kneel | [C组] 第四棒五张 try1 全部采用：C28/C35b/C40b/C18/C36；C 组累计 39/80 |
 | 11-09 03:25 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 3 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | submitted | - | [E组] 第五棒 E19 统一脸 |
+| 11-09 03:27 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 0 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/gen_cands/E/E_r5/stare_cu_0.png | [E组] 第五棒 候选 |
+| 11-09 03:27 | E组/E_r5/stare_cu | RH_image2 | 4K 16:9 | 0 | 5d3b1e9f-7c39-4776-b4a9-6b7fc04f6b1b | 采用 | assets/gen/E_r5/stare_cu_raw.png | [E组] 第五棒 E19 统一脸 try1 采用；E 组累计 42/80 |

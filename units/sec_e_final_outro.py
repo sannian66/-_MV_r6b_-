@@ -775,6 +775,11 @@ class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂
         fr = fr * (1 - m[..., None]) + m[..., None] * GOLDW * 2.0
         return fr + cv2.GaussianBlur(m, (0, 0), 25)[..., None] * GOLD * 1.5 * u
 
+    def text(self, fr, t):
+        if not hasattr(self, 'he'):
+            self.he = LyrO([('何', 960, 520, 300, 'serif_black', GOLD_T, CT(53, 8))], None, seed=145, outline=6, plate_amt=0.5, glow=0.6)
+        return self.he.draw(fr, t)
+
 
 class E19(Shot):   # S125 CU 直视镜头；金匾碎片在他周围漂浮；「何须伪装」灰飞
     def __init__(self):
@@ -786,7 +791,8 @@ class E19(Shot):   # S125 CU 直视镜头；金匾碎片在他周围漂浮；「
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
-        fr, info = put(fr, t, 'S125/stare', (960, 1170), h=1180 * (1 + 0.06 * u), rim=GOLDW, rim_amt=2.4, wind=6)
+        fr, info = put(fr, t, 'E_r5/stare_cu', (960, 1010), h=1000 * (1 + 0.06 * u), rim=GOLDW, rim_amt=2.4, rim_dir=(0.8, -0.6), wind=6,
+                       grade=dict(expo=0.9, sat=0.6, tint=(1.06, 0.98, 0.88), lift=0.0, gamma=1.08))   # 第五棒：换同参考脸新生 CU（窄下颌，与 E13/E16/E21 统一）
         fr = self.chips.draw(fr, (t - self.t0) * 0.5 + 0.2, to_cam=0.3, light=(0.6, -0.5, -0.6), dof=(3.0, 10.0), zfocus=1.4, emb=0.3)
         return bloom(fr, 0.8, 0.4)
 
