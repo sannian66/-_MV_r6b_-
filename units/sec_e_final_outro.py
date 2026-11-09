@@ -593,7 +593,13 @@ class E11(Shot):   # S120a 低机位 MS：刀插大地，尘环冲击；巨字�
         m = sstep(hy - 4, hy + 4, np.arange(H, dtype=np.float32))[:, None, None]
         fr = fr * (1 - m) + self.ground * m
         fr = E.sun_disc(fr, (1500, hy - 20), 90, amt=1.0)
-        fr, info = put(fr, t, 'S120/plant', (1180, 1010), h=860, rim=GOLDW, rim_amt=2.6, rim_dir=(0.8, -0.6), wind=8)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S120/plant', (1180, 1010), h=860, rim=GOLDW, rim_amt=2.6, rim_dir=(0.8, -0.3), wind=8)
+        C, A = sprite_clean(z, info['A'], erode=2, rim_col=(1.0, 0.66, 0.32), rim_amt=2.6, rim_dir=(0.95, -0.2), cool_amt=0.15)
+        C = C * 0.68                                                      # 第六棒：正面压暗（背后低位日光逆光），右侧暖轮廓光与日同向
+        yy, xx = E.grid()
+        cs = np.exp(-(((xx - 1150) / 330) ** 2 + ((yy - 1000) / 70) ** 2)) + 0.6 * np.exp(-(((xx - 1080) / 260) ** 2 + ((yy - 1060) / 90) ** 2))   # 接触阴影朝镜头拖出
+        fr = fr * (1 - 0.7 * np.clip(cs, 0, 1)[..., None])
+        fr = fr * (1 - A[..., None]) + C * A[..., None]
         q = t - self.t0
         c = (1180, 1000)
         r = 60 + 900 * eout(q / 0.7)
@@ -630,8 +636,19 @@ class E12(Shot):   # S120b ELS 正俯拍（第三棒返工）：大地即印面�
         p = (t - (CT(51, 9) - 0.18)) / 0.7
         c = (820, 500)
         if p > 0: fr = PR.stamp_imprint(fr, self.face, c[0], c[1], 640, min(1, p), angle=-4)
-        at = (1390, 600)
-        z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, at, h=330, anc=(0.5, 0.5), rim=GOLDW, rim_amt=1.6, rim_dir=(0.7, -0.7),
+        # 第六棒：插在印心的刀（正俯拍：只见圆镡、缠绳刀柄与红穗，晨光把刀身影子长长拖向左下）
+        bs = np.zeros((H, W), np.float32)
+        cv2.line(bs, c, (int(c[0] - 34 * 13), int(c[1] + 26 * 13)), 1.0, 14, cv2.LINE_AA)
+        fr = fr * (1 - 0.55 * cv2.GaussianBlur(bs, (0, 0), 4)[..., None])
+        fr = np.ascontiguousarray(fr, np.float32)
+        cv2.circle(fr, c, 40, (0.05, 0.045, 0.04), -1, cv2.LINE_AA)                     # 镡
+        cv2.circle(fr, c, 40, (0.85, 0.62, 0.35), 2, cv2.LINE_AA)
+        cv2.ellipse(fr, (c[0] + 4, c[1] - 3), (40, 40), 0, 200, 340, (1.0, 0.82, 0.5), 3, cv2.LINE_AA)     # 右上受光
+        for k in range(5): cv2.circle(fr, c, 18 - 3 * k, (0.08 + 0.05 * (k % 2), 0.06, 0.05), 2, cv2.LINE_AA)   # 缠绳柄头
+        sw = 6 * math.sin(t * 3.1)
+        cv2.ellipse(fr, (int(c[0] + 34 + sw), int(c[1] + 22)), (26, 11), 30, 0, 360, (0.62, 0.06, 0.04), -1, cv2.LINE_AA)   # 红穗
+        at = (1470, 600)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, at, h=495, anc=(0.5, 0.5), rim=GOLDW, rim_amt=3.2, rim_dir=(0.7, -0.7),
                       grade=dict(expo=0.95, sat=0.6, tint=(1.1, 0.98, 0.84), lift=0.0, gamma=1.05), wind=4)
         A = info['A']
         Sh = np.zeros_like(A)                                              # 晨光自右上 → 长影拖向左下（印面上也压影）
@@ -641,6 +658,9 @@ class E12(Shot):   # S120b ELS 正俯拍（第三棒返工）：大地即印面�
         con = cv2.GaussianBlur(cv2.dilate(A, np.ones((9, 9), np.uint8)), (0, 0), 14)        # 接触阴影
         fr = fr * (1 - 0.6 * Sh[..., None]) * (1 - 0.5 * con[..., None])
         fr = fr * (1 - A[..., None]) + z * A[..., None]
+        ring_ = np.clip(A - cv2.GaussianBlur(cv2.erode(A, np.ones((5, 5), np.uint8)), (0, 0), 4), 0, 1)       # 右上轮廓光
+        gy, gx = np.gradient(cv2.GaussianBlur(A, (0, 0), 4)); dd = np.clip((-gx * 0.7 + gy * 0.7) / (np.hypot(gx, gy) + 1e-6), 0, 1)
+        fr = fr + (ring_ * dd)[..., None] * np.array([1.0, 0.8, 0.5], np.float32) * 1.6
         if p > 0.3:
             q = (p - 0.3) / 0.7
             r = 330 + 600 * eout(q)
@@ -1601,7 +1621,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
     'E32': ('blade_sweep', 0.12, 0.16, dict(direction=1)),      # 第五棒：平灰板 → 近景刀身掠镜（钢纹/脊线/刃口暖光/运动模糊）
     'E33': ('fog_wall', 0.14, 0.20, dict(direction=-1)),        # 第五棒：平灰板 → 晨雾墙横扫（体积明暗/顶部暖光/运动模糊）
-    'E34': ('smoke_through', 0.20, 0.30, dict(seed=34, direction=1, color=(0.55, 0.5, 0.46))),   # 第六棒：E33 落灰 → 灰烟穿过 → 日出全景
+    'E34': ('smoke_through', 0.20, 0.30, dict(seed=34, direction=1, color=(0.36, 0.30, 0.25))),   # 第六棒：E33 落灰 → 灰烟穿过 → 日出全景
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
