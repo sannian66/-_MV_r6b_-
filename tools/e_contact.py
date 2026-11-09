@@ -36,7 +36,7 @@ def key_frames():
            (S.CT(50, 6) + 0.6, '伪装 烧穿'), (S.CT(51, 3) + 0.12, '碎 字被斩开'), (S.CT(51, 9) + 0.45, '鬼屠 印地'),
            (S.CT(54, 0) + 0.6, '天 被日熔'), (S.CT(54, 5) + 0.15, '我来量 刻刀'), (S.CT(55, 6) + 0.15, '的 横斩裂屏'),
            (S.CT(55, 10) + 0.3, '正道沧桑'), (225.42 + 1.4, '片名斩开'), (229.3, '署名竖排'), (238.24 + 0.5, '入鞘落印'),
-           (7174 / 30 + 0.9, '收墨一点朱'), (7240 / 30, '末帧')]
+           (7174 / 30 + 0.6, '收墨一点朱'), (7174 / 30 + 1.2, '朱点呼吸+墨晕'), (6800 / 30, '鬼屠·第二季'), (7240 / 30, '末帧')]
     for t, lab in lyr:
         f = int(round(t * 30)); out.append((f, '%s f%d' % (lab, f)))
     return out
@@ -57,8 +57,18 @@ def sheet(frames, path, cols=4, tw=480):
     print(path, os.path.getsize(path) // 1024, 'KB')
 
 
+def split(path, maxh=1400):
+    """评审分块：按行切成 ≤1920×maxh 的 _p0/_p1…（不切断格子）。"""
+    im = Image.open(path); W_, H_ = im.size; th = 480 * 9 // 16 + 26
+    per = max(1, maxh // th) * th; out = []
+    for k, y in enumerate(range(0, H_, per)):
+        q = path.replace('.jpg', '_p%d.jpg' % k); im.crop((0, y, W_, min(H_, y + per))).save(q, quality=86); out.append(q)
+    print(out)
+
+
 if __name__ == '__main__':
     mode = sys.argv[1]
+    if mode == 'split': split(sys.argv[2]); sys.exit()
     fr = contact_frames() if mode == 'contact' else key_frames()
     if mode == 'list':
         for f, l in contact_frames() + key_frames(): print(f, l)

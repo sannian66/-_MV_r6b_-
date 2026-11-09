@@ -18,7 +18,7 @@ F0, F1 = 1321, 1784
 C1_FROM = 1779                    # 59.30 起交给副歌一（它的 S028 =「血」字头硬切）
 
 # 切点（秒，落拍/字头）→ 帧（视觉帧 = 最近帧 - 1）
-CUT_T = [44.048, 44.95, 45.88, 46.79, 47.72, 49.09, 50.46, 51.85, 52.76, 53.68, 54.59, 55.50, 56.40, 57.33, 59.30]
+CUT_T = [44.048, 44.95, 45.88, 46.79, 47.72, 49.09, 50.46, 51.85, 52.76, 53.68, 54.59, 55.50, 56.40, 57.33, 58.26, 59.30]   # 第五棒：58.26 拍点加 P15
 CUT_F = [F0] + [int(round(t * FPS)) - 1 for t in CUT_T[1:-1]] + [C1_FROM]
 
 
@@ -811,89 +811,167 @@ def heat_blade(fr, t, p0, p1, width, heat, shine=0.0, seed=0, haze=0.0):
     return fr, Aw, M
 
 
+def spt(sp, src, dst, width_px, n):
+    """精灵内归一化点 n → 屏幕坐标（put_at 同一映射，rot=0）"""
+    s = width_px / sp.w
+    return np.array([dst[0] + (n[0] - src[0]) * sp.w * s, dst[1] + (n[1] - src[1]) * sp.h * s])
+
+
+def blade_heat(fr, Aw, g, tip, half_w, heat, front=1.0, t=0.0, seed=0):
+    """第五棒：生图刀身「烧红」——屏幕上刀身带（护手 g → 刀尖 tip，半宽 half_w）× 精灵 alpha；
+    front 0..1 = 热从刀尖往护手推进的位置（1 = 全刀身烧透）。刃口一侧更热，内部透出炭火纹。"""
+    x, y = K.grid()
+    g = np.asarray(g, float); tip = np.asarray(tip, float)
+    d = tip - g; L = np.linalg.norm(d); d /= L; n = np.array([-d[1], d[0]])
+    along = ((x - g[0]) * d[0] + (y - g[1]) * d[1]) / L           # 0 护手 … 1 刀尖
+    side = ((x - g[0]) * n[0] + (y - g[1]) * n[1]) / half_w
+    band = sstep(1.25, 0.85, np.abs(side)) * sstep(0.02, 0.08, along) * Aw
+    nz = cv2.resize(K.fbm(H // 8, W // 8, seed, base=6, octaves=4), (W, H))
+    reach = sstep(1 - front - 0.15, 1 - front + 0.05, along)        # 从刀尖往下烧
+    hz = np.clip(heat * band * reach * (0.65 + 0.5 * nz) * (0.92 + 0.08 * math.sin(t * 13)), 0, 1.3)[..., None]
+    lum = fr.mean(-1, keepdims=True)
+    col = fr * (1 - 0.7 * hz.clip(0, 1)) + hz * (RED * 1.35 + GOLD * 0.7 * hz) * (0.55 + lum)
+    out = fr * (1 - band[..., None]) + col * band[..., None]
+    out += cv2.GaussianBlur((band * hz[..., 0]).astype(np.float32), (0, 0), 28)[..., None] * RED * 0.9 * heat
+    out += cv2.GaussianBlur((band * hz[..., 0]).astype(np.float32), (0, 0), 90)[..., None] * RED * 0.35 * heat
+    return out, band * reach
+
+
+def heat_haze(fr, t, tex, amp):
+    x, y = K.grid()
+    n = cv2.resize(K.tile_crop(tex, 0, -t * 160, H // 8, W // 8), (W, H))
+    return cv2.remap(fr, (x + (n - 0.5) * amp).astype(np.float32), (y + (n - 0.5) * amp * 1.6).astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+
 class P13(Shot):
+    """第五棒重做（评审 P0：P13/P14 连续 4.5s 横刀特写 ≈ 副歌一 S028）：
+    MS 低机位——鬼屠自左下向右上一记撩斩（生图 slash_up），56.50「刀」字头刀弧白光扫过，「刀」被弧光斩开；
+    后景雷云被刀弧照红，地面薄雾。构图对角线（左下→右上），与 P12 竖刀 / P14 斜刀特写交替。"""
     T_DAO = V(56.50)
+    SRC, DST, WPX = (0.45, 0.97), (760, 1000), 1480
     def __init__(self):
-        self.bg = BK.dark_bg(913, 0.01, 0.04, tint=(1.15, 1.0, 0.95))
-        T.warm('刀', 'xing', 340); T.warm('还', 'kai', 90)
+        self.sp = spr('slash_up')
+        self.p7 = P07()
+        T.warm('刀', 'xing', 340); T.warm('还', 'kai', 110)
+        self.tip = spt(self.sp, self.SRC, self.DST, self.WPX, (0.735, 0.035))
+        self.sh = spt(self.sp, self.SRC, self.DST, self.WPX, (0.40, 0.20))
 
     def render(self, t):
         u = self.u(t)
-        fr = self.bg.copy()
-        heat = 0.25 * clamp01((t - self.T_DAO) / 0.8)
-        slide = -120 * eio(u)
-        fr, Aw, M = heat_blade(fr, t, (-200 + slide, 700), (2150 + slide, 560), 210, heat, seed=13)
-        # 白刃光沿刃扫过（字头）
-        q = clamp01((t - (self.T_DAO - 0.05)) / 0.3)
-        if 0 < q < 1:
-            x, y = K.grid()
-            px = -200 + 2400 * q
-            g = np.exp(-((x - px) / 120) ** 2) * Aw
-            fr += g[..., None] * 1.4
-            fr = T._slash_light(fr, (960, 630), np.array([0.998, -0.06]), q, 2600)
-        # 「刀」被刀光斩出（左上，朱红）
+        fr = self.p7.sky(t * 1.1, rot=2.4) * 0.9
+        x, y = K.grid()
+        ka = clamp01((t - (self.T_DAO - 0.12)) / 0.16)                # 刀弧扫过进度
+        glow = (1 - clamp01((t - self.T_DAO) / 0.5)) * (ka > 0)
+        fr += np.exp(-(((x - self.tip[0]) / 700) ** 2 + ((y - self.tip[1] - 100) / 450) ** 2))[..., None] * (RED * 0.35 + 0.15) * (0.3 + 0.7 * glow)
+        fr += sstep(700, 1000, y)[..., None] * np.array([0.07, 0.03, 0.03], np.float32)       # 地面暗红反光
+        fr = K.fog(fr, t, 1301, amt=0.22, y0=0.72, y1=1.0)
+        fr, Aw = put_at(fr, self.sp, t, self.SRC, self.DST, self.WPX, grade=GR_COLD,
+                        rim=dict(col=(1.0, 0.55, 0.40), amt=2.2, dir=(0.7, -0.7)), wind_amp=6, shade=(400, 1500, 0.15, 600, 0.35))
+        # 刀弧：以肩为心，左下 → 右上（刀尖终点），白热 → 朱红余辉
+        if ka > 0:
+            c = self.sh; R = np.linalg.norm(self.tip - c)
+            a1 = math.degrees(math.atan2(self.tip[1] - c[1], self.tip[0] - c[0])); a0 = a1 - 195     # 左下 → 经左上 → 右上
+            ae = a0 + (a1 - a0) * eout(ka, 2)
+            m = np.zeros((H // 2, W // 2), np.float32)
+            for k in range(14):
+                q0 = a0 + (ae - a0) * k / 14; q1 = a0 + (ae - a0) * (k + 1) / 14
+                cv2.ellipse(m, (int(c[0] / 2), int(c[1] / 2)), (int(R / 2), int(R / 2)), 0, q1, q0, 0.25 + 0.75 * (k + 1) / 14, max(1, int(3 + 10 * (k + 1) / 14)), cv2.LINE_AA)
+            m = cv2.resize(m, (W, H)) * (1 - 0.8 * clamp01((t - self.T_DAO) / 0.45))
+            fr = fr + cv2.GaussianBlur(m, (0, 0), 2)[..., None] * np.array([1.0, 0.92, 0.85], np.float32) * 1.2 \
+                 + cv2.GaussianBlur(m, (0, 0), 18)[..., None] * (RED * 1.2 + 0.1)
+        # 「刀」被刀弧斩出（右下，朱红）
         pd = clamp01((t - (self.T_DAO - 0.08)) / 0.2)
         if pd > 0:
-            P = [dict(ch='刀', x=520, y=330, size=330, rot=-6, font='xing', idx=0, emph=True)]
+            P = [dict(ch='刀', x=1480, y=600, size=360, rot=-8, font='xing', idx=0, emph=True)]
             fr = T.slash_cut(fr, '刀', clamp01(0.2 + pd * 0.25 + (t - self.T_DAO) * 0.3), places=P, color='white', emph=('刀',),
-                             emph_color=(0.84, 0.10, 0.07), cut_at=0.25, slide=0.12, angle=-20, appear=0.15)
+                             emph_color=(0.88, 0.12, 0.08), cut_at=0.25, slide=0.12, angle=35, appear=0.15)
         ph = tp(11, [5], t, 0.18)[0]
         if ph > 0:
-            fr = T.ink_bleed_in(fr, '还', [ph], places=[dict(ch='还', x=1500, y=820, size=96, rot=0, font='kai', idx=0, emph=False)], color='white',
+            fr = T.ink_bleed_in(fr, '还', [ph], places=[dict(ch='还', x=1720, y=860, size=110, rot=0, font='kai', idx=0, emph=False)], color='white',
                                 style_kw=dict(shadow=0.8))
-        fr = K.sparks(fr, t, 1313, (1300, 640), n=40, life=0.8, speed=(80, 260), dirc=(0.2, -1), spread=0.7, grav=-50, area=(800, 60), amt=0.5 + heat)
+        fr = K.sparks(fr, t, 1313, tuple(self.tip.astype(int)), n=50, life=0.7, speed=(150, 600), dirc=(0.5, -1), spread=1.0, grav=300, area=(60, 60), amt=0.8 * glow + 0.2)
+        fr = BK.rain(fr, t, 1302, amt=0.25, n=350, angle=-6)
         k = pulse(t, self.T_DAO, 0.1) * (t >= self.T_DAO)
         dx, dy, dr = shake(t, 14 * k, 10, 13)
-        fr = cam(fr, 1.02 + 0.04 * k, dx, dy, dr)
+        fr = cam(fr, 1.0 + 0.07 * eio(u) + 0.04 * k, dx, dy, dr - 2 + 3 * eio(u), center=(900, 600))
         return fr, (4 if k > 0.5 else 0)
 
 
-# =====================================================================================
-# P14 ECU：刀身通体烧红、火星剥落、热浪；「滚烫」火烧显字在刀面；59.13 鼓停定格压暗；收成副歌一 S028 的横刀位置
 class P14(Shot):
-    T_HOLD = V(59.13)
+    """第五棒重做：CU 斜构图——握刀的手（生图 hand_hilt），刀身从护手斜向右上出画；
+    57.48「滚」热从刀尖往护手烧下来，57.76「烫」整段刀身通红、火星剥落、热浪扭曲；「滚烫」火烧显字落在刀身左侧暗部（被刀的热光照亮）。"""
+    SRC, DST, WPX = (0.60, 0.55), (860, 640), 2250
     def __init__(self):
+        self.sp = spr_feather('hand_hilt', left=0.30, bottom=0.22, top=0.0)
         self.bg = BK.dark_bg(914, 0.01, 0.035, tint=(1.2, 1.0, 0.95))
         self.tex = K.tile(512, 914, 6, 4)
-        T.warm('滚烫', 'xing', 240)
+        T.warm('滚烫', 'xing', 230)
 
     def render(self, t):
-        tr = t
-        if t > self.T_HOLD: t = self.T_HOLD + (t - self.T_HOLD) * 0.05      # 定格憋住
-        u = clamp01((t - self.t0) / (self.T_HOLD - self.t0))
+        u = self.u(t)
+        z = 1.0 + 0.10 * eio(u)
+        dst = (self.DST[0] - 40 * eio(u), self.DST[1] + 30 * eio(u))
+        wpx = self.WPX * z
         fr = self.bg.copy()
-        e = eio(u)
-        # 机位：从斜向 ECU（刀身占满）→ 收成 S028 的横刀（(-200,760)→(2200,640) 宽 250）
-        p0 = (np.array([-500, 1080]) * (1 - e) + np.array([-200, 760]) * e)
-        p1 = (np.array([2500, 120]) * (1 - e) + np.array([2200, 640]) * e)
-        wd = 520 * (1 - e) + 250 * e
-        heat = 0.55 + 0.45 * clamp01((t - self.t0) / 0.9)
-        fr, Aw, M = heat_blade(fr, t, tuple(p0), tuple(p1), wd, heat, seed=14)
-        # 「滚烫」烧在刀面（随刀走：在刀面坐标里排字）
-        pb = clamp01((t - (V(CT(11, 6)) - 0.25)) / 0.75)
-        if pb > 0:
-            d = (p1 - p0) / np.linalg.norm(p1 - p0)
-            c = p0 + (p1 - p0) * 0.42
-            ang = math.degrees(math.atan2(d[1], d[0]))
-            s = wd * 0.62
-            P = [dict(ch=ch, x=c[0] + d[0] * (i - 0.5) * s * 1.15, y=c[1] + d[1] * (i - 0.5) * s * 1.15, size=s, rot=-ang, font='xing', idx=i, emph=False)
-                 for i, ch in enumerate('滚烫')]
-            fr = T.burn_in(fr, '滚烫', pb, places=P, color='gold', embers=120, seed=14, style_kw=dict(shadow=0.3, glow=0.5))
-        fr = K.sparks(fr, t, 1414, tuple(((p0 + p1) / 2).astype(int)), n=80, life=0.9, speed=(120, 420), dirc=(0.3, -1), spread=0.6, grav=-80,
-                      area=(900, 120), amt=0.9)
-        # 热浪扭曲
         x, y = K.grid()
-        n = cv2.resize(K.tile_crop(self.tex, 0, -t * 160, H // 8, W // 8), (W, H))
-        amp = 5 + 9 * heat
-        fr = cv2.remap(fr, (x + (n - 0.5) * amp).astype(np.float32), (y + (n - 0.5) * amp * 1.6).astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        dx, dy, dr = shake(t, 6 * u, 13, 14)
+        heat = 0.35 + 0.65 * clamp01((t - V(57.48) + 0.1) / 0.4)
+        front = clamp01((t - (V(57.48) - 0.15)) / 0.45)
+        g = spt(self.sp, self.SRC, dst, wpx, (0.69, 0.36)); tip = spt(self.sp, self.SRC, dst, wpx, (0.86, -0.06))
+        fr += np.exp(-(((x - (g[0] + tip[0]) / 2) / 600) ** 2 + ((y - (g[1] + tip[1]) / 2) / 500) ** 2))[..., None] * RED * 0.18 * heat
+        fr, Aw = put_at(fr, self.sp, t, self.SRC, dst, wpx, grade=dict(expo=0.78, sat=0.85, tint=(1.10, 0.94, 0.84), lift=0.0, gamma=1.12),
+                        rim=dict(col=(1.0, 0.5, 0.35), amt=2.4, dir=(0.8, -0.6)), wind_amp=0, breathe=0.0, shade=None, wrap=0.3)
+        fr, band = blade_heat(fr, Aw, g, tip, 0.045 * wpx, heat, front, t, seed=14)
+        # 手背被刀的热光照亮（暖红轮廓）
+        fr += (Aw * np.exp(-(((x - g[0]) / 380) ** 2 + ((y - g[1]) / 300) ** 2)))[..., None] * RED * 0.25 * heat
+        pb = clamp01((t - (V(CT(11, 6)) - 0.25)) / 0.7)
+        if pb > 0:
+            P = [dict(ch=ch, x=470 + i * 230, y=300 + i * 40, size=220, rot=-8, font='xing', idx=i, emph=False) for i, ch in enumerate('滚烫')]
+            fr = T.burn_in(fr, '滚烫', pb, places=P, color='gold', embers=120, seed=14, style_kw=dict(shadow=0.5, glow=0.5))
+        mid = ((g + tip) / 2).astype(int)
+        fr = K.sparks(fr, t, 1414, tuple(mid), n=90, life=0.9, speed=(120, 420), dirc=(-0.4, -1), spread=0.8, grav=-80, area=(160, 260), amt=0.5 + 0.6 * front)
+        fr = heat_haze(fr, t, self.tex, 4 + 8 * heat * front)
+        dx, dy, dr = shake(t, 3 + 5 * front, 13, 14)
         fr = cam(fr, 1.0, dx, dy, dr)
-        if tr > self.T_HOLD:                     # 鼓停：压暗憋住
-            fr = fr * (1 - 0.55 * clamp01((tr - self.T_HOLD) / 0.1))
         return fr, 0
 
 
-SHOTS = [P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14]
+class P15(Shot):
+    """第五棒新增（58.26 拍点切）：LS 极低机位——鬼屠举刀向天（生图 raise_blade），通红的刀身直刺雷云，
+    火星顺刀身往上飞、云底被刀光染红；59.13 鼓停定格压暗憋住 → 副歌一 S028（横刀 CU + 血字）——接缝换景别：LS → CU。"""
+    T_HOLD = V(59.13)
+    SRC, DST, WPX = (0.47, 0.985), (960, 1010), 1600
+    def __init__(self):
+        self.sp = spr('raise_blade')
+        self.p7 = P07()
+        self.tex = K.tile(512, 915, 6, 4)
+
+    def render(self, t):
+        tr = t
+        if t > self.T_HOLD: t = self.T_HOLD + (t - self.T_HOLD) * 0.05
+        u = clamp01((t - self.t0) / (self.T_HOLD - self.t0))
+        x, y = K.grid()
+        fr = self.p7.sky(t * 1.4, rot=0.6)
+        dst = (self.DST[0], self.DST[1] + 40 * (1 - eio(u)))
+        wpx = self.WPX * (1.0 + 0.06 * eio(u))
+        g = spt(self.sp, self.SRC, dst, wpx, (0.466, 0.225)); tip = spt(self.sp, self.SRC, dst, wpx, (0.476, 0.02))
+        fr += np.exp(-(((x - tip[0]) / 800) ** 2 + ((y - tip[1]) / 380) ** 2))[..., None] * (RED * 0.55 + 0.04)          # 云底被刀光染红
+        fr += sstep(820, 1000, y)[..., None] * np.array([0.10, 0.03, 0.025], np.float32) * (1 + 0.3 * math.sin(t * 9))  # 湿地反红
+        fr = K.fog(fr, t, 1501, amt=0.25, y0=0.75, y1=1.0)
+        fr, Aw = put_at(fr, self.sp, t, self.SRC, dst, wpx, grade=GR_COLD, rim=dict(col=(1.0, 0.45, 0.32), amt=2.6, dir=(0.0, -1.0)),
+                        wind_amp=7, shade=(500, 1500, 0.1, 500, 0.35))
+        fr, band = blade_heat(fr, Aw, g, tip, 0.012 * wpx + 6, 1.0, 1.0, t, seed=15)
+        fr += cv2.GaussianBlur(band.astype(np.float32), (0, 0), 6)[..., None] * (RED * 0.8 + GOLD * 0.4)
+        fr = K.sparks(fr, t, 1515, tuple(((g + tip) / 2).astype(int)), n=120, life=1.1, speed=(150, 520), dirc=(0.05, -1), spread=0.5, grav=-120,
+                      area=(30, int(abs(g[1] - tip[1]) / 2)), amt=1.0)
+        fr = BK.rain(fr, t, 1502, amt=0.3, n=450, angle=-4)
+        fr = heat_haze(fr, t, self.tex, 5)
+        fr = cam(fr, 1.0 + 0.05 * eio(u), 0, 0, 1.5 * (1 - eio(u)))
+        if tr > self.T_HOLD:
+            fr = fr * (1 - 0.6 * clamp01((tr - self.T_HOLD) / 0.1))
+        return fr, 0
+
+
+SHOTS = [P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15]
 for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
     _S.t0, _S.t1 = _a / FPS, _b / FPS
 P01.t0 = 44.048
@@ -911,10 +989,11 @@ CUTS = {
     'P11': ('gold', 0, 0, {}),                                      # 金属火花金闪（第三棒：去白闪）
     'P12': ('match_cut', 0.0, 0.12, dict(shape='rect', center=(960, 470), radius=140)),
     'P13': ('flash_red', 0.03, 0.12, {}),
-    'P14': ('hard', 0, 0, {}),
+    'P14': ('punch', 0, 0, {}),                                     # 第五棒：斜刀特写落拍硬切（色散冲击）
+    'P15': ('shatter', 0.06, 0.10, dict(seed=15)),                   # 第五棒：特写碎裂 → LS 举刀（换景别）
 }
 FG = {'P05': ('rain', 0.35), 'P07': ('rain', 0.45), 'P08': ('ash', 0.25), 'P09': ('ember', 0.35), 'P10': ('ash', 0.25),
-      'P12': ('ember', 0.35), 'P13': ('ember', 0.5), 'P14': ('ember', 0.7)}
+      'P12': ('ember', 0.35), 'P13': ('ember', 0.5), 'P14': ('ember', 0.7), 'P15': ('ember', 0.6)}
 EXPO = {'P01': 1.05, 'P02': 1.0, 'P03': 1.0, 'P04': 1.0, 'P07': 1.1, 'P12': 1.1}
 
 _SEC = [None]
