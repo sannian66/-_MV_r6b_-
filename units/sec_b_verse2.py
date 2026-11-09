@@ -876,8 +876,362 @@ class V16(Shot):
         return fr, 0
 
 
+# =====================================================================================
+# V17 105.88–107.55 MCU：张开的手掌承接雨水（palm_open，掌在左前景、脸在中），掌心积水倒映朱红「命」；「谁的」马善政，「都」小字
+class V17(Shot):
+    PALM = (620, 760)
+    def __init__(self):
+        self.sp = spr('S056/palm_open')
+        self.bg = BK.dark_bg(6201, 0.01, 0.035)
+        self.rain = fx2.RainSheet(6202, density=0.9)
+        T.warm('谁的', 'kai', 120); T.warm('命', 'serif_black', 150); T.warm('都', 'kai', 90)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        fr = self.bg + np.exp(-(((x - 1000) / 700) ** 2 + ((y - 300) / 500) ** 2))[..., None] * COLDC * 0.08
+        fr, _ = put_at(fr, self.sp, t, (0.30, 0.76), self.PALM, 1750, rim=dict(col=(0.72, 0.80, 1.0), amt=2.2, dir=(-0.6, -0.8)),
+                       wind_amp=4, shade=(900, 1900, 0.3, 700, 0.2))
+        # 掌心积水 + 倒影「命」（随涟漪抖动），107.08 字头亮起
+        cx, cy = self.PALM[0] + 10, self.PALM[1] - 20
+        pool = np.exp(-(((x - cx) / 120) ** 2 + ((y - cy) / 46) ** 2) ** 2)
+        pm = prs(25, [2], t, 0.3)[0]
+        if pm > 0:
+            L = T.Layer(); T.place(L, '命', cx, cy, 120, color='red', fname='serif_black', alpha=min(1, pm * 1.5), sy=0.42)
+            wob = np.sin((x - cx) * 0.08 + t * 14) * 3 + np.sin((y - cy) * 0.3 + t * 9) * 2
+            A = cv2.remap(L.A, x + wob.astype(np.float32), y, cv2.INTER_LINEAR) * pool
+            fr = fr * (1 - A[..., None] * 0.7) + A[..., None] * np.array([0.95, 0.10, 0.06], np.float32)
+            fr += K.blur_ds(A, 16)[..., None] * RED * 0.6
+        fr += pool[..., None] * COLDC * 0.10
+        fr = fx2.ripples(fr, t, [(cx - 30, cy), (cx + 40, cy + 6), (cx, cy - 4)], [106.0, 106.5, 107.0], amt=0.6, flat=0.35, speed=90, life=0.9)
+        fr = self.rain.draw(fr, t, intensity=0.9, angle=6)
+        pr = prs(25, [0, 1, 3], t)
+        P = [dict(ch='谁', x=1460, y=330, size=130, rot=0, font='kai', idx=0, emph=False), dict(ch='的', x=1460, y=470, size=110, rot=0, font='kai', idx=1, emph=False),
+             dict(ch='都', x=1600, y=640, size=96, rot=0, font='kai', idx=2, emph=False)]
+        fr = T.ink_bleed_in(fr, '谁的都', pr, places=P, color='white', style_kw=dict(shadow=0.85, glow=0.12))
+        fr = cam(fr, 1.0 + 0.12 * eio(u), 0, 0, center=(cx, cy))
+        return fr, 0
+
+
+# =====================================================================================
+# V18 107.55–108.34 CU：107.58「握」猛然握拳（palm_fist），水花炸开；「握在自己」志莽行书从水花中迸出
+class V18(Shot):
+    T_WO = 107.58
+    def __init__(self):
+        self.sp = spr('S056/palm_fist')
+        self.bg = BK.dark_bg(6301, 0.01, 0.03)
+        self.rain = fx2.RainSheet(6302, density=0.8)
+        T.warm('握在自己', 'xing', 200)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        fr = self.bg + np.exp(-(((x - 900) / 600) ** 2 + ((y - 450) / 400) ** 2))[..., None] * COLDC * 0.10
+        hk = hitp(t, self.T_WO, 0.12)
+        fr, _ = put_at(fr, self.sp, t, (0.38, 0.28), (860, 470), 2300 * (1 + 0.05 * hk), rim=dict(col=(0.75, 0.82, 1.0), amt=2.4, dir=(0.4, -1.0)),
+                       wind_amp=2, mblur=(0, -30 * hk), shade=(1100, 1900, 0.3, 700, 0.3))
+        fr = K.sparks(fr, t, 6303, (820, 420), n=160, life=0.6, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=1500, size=1.6,
+                      area=(160, 60), color=(0.8, 0.85, 0.95), amt=1.1, t0=V(self.T_WO), burst=True)
+        pr = prs(25, [4, 5, 6, 7], t)
+        fr = T.scatter_stack(fr, '握在自己', pr, places=[dict(ch='握', x=1380, y=340, size=280, rot=-6, font='xing', idx=0, emph=True),
+                                                         dict(ch='在', x=1600, y=560, size=150, rot=5, font='xing', idx=1, emph=False),
+                                                         dict(ch='自', x=1460, y=730, size=150, rot=-4, font='xing', idx=2, emph=False),
+                                                         dict(ch='己', x=1660, y=800, size=170, rot=6, font='xing', idx=3, emph=False)],
+                             color='white', emph_color=(0.86, 0.10, 0.06), t_local=u, style_kw=dict(shadow=0.85, glow=0.15))
+        fr = self.rain.draw(fr, t, intensity=0.8, angle=8)
+        if V(self.T_WO) <= t < V(self.T_WO) + 1 / 30 + 1e-3: fr = fr * 0.5 + 0.6
+        dx, dy, dr = shake(t, 22 * hk, 14, 63)
+        fr = cam(fr, 1.04 + 0.06 * hk, dx, dy, dr)
+        return fr, (4 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V19 108.34–109.55 MCU：握拳顺势握住刀柄、转身，马尾甩出雨珠（grab_turn）。匹配：拳 → 刀柄上的拳；「手掌」志莽行书右下
+class V19(Shot):
+    def __init__(self):
+        self.sp = spr('S057/grab_turn')
+        sk = night_sky(6401, top=(0.02, 0.022, 0.03), bot=(0.09, 0.095, 0.11), horizon=0.85)
+        self.bg = sk
+        self.rain = fx2.RainSheet(6402, density=1.0)
+        self.fog = fx2.Fog(6403)
+        T.warm('手掌', 'xing', 230)
+
+    def render(self, t):
+        u = self.u(t)
+        e = eout(clamp01(u * 1.6), 3)
+        fr = self.fog.draw(self.bg.copy(), t, density=0.45, y0=400, y1=960, color=(0.30, 0.32, 0.35), speed=(-200 * (1 - e), 0))
+        whip = (1 - e)
+        fr, _ = put_at(fr, self.sp, t, (0.42, 0.85), (980 - 260 * whip, 880), 1900, rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(-0.7, -0.7)),
+                       wind_amp=14, mblur=(-90 * whip, 0), shade=(600, 1700, 0.25, 600, 0.3))
+        fr = K.sparks(fr, t, 6404, (640, 260), n=70, life=0.7, speed=(300, 900), dirc=(-1, -0.2), spread=0.8, grav=900, size=1.3,
+                      area=(80, 80), color=(0.8, 0.85, 0.95), amt=0.9, t0=self.t0 + 0.05, burst=True)
+        pr = prs(25, [8, 9], t)
+        fr = T.scatter_stack(fr, '手掌', pr, places=[dict(ch='手', x=1500, y=640, size=220, rot=-5, font='xing', idx=0, emph=False),
+                                                       dict(ch='掌', x=1700, y=800, size=260, rot=6, font='xing', idx=1, emph=True)],
+                             color='white', emph_color=(0.86, 0.10, 0.06), t_local=u, style_kw=dict(shadow=0.85, glow=0.15))
+        fr = self.rain.draw(fr, t, intensity=1.0, angle=10, cam=(-300 * whip, 0))
+        fr = cam(fr, 1.02, 0, 0, -2 * whip)
+        return fr, 0
+
+
+# =====================================================================================
+# V20 109.55–110.92 LS 俯：积水倒影成为主画面：倒影里鬼屠背影（back_stand，镜像冷调），世界开始旋转 roll 0°→90°；「若这世」宋体随画面旋转
+# V21 110.92–112.29 LS：继续旋转 90°→180° 并翻成负片（黑白颠倒）；「道黑白颠倒」随画面倒置，「黑」「白」因反相互换颜色
+class V20(Shot):
+    def __init__(self):
+        self.sp = spr('back_stand')
+        x, y = K.grid()
+        sk = night_sky(6501, top=(0.10, 0.11, 0.13), bot=(0.03, 0.035, 0.045), horizon=1.0)     # 倒影里的天（倒置：亮在下）
+        self.sky = sk[::-1].copy()
+        mud = (0.015 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6502, 9, 6), (W, H)))[..., None] * np.ones(3, np.float32)
+        nz = cv2.resize(K.fbm(H // 8, W // 8, 6503, 3, 4), (W, H))
+        d = np.sqrt(((x - 960) / 900) ** 2 + ((y - 540) / 520) ** 2)
+        self.pm = np.clip((1.0 - d + (nz - 0.5) * 0.5) * 8, 0, 1)
+        self.mud = mud
+        self.rain = fx2.RainSheet(6504, density=0.6)
+        self.r = np.random.default_rng(6505).uniform(0, 1, (30, 3))
+        T.warm('若这世', 'serif_black', 140); T.warm('道黑白颠倒', 'serif_black', 140)
+
+    def scene(self, t):
+        x, y = K.grid()
+        refl = self.sky.copy()
+        refl, _ = put(refl, self.sp, t, 760, (960, 160), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
+                      shade=None, wrap=0.2)
+        refl = refl[::-1] if False else refl
+        # 倒影：人物头朝下（脚在上沿）
+        refl = cv2.flip(refl, 0)
+        nz = cv2.resize(K.tile_crop(K.tile(256, 6506, 6, 3), t * 20, t * 50, H // 8, W // 8), (W, H))
+        refl = cv2.remap(refl, x + (nz - 0.5) * 10, y + (nz - 0.5) * 4, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        fr = self.mud * (1 - self.pm[..., None]) + refl * self.pm[..., None] * np.array([0.85, 0.92, 1.05], np.float32)
+        cs = [(a * W, 150 + b * 780) for a, b, _ in self.r]; ts = [math.floor(t * 2 + c * 2) / 2 - c * 0.5 for _, _, c in self.r]
+        fr = fx2.ripples(fr, t, cs, ts, amt=0.5, flat=0.6, speed=160, life=1.0)
+        fr = self.rain.draw(fr, t, intensity=0.5, angle=0)
+        return fr
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.scene(t)
+        pr = prs(26, [0, 1, 2], t)
+        L = T.Layer()
+        for i, (ch, pc) in enumerate(zip('若这世', pr)):
+            if pc > 0: T.place(L, ch, 1380, 300 + i * 160, 140, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+        fr = T.compose(fr, L, shadow=0.85, glow=0.12)
+        ang = 90 * ein(u, 2)
+        fr = cam(fr, 1.0 + 0.12 * math.sin(math.pi * u * 0.5), 0, 0, ang)
+        return fr, 0
+
+
+class V21(Shot):
+    def __init__(self):
+        self.v20 = V20()
+
+    def render(self, t):
+        u = self.u(t)
+        fr = self.v20.scene(t)
+        pr = prs(26, [3, 4, 5, 6, 7], t)
+        L = T.Layer()
+        for i, (ch, pc) in enumerate(zip('道黑白颠倒', pr)):
+            if pc <= 0: continue
+            col = (0.04, 0.04, 0.045) if ch == '黑' else ('white' if ch != '白' else (0.98, 0.97, 0.94))
+            T.place(L, ch, 560 + i * 200, 540 + (40 if i % 2 else -40), 170 if ch in '黑白' else 130, color=col, fname='serif_black',
+                    alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+        fr = T.compose(fr, L, shadow=0.6, glow=0.15)
+        # 90°→180°，同时反相（黑白颠倒）；「黑」「白」随反相互换
+        e = eio(u)
+        ang = 90 + 90 * eout(u, 2)
+        fr = cam(fr, 1.0 + 0.12 * (1 - e) + 0.04, 0, 0, ang)
+        k = sstep(0.2, 0.55, u)
+        fr = fr * (1 - k) + (1 - np.clip(fr, 0, 1)) * 0.85 * k
+        fr = fr + 0.25 * max(0.0, 1 - abs(u - 0.38) / 0.05)
+        return fr, 0
+
+
+# =====================================================================================
+# V22 112.29–113.60 MS：负片世界里鬼屠横斩（slash_h），113.34 刀线以上恢复正片、以下仍是负片；「那就用刀」沿刀线一分为二，「刀」朱
+class V22(Shot):
+    T_CUT = 113.34
+    def __init__(self):
+        self.sp = spr('slash_h')
+        sk = night_sky(6601, top=(0.02, 0.022, 0.03), bot=(0.12, 0.125, 0.14), horizon=0.8)
+        wl, wm = city_wall_far(6602, 620, 840, tone=0.06)
+        self.bg = sk * (1 - wm[..., None]) + K.blur_ds(wl, 3) * wm[..., None]
+        self.rain = fx2.RainSheet(6603, density=1.0)
+        T.warm('那就用刀', 'kai', 150)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        fr = self.bg.copy()
+        fr, _ = put(fr, self.sp, t, 720, (960, 900), rim=dict(col=(0.75, 0.82, 1.0), amt=2.2, dir=(0.6, -0.8)), wind_amp=10,
+                    shade=(600, 1600, 0.2, 600, 0.3))
+        fr = self.rain.draw(fr, t, intensity=1.0, angle=10)
+        tc = V(self.T_CUT)
+        line_y = 330 + 0.06 * (x - 960)                 # 刀线（沿刀身，略斜）
+        P = [dict(ch=c, x=500 + i * 300, y=560, size=170, rot=0, font='kai', idx=i, emph=(c == '刀')) for i, c in enumerate('那就用刀')]
+        pr = prs(27, [0, 1, 2, 3], t)
+        q = clamp01((t - tc) / 0.35)
+        if q <= 0:
+            L = T.Layer()
+            for pp, pc in zip(P, pr):
+                if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'white', fname='kai', alpha=min(1, pc * 2))
+            fr = T.compose(fr, L, shadow=0.85, glow=0.15)
+        else:
+            fr = T.slash_cut(fr, '那就用刀', clamp01(0.25 + q * 0.75), places=P, fname='kai', color='white', emph=('刀',),
+                             emph_color=(0.86, 0.10, 0.06), angle=4, cut_at=0.25, slide=0.18, appear=0.0)
+        # 负片：斩前全屏；斩后只剩刀线以下
+        if t < tc:
+            m = np.ones((H, W), np.float32)
+        else:
+            m = sstep(-6, 6, y - line_y - (1 - eout(q)) * 0)
+        neg = 1 - np.clip(fr, 0, 1)
+        fr = fr * (1 - m[..., None]) + neg * 0.9 * m[..., None]
+        if t >= tc - 0.05:
+            ql = clamp01((t - (tc - 0.05)) / 0.15)
+            band = np.exp(-((y - line_y) / (3 + 20 * (1 - ql))) ** 2) * (x < W * ql + 200)
+            fr += band[..., None] * np.array([1.0, 0.92, 0.85], np.float32) * (1.5 - ql)
+        hk = hitp(t, self.T_CUT, 0.12)
+        dx, dy, dr = shake(t, 20 * hk, 14, 66)
+        fr = cam(fr, 1.0 + 0.06 * eio(u) + 0.03 * hk, dx, dy, dr)
+        return fr, (4 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V23 113.60–115.03 CU 低：刀尖在泥水里划出发光朱红刀痕（drag_blade），火星与蒸汽，积水被劈开；「锋重新划」沿刀痕排开逐字烫亮
+def gash(fr, t, pts, width, heat=1.0, seed=0):
+    """地面发光刀痕：pts 屏幕折线（近→远），width 近端宽度；返回 (fr, mask)"""
+    m = np.zeros((H // 2, W // 2), np.float32)
+    n = len(pts)
+    for i in range(n - 1):
+        w = max(1, int(width * (1 - i / n * 0.85) / 2))
+        cv2.line(m, (int(pts[i][0] / 2), int(pts[i][1] / 2)), (int(pts[i + 1][0] / 2), int(pts[i + 1][1] / 2)), 1.0, w, cv2.LINE_AA)
+    m = cv2.resize(m, (W, H))
+    nz = cv2.resize(K.fbm(H // 4, W // 4, seed, 10, 4), (W, H))
+    core = np.clip(m * (0.7 + 0.6 * nz), 0, 1)
+    glow = K.blur_ds(core, 22)
+    fr = fr * (1 - core[..., None] * 0.9) + core[..., None] * (RED * 1.6 + GOLD * 0.8 * core[..., None]) * heat
+    fr += glow[..., None] * RED * 1.1 * heat + K.blur_ds(core, 80)[..., None] * RED * 0.35 * heat
+    return fr, core
+
+
+class V23(Shot):
+    def __init__(self):
+        self.sp = spr('drag_blade')
+        x, y = K.grid()
+        mud = (0.015 + 0.035 * cv2.resize(K.fbm(H // 2, W // 2, 6701, 12, 6), (W, H)))[..., None] * np.array([1.0, 0.97, 0.95], np.float32)
+        self.bg = mud
+        self.fog = fx2.Fog(6702)
+        self.rain = fx2.RainSheet(6703, density=0.7)
+        T.warm('锋重新划', 'xing', 150)
+
+    def render(self, t):
+        u = self.u(t)
+        e = eio(u)
+        fr = self.bg.copy()
+        tipx = 520 - 260 * e                               # 刀尖向左拖行
+        pts = [(tipx + i * 70, 900 - i * 2) for i in range(int(4 + 22 * clamp01(u * 1.3 + 0.3)))]
+        fr, core = gash(fr, t, pts, 34, heat=1.0, seed=6704)
+        fr, _ = put_at(fr, self.sp, t, (0.05, 0.955), (tipx, 900), 3600, rim=dict(col=(1.0, 0.45, 0.30), amt=2.0, dir=(0.0, 1.0)),
+                       wind_amp=8, shade=(800, 1900, 0.2, 0, -0.2), wrap=0.3)
+        fr += np.exp(-(((x := K.grid()[0]) - tipx - 400) / 900) ** 2)[..., None] * RED * 0.08
+        fr = K.sparks(fr, t, 6705, (int(tipx), 895), n=110, life=0.5, speed=(300, 1000), dirc=(0.6, -1), spread=0.8, grav=1300, size=1.2,
+                      area=(20, 10), amt=1.2)
+        fr = self.fog.draw(fr, t, density=0.35, y0=600, y1=960, color=(0.55, 0.42, 0.38), speed=(60, -40))
+        fr = self.rain.draw(fr, t, intensity=0.7, angle=8)
+        pr = prs(27, [4, 5, 6, 7], t)
+        L = T.Layer()
+        for i, (ch, pc) in enumerate(zip('锋重新划', pr)):
+            if pc <= 0: continue
+            xx = 700 + i * 260 - 200 * e
+            T.place(L, ch, xx, 760 - i * 8, 150 - i * 6, color=(1.0, 0.86, 0.6) if pc < 1 else (0.92, 0.16, 0.06), fname='xing',
+                    alpha=min(1, pc * 2), rot=-2)
+        fr = T.compose(fr, L, shadow=0.7, glow=0.6, glow_color=(1.0, 0.3, 0.08))
+        hk = hitp(t, 113.64, 0.12)
+        dx, dy, dr = shake(t, 4 + 12 * hk, 10, 67)
+        fr = cam(fr, 1.04, dx - 60 * e, dy, dr)
+        return fr, (3 if hk > 0.5 else 0)
+
+
+# =====================================================================================
+# V24 115.03–116.42 ELS 高：摇臂升高，一道发光朱红刀痕从他脚下延伸向远方雨雾中的城墙；drag_blade 远景逆光剪影（第 2 次）；「出方」沿刀痕透视铺设
+class V24(Shot):
+    def __init__(self):
+        self.sp = spr('drag_blade')
+        sk = night_sky(6801, top=(0.02, 0.022, 0.03), bot=(0.13, 0.13, 0.15), horizon=0.6)
+        wl, wm = city_wall_far(6802, 300, 420, tone=0.06)
+        wl = K.blur_ds(wl, 3); wm = K.blur_ds(wm, 3)
+        x, y = K.grid()
+        self.gm = sstep(410, 440, y)
+        mud = (0.02 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6803, 14, 6), (W, H)))[..., None] * np.ones(3, np.float32)
+        self.bg = (sk * (1 - wm[..., None]) + wl * wm[..., None]) * (1 - self.gm[..., None]) + mud * self.gm[..., None]
+        self.fog = fx2.Fog(6804)
+        self.rain = fx2.RainSheet(6805, density=0.8)
+        T.warm('出方', 'xing', 200)
+
+    def render(self, t):
+        u = self.u(t)
+        e = eio(u)
+        fr = self.bg.copy()
+        grow = clamp01(u * 1.4 + 0.2)
+        near, far = np.array([700.0, 1000.0]), np.array([1180.0, 425.0])
+        n = 30
+        pts = [tuple(near + (far - near) * (i / n) ** 0.8) for i in range(int(2 + n * grow))]
+        fr, core = gash(fr, t, pts, 40, heat=1.0, seed=6806)
+        fr = self.fog.draw(fr, t, density=0.55, y0=300, y1=700, color=(0.32, 0.33, 0.36), speed=(30, 0))
+        fr, _ = put(fr, self.sp, t, 300, (690, 990), look='sil', rim=dict(col=(1.0, 0.4, 0.25), amt=3.0, dir=(0.3, 1.0)), wind_amp=6,
+                    shade=None, wrap=0.2)
+        pr = prs(27, [8, 9], t)
+        for i, (ch, pc) in enumerate(zip('出方', pr)):
+            if pc <= 0: continue
+            q = 0.35 + 0.35 * i
+            pp = near + (far - near) * q ** 0.8
+            sz = 230 * (1 - q * 0.75)
+            L = T.Layer(); T.place(L, ch, pp[0] + 40, pp[1] - sz * 0.15, sz, color=(0.95, 0.18, 0.07), fname='xing', alpha=min(1, pc * 2), sy=0.55)
+            fr = T.compose(fr, L, shadow=0.5, glow=0.7, glow_color=(1.0, 0.3, 0.08))
+        fr = self.rain.draw(fr, t, intensity=0.9, angle=10)
+        fr = cam(fr, 1.12 - 0.12 * e, 0, 80 - 120 * e)          # 摇臂升：画面下压 + 拉开
+        return fr, 0
+
+
+# =====================================================================================
+# V25 116.42–117.80 LS 低：贴地沿刀痕望去，刀痕直指远墙；鬼屠背影立在刀痕起点（back_stand 逆光剪影，第 2 次）；「向」在刀痕尽头燃起；末拍推进压暗
+class V25(Shot):
+    T_XIANG = 116.46
+    def __init__(self):
+        self.sp = spr('back_stand')
+        sk = night_sky(6901, top=(0.02, 0.022, 0.03), bot=(0.16, 0.15, 0.15), horizon=0.62)
+        wl, wm = city_wall_far(6902, 480, 600, tone=0.05)
+        x, y = K.grid()
+        self.gm = sstep(590, 620, y)
+        mud = (0.015 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6903, 12, 6), (W, H)))[..., None] * np.ones(3, np.float32)
+        self.bg = (sk * (1 - wm[..., None]) + K.blur_ds(wl, 4) * wm[..., None]) * (1 - self.gm[..., None]) + mud * self.gm[..., None]
+        self.fog = fx2.Fog(6904)
+        self.rain = fx2.RainSheet(6905, density=0.8)
+        T.warm('方向', 'xing', 260)
+
+    def render(self, t):
+        u = self.u(t)
+        x, y = K.grid()
+        fr = self.bg.copy()
+        pts = [(960 + (i / 30) ** 1.0 * 0, 1080 - (1080 - 605) * (1 - (1 - i / 30) ** 2)) for i in range(31)]
+        fr, core = gash(fr, t, pts, 120, heat=1.0, seed=6906)
+        fr = self.fog.draw(fr, t, density=0.5, y0=420, y1=760, color=(0.30, 0.30, 0.33), light=(960, 600), light_r=500, light_color=RED * 0.8)
+        fr, _ = put(fr, self.sp, t, 560, (900, 960), look='sil', rim=dict(col=(1.0, 0.38, 0.22), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
+                    shade=None, wrap=0.2)
+        pr = prs(27, [10], t, 0.3)[0]
+        if pr > 0:
+            fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1000, y=470, size=210, rot=0, font='xing', idx=0, emph=False)],
+                           color='red', embers=140, seed=69, style_kw=dict(shadow=0.4, glow=0.7, glow_color=(1.0, 0.3, 0.08)))
+        Lf = T.Layer(); T.place(Lf, '方', 1250, 820, 220, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.85, sy=0.6, rot=-4)
+        fr = T.compose(fr, Lf, shadow=0.5, glow=0.5, glow_color=(1.0, 0.3, 0.08))
+        fr = self.rain.draw(fr, t, intensity=0.9, angle=8)
+        end = clamp01((t - 117.33) / 0.45)
+        fr = fr * (1 - 0.7 * eio(end))
+        fr = cam(fr, 1.0 + 0.06 * eio(u) + 0.10 * ein(end, 2), 0, 0, center=(960, 600))
+        return fr, 0
+
+
 # ===================================================================================== 段落装配
-SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16]
+SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25]
 CUTS = {
     'V02': ('zoom_through', 0.06, 0.14, dict(center=(960, 470))),
     'V03': ('flash_white', 0.0, 0.17, {}),
@@ -894,6 +1248,15 @@ CUTS = {
     'V14': ('flash_red', 0.03, 0.12, {}),
     'V15': ('ink_bleed', 0.06, 0.20, dict(seed=15)),
     'V16': ('whip_pan_blur', 0.05, 0.10, dict(direction='up')),
+    'V17': ('hard', 0, 0, {}),
+    'V18': ('flash', 0, 0, {}),
+    'V19': ('match_cut', 0.0, 0.10, dict(shape='circle', center=(860, 470), radius=200)),
+    'V20': ('whip_pan_blur', 0.05, 0.12, dict(direction='right', rot_deg=90.0)),
+    'V21': ('none', 0, 0, {}),
+    'V22': ('glitch_cut', 0.03, 0.12, dict(seed=22)),
+    'V23': ('slash_wipe', 0.05, 0.14, dict(angle=4)),
+    'V24': ('smoke_through', 0.12, 0.20, dict(seed=24)),
+    'V25': ('hard', 0, 0, {}),
 }
 FG = {'V01': ('rain', 0.4), 'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25), 'V09': ('rain', 0.3), 'V13': ('rain', 0.35),
       'V14': ('ember', 0.5), 'V15': ('rain', 0.45)}
