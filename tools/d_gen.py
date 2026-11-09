@@ -33,13 +33,19 @@ JOBS = {
  'defy_up': (GT, 'MCU', 'medium close-up from a LOW angle, three-quarter view facing right, chest up, his right arm raised high holding the dao above his head with the blade pointing up and back toward the stormy sky, chin lifted, eyes open looking UP at the sky with fierce cold defiance, jaw clenched, loose black hair strands across the forehead, the high ponytail swinging behind, the full head and the hand on the hilt inside the frame', COLD),
  'draw_side': (GT, 'MS', 'in strict side profile facing LEFT, body turned sideways, slowly half-drawing the long dao out of the black scabbard at his left hip with his right hand, about half of the bright blade visible between hilt and scabbard mouth, head turned a little toward the camera, cold determined eyes, ponytail and loose hair strands blown by wind, rain-wet clothes', COLD),
  'run_top': (GT, 'LS', 'seen from a very HIGH bird-eye angle almost directly above, sprinting forward toward the bottom of the frame with a long stride, upper body leaning forward, the dao held low behind him in his right hand trailing backward, ponytail and robe hem streaming behind, his whole body and his shadow on the ground inside the frame', COLD),
+ 'sword_planted': (GT, 'CU', 'ONLY THE SWORD, NO PERSON in the image: his long single-edged dao with a black cord-wrapped hilt, a dark iron round guard and a thin red cord tassel on the pommel, its blade planted point-down into the ground at a slight tilt, standing alone and upright, framed vertically from the pommel at the top down to where the blade enters the ground at the bottom, the wet steel blade long and slightly curved with a clean bright edge, the blade cut off cleanly at the bottom edge of the frame where it would enter the ground, a few water droplets beading on the steel', COLD),
+ 'raise_low': (GT, 'LS', 'full body seen from a very LOW worm-eye angle from in front and below, standing tall with feet planted wide apart, BOTH arms raised straight above his head gripping the dao hilt, the long blade pointing straight up into the sky, chin lifted looking up, ponytail and robe hem whipped sideways by a storm wind, strong silhouette shape with arms and blade clearly separated from the body, his whole body from head to boots and the full blade inside the frame', COLD),
  'companions': (None, 'LS', 'four young martial artists standing side by side in a row, all facing the camera, full body, evenly spaced with clear gaps between them, each with a clearly different silhouette: (1) a tall young man in a long scholar robe with a hair crown and a sword on his back, (2) a slim young woman with a high bun and hairpins holding a long spear upright, (3) a gentle young woman with long loose hair and flowing ribbons on her sleeves, (4) a short teenage boy with a messy topknot holding a short wooden staff, calm sad expressions', SOFT),
 }
+PROPS = {'sword_planted'}
+RATIO = {'sword_planted': '9:16', 'raise_low': '9:16'}
 INPUTS = {'companions': ['男主师兄_谢玄洲.webp', '男主师姐_丁昭.webp', '女主_殷若.webp', '男主徒弟_杨不丢.webp']}
 
 
 def prompt(name):
     char, size, pose, light = JOBS[name]
+    if name in PROPS:
+        return pose[0].upper() + pose[1:] + '. No hands, no human body parts. Weapon design as in the reference sheet: long single-edged Chinese dao, black cord-wrapped handle, red tassel. ' + BG + light
     look = '' if char is None else (plan.TSH_LOOK if char == TSH else plan.GT_LOOK) + ' '
     extra = ('Keep the faces and outfits of the four reference characters, in order from left to right. ' if name == 'companions' else '')
     return pose[0].upper() + pose[1:] + '. ' + plan.FRAME.get(size, '') + plan.HANDS + look + extra + BG + light
@@ -47,7 +53,7 @@ def prompt(name):
 
 def body(name):
     refs = INPUTS.get(name) or [JOBS[name][0] + '.webp']
-    return dict(model='RH_image2', prompt=prompt(name), ratio='16:9', size='4K', input=[REFS[r] for r in refs])
+    return dict(model='RH_image2', prompt=prompt(name), ratio=RATIO.get(name, '16:9'), size='4K', input=[REFS[r] for r in refs])
 
 
 def load():

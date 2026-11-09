@@ -331,3 +331,6 @@
 | 11-09 04:00 | A/kneel_pan | RH_image2 | 4K 16:9 | 0 | 28244dde-92a5-4092-bc07-873d9f709990 | 采用 | assets/gen/A/kneel_pan_raw.png | A组 采用 |
 | 11-09 04:00 | A/carve_mcu | RH_image2 | 4K 16:9 | 0 | 777f70a0-056d-4d97-8d54-a6687008db14 | 采用 | assets/gen/A/carve_mcu_raw.png | A组 采用 |
 | 11-09 04:00 | A/look_up_mcu | RH_image2 | 4K 16:9 | 0 | 72af3abd-e5b7-4b4e-92c8-22403ddfae7e | 采用 | assets/gen/A/look_up_mcu_raw.png | A组 采用 |
+| 11-09 04:01 | B组/slash_up | RH_image2 | 4K 16:9 | 0 | c627a5c3-ae4c-4b75-ac84-72cbab0afb69 | completed | b_cands/slash_up_try1_0.png | try1 |
+| 11-09 04:01 | D组/sword_planted | RH_image2 | 4K 16:9 | 3 | 531053a4-6467-4204-9efa-c104351ffe61 | submitted | - | try1 ONLY THE SWORD, NO PERSON in the image: his long single-edge |
+| 11-09 04:01 | D组/raise_low | RH_image2 | 4K 16:9 | 3 | 2a80c463-976d-439d-989b-079e53b8125d | submitted | - | try1 full body seen from a very LOW worm-eye angle from in front  |

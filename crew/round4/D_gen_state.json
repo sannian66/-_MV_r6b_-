@@ -1,5 +1,5 @@
 {
- "spent": 39,
+ "spent": 45,
  "jobs": {
   "walk_back": {
    "tries": [
@@ -130,6 +130,24 @@
     }
    ],
    "state": "done"
+  },
+  "sword_planted": {
+   "tries": [
+    {
+     "tid": "531053a4-6467-4204-9efa-c104351ffe61",
+     "pts": 3
+    }
+   ],
+   "state": "running"
+  },
+  "raise_low": {
+   "tries": [
+    {
+     "tid": "2a80c463-976d-439d-989b-079e53b8125d",
+     "pts": 3
+    }
+   ],
+   "state": "running"
   }
  }
 }
