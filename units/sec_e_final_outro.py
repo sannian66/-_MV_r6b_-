@@ -1236,18 +1236,18 @@ class Credits(Shot):
 
 class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / 编剧·导演
     def __init__(self):
-        self.sky = E.dawn_sky(1350, horizon=0.62, top=(0.05, 0.06, 0.08), mid=(0.30, 0.33, 0.38), hor=(0.86, 0.80, 0.72), cloud=0.5, sun=(560, 560))
-        self.rd, self.ra = E.ridges(w=W + 480, n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.74, 0.70, 0.66), far=0.75, near=0.05)   # 第五棒：层宽 W+480（平移 120×1.05 有足量出血，右边不再露底）；雾色偏晨暖
+        self.sky = E.dawn_sky(1350, horizon=0.62, top=(0.06, 0.055, 0.06), mid=(0.40, 0.33, 0.27), hor=(1.0, 0.84, 0.60), cloud=0.5, sun=(560, 560))   # 第五棒：破晓后余温（中调暖灰、地平线淡金）
+        self.rd, self.ra = E.ridges(w=W + 480, n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.82, 0.70, 0.54), far=0.75, near=0.05)   # 第五棒：层宽 W+480（平移 120×1.05 有足量出血，右边不再露底）；雾色偏晨暖
         self.blocks = [('出品人', ['西几王传媒'], 1660, 230, 227.85, 0.9), ('编剧 / 导演', ['苏打'], 1430, 230, 228.45, 0.8)]
         self.fog = K.fbm(H // 4, W // 2, 1351, base=5, octaves=5)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (560, 600), 60, amt=0.55)
+        fr = E.sun_disc(self.sky.copy(), (560, 600), 70, amt=0.8)
         fr = E.place_layer(fr, self.rd, self.ra, ox=-120 * u, z=1.05)
         f = cv2.resize(R3.slide(self.fog, 30 * u), (W, H))
         m = np.clip((f - 0.45) * 2.5, 0, 1) * sstep(0.45, 0.85, np.arange(H, dtype=np.float32)[:, None] / H)
-        fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.80, 0.82, 0.84], np.float32) * 0.6
+        fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.90, 0.80, 0.66], np.float32) * 0.6
         fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(1.0, 0.9, 0.75))
         fr = R5.dawn_warm(fr, 0.9)
         return bloom(fr, 0.85, 0.35)
@@ -1271,30 +1271,30 @@ class E32(Credits):   # S135 CU 手握刀柄，沿刀身滑移；署名②：美
 
 class E33(Credits):   # S135b（第三棒重做）晨后冷调：贴地低机位，他划下的那道线已冷成一道暗红焦痕伸向远方，晨雾贴地，远处一线淡日；署名③：AI画师
     def __init__(self):
-        self.sky = E.dawn_sky(1370, horizon=0.52, top=(0.10, 0.12, 0.15), mid=(0.42, 0.46, 0.52), hor=(0.88, 0.86, 0.82), cloud=0.4, sun=(760, 560))
-        self.g = R3.Ground(331, tone=(0.85, 0.88, 0.95))
+        self.sky = E.dawn_sky(1370, horizon=0.52, top=(0.08, 0.075, 0.08), mid=(0.46, 0.39, 0.32), hor=(1.0, 0.86, 0.64), cloud=0.4, sun=(960, 560))   # 第五棒：晨暖
+        self.g = R3.Ground(331, tone=(0.95, 0.88, 0.80))
         self.blocks = [('AI画师', ['沉溺', '雪晴', '索恩'], 1640, 230, 232.45, 1.3)]
         self.fog = K.fbm(H // 4, W // 2, 1372, base=5, octaves=5)
         # 第四棒：地平线不再是一刀硬线 —— 远山两层（被晨雾吃到只剩轮廓）+ 贴地平线的雾带 + 一排远处残碑剪影作焦点
-        self.rd, self.ra = E.ridges(n=2, base=0.455, step=0.035, seed=337, amp=0.045, haze=(0.80, 0.82, 0.86), far=0.85, near=0.35)
+        self.rd, self.ra = E.ridges(w=W + 200, n=2, base=0.455, step=0.035, seed=337, amp=0.045, haze=(0.86, 0.76, 0.62), far=0.85, near=0.35)
         r = np.random.default_rng(338); self.stl = [(r.uniform(-1, 1), r.uniform(0.7, 1.3)) for _ in range(9)]
 
     def render(self, t):
         u = self.u(t)
         hy = 565
-        fr = E.sun_disc(self.sky.copy(), (760, hy - 10), 40, amt=0.45, core=(1.0, 0.98, 0.95))
+        fr = E.sun_disc(self.sky.copy(), (960, hy - 10), 46 + 10 * u, amt=0.55 + 0.35 * u, core=(1.0, 0.95, 0.85))   # 线尽头一线日 = E34 日出位置
         fr = E.place_layer(fr, self.rd, self.ra, ox=-40 * u, z=1.0)
-        fr, z = self.g.render(fr, hy, f=900, camh=0.6, dz=-3 * u, cx=760, line=0.6, line_col=(0.55, 0.08, 0.04), fog=(0.85, 0.87, 0.9))
+        fr, z = self.g.render(fr, hy, f=900, camh=0.6, dz=-3 * u, cx=960, line=0.75, line_col=(0.70, 0.10, 0.04), fog=(0.92, 0.84, 0.74))
         yy = np.arange(H, dtype=np.float32)[:, None, None]
         for k, (xo, sc) in enumerate(self.stl):                       # 远处残碑剪影（线的两侧、地平线上）
-            x = 760 + (xo * 520 if abs(xo) > 0.25 else xo * 520 + np.sign(xo) * 200) - 25 * u
+            x = 960 + (xo * 520 if abs(xo) > 0.25 else xo * 520 + np.sign(xo) * 200) - 25 * u
             wv, hv = 9 * sc, 34 * sc * (1.3 if k % 3 == 0 else 1.0)
-            cv2.rectangle(fr, (int(x - wv / 2), int(hy - hv)), (int(x + wv / 2), hy + 2), (0.36, 0.38, 0.42), -1, cv2.LINE_AA)
+            cv2.rectangle(fr, (int(x - wv / 2), int(hy - hv)), (int(x + wv / 2), hy + 2), (0.40, 0.34, 0.30), -1, cv2.LINE_AA)
         band = np.exp(-((yy - hy + 6) / 38.0) ** 2)                    # 地平线雾带：软化天/地交界
-        fr = fr * (1 - 0.75 * band) + band * 0.75 * np.array([0.84, 0.86, 0.89], np.float32)
+        fr = fr * (1 - 0.75 * band) + band * 0.75 * np.array([0.96, 0.86, 0.70], np.float32)
         f = cv2.resize(R3.slide(self.fog, 25 * u), (W, H))
         m = np.clip((f - 0.4) * 2.0, 0, 1) * sstep(0.45, 0.62, np.arange(H, dtype=np.float32)[:, None] / H) * (1 - sstep(0.7, 0.95, np.arange(H, dtype=np.float32)[:, None] / H))
-        fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.82, 0.84, 0.88], np.float32) * 0.55
+        fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.90, 0.82, 0.72], np.float32) * 0.55
         fr = E.dust_motes(fr, t, 1373, n=40, amt=0.25, drift=(15, -5), col=(1.0, 0.9, 0.75))
         fr = R5.dawn_warm(fr, 0.8)
         return bloom(fr, 0.85, 0.35)
@@ -1349,12 +1349,19 @@ class E36(Shot):   # S138 墨从四角收拢，只剩中心一点朱红 → 黑�
         if self.src is None:
             s = E35(); s.t0, s.t1 = 237.30, 239.13
             self.src = s.render(239.10)
-        p = c01((t - self.t0) / 1.35)
+        p = c01((t - self.t0) / 0.9)
         if p < 1:
-            fr = TR.transition('iris_moon', self.src, np.zeros_like(self.src), p, mode='collapse', center=(960, 470), dot_color=RED)
-        else:
-            fr = np.zeros((H, W, 3), np.float32)
-        return fr
+            return TR.transition('iris_moon', self.src, np.zeros_like(self.src), p, mode='collapse', center=(960, 470), dot_color=RED)
+        # 第五棒：不再长时间全黑 —— 朱点呼吸一次（像最后一滴血），同时淡朱墨晕从点向外洇开，最后 0.3s 收进黑
+        q = t - (self.t0 + 0.9); end = c01((t - (self.t1 - 0.3)) / 0.3)
+        yy, xx = E.grid()
+        d = np.hypot(xx - 960, yy - 470)
+        r = 9 * (1 + 0.45 * math.sin(math.pi * c01(q / 0.5)) ** 2) * (1 - end)
+        dot = np.clip(r + 0.8 - d, 0, 1)
+        R = 30 + 260 * eout(q / 1.0)
+        n = cv2.resize(K.fbm(H // 4, W // 4, 1381, base=6, octaves=4), (W, H))
+        ink = np.exp(-((d - R * 0.55) / (R * 0.45)) ** 2) * math.exp(-q / 0.6) * 0.18 * (1 - end) * (0.6 + 0.8 * n)
+        return ink[..., None] * np.array([0.45, 0.05, 0.03], np.float32) + dot[..., None] * RED * 1.1
 
 
 # =========================================================================================== 剪辑表
@@ -1412,7 +1419,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
     'E32': ('blade_sweep', 0.12, 0.16, dict(direction=1)),      # 第五棒：平灰板 → 近景刀身掠镜（钢纹/脊线/刃口暖光/运动模糊）
     'E33': ('fog_wall', 0.14, 0.20, dict(direction=-1)),        # 第五棒：平灰板 → 晨雾墙横扫（体积明暗/顶部暖光/运动模糊）
-    'E34': ('ink_bleed', 0.0, 0.45, dict(center=(960, 620), white=False, seed=8)),
+    'E34': ('match_cut', 0.0, 0.30, dict(shape='circle', center=(960, 560), radius=60)),   # 第五棒：E33 线尽头的日 → E34 日出（图形匹配）
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
