@@ -235,7 +235,7 @@ class S04_Snow(Shot):
             L = D.text_layer([(ch, x, y, 300, 1.0, 1.0, -10 + 25 * q, CINNABAR)], fname='serif_black')
             L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 2.0 * max(0, 1 - q))
             fr = D.ink_text(fr, L, bleed=0.2, sig=8)
-        fr = vcol(fr, '什么叫牺牲', 1752, 262, 58, O[40][5:10], t, 'ink', {'牺': CINNABAR, '牲': CINNABAR})
+        fr = vcol(fr, '什么叫', 1745, 300, 112, O[40][5:8], t, 'ink', fname='serif_black', adv=1.15)   # [r4] 停用角落小竖排：只留「什么叫」中号，牺牲由巨字承担
         return K.cam(fr, 1.04, -30 + 60 * u, 0), 1.0
 
 
@@ -556,7 +556,7 @@ class S09_Brush(Shot):
         if hd is None: hd = (1500, 760)
         # 巨笔（笔尖压在笔序前沿）
         fr, _ = D.ink_figure(fr, self.sp, t, self.tip, (hd[0] + 14, hd[1] + 18), 1.5, rot=-6 + 4 * math.sin(t * 9), wind=0, k=1.4, dens=0.98)
-        fr = vcol(fr, '若正义由你定义', 1752, 262, 58, O[42][0:7], t, 'ink')
+        fr = vcol(fr, '若正义由你定义', 1750, 212, 92, O[42][0:7], t, 'ink', fname='serif_black', adv=1.1)   # [r4] 放大（停用小竖排）
         return K.cam(fr, 1.05 + 0.04 * u, (hd[0] - 960) * 0.05, (hd[1] - 540) * 0.05), 1.0
 
 
@@ -577,7 +577,7 @@ class S10_Giant(Shot):
         fr, _ = D.ink_figure(fr, self.sp, t, D.feet(self.sp), (1150, 1500 - 40 * u), D.fit_scale(self.sp, 1500), wind=4, shadow=0)
         # 笔尖滴墨
         fr = D.ink_spray(fr, t, 171.9, (1330, 960), n=30, seed=5, power=300)
-        fr = vcol(fr, '若正义由你定义', 1752, 262, 58, O[42][0:7], t, 'ink')
+        fr = vcol(fr, '若正义由你定义', 1750, 212, 92, O[42][0:7], t, 'ink', fname='serif_black', adv=1.1)   # [r4] 放大（停用小竖排）
         return K.cam(fr, 1.0 + 0.05 * eo(u, 2), 0, -20 * u), 1.0
 
 
@@ -717,7 +717,7 @@ class S13_PaperCut(Shot):
         fr = fr * (1 - (ch * 0.6)[..., None])
         if t > 175.5: fr = D.embers(fr, t, 13, n=40, area=(0, 700, W, H - BAR), amt=0.8)
         for (txt, xx, ons) in (('谁又来为', 250 + ox, O[43][0:4]), ('被牺牲的', 1680 + ox, O[43][4:8])):
-            fr = vcol(fr, txt, xx, 250, 72, ons, t, 'ink', {'牺': CINNABAR, '牲': CINNABAR}, fname='kai', adv=1.12)
+            fr = vcol(fr, txt, xx, 215, 104, ons, t, 'ink', {'牺': CINNABAR, '牲': CINNABAR}, fname='kai', adv=1.08)   # [r4] 放大
         return K.cam(fr, 1.0 + 0.03 * u), 0.85
 
 
