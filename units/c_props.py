@@ -434,3 +434,82 @@ class BronzeBalance:
         if g <= 0:
             fr = _cyl(fr, (cx - 0.1, cy - 16 * s), (cx + 0.1, cy + 16 * s), 18 * s, 18 * s, light, seed=13, rim=rim, rim_amt=rim_amt)
         return fr, info
+
+
+# =============================================================== 第三棒：描金漆盒盖（高分辨率，倒角金边 + 回纹带 + 包角铜钉 + 锁扣）
+def _bevel_shade(m, width=6.0, light=(-0.6, -0.8), k=5.0):
+    """对金属件遮罩做倒角着色：模糊高度 → 法线 → 漫反射 + 高光。返回 (shade, spec)。"""
+    hgt = cv2.GaussianBlur(m, (0, 0), width)
+    gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=3) * k; gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=3) * k
+    n = np.dstack([-gx, -gy, np.ones_like(gx)]); n /= np.linalg.norm(n, axis=-1, keepdims=True)
+    L = np.array([light[0], light[1], 0.7]); L /= np.linalg.norm(L)
+    Hh = L + np.array([0, 0, 1.0]); Hh /= np.linalg.norm(Hh)
+    return np.clip(n @ L, 0, 1), np.clip(n @ Hh, 0, 1) ** 30
+
+
+def ornate_lid(w=1200, h=820, seed=66, glyphs='', gsize=300, gpos=None):
+    """描金黑漆盒盖（俯视）：漆面断纹 + 倒角金边 + 回纹带 + 包角铜钉 + 锁扣；glyphs 给出时字以金箔阴刻进盖面。
+    返回 (col RGB float32, glyph_mask)。"""
+    n1 = cv2.resize(nz(256, seed + 9, 3, 5), (w, h)); n2 = cv2.resize(nz(256, seed + 10, 30, 2), (w, h))
+    col = np.array([0.045, 0.026, 0.022], np.float32) * (0.65 + 0.7 * n1[..., None])
+    cr = np.clip(1 - np.abs(np.sin(n2 * 40)) / 0.04, 0, 1) * (n1 > 0.55)
+    col *= (1 - 0.45 * cr[..., None])
+    # 漆面高光（一条斜向柔光，表现漆的镜面感）
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    col += (np.exp(-(((xx * 0.6 + yy) - (w * 0.35 + h * 0.3)) / (h * 0.18)) ** 2) * 0.05)[..., None] * np.array([1.0, 0.9, 0.8], np.float32)
+    m = np.zeros((h, w), np.float32)
+    b = int(h * 0.05)
+    cv2.rectangle(m, (b // 2, b // 2), (w - b // 2, h - b // 2), 1.0, int(b * 0.9))                 # 外金边（厚）
+    cv2.rectangle(m, (int(b * 2.6), int(b * 2.6)), (w - int(b * 2.6), h - int(b * 2.6)), 1.0, max(3, b // 6))   # 内线
+    # 回纹带
+    c = int(b * 1.1); y_band = int(b * 1.35)
+    def meander(x0, y0, s, rot):
+        pts = np.array([[0, 1], [0, 0], [1, 0], [1, 0.75], [0.25, 0.75], [0.25, 0.25], [0.75, 0.25], [0.75, 0.5]], np.float32)
+        if rot: pts = pts[:, ::-1]
+        p = (pts * s + [x0, y0]).astype(np.int32)
+        cv2.polylines(m, [p], False, 1.0, max(2, s // 9), cv2.LINE_AA)
+    for x in range(int(b * 2.2), w - int(b * 2.2) - c, c + c // 4):
+        meander(x, y_band, c, False); meander(x, h - y_band - c, c, False)
+    for y in range(int(b * 2.2), h - int(b * 2.2) - c, c + c // 4):
+        meander(y_band, y, c, True); meander(w - y_band - c, y, c, True)
+    # 包角（如意云头）+ 铜钉
+    cs = int(h * 0.15)
+    for (x, y, sx, sy) in ((0, 0, 1, 1), (w, 0, -1, 1), (0, h, 1, -1), (w, h, -1, -1)):
+        poly = np.array([[x, y], [x + sx * cs, y], [x + sx * cs * 0.7, y + sy * cs * 0.3], [x + sx * cs * 0.3, y + sy * cs * 0.7], [x, y + sy * cs]], np.int32)
+        cv2.fillPoly(m, [poly], 1.0, cv2.LINE_AA)
+        for (u, v) in ((0.25, 0.25), (0.62, 0.15), (0.15, 0.62)):
+            cv2.circle(m, (int(x + sx * cs * u), int(y + sy * cs * v)), max(3, cs // 14), 0.0, -1, cv2.LINE_AA)
+            cv2.circle(m, (int(x + sx * cs * u), int(y + sy * cs * v)), max(2, cs // 18), 1.0, -1, cv2.LINE_AA)
+    # 锁扣
+    cv2.rectangle(m, (w // 2 - int(w * 0.045), h - int(h * 0.20)), (w // 2 + int(w * 0.045), h - b), 1.0, -1)
+    cv2.circle(m, (w // 2, h - int(h * 0.20)), int(w * 0.05), 1.0, -1, cv2.LINE_AA)
+    cv2.circle(m, (w // 2, h - int(h * 0.20)), int(w * 0.018), 0.0, -1, cv2.LINE_AA)
+    sh, sp = _bevel_shade(m, width=max(2.0, b / 10))
+    gold = np.array([0.85, 0.60, 0.26], np.float32)
+    metal = gold * (0.35 + 0.9 * sh[..., None]) * (0.8 + 0.4 * n1[..., None]) + sp[..., None] * np.array([1.0, 0.92, 0.75], np.float32) * 0.9
+    col = col * (1 - m[..., None]) + metal * m[..., None]
+    gm = np.zeros((h, w), np.float32)
+    if glyphs:
+        gp = gpos or [(w * (i + 1) / (len(glyphs) + 1), h * 0.47) for i in range(len(glyphs))]
+        for ch, (gx_, gy_) in zip(glyphs, gp):
+            gm = np.maximum(gm, text_mask(ch, gsize, w, h, cx=gx_, cy=gy_))
+    return np.clip(col, 0, 3).astype(np.float32), gm
+
+
+class OrnateBox(LacquerBox):
+    """第三棒：暗箱换高分辨率描金纹样（倒角金边 + 回纹 + 包角 + 锁扣），顶面开口内是暖光深处；边线光极弱，去掉“线框盒”感。"""
+    def __init__(self, seed=0):
+        fr_, _ = ornate_lid(1000, 620, seed + 1)
+        sd_, _ = ornate_lid(1000, 620, seed + 2)
+        tp_, _ = ornate_lid(1000, 800, seed + 3)
+        h, w = tp_.shape[:2]
+        hole = np.zeros((h, w), np.float32); cv2.rectangle(hole, (int(w * 0.13), int(h * 0.15)), (int(w * 0.87), int(h * 0.85)), 1.0, -1)
+        hole = cv2.GaussianBlur(hole, (0, 0), 2)
+        yy = np.linspace(0, 1, h, dtype=np.float32)[:, None]
+        inner = np.array([0.42, 0.20, 0.06], np.float32) * (0.15 + 0.85 * yy ** 2)[..., None] * 0.6
+        tp_ = tp_ * (1 - hole[..., None]) + inner * hole[..., None]
+        self.tex = dict(side=sd_, front=fr_, top=tp_, bottom=sd_)
+        self.box = Cuboid(self.tex)
+
+    def draw(self, fr, cx, cy, size, yaw=0, pitch=-24, f=2000, flash=0.0, rim=(1.0, 0.72, 0.42), rim_amt=0.12, light=(0.3, 0.8, -0.5)):
+        return LacquerBox.draw(self, fr, cx, cy, size, yaw, pitch, f, flash, rim, rim_amt, light)

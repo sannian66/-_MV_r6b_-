@@ -401,7 +401,7 @@ class C04(Shot):
 
 class C05(Shot):
     """ECU 暗箱：黑漆描金方箱张着口（俯 26°），金印、铜钱、纸人倾泻而入；镜头推向箱口（交易）。"""
-    def __init__(self): self.box = CP.LacquerBox(seed=5)
+    def __init__(self): self.box = CP.OrnateBox(seed=5)
     def render(self, t):
         u = self.u(t)
         fr = candle_room(t, glow_c=(960, 160), amt=1.0) * 0.6
@@ -442,19 +442,33 @@ class C05(Shot):
 
 
 class C06(Shot):
-    """ECU 正俯拍：箱盖（黑漆描金、金锁片）砸下合上（124.22「箱」），黑屏故障帧；「暗箱」二字被关进黑暗后碎裂。"""
+    """ECU 正俯拍（第三棒重做）：箱内底上金字「暗」发光，盖子的影子从画顶压过来；124.22「箱」盖子从镜头这一侧砸下（整块落下，
+    不再从上往下切字）——盖面是高分辨率描金黑漆（倒角金边、回纹带、如意包角、铜钉、锁扣），「暗箱」以金箔阴刻在盖面上烫亮，
+    随后冷却变暗、金缝透光、余烬升起；故障只作用在盖子外的背景。"""
+    BOX = (420, 200, 1500, 960)
     def __init__(self):
-        self.lid = CP.lacquer_tex(560, 380, 66, trim=True, lock=True)
+        x0, y0, x1, y1 = self.BOX
+        self.lid, gm = CP.ornate_lid(1200, 840, 66, glyphs='暗箱', gsize=330, gpos=[(400, 400), (800, 400)])
+        self.gm = gm
         self.wall = CP.lacquer_tex(560, 160, 67, trim=False)
+        rim, _ = CP.ornate_lid(1200, 840, 68)
+        hole = np.zeros((840, 1200), np.float32); cv2.rectangle(hole, (130, 120), (1070, 720), 1.0, -1)
+        self.rim, self.rim_hole = rim, cv2.GaussianBlur(hole, (0, 0), 1.5)
+        src = np.float32([[0, 0], [1200, 0], [1200, 840], [0, 840]])
+        self.M = cv2.getPerspectiveTransform(src, np.float32([[x0 - 30, y0 - 40], [x1 + 30, y0 - 40], [x1 + 30, y1 + 20], [x0 - 30, y1 + 20]]))
+        self.A1 = cv2.warpPerspective(np.ones((840, 1200), np.float32), self.M, (W, H))
+    def _warp(self, img, z=1.0):
+        M = self.M.copy()
+        if z != 1.0:
+            S = np.float64([[z, 0, 960 * (1 - z)], [0, z, 580 * (1 - z)], [0, 0, 1]]); M = S @ M
+        return cv2.warpPerspective(img, M, (W, H))
     def render(self, t):
         tc = V(124.22)
-        fr = np.zeros((H, W, 3), np.float32) + 0.012
-        x0, y0, x1, y1 = 400, 210, 1520, 970          # 箱口
-        ix0, iy0, ix1, iy1 = 610, 380, 1310, 820      # 箱底（透视内缩）
+        x0, y0, x1, y1 = self.BOX
+        ix0, iy0, ix1, iy1 = 640, 380, 1280, 800
+        fr = candle_room(t, glow_c=(960, 540), amt=1.0) * 0.45
         if t < tc:
-            q = ein(sm(self.t0, tc, t), 2.4)
-            fr = candle_room(t, glow_c=(960, 540), amt=1.0) * 0.5
-            # 箱内四壁（漆面，越深越暗）+ 箱底暖光
+            # 箱内四壁 + 箱底暖光 + 底上金字「暗」
             for quad, sh in ((((x0, y0), (x1, y0), (ix1, iy0), (ix0, iy0)), 0.9), (((ix0, iy1), (ix1, iy1), (x1, y1), (x0, y1)), 0.45),
                              (((x0, y0), (ix0, iy0), (ix0, iy1), (x0, y1)), 0.7), (((ix1, iy0), (x1, y0), (x1, y1), (ix1, iy1)), 0.6)):
                 src = np.float32([[0, 0], [560, 0], [560, 160], [0, 160]])
@@ -462,48 +476,57 @@ class C06(Shot):
                 wc = cv2.warpPerspective(self.wall * sh, M, (W, H)); wa = cv2.warpPerspective(np.ones((160, 560), np.float32), M, (W, H))
                 fr = fr * (1 - wa[..., None]) + wc * wa[..., None]
             cv2.rectangle(fr, (ix0, iy0), (ix1, iy1), (0.05, 0.025, 0.012), -1)
-            fr = K.vol_light(fr, (960, 600), 330, (1.0, 0.55, 0.2), 0.22)
-            g = np.zeros((H, W), np.float32); cv2.rectangle(g, (x0, y0), (x1, y1), 1.0, 10, cv2.LINE_AA)
-            fr = fr + (g * 0.8 + cv2.GaussianBlur(g, (0, 0), 6) * 0.5)[..., None] * GOLD * 0.7
-            fr = paste_glyph(fr, '暗', 790, 600, 230, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25))
-            fr = paste_glyph(fr, '箱', 1130, 600, 230, GOLD_T, font='serif_b', glow=0.6, glow_c=(1, 0.6, 0.25),
-                             alpha=sm(V(123.86) - 0.06, V(123.86) + 0.02, t))
-            # 箱盖：从画顶压下（带运动模糊），先投影后到位
-            yl = lerp(-900, y1, q)
-            shd = np.zeros((H // 4, W // 4), np.float32)
-            cv2.rectangle(shd, ((x0 - 20) // 4, 0), ((x1 + 20) // 4, int((yl + 120 * (1 - q)) / 4)), 1.0, -1)
-            fr = fr * (1 - cv2.resize(cv2.GaussianBlur(shd, (0, 0), 10), (W, H))[..., None] * 0.7)
-            src = np.float32([[0, 0], [560, 0], [560, 380], [0, 380]])
-            dst = np.float32([[x0 - 30, yl - (y1 - y0) - 40], [x1 + 30, yl - (y1 - y0) - 40], [x1 + 30, yl + 20], [x0 - 30, yl + 20]])
-            M = cv2.getPerspectiveTransform(src, dst)
-            lc = cv2.warpPerspective(self.lid * 1.4, M, (W, H)); la = cv2.warpPerspective(np.ones((380, 560), np.float32), M, (W, H))
-            if q < 1:
-                kb = int(40 * (1 - q) * q * 4) * 2 + 1
-                lc = cv2.blur(lc, (1, kb)); la = cv2.blur(la, (1, kb))
-            fr = fr * (1 - la[..., None]) + lc * la[..., None]
-            gl = np.zeros((H, W), np.float32); cv2.line(gl, (x0 - 30, int(yl + 20)), (x1 + 30, int(yl + 20)), 1.0, 4, cv2.LINE_AA)
-            fr = fr + (gl + cv2.GaussianBlur(gl, (0, 0), 10))[..., None] * GOLD * 0.8
+            fr = K.vol_light(fr, (960, 590), 330, (1.0, 0.55, 0.2), 0.25)
+            ta = V(123.86)
+            if t >= ta - 0.04:
+                e = eout((t - ta + 0.04) / 0.12)
+                fr = paste_glyph(fr, '暗', 960, 590, 300, GOLD_T, font='serif_b', glow=0.7, glow_c=(1, 0.6, 0.25), alpha=e, scale=lerp(1.3, 1, e))
+            # 箱口：描金倒角框（与盖子同一套纹样）
+            rc = self._warp(self.rim); ra = self.A1 * (1 - self._warp(self.rim_hole))
+            fr = fr * (1 - ra[..., None]) + rc * ra[..., None]
+            # 盖子的影子压过来（预备），最后 0.12s 盖子整块砸下
+            q = sm(self.t0, tc - 0.12, t)
+            yy = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]
+            fr = fr * (1 - 0.55 * q * np.clip((q * 1.3 - yy) * 3, 0, 1))
+            qs = sm(tc - 0.12, tc, t)
+            if qs > 0:
+                z = lerp(1.6, 1.0, ein(qs, 2))
+                lc = self._warp(self.lid, z); la = self._warp(np.ones((840, 1200), np.float32), z) * min(1.0, qs * 2.5)
+                kb = int(30 * (1 - qs)) * 2 + 1
+                lc = cv2.GaussianBlur(lc, (kb, kb), 0); la = cv2.GaussianBlur(la, (kb, kb), 0)
+                fr = fr * (1 - la[..., None]) + lc * la[..., None] * 0.9
             self.ca = 0
             return fr
         k = t - tc
-        L = T.Layer()
-        T.place(L, '暗', 790, 600, 230, GOLD_T, 'serif_b', texture=False); T.place(L, '箱', 1130, 600, 230, GOLD_T, 'serif_b', texture=False)
-        q = sm(0.12, 0.6, k)
-        L2 = T.shatter_layer(L, q, (960, 600), 60, seed=3, power=1.2, gravity=200) if q > 0 else L
-        # 合盖后的箱盖仍在（极暗，金边残光），字从缝里透出、碎裂
-        src = np.float32([[0, 0], [560, 0], [560, 380], [0, 380]])
-        M = cv2.getPerspectiveTransform(src, np.float32([[x0 - 30, y0 - 40], [x1 + 30, y0 - 40], [x1 + 30, y1 + 20], [x0 - 30, y1 + 20]]))
-        lc = cv2.warpPerspective(self.lid * 0.5, M, (W, H)); la = cv2.warpPerspective(np.ones((380, 560), np.float32), M, (W, H))
-        fr = fr * (1 - la[..., None]) + lc * la[..., None] * (1 - sm(0.1, 0.5, k) * 0.7)
-        out = T.compose(fr, L2, shadow=0, glow=0.5, glow_sigma=14, glow_color=(1, 0.5, 0.2), opacity=0.9)
-        if k < 0.1:
-            out = TR.glitch_cut(out, np.zeros_like(out), 0.4, seed=int(t * 30))
-            out = flash_frame(out, 0.6, (1, 0.8, 0.5))
+        # 合盖：盖面 + 金箔阴刻字烫亮 → 冷却
+        lc = self._warp(self.lid); la = self.A1
+        gm = self._warp(self.gm)
+        heat = math.exp(-k / 0.35)
+        sh, sp = CP._bevel_shade(cv2.resize(gm, (W // 2, H // 2)), width=2.0)
+        sh = cv2.resize(sh, (W, H)); sp = cv2.resize(sp, (W, H))
+        gcol = np.array([0.95, 0.66, 0.28], np.float32) * (0.35 + 0.8 * sh[..., None]) + sp[..., None] * 0.8
+        gcol = gcol * (1 + 2.2 * heat) + heat * np.array([0.6, 0.25, 0.05], np.float32)
+        lc = lc * (1 - gm[..., None]) + gcol * gm[..., None]
+        dim = 1 - 0.55 * sm(0.25, 0.6, k)
+        fr = fr * (1 - la[..., None]) + lc * la[..., None] * dim
+        # 金缝透光（盖沿一圈）
+        edge = np.clip(cv2.GaussianBlur(la, (0, 0), 3) - cv2.GaussianBlur(la, (0, 0), 14), 0, 1) * 3
+        fr = fr + edge[..., None] * np.array([1.0, 0.6, 0.22], np.float32) * (0.6 * heat + 0.25)
+        fr = fr + cv2.GaussianBlur(gm, (0, 0), 16)[..., None] * np.array([1.0, 0.5, 0.15], np.float32) * 0.8 * heat
+        # 合盖激起的灰尘 + 余烬
+        fr = dust(fr, t, 61, n=160, amt=1.0 * math.exp(-k / 0.25), drift=(0, -60), region=(x0 - 80, y1 - 30, x1 + 80, y1 + 60), size=(1, 3))
+        fr = sparks(fr, t, 62, (960, 400), n=60, life=1.2, speed=(30, 120), dirc=(0, -1), spread=1.2, grav=-40, amt=0.7, t0=tc, burst=True,
+                    area=(600, 100), color=(1.0, 0.6, 0.25))
+        # 背景故障（只在盖子外）
         r = np.random.default_rng(int(t * 30))
-        if r.random() < 0.35 * (1 - q):
-            yb = int(r.uniform(200, 900)); out[yb:yb + int(r.uniform(4, 30))] += 0.08
-        self.ca = 6 if k < 0.15 else 0
-        return out
+        if k < 0.25:
+            for _ in range(3):
+                yb = int(r.uniform(BAR, H - BAR)); hb = int(r.uniform(3, 16)); dx = int(r.normal(0, 40))
+                band = np.roll(fr[yb:yb + hb], dx, 1)
+                m = 1 - la[yb:yb + hb, :, None]
+                fr[yb:yb + hb] = fr[yb:yb + hb] * (1 - m) + band * m * 1.3
+        self.ca = 6 if k < 0.12 else 0
+        return fr
 
 
 class C07(Shot):
@@ -1019,11 +1042,14 @@ class C23(Shot):
         self.wall = PR.CharWall(seed=23, cols=12, rows=14, brick=(150, 64))
         self.bricks = []
         for i, c in enumerate('铁壁铜'):
-            face = CP.stone_tex(300, 128, 230 + i, base=(0.13, 0.13, 0.14), engrave=(c, 104, False), engrave_gold=False)
-            # 刻字填冷银
-            m = CP.text_mask(c, 104, 300, 128)
-            face = face * (1 - m[..., None] * 0.85) + m[..., None] * np.array([0.75, 0.80, 0.90], np.float32) * 0.8
-            side = CP.stone_tex(300, 128, 240 + i, base=(0.09, 0.09, 0.10), border=False)
+            # 第三棒：与墙同一种灰石（不再是深色盒子），字阴刻（倒角明暗 + 刻槽里积的冷银雨水），侧面是粗糙断面
+            face = CP.stone_tex(600, 256, 230 + i, base=(0.30, 0.30, 0.32), border=False)
+            m = CP.text_mask(c, 210, 600, 256)
+            sh, sp = CP._bevel_shade(1 - m, width=3.0, light=(-0.5, -0.8))
+            face = face * (1 - m[..., None]) + m[..., None] * (0.06 + 0.25 * sh[..., None]) * np.array([0.85, 0.9, 1.0], np.float32) + sp[..., None] * m[..., None] * 0.6
+            chip = cv2.resize(CP.nz(64, 250 + i, 4, 3), (600, 256))
+            face = face * (0.8 + 0.4 * chip[..., None])
+            side = CP.stone_tex(600, 256, 240 + i, base=(0.15, 0.15, 0.16), border=False) * (0.7 + 0.6 * cv2.resize(CP.nz(64, 260 + i, 12, 3), (600, 256)))[..., None]
             self.bricks.append(CP.Cuboid(dict(front=face, side=side)))
     def render(self, t):
         u = self.u(t)
@@ -1045,8 +1071,9 @@ class C23(Shot):
             fr = fr * (1 - hole[..., None] * 0.9 * e)
             C = np.zeros((H, W, 3), np.float32); A = np.zeros((H, W), np.float32)
             self.bricks[i].draw(C, A, x, y + 64, 300, 128, depth, yaw=(x - 960) / 28, pitch=-10 - (y - 540) / 30, f=1400,
-                                light=(-0.4, 0.6, -0.7), amb=0.45, rim=COLD, rim_amt=0.8, flash=fl, offset=(0, 0, -depth / 2 + 20))
-            fr = CP.compose(fr, C, A, shadow=0.6)
+                                light=(-0.4, 0.6, -0.7), amb=0.45, rim=COLD, rim_amt=0.12, flash=fl, offset=(0, 0, -depth / 2 + 20))
+            A = cv2.GaussianBlur(A, (0, 0), 0.8)
+            fr = CP.compose(fr, C, A, shadow=0.75)
             fr = dust(fr, t, 230 + i, n=60, amt=0.7 * e * (1 - sm(0.2, 0.8, t - ti)), drift=(0, 160),
                       region=(int(x - 170), int(y - 70), int(x + 170), int(y + 260)), size=(1, 4))
         fr = rain(fr, t, 230, inten=0.7, angle=4)
