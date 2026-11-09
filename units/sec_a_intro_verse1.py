@@ -461,18 +461,22 @@ class V03(Shot):
     def render(self, t):
         u = self.u(t)
         fr = night((0.02, 0.022, 0.03), (0.05, 0.055, 0.065))
-        fr, _ = self.army.draw(fr, t, cam=dict(x=-3 + 6 * u, y=24, z=-14 + 4 * u, pitch=40, f=1500), advance=1.5 * u, march=1.0,
-                               rim_color=COLDV, fog_dist=90)
-        fr = fog(fr, t, 1, 120, 960, 0.35, (0.22, 0.24, 0.29), speed=(60, 10))
+        # 第三棒：原俯角 40° 灰白小人方块（评审口径「白模几何体」）→ 俯 30°、前排压到画框下沿铺满画面；
+        # 甲胄压暗 + 冷月轮廓光 1.6 + 红缨；火把暖光池 + 行间低雾给纵深
+        fr, _ = self.army.draw(fr, t, cam=dict(x=-3 + 5 * u, y=16, z=-8 + 2.5 * u, pitch=30, f=1400), advance=1.2 * u, march=1.0,
+                               rim_color=COLDV, rim=1.6, fog_color=(0.04, 0.045, 0.06), fog_dist=70, torch=1.6, origin=(0, 0, 3))
+        for (gx, gy, gr) in ((380, 760, 260), (1250, 560, 220), (1650, 900, 300)):
+            fr = A.glow(fr, (gx + 40 * u, gy), gr, 0.10, (1.0, 0.55, 0.22))
+        fr = fog(fr, t, 1, 300, 960, 0.28, (0.12, 0.13, 0.17), speed=(60, 10))
         fr = A.glow(fr, (1500, 120), 600, 0.15, (0.5, 0.55, 0.7))
         # 巨字
         L = T.Layer()
-        for i, (c, x, y, s, k) in enumerate((('五', 300, 340, 330, 0), ('百', 600, 340, 330, 1))):
+        for i, (c, x, y, s, k) in enumerate((('五', 380, 360, 330, 0), ('百', 690, 360, 330, 1))   # 第三棒：右移守左侧安全边):
             p = cprog(1, [k], t, 0.3)[0]
             if p > 0: L.paste(T.ink_bleed_glyph(c, 'kai', s, p, seed=i, bleed=0.9), x, y + 20 * (1 - p), (0.92, 0.90, 0.86))
         for i, (c, k) in enumerate((('重', 2), ('甲', 3))):
             p = cprog(1, [k], t, 0.2)[0]
-            if p > 0: L.paste(T.brush_glyph(c, 'kai', 120, p, seed=i), 870, 310 + i * 130, (0.86, 0.12, 0.08) if c == '甲' else (0.92, 0.9, 0.86))
+            if p > 0: L.paste(T.brush_glyph(c, 'kai', 120, p, seed=i), 960, 330 + i * 130, (0.86, 0.12, 0.08) if c == '甲' else (0.92, 0.9, 0.86))
         fr = T.compose(fr, L, shadow=0.5, glow=0.15, opacity=0.82)
         return fr, 0
 
