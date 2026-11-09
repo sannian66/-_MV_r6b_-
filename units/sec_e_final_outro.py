@@ -205,66 +205,67 @@ class E05(Shot):   # S114b ECU 低角度荷兰角：昭、彰亮起即开裂，�
         return fr
 
 
-class E06(Shot):   # S115 MS 规则纸帘背光翻飞，推轨穿帘；「若规则是」烙在近处纸条上
+class E06(Shot):   # S115 MS（第三棒重做）律令挂轴林：远中近三层直垂挂轴（刚体，只绕挂点微摆，不再拉伸变形），背光透纸；
+    #  推轨穿帘：近层大轴虚化擦镜；「若规则是」烧在正中偏右的一幅题字轴上（大字竖排，规则 朱红）。
     def __init__(self):
-        self.sky = E.dawn_sky(115, horizon=0.7, sun=(960, 520), hor=(1.0, 0.86, 0.6), mid=(0.62, 0.48, 0.30), cloud=0.3)
-        self.far = PA.PaperCurtain(seed=15, n=17, x_span=(60, 1860), top=90, length=(800, 950), width=(60, 95), text=True)
-        self.near = PA.PaperCurtain(seed=16, n=5, x_span=(-100, 2000), top=60, length=(900, 1100), width=(190, 250), text=False)
+        self.sky = E.dawn_sky(115, horizon=0.7, sun=(900, 520), hor=(1.0, 0.86, 0.6), mid=(0.62, 0.48, 0.30), cloud=0.3)
+        self.far = R3.Scrolls(15, 15, (40, 1880), 150, (640, 720), (78, 104), text_size=12)
+        self.mid = R3.Scrolls(16, 5, (120, 1100), 110, (820, 880), (150, 180), text_size=17)
+        self.title = R3.Scrolls(19, 1, (1400, 1400), 96, (860, 860), (270, 270), tone=(0.95, 0.90, 0.78), blank=True)
+        self.title.items[0]['amp'] = 0.25
+        self.near = R3.Scrolls(17, 3, (-120, 2040), 40, (1150, 1250), (300, 360), text_size=26)
         tm = cts(50, [0, 1, 2, 3])
-        self.l = Lyr(row('若规则是', tm, 1395, 520, size=78, vertical=True, red='规则', base=(0.08, 0.06, 0.05), track=0.5),
+        self.l = Lyr(row('若规则是', tm, 1400, 560, size=150, vertical=True, red='规则', base=(0.06, 0.045, 0.04), track=0.12, font='serif_black'),
                      CT(50, 4) - 0.05, seed=30, glow=0.0, shadow=0.0)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (960, 520), 80, amt=1.0)
-        fr = self.far.draw(fr, t, wind=1.0, light_color=GOLD, backlit=1.1, depth_blur=1.0)
-        fr = fx2.god_rays(fr, (960, 520), strength=0.5, length=0.9, t=t)
-        fr = self.near.draw(fr, t * 1.3, wind=0.8, light_color=GOLD, backlit=0.7, depth_blur=2.5)
-        # 题字纸条（固定在 x≈1395）
-        q = np.zeros((H, W), np.float32)
-        sw = 18 * math.sin(t * 1.7)
-        pts = np.array([[1300 + sw, 120], [1490 + sw, 120], [1495 + sw * 1.6, 960], [1305 + sw * 1.6, 960]], np.int32)
-        cv2.fillPoly(q, [pts], 1.0, cv2.LINE_AA)
-        tex = E.paper_tex(150, (0.95, 0.88, 0.72))
-        fr = fr * (1 - q[..., None]) + (tex * 1.05 + GOLD * 0.12) * q[..., None]
+        fr = E.sun_disc(self.sky.copy(), (900, 520), 80, amt=1.0)
+        C, A = self.far.layer(t, wind=0.8); C, A = R3.Scrolls.light(C, A, fr, 1.0, blur=1.6)
+        fr = R3.comp(fr, C, A)
+        fr = fx2.god_rays(fr, (900, 520), strength=0.55, length=0.9, t=t)
+        C, A = self.mid.layer(t, wind=1.0); C, A = R3.Scrolls.light(C, A, fr, 0.8)
+        fr = R3.comp(fr, C, A)
+        C, A = self.title.layer(t, wind=1.0); C, A = R3.Scrolls.light(C, A, fr, 0.55)
+        fr = R3.comp(fr, C, A)
+        sc = 1.0 + 0.35 * eio(u)
+        C, A = self.near.layer(t, wind=1.2, scale=sc, dx=-80 * u); C, A = R3.Scrolls.light(C, A, fr * 0.6, 0.4, blur=9)
+        fr = R3.comp(fr, C * 0.55, A)
         return bloom(fr, 0.85, 0.35)
 
     def text(self, fr, t):
-        sw = 18 * math.sin(t * 1.7)
-        return self.l.draw(fr, t, dx=sw * 1.3)
+        return self.l.draw(fr, t)
 
 
-class E07(Shot):   # S116 LS 纸帘缝后太上皇巨影 → 环绕揭示：原来是纸糊的
+class E07(Shot):   # S116 LS（第三棒重做）挂轴缝后，太上皇本人（实体、正面受光、五官清楚）→ 环绕揭示：原来是纸扎（实体纸扎，不透明）
     def __init__(self):
-        self.sky = E.dawn_sky(116, horizon=0.75, sun=(980, 420), hor=(1.0, 0.85, 0.58), mid=(0.70, 0.52, 0.30), cloud=0.2)
-        self.cur = PA.PaperCurtain(seed=17, n=8, x_span=(-60, 1980), top=70, length=(900, 1000), width=(130, 190), text=True)
-        self.l = Lyr(row('谎言', cts(50, [4, 5]), 960, 820, size=150, red='谎言', track=0.15), CT(50, 6) - 0.1, seed=40)
+        self.sky = E.dawn_sky(116, horizon=0.75, sun=(980, 380), hor=(1.0, 0.85, 0.58), mid=(0.62, 0.46, 0.27), cloud=0.3)
+        self.cur = R3.Scrolls(17, 6, (-40, 1960), 50, (980, 1050), (190, 240), text_size=22)
+        self.l = LyrO(row('谎言', cts(50, [4, 5]), 960, 800, size=230, red='谎言', track=0.08, font='serif_black'), CT(50, 6) - 0.1, seed=40,
+                      outline=5, plate_amt=0.6, glow=0.3)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (980, 420), 120, amt=0.9)
-        rv = eio((t - 200.95) / 0.5)
-        dx = 90 - 170 * eio(u)
-        if rv < 1:      # 帘后：威压的帝王剪影
-            fr0, _ = put(fr.copy(), t, 'S116/emperor', (960 + dx, 1110), h=1040, rim=GOLDW, rim_amt=2.0, grade=G_SIL, look='sil', wind=2)
-        if rv > 0:      # 揭示：原来是纸扎（E_r2/paper_effigy：宣纸蒙竹骨），逆光透亮、纸边被晨风掀动
-            back = fr.copy()
-            fr1, info = put(fr.copy(), t, 'E_r2/paper_effigy', (960 + dx, 1110), h=1040, rim=GOLDW, rim_amt=3.2, wind=7,
-                            grade=dict(expo=0.85, sat=0.7, tint=(1.06, 0.98, 0.88), lift=0.0, gamma=1.05))
-            A = info['A'][..., None]
-            fr1 = fr1 + A * back * 0.16 * (0.7 + 0.3 * math.sin(t * 3.1))    # 透光：日光穿纸
-            fr1 = paper_frame(fr1, info['A'], t, amt=0.18)
+        fr = E.sun_disc(self.sky.copy(), (980, 380), 110, amt=0.9)
+        fr = fx2.god_rays(fr, (980, 380), strength=0.45, length=0.8, t=t)
+        rv = eio((t - 200.95) / 0.45)
+        dx = 70 - 140 * eio(u)
+        GE = dict(expo=1.0, sat=0.62, tint=(1.06, 0.99, 0.9), lift=0.02, gamma=1.0)
+        if rv < 1:      # 帘后：太上皇本人，前侧受光，五官清楚
+            fr0, _ = put(fr.copy(), t, 'S116/emperor', (960 + dx, 1590), h=1500, rim=GOLDW, rim_amt=2.6, grade=GE, wind=2)
+        if rv > 0:      # 揭示：纸扎（宣纸蒙竹骨），实体不透明，只在边缘透光
+            fr1, info = put(fr.copy(), t, 'E_r2/paper_effigy', (960 + dx, 1590), h=1500, rim=GOLDW, rim_amt=3.0, wind=6,
+                            grade=dict(expo=0.95, sat=0.7, tint=(1.06, 0.98, 0.88), lift=0.0, gamma=1.05))
+            fr1 = paper_frame(fr1, info['A'], t, amt=0.3)
         fr = fr1 if rv >= 1 else (fr0 if rv <= 0 else fr0 * (1 - rv) + fr1 * rv)
-        fr = fx2.god_rays(fr, (980, 420), strength=0.45, length=0.8, t=t)
-        # 前景纸帘从两侧掠过（环绕视差）
-        sh = -260 * eio(u) + 130
-        M = np.float32([[1, 0, sh], [0, 1, 0]])
-        z = np.zeros_like(fr); z = self.cur.draw(z, t, wind=1.0, light_color=GOLD, backlit=1.0, depth_blur=3.0)
-        o = np.ones_like(fr); o = self.cur.draw(o, t, wind=1.0, light_color=GOLD, backlit=1.0, depth_blur=3.0)
-        a = np.clip(1 - (o - z).mean(-1), 0, 1)
-        side = np.clip(np.abs(np.arange(W, dtype=np.float32) - 960) / 260 - 1.2, 0, 1)[None, :]
-        a = cv2.warpAffine(a, M, (W, H)) * side; z = cv2.warpAffine(z, M, (W, H))
-        fr = fr * (1 - a[..., None]) + z * a[..., None] * 0.9
+        if 0 < rv < 1:   # 揭示瞬间：一道纸面反光扫过
+            yy, xx = E.grid(); band = np.exp(-((xx - (300 + 1400 * rv) + (yy - 540) * 0.4) / 60) ** 2)
+            fr = fr + band[..., None] * GOLDW * 0.35
+        sh = -300 * eio(u) + 150                                          # 前景挂轴从两侧掠过（环绕视差，强虚化）
+        C, A = self.cur.layer(t, wind=1.0, dx=sh)
+        side = np.clip(np.abs(np.arange(W, dtype=np.float32) - 960) / 300 - 1.0, 0, 1)[None, :]
+        C, A = R3.Scrolls.light(C, A, fr * 0.5, 0.5, blur=10)
+        fr = R3.comp(fr, C * 0.5, A * side)
         return bloom(fr, 0.85, 0.35)
 
     def text(self, fr, t): return self.l.draw(fr, t)

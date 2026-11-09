@@ -172,18 +172,18 @@ LAW = '天理纲常尊卑上下君臣父子忠孝节义礼法律令不得违者�
 class Scrolls:
     """直垂挂轴（装裱：天头地头深绢、轴杆、竖排律令小字）。每轴是刚体：只绕顶点微摆（≤1.2°），绝不拉伸变形。
     draw(fr, t, ..., cut=(p0,p1,ts)) → 被斩后线下部分断开、下坠、断口烧红。"""
-    def __init__(self, seed, n, x_span, top, length, width, text_size=None, big=None, tone=(0.93, 0.87, 0.74)):
+    def __init__(self, seed, n, x_span, top, length, width, text_size=None, big=None, tone=(0.93, 0.87, 0.74), blank=False):
         r = np.random.default_rng(seed)
         self.items = []
         xs = np.linspace(x_span[0], x_span[1], n) + r.uniform(-0.25, 0.25, n) * (x_span[1] - x_span[0]) / max(1, n)
         for i in range(n):
             w = int(r.uniform(*width)); L = int(r.uniform(*length)); tp = top + r.uniform(-30, 30)
-            img, a = self._make(w, L, r, text_size, big[i] if big and i < len(big) else None, tone)
+            img, a = self._make(w, L, r, text_size, big[i] if big and i < len(big) else None, tone, blank)
             self.items.append(dict(x=float(xs[i]), top=float(tp), w=w, L=L, img=img, a=a, ph=r.uniform(0, 6.28),
                                    amp=r.uniform(0.4, 1.2), fq=r.uniform(0.9, 1.6)))
 
     @staticmethod
-    def _make(w, L, r, ts, big, tone):
+    def _make(w, L, r, ts, big, tone, blank=False):
         img = np.ones((L, w, 3), np.float32) * np.array(tone, np.float32)
         n = cv2.resize(K.fbm(max(8, L // 4), max(8, w // 4), int(r.integers(1e6)), base=6, octaves=4), (w, L))
         fib = cv2.resize(K.fbm(max(8, L // 2), max(8, w // 2), int(r.integers(1e6)), base=40, octaves=2), (w, L))
@@ -203,7 +203,7 @@ class Scrolls:
                 xs, ys = max(0, x0), max(0, y0); xe, ye = min(w, x0 + g), min(L - fb, y0 + g)
                 if xe > xs and ye > ys: ink[ys:ye, xs:xe] = np.maximum(ink[ys:ye, xs:xe], gl[ys - y0:ye - y0, xs - x0:xe - x0])
                 y += s * 1.05
-        else:
+        elif not blank:
             s = ts or max(14, int(w * 0.16)); ncol = max(1, int((w - 2 * sb) / (s * 1.5)))
             for c in range(ncol):
                 x = w - sb - s * 0.9 - c * s * 1.5; y = hb + s
@@ -216,7 +216,7 @@ class Scrolls:
                     y += s * 1.12
         img = img * (1 - 0.85 * ink[..., None]) + 0.04 * ink[..., None]
         # 朱印
-        if r.random() < 0.6:
+        if r.random() < 0.6 and not blank:
             ss = max(10, int(w * 0.22)); y0 = L - fb - ss - 10; x0 = sb + 6
             img[y0:y0 + ss, x0:x0 + ss] = img[y0:y0 + ss, x0:x0 + ss] * 0.3 + np.array([0.62, 0.08, 0.05], np.float32) * 0.7
         # 轴杆（上下）

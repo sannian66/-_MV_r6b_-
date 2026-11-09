@@ -780,41 +780,127 @@ class C18(Shot):
         return fr
 
 
+# ---------------- 第三棒：枪林（C19）与旗海（C36）——不再用程序化甲士
+def _rotp(pts, ang, c):
+    ca, sa = math.cos(ang), math.sin(ang)
+    d = pts - c
+    return c + np.stack([d[:, 0] * ca - d[:, 1] * sa, d[:, 0] * sa + d[:, 1] * ca], 1)
+
+
+def draw_spear(C, M, B, P, w=12, tip=1.0, light=(-0.6, -0.8), t=0.0, seed=0, head_off=(0.0, 0.0), head_rot=0.0, head=True, flash=0.0):
+    """画一支红缨枪到图层 (C, M)（全分辨率 float32）：枪杆 B→P（木杆 + 冷色边光），P 处铁枪头（叶形、两面明暗 + 刃口亮线）+ 红缨。
+    head_off/head_rot：枪头被斩下后的位移与旋转（像素 / 弧度）。"""
+    B = np.asarray(B, float); P = np.asarray(P, float)
+    d = P - B; L_ = np.linalg.norm(d) + 1e-6; d = d / L_; n = np.array([-d[1], d[0]])
+    lt = np.asarray(light, float); lt /= np.linalg.norm(lt)
+    side = 1.0 if np.dot(n, -lt) > 0 else -1.0
+    # 杆：暗木 + 一侧边光
+    q = np.array([B + n * w / 2, P + n * w * 0.35, P - n * w * 0.35, B - n * w / 2]).astype(np.int32)
+    cv2.fillPoly(C, [q], (0.05, 0.035, 0.025), cv2.LINE_AA); cv2.fillPoly(M, [q], 1.0, cv2.LINE_AA)
+    e0 = B + n * side * w * 0.38; e1 = P + n * side * w * 0.25
+    cv2.line(C, tuple(e0.astype(int)), tuple(e1.astype(int)), tuple(float(v) for v in COLD * (0.55 + 0.8 * flash)), max(1, int(w * 0.18)), cv2.LINE_AA)
+    if not head: return
+    hc = P + d * 10 * tip + np.asarray(head_off, float)
+    ang = math.atan2(d[1], d[0]) + head_rot
+    dd = np.array([math.cos(ang), math.sin(ang)]); nn = np.array([-dd[1], dd[0]])
+    ln, wd = 110 * tip, 30 * tip
+    base = hc; mid = hc + dd * ln * 0.35; tipp = hc + dd * ln
+    left = np.array([base + nn * wd * 0.25, mid + nn * wd * 0.5, tipp]).astype(np.int32)
+    right = np.array([base - nn * wd * 0.25, mid - nn * wd * 0.5, tipp]).astype(np.int32)
+    bright = (0.62 + 0.6 * flash, 0.66 + 0.6 * flash, 0.72 + 0.6 * flash); dark = (0.10, 0.11, 0.13)
+    ls_ = np.dot(nn, -lt) > 0
+    cv2.fillPoly(C, [np.vstack([left, [base]]).astype(np.int32)], bright if ls_ else dark, cv2.LINE_AA)
+    cv2.fillPoly(C, [np.vstack([right, [base]]).astype(np.int32)], dark if ls_ else bright, cv2.LINE_AA)
+    cv2.fillPoly(M, [np.vstack([left, right[::-1]]).astype(np.int32)], 1.0, cv2.LINE_AA)
+    cv2.line(C, tuple(base.astype(int)), tuple(tipp.astype(int)), (0.9, 0.93, 1.0), 2, cv2.LINE_AA)        # 脊线高光
+    # 枪头箍（铜）
+    cv2.line(C, tuple((base - nn * wd * 0.35).astype(int)), tuple((base + nn * wd * 0.35).astype(int)), (0.45, 0.30, 0.12), max(2, int(8 * tip)), cv2.LINE_AA)
+    # 红缨：从箍往后甩，随风 + 下垂
+    r = np.random.default_rng(seed)
+    for k in range(26):
+        a0 = math.pi + ang + r.normal(0, 0.45) + 0.25 * math.sin(t * 9 + k + seed)
+        l0 = r.uniform(50, 110) * tip
+        p0 = base - dd * 4
+        pm = p0 + np.array([math.cos(a0), math.sin(a0)]) * l0 * 0.5
+        p1 = p0 + np.array([math.cos(a0), math.sin(a0) + 0.5]) * l0
+        col = (0.50 + r.uniform(-0.1, 0.15), 0.03, 0.025)
+        cv2.polylines(C, [np.array([p0, pm, p1], np.int32)], False, col, max(1, int(r.uniform(2, 4) * tip)), cv2.LINE_AA)
+        cv2.polylines(M, [np.array([p0, pm, p1], np.int32)], False, 1.0, max(1, int(r.uniform(2, 4) * tip)), cv2.LINE_AA)
+
+
+_BANNER = {}
+def banner_tex(seed, w=60, h=220):
+    k = (seed, w, h)
+    if k not in _BANNER:
+        r = np.random.default_rng(seed)
+        A = np.ones((h, w), np.float32)
+        # 破边：下缘燕尾 + 随机撕口
+        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+        tail = h - 0.28 * h * (1 - np.abs(xx / w * 2 - 1))
+        A[yy > tail] = 0
+        for _ in range(4):
+            cx, cy = r.uniform(0, w), r.uniform(h * 0.3, h); rr = r.uniform(3, 9)
+            A[(xx - cx) ** 2 + (yy - cy) ** 2 < rr * rr] = 0
+        fib = cv2.GaussianBlur(r.random((h, w)).astype(np.float32), (0, 0), 1.0)
+        _BANNER[k] = (A, fib)
+    return _BANNER[k]
+
+
 class C19(Shot):
-    """MS 甩镜旋斩：S073 起势 → 137.92 旋身（角向模糊）+ 白刃环形刀光，三名甲士剪影被斩开。"""
+    """MS 低机位「谁人来」（第三棒重构，去掉白模甲士）：看不见人，只有四面八方刺进画面的红缨枪——枪尖收成一圈牢笼对准他，
+    137.62「谁」137.92「人」逐拍再逼近一寸；137.92 他旋身一刀（S073 起势 → 旋斩），一圈枪头连红缨被齐齐斩落、向外飞散，火星沿切口迸出。"""
+    N = 15
+    def __init__(self):
+        r = np.random.default_rng(19)
+        self.sp = []
+        for i in range(self.N):
+            a = -math.pi * 0.98 + (i + r.uniform(-0.3, 0.3)) / (self.N - 1) * math.pi * 0.96 * 1.0
+            a = a if i % 2 == 0 else a * 0.98 + math.pi * 0.02
+            near = i % 4 == 0
+            self.sp.append(dict(a=a, rad=r.uniform(250, 330), dep=1.25 if near else r.uniform(0.75, 1.0), near=near, seed=190 + i,
+                                spin=r.uniform(-9, 9), fly=r.uniform(500, 900)))
     def render(self, t):
         u = self.u(t)
-        ts = V(137.92)
-        fl = 0.6 * bolt_env(t, ts)
-        fr = storm(t, 19, horizon=820, flash=0.4 + fl, ox=200 * u, refl=0.6)
-        import crowd
-        r = np.random.default_rng(19)
-        for i, (x, sc) in enumerate(((360, 1.0), (1560, 1.05), (1240, 0.8))):
-            sp = crowd.soldier_sprite(phase=0.3 * i, arm=0.6, weapon='spear', view='front', seed=i)
-            A = sp['A'].astype(np.float32)
-            Cs = sp['base'].astype(np.float32) * (0.22 + 0.3 * fl) + sp['rim'][..., None].astype(np.float32) * COLD * (0.9 + 1.5 * fl)
-            Cs = cv2.GaussianBlur(Cs, (0, 0), 1.6)   # 前景甲士：压暗成带轮廓光的剪影 + 轻微失焦，避免玩具感
-            A = cv2.resize(A, None, fx=sc * 1.6, fy=sc * 1.6); Cs = cv2.resize(Cs, (A.shape[1], A.shape[0]))
-            h, w = A.shape[:2]
-            k = max(0.0, t - ts - 0.05 * i)
-            for half, chalf, sgn in ((A[:h // 2], Cs[:h // 2], -1), (A[h // 2:], Cs[h // 2:], 1)):
-                hh = half.shape[0]
-                dy = sgn * 220 * k * k * 3 + (0 if sgn < 0 else 0)
-                dx = sgn * 90 * k * (1 if x < 960 else -1)
-                y0 = int(960 - h + (0 if sgn < 0 else h // 2) + dy); x0 = int(x - w / 2 + dx)
-                ys, xs = max(BAR, y0), max(0, x0); ye, xe = min(H - BAR, y0 + hh), min(W, x0 + w)
-                if ye <= ys or xe <= xs: continue
-                a = half[ys - y0:ye - y0, xs - x0:xe - x0]
-                a = a[..., 0] if a.ndim == 3 else a
-                a = np.clip(a, 0, 1) * (1 - sm(0.2, 0.5, k))
-                cc = chalf[ys - y0:ye - y0, xs - x0:xe - x0]
-                fr[ys:ye, xs:xe] = fr[ys:ye, xs:xe] * (1 - a[..., None]) + cc * a[..., None]
-                if sgn > 0 and k > 0:   # 切口亮线
-                    fr[ys:min(ye, ys + 3), xs:xe] += (a[:3, :, None] if a.shape[0] >= 3 else 0) * np.array([1.0, 0.9, 0.8], np.float32) * 1.5 * (1 - sm(0.1, 0.4, k))
+        ts = V(137.92); ti = [V(137.62), ts]
+        fl = 0.6 * bolt_env(t, ts) + 0.4 * bolt_env(t, V(137.55))
+        fr = storm(t, 19, horizon=980, flash=0.45 + fl, fc=(960, 160), ox=120 * u, refl=0.6)
+        fr = fog(fr, t, 19, density=0.5, y0=650, y1=1000, color=(0.35, 0.38, 0.45), speed=(40, 0))
+        c = np.array([960.0, 640.0])
+        close = 1.0 - 0.10 * sum(eout((t - x) / 0.12) for x in ti if t >= x)
+        k = max(0.0, t - ts)
+        layers = {}
+        for far in (True, False):
+            C = np.zeros((H, W, 3), np.float32); M = np.zeros((H, W), np.float32)
+            for j, sp in enumerate(self.sp):
+                if sp['near'] == far: continue
+                a = sp['a']; dirv = np.array([math.cos(a), math.sin(a)])
+                P = c + dirv * sp['rad'] * close * sp['dep']
+                B = c + dirv * 2600
+                cut = t >= ts + 0.012 * j
+                kk = max(0.0, t - ts - 0.012 * j)
+                if not cut:
+                    draw_spear(C, M, B, P, w=16 * sp['dep'], tip=1.15 * sp['dep'], t=t, seed=sp['seed'], flash=fl)
+                else:
+                    Pc = P + dirv * 30
+                    draw_spear(C, M, B + dirv * 220 * eout(kk / 0.3), Pc + dirv * 220 * eout(kk / 0.3), w=16 * sp['dep'], head=False, flash=fl)
+                    off = dirv * sp['fly'] * kk + np.array([0, 1400 * kk * kk])
+                    draw_spear(C, M, Pc - dirv * 40 + off, Pc + off, w=16 * sp['dep'], tip=1.15 * sp['dep'], t=t, seed=sp['seed'],
+                               head_off=(0, 0), head_rot=sp['spin'] * kk, flash=fl)
+            if not far:
+                C = cv2.GaussianBlur(C, (0, 0), 5); M = cv2.GaussianBlur(M, (0, 0), 5)
+            layers[far] = (C, M)
+        C, M = layers[True]
+        fr = fr * (1 - M[..., None]) + C * M[..., None] * (1 - 0 * M[..., None])
         pose = 'S073/spin1' if t < ts else 'S073/spin2'
-        fr, _ = put(fr, t, pose, 960, 990, 660, rim=COLD, rim_amt=2.3, flash=fl, expo=0.95, rotblur=-25 * pulse(t, ts, 0.1), wind=9)
-        fr = arc_streak(fr, (960, 640), 760, 170, 160, -200, (t - ts) / 0.4, width=10)
+        fr, _ = put(fr, t, pose, 960, 1000, 700, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, rotblur=-25 * pulse(t, ts, 0.1), wind=9)
+        fr = arc_streak(fr, (960, 640), 520, 170, 160, -200, (t - ts) / 0.4, width=10)
+        if t >= ts:
+            fr = sparks(fr, t, 193, tuple(c), n=260, life=0.6, speed=(400, 1300), dirc=(0, -1), spread=3.1, grav=900, t0=ts, burst=True,
+                        area=(300, 120), color=(1.0, 0.7, 0.35), amt=1.3)
+        C, M = layers[False]
+        fr = fr * (1 - M[..., None]) + C * M[..., None]
         fr = rain(fr, t, 190, inten=1.0, angle=-14)
+        self.ca = 5 if 0 <= k < 0.1 else 0
         return fr
 
 
@@ -1231,22 +1317,77 @@ class C35b(Shot):
 
 
 class C36(Shot):
-    """ELS 雷暴全景：前景千人方阵跪伏在积水里（C18 冲锋方阵的回声：同一支军，这次跪下），155.96「天」上一道横贯天际的闪电。"""
-    def __init__(self): self.army = None
+    """ELS 旗海「天」（第三棒重构，去掉黑团块军阵）：雷暴下一望无际的旗海与插地的枪——人都跪下了、看不见，只剩旗，
+    被天边的闪电逆光照透成暗红；155.96「天」一道横贯天际的闪电，旗海一齐被照亮。积水倒映旗影。"""
+    def __init__(self):
+        r = np.random.default_rng(36)
+        self.items = []
+        for row in range(14):
+            z = 1.0 + row * 0.55
+            n = int(10 + row * 3.5)
+            for i in range(n):
+                self.items.append(dict(z=z * r.uniform(0.95, 1.05), x=r.uniform(-1.15, 1.15), kind='banner' if r.random() < 0.45 else 'spear',
+                                       seed=int(r.integers(1e6)), ph=r.uniform(0, 6.28), lean=r.uniform(-4, 4)))
+        self.items.sort(key=lambda d: -d['z'])
     def render(self, t):
-        import crowd
-        if self.army is None: self.army = crowd.Army(seed=36, rows=16, cols=30, banners=10, torches=12)
         u = self.u(t)
         tt = V(155.96)
         fl = bolt_env(t, tt) * 1.3 + 0.5 * bolt_env(t, V(155.40))
-        fr = storm(t, 36, horizon=760, flash=0.4 + fl, fc=(960, 250), refl=0.6, oy=-60 * u)
-        fr = bolt(fr, t, tt, 361, (80, 260), (1840, 330), inten=1.3, branches=12, width=4)
-        fr = bolt(fr, t, V(155.40), 362, (1400, 100), (1500, 700), inten=0.8)
-        fr, _ = self.army.draw(fr, t, cam=dict(x=0, y=9, z=0, pitch=16, f=1500), advance=0.0, march=0.0, kneel=1.0, kneel_wave=0.0,
-                               part=0.12, rim_color=COLD, rim=1.0 + 2.0 * fl, fog_color=(0.10, 0.11, 0.14), fog_dist=38, torch=0.4,
-                               glint=0.6 + fl, origin=(0.0, 0.0, 9.0 - 1.5 * u))
-        fr = fog(fr, t, 36, density=0.45, y0=640, y1=900, color=(0.35, 0.38, 0.46), speed=(60, 0))
-        fr = rain(fr, t, 360, inten=0.8, angle=10)
+        hz = 640
+        fr = storm(t, 36, horizon=hz, flash=0.45 + fl, fc=(960, 380), refl=0.7, oy=-40 * u)
+        fr = bolt(fr, t, tt, 361, (60, 300), (1860, 360), inten=1.3, branches=12, width=4)
+        fr = bolt(fr, t, V(155.40), 362, (1400, 140), (1500, 620), inten=0.8)
+        fr = K.vol_light(fr, (960, hz - 40), 900, (0.8, 0.85, 1.0), 0.25 + 0.5 * fl)       # 天边逆光
+        h2, w2 = H // 2, W // 2
+        C = np.zeros((h2, w2, 3), np.float32); M = np.zeros((h2, w2), np.float32)
+        G = np.zeros((h2, w2), np.float32)                                               # 透光（红）
+        cam = 0.0 + 40 * u
+        for it in self.items:
+            z = it['z']; sc = 1.0 / z
+            gy = hz + 520 * sc                                                           # 落地点
+            x = 960 + (it['x'] * 1400 - cam) * sc * 1.6
+            if x < -100 or x > W + 100: continue
+            ht = 560 * sc
+            fog_k = min(1.0, (z - 1) / 7.0)
+            dark = 0.02 + 0.10 * fog_k
+            lean = math.radians(it['lean'])
+            top = (x + math.sin(lean) * ht, gy - ht)
+            cv2.line(C, (int(x / 2), int(gy / 2)), (int(top[0] / 2), int(top[1] / 2)), (dark, dark, dark * 1.1), max(1, int(5 * sc)), cv2.LINE_AA)
+            cv2.line(M, (int(x / 2), int(gy / 2)), (int(top[0] / 2), int(top[1] / 2)), 1.0, max(1, int(5 * sc)), cv2.LINE_AA)
+            if it['kind'] == 'spear':
+                tp = (top[0] + math.sin(lean) * 40 * sc, top[1] - 40 * sc)
+                cv2.line(C, (int(top[0] / 2), int(top[1] / 2)), (int(tp[0] / 2), int(tp[1] / 2)), (0.35 + fl * 0.3,) * 3, max(1, int(4 * sc)), cv2.LINE_AA)
+                continue
+            # 旗：竖长条，自旗杆顶向风向飘（正弦波），逆光透出暗红
+            A0, fib = banner_tex(it['seed'] % 7, 60, 220)
+            bw, bh = max(3, int(150 * sc / 2)), max(6, int(330 * sc / 2))
+            a = cv2.resize(A0, (bw, bh)); f_ = cv2.resize(fib, (bw, bh))
+            yy = np.arange(bh, dtype=np.float32)[:, None]; xx = np.arange(bw, dtype=np.float32)[None, :]
+            wave = (np.sin(xx / bw * 5.0 - t * 7 + it['ph']) * (xx / bw) * bh * 0.08).astype(np.float32)
+            a = cv2.remap(a, np.repeat(xx, bh, 0), (yy + wave).astype(np.float32), cv2.INTER_LINEAR)
+            x0, y0 = int(top[0] / 2) + 1, int(top[1] / 2) + 2
+            x1, y1 = min(w2, x0 + bw), min(h2, y0 + bh)
+            if x1 <= max(0, x0) or y1 <= max(0, y0): continue
+            ax0, ay0 = max(0, -x0), max(0, -y0)
+            aa = a[ay0:y1 - y0, ax0:x1 - x0]; ff = f_[ay0:y1 - y0, ax0:x1 - x0]
+            sl = (slice(max(0, y0), y1), slice(max(0, x0), x1))
+            col = np.array([0.20, 0.025, 0.02], np.float32) * (0.6 + 0.6 * ff[..., None]) * (1 - 0.5 * fog_k) + dark
+            C[sl] = C[sl] * (1 - aa[..., None]) + col * aa[..., None]
+            M[sl] = np.maximum(M[sl], aa)
+            G[sl] = np.maximum(G[sl], aa * (0.5 + 0.5 * ff) * (1 - fog_k * 0.6))
+        C = cv2.resize(C, (W, H)); M = cv2.resize(M, (W, H)); G = cv2.resize(G, (W, H))
+        # 倒影（压扁、模糊、半透明）
+        hzr = hz
+        Cr = cv2.GaussianBlur(cv2.flip(C, 0), (0, 0), 3); Mr = cv2.GaussianBlur(cv2.flip(M, 0), (0, 0), 3)
+        sh = int(2 * (hz + 520) - H)
+        Cr = np.roll(Cr, sh, 0); Mr = np.roll(Mr, sh, 0); Mr[:hz + 520] = 0
+        fr = fr * (1 - 0.5 * Mr[..., None]) + Cr * 0.5 * Mr[..., None]
+        fr = fr * (1 - M[..., None]) + C * M[..., None]
+        fr = fr + G[..., None] * np.array([0.9, 0.12, 0.06], np.float32) * (0.25 + 0.9 * fl)      # 闪电透旗
+        edge = np.clip(M - cv2.erode(M, np.ones((3, 3), np.uint8)), 0, 1)
+        fr = fr + edge[..., None] * COLD * (0.15 + 0.8 * fl)
+        fr = fog(fr, t, 36, density=0.4, y0=hz - 60, y1=hz + 300, color=(0.32, 0.35, 0.42), speed=(60, 0))
+        fr = rain(fr, t, 360, inten=0.9, angle=10)
         return fr
 
 
