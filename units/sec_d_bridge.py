@@ -499,10 +499,13 @@ def top_seal(fr, ch, cx, cy, size, t, th, rot=-3.0, seed=0, col=(0.80, 0.09, 0.0
 
 
 class S08_Seals(Shot):
-    """俯拍：「理」「所」「应」四方朱印一枚枚盖下，把那枚朱红「人」盖没；「当」最大最狠一印"""
+    """[r5] 俯拍纸面：「理」「所」「应」三个朱批——朱砂笔一笔写出、随即一道朱圈圈住，一枚枚圈住纸心那枚朱红「人」；
+    170.47「当」= 一方黑铁官印（铁面锻纹、斜面高光、阴刻金字）从高处整方砸下压顶，金字一闪、纸面压出暗环，
+    之后整方静止压到切点（≈14 帧）。（第五棒 P0：去掉与副歌一 S040「是非对错」同款的朱印章块）"""
     t0, t1 = 169.55, 170.92
     paper = 1.0
-    SEALS = [('理', 760, 400, 300, -7), ('所', 1170, 430, 300, 5), ('应', 790, 690, 300, 9), ('当', 960, 540, 600, -3)]
+    PI = [('理', 700, 380, 250, 0), ('所', 1230, 420, 250, 1), ('应', 760, 720, 250, 2)]
+    DANG = ('当', 960, 540, 560, -3)
 
     def render(self, t):
         u = self.u(t)
@@ -511,16 +514,22 @@ class S08_Seals(Shot):
         L = D.text_layer([('人', 960, 540, 120, 1.0, 1.0, 0.0, CINNABAR)], fname='serif_black')
         fr = D.ink_text(fr, L)
         hits = []
-        for k, ((ch, x, y, s, rot), on) in enumerate(zip(self.SEALS, O[41][9:13])):
+        for (ch, x, y, s_, sd), on in zip(self.PI, O[41][9:12]):
             th = V(on)
-            if t < th - 0.12: continue
-            p = 0.3 * cl((t - (th - 0.12)) / 0.12) if t < th else 0.3 + (t - th) / 1.4
-            hits.append(th)
-            if k == 3:
-                fr = top_seal(fr, ch, x, y, s, t, th, rot=rot, seed=11 + k)
-            else:
-                fr = T.stamp_seal(fr, ch, x, y, s, min(1, p), style='yin', rot=rot, seed=11 + k, color=(0.62, 0.07, 0.05))
+            p = cl((t - (th - 0.14)) / 0.32)
+            if p <= 0: continue
+            if t >= th: hits.append(th)
+            fr = R5.zhupi(fr, ch, x, y, s_, p, seed=sd)
+            fr = D.ink_spray(fr, t, th, (x + 60, y + 40), n=26, seed=80 + sd, power=380, col=CINNABAR, size=(2, 6))
+        ch, x, y, s_, rot = self.DANG
+        th = V(O[41][12])
+        if t >= th: hits.append(th)
+        fr = R5.iron_seal(fr, ch, x, y, s_, t, th, rot=rot, seed=8)
+        if t >= th:
+            fr = D.ink_spray(fr, t, th, (x - s_ * 0.55, y + s_ * 0.5), n=40, seed=88, power=700, size=(2, 6))
+            fr = D.ink_spray(fr, t, th, (x + s_ * 0.55, y - s_ * 0.45), n=40, seed=89, power=700, size=(2, 6))
         fr = shake_cam(fr, t, hits, 9, z=1.0 + 0.04 * u, rot=-0.6 * u)
+        if t >= th: fr = shake_cam(fr, t, [th], 16)
         return fr, 1.0
 
 
@@ -931,7 +940,8 @@ class S19_Forge(Shot):
             if p <= 0: continue
             if t >= tv: hits.append(tv)
             A = T.brush_glyph(ch, self.FN, sz, p, 0, 0.0, 1.0, splatter=False)
-            L = T.Layer(); L.paste(A, x, y, (1, 1, 1))
+            fo = 1 - cl((t - (self.t1 - 0.1)) / 0.06)          # [r5] 出点遮挡前整组「主张」先熄掉，不让柱子遮出半个字
+            L = T.Layer(); L.paste(A, x, y, (1, 1, 1), alpha=fo)
             heat = math.exp(-max(0, t - a1) / 0.6)
             hot = np.array([1.0, 0.86, 0.6], np.float32) * heat + np.array([0.95, 0.3, 0.08], np.float32) * (1 - heat)
             Ab = cv2.GaussianBlur(L.A, (0, 0), 14)
@@ -1525,7 +1535,7 @@ CUTS = {
     'S17_Eye': ('match_cut', 0, 0.3, dict(shape='circle', center=(int(0.29 * W), int(0.555 * H)), radius=8, glow=EMBER)),
     'S18_Draw': ('slash_wipe', 0.05, 0.2, dict(angle=-12, center=(960, 860))),
     'S19_Forge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
-    'S20_Wall': ('occlusion', 0.1, 0.15, dict(kind='pillar', direction=1)),
+    'S20_Wall': ('occlusion', 0.1, 0.15, dict(kind='pillar', direction=-1)),   # [r5] 柱从右侧入画：先遮「张」的右半「长」，不再露出错字
     'S21_Charge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
     'S22_Chuang': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.2)),
     'S23_Eye': ('shatter', 0.04, 0.14, dict(center=(1060, 560), seed=23, n=60)),
@@ -1558,7 +1568,7 @@ def seal_iris(A, B, p, center=(760, 400), ch='理', rot=-7.0):
         inside = np.clip((half - d) / 4, 0, 1)
         out = A * (1 - inside[..., None]) + B * inside[..., None]
     edge = np.clip(1 - np.abs(d - half) / (10 + 8 * (1 - abs(p - 0.5) * 2)), 0, 1)
-    out = out * (1 - edge[..., None]) + edge[..., None] * CINNABAR * 1.05
+    out = out * (1 - edge[..., None]) + edge[..., None] * np.array([0.08, 0.07, 0.07], np.float32)   # [r5] 墨框（不再是朱印框）
     return out
 
 
