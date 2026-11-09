@@ -1051,7 +1051,7 @@ class V18(Shot):
             R = 90 + 1500 * eout(q / 0.30, 2)
             ring = np.exp(-((d - R) / (14 + 70 * q)) ** 2) * (1 - q / 0.30)
             core = np.exp(-(d / 260) ** 2) * (1 - q / 0.30) ** 2
-            fr = fr * (1 - 0.25 * core[..., None]) + (ring * 0.9 + core * 0.35)[..., None] * COLDC
+            fr = fr * (1 - 0.35 * core[..., None]) + (ring * 0.9 + core * 0.12)[..., None] * COLDC
         dx, dy, dr = shake(t, 22 * hk, 14, 63)
         fr = cam(fr, 1.04 + 0.06 * hk, dx, dy, dr)
         return fr, (4 if hk > 0.5 else 0)
@@ -1394,7 +1394,7 @@ class V25(Shot):
 # ===================================================================================== 段落装配
 SHOTS = [V01, V02, V03, V04, V05, V06, V07, V08, V09, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25]
 CUTS = {
-    'V02': ('zoom_through', 0.06, 0.14, dict(center=(960, 470))),
+    'V02': ('zoom_dark', 0.06, 0.14, dict(center=(960, 470))),     # 第四棒：去中点白场
     'V03': ('iris_moon', 0.06, 0.16, dict(center=(960, 470), radius=200, mode='open', ring=False)),   # 第三棒：雨滴圆 → 打开成队列
     'V04': ('gold', 0, 0, {}),
     'V05': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=1, seed=5)),
@@ -1416,7 +1416,7 @@ CUTS = {
     'V21': ('none', 0, 0, {}),
     'V22': ('punch', 0, 0, {}),                                     # 第四棒：灰 glitch → 落拍硬切冲击（推近+色散）
     'V23': ('slash_wipe', 0.05, 0.14, dict(angle=4)),
-    'V24': ('zoom_through', 0.08, 0.14, dict(center=(960, 640))),
+    'V24': ('zoom_dark', 0.08, 0.14, dict(center=(960, 640))),     # 第四棒：去中点白场
     'V25': ('hard', 0, 0, {}),
 }
 FG = {'V01': ('rain', 0.4), 'V03': ('rain', 0.3), 'V07': ('ember', 0.3), 'V08': ('ember', 0.25), 'V09': ('rain', 0.3), 'V13': ('rain', 0.35),

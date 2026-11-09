@@ -267,7 +267,15 @@ def rain_curtain(A, B, p, seed=0):
     return out + tip[..., None] * WHITE * 0.55 * math.sin(math.pi * clamp01(p))
 
 
-BTRANS = dict(cloud_wipe=cloud_wipe, rain_curtain=rain_curtain)
+def zoom_dark(A, B, p, center=(W / 2, H / 2), strength=1.0):
+    """推镜穿越（无白场版）：同 trans.zoom_through 的推近/径向模糊，但中点不加 +0.6 白，改为两镜在径向模糊里交叉叠化。"""
+    e = eio(p)
+    a = TR._radial_blur(TR._zoom(A, 1 + 1.5 * ein(min(1, p * 1.6), 2.5) * strength, center), center, 0.35 * ein(min(1, p * 1.6), 2))
+    b = TR._radial_blur(TR._zoom(B, 1 + 0.8 * (1 - eout(max(0, p * 1.6 - 0.6), 3)) * strength, center), center, 0.3 * (1 - eout(max(0, p * 1.6 - 0.6), 3)))
+    return a * (1 - e) + b * e
+
+
+BTRANS = dict(cloud_wipe=cloud_wipe, rain_curtain=rain_curtain, zoom_dark=zoom_dark)
 
 
 # ------------------------------------------------------------------ 镜头基类与段落运行器

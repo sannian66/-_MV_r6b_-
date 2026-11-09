@@ -53,6 +53,22 @@ def sheet(tag, out):
     sh.save(out, quality=82); print(out, len(its), os.path.getsize(out))
 
 
+def pages(tag, out_prefix, cols=3, rows=3):
+    """评审用分页：每页 cols×rows 张 640×360 原尺寸缩略（3×3 = 1920×1080 ≤ 1920×1400），out_prefix_p<N>.jpg"""
+    font = ImageFont.truetype(ROOT + '/fonts/NotoSerifSC-Bold.otf', 22)
+    its = items(tag); per = cols * rows; n = 0
+    for k in range(0, len(its), per):
+        chunk = its[k:k + per]; r = (len(chunk) + cols - 1) // cols
+        sh = Image.new('RGB', (cols * 640, r * 360))
+        for j, (key, f, lab) in enumerate(chunk):
+            pth = f'{CACHE}/{tag}/{k + j:03d}.jpg'
+            if not os.path.exists(pth): continue
+            im = Image.open(pth); ImageDraw.Draw(im).text((6, 4), f'{lab}  f{f}', fill=(240, 220, 120), font=font)
+            sh.paste(im, ((j % cols) * 640, (j // cols) * 360))
+        sh.save(f'{out_prefix}_p{n}.jpg', quality=85); n += 1
+    print(out_prefix, n)
+
+
 def split(src, outdir, maxw=1920, maxh=1400):
     """把联系表切成 ≤maxw×maxh 的块（大图 read_file 读不出来）"""
     im = Image.open(src); os.makedirs(outdir, exist_ok=True)
@@ -64,6 +80,7 @@ def split(src, outdir, maxw=1920, maxh=1400):
 
 
 if __name__ == '__main__':
+    if sys.argv[1] == 'pages': pages(sys.argv[2], sys.argv[3]); sys.exit()
     if sys.argv[1] == 'split': split(sys.argv[2], sys.argv[3]); sys.exit()
     if sys.argv[1] == 'render': render(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
     else: sheet(sys.argv[2], sys.argv[3])
