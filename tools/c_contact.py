@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import sec_c_pre2_chorus2 as M
 
-CACHE = '/tmp/c_contact_cache'; os.makedirs(CACHE, exist_ok=True)
+CACHE = os.environ.get('C_CACHE', '/workspace/work/c_r3/cache'); os.makedirs(CACHE, exist_ok=True)
 TW, TH = 480, 270
 
 
@@ -23,8 +23,9 @@ def items(mode):
     else:
         # 转场中间帧（非 hard 的切点 = 切点帧）
         for i, S in enumerate(M.SHOTS[1:], 1):
-            name = M.CUTS.get(S.__name__, ('hard',))[0]
-            f = M.CUT_F[i] + (0 if name != 'hard' else 0)
+            name, pre, post = M.CUTS.get(S.__name__, ('hard', 0, 0))[:3]
+            # 转场中间帧（p≈0.5）；硬切取切后第 1 帧（冲击帧）
+            f = round((M.CUT_F[i] / M.FPS - pre + (pre + post) / 2) * M.FPS) if name != 'hard' else M.CUT_F[i]
             out.append((f, f'{M.SHOTS[i - 1].__name__}>{S.__name__} {name}'))
         # 歌词关键帧：每句屏幕字最后一个字落定后 3 帧
         for s in M.SENTS:

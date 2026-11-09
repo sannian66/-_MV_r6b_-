@@ -630,7 +630,7 @@ class E16(Shot):   # S123 MCU 左半金光中正面；右半墨底金色巨字�
         n = K.fbm(H // 2, W // 2, 1232, base=5, octaves=5)
         self.ink = cv2.resize(((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.85, 0.7], np.float32)).astype(np.float32), (W, H))
         self.l1 = Lyr([('对', 1440, 500, 470, 'serif_black', GOLD_T, CT(53, 0))], CT(53, 4) - 0.1, seed=120, glow=0.6)
-        self.l2 = Lyr(row('就是对', cts(53, [1, 2, 3]), 1440, 860, size=62, base=WHITE_T, track=0.3), CT(53, 4) - 0.1, seed=121)
+        self.l2 = Sub('就是对', cts(53, [1, 2, 3]), 'right', CT(53, 4) - 0.1, seed=121)
 
     def render(self, t):
         u = self.u(t)
@@ -651,7 +651,7 @@ class E17(Shot):   # S124 MCU 镜像：右半朱光中回头冷视；左半墨�
         n = K.fbm(H // 2, W // 2, 1242, base=5, octaves=5)
         self.ink = cv2.resize(((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.8, 0.7], np.float32)).astype(np.float32), (W, H))
         self.l1 = Lyr([('错', 480, 500, 470, 'serif_black', REDT, CT(53, 4))], CT(53, 8) - 0.1, seed=130, glow=0.5)
-        self.l2 = Lyr(row('就是错', cts(53, [5, 6, 7]), 480, 860, size=62, base=WHITE_T, track=0.3), CT(53, 8) - 0.1, seed=131)
+        self.l2 = Sub('就是错', cts(53, [5, 6, 7]), 'left', CT(53, 8) - 0.1, seed=131)
 
     def render(self, t):
         u = self.u(t)
@@ -693,22 +693,14 @@ class E19(Shot):   # S125 CU 直视镜头；金匾碎片在他周围漂浮；「
     def __init__(self):
         sky = E.dawn_sky(1250, horizon=0.9, mid=(0.30, 0.20, 0.11), hor=(0.9, 0.66, 0.36), cloud=0.6, sun=(1500, 900))
         self.bg = cv2.GaussianBlur(sky, (0, 0), 10)
-        r = np.random.default_rng(125)
-        self.chips = [(r.uniform(100, 1820), r.uniform(150, 930), r.uniform(10, 34), r.uniform(0, 6.28), r.uniform(-1, 1), r.uniform(0.3, 1)) for _ in range(40)]
-        self.l = Lyr(row('何须伪装', cts(53, [8, 9, 10, 11]), 1700, 520, size=76, vertical=True, red='伪装', track=0.45), CT(53, 11) + 0.25, seed=140)
+        self.chips = R3.Shreds(125, n=46, gold=0.85, size=(14, 46), spread=(1100, 520), zr=(0.6, 2.6))   # 碎金匾箔片（有厚度、翻转、高光）
+        self.l = Sub('何须伪装', cts(53, [8, 9, 10, 11]), 'right', CT(53, 11) + 0.25, red='伪装', seed=140)
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
         fr, info = put(fr, t, 'S125/stare', (960, 1170), h=1180 * (1 + 0.06 * u), rim=GOLDW, rim_amt=2.4, wind=6)
-        L = np.zeros((H, W), np.float32); Lb = np.zeros((H, W), np.float32)
-        for (x, y, s, a, v, d) in self.chips:
-            px = x + v * 60 * u; py = y - 40 * u * d
-            ang = a + v * 2 * (t - self.t0)
-            pts = np.array([[math.cos(ang + k * 2.1) * s * (1 + 0.4 * (k % 2)), math.sin(ang + k * 2.1) * s * 0.7] for k in range(3)]) + [px, py]
-            cv2.fillPoly(L if d > 0.6 else Lb, [pts.astype(np.int32)], float(0.4 + 0.6 * abs(math.sin(ang * 3))), cv2.LINE_AA)
-        Lb = cv2.GaussianBlur(Lb, (0, 0), 5)
-        fr = fr + (L + Lb * 0.8)[..., None] * GOLD * 0.9
+        fr = self.chips.draw(fr, (t - self.t0) * 0.5 + 0.2, to_cam=0.3, light=(0.6, -0.5, -0.6), dof=(3.0, 10.0), zfocus=1.4, emb=0.3)
         return bloom(fr, 0.8, 0.4)
 
     def text(self, fr, t): return self.l.draw(fr, t)
@@ -719,7 +711,7 @@ class E20(Shot):   # S126 ELS 巨大日轮占满画面；「天」字在日中�
         self.tex = K.fbm(H // 2, W // 2, 1260, base=24, octaves=5)
         self.tex2 = K.fbm(H // 2, W // 2, 1261, base=60, octaves=3)
         self.sky = E.dawn_sky(1262, horizon=0.95, mid=(0.5, 0.33, 0.16), hor=(1.0, 0.7, 0.35), cloud=0.7)
-        self.l = Lyr(row('不', [CT(54, 1)], 960, 905, size=62, base=GOLD_T), CT(54, 2) + 0.1, seed=150)
+        self.l = Sub('不', [CT(54, 1)], 'center', CT(54, 2) + 0.1, seed=150)
         self.tt = CT(54, 0)
 
     def render(self, t):
@@ -759,23 +751,27 @@ class E20(Shot):   # S126 ELS 巨大日轮占满画面；「天」字在日中�
     def text(self, fr, t): return self.l.draw(fr, t)
 
 
-class E21(Shot):   # S127 CU 仰望侧脸，晨光勾金边（呼应片头月下侧脸）；「判」「我」
+class E21(Shot):   # S127 CU（第三棒重做）逆光侧脸：低调光，脸沉在暗部、只留晨光勾出的额-鼻-唇-下颌金边与发丝（不再给写实五官，避免和 E16/E19 对不上）；
+    #  「判」「我」同一套材质：红色拓印 + 金描边（不再一红一白混用），在天空侧、离脸
+    GR = dict(expo=0.2, sat=0.4, tint=(1.0, 0.95, 0.92), lift=0.0, gamma=1.55)
+
     def __init__(self):
-        sky = E.dawn_sky(1270, horizon=0.7, sun=(1700, 260), mid=(0.42, 0.30, 0.17), cloud=0.6)
-        sky = E.sun_disc(sky, (1700, 260), 90, amt=1.0)
+        sky = E.dawn_sky(1270, horizon=0.7, sun=(1600, 300), mid=(0.42, 0.30, 0.17), cloud=0.6)
+        sky = E.sun_disc(sky, (1600, 300), 90, amt=1.0)
         self.bg = cv2.GaussianBlur(sky, (0, 0), 14)
-        self.l1 = Lyr([('判', 1460, 300, 150, 'serif_black', REDT, CT(54, 2))], CT(54, 4) - 0.1, seed=160, glow=0.4)
-        self.l2 = Lyr([('我', 1460, 640, 420, 'serif_black', WHITE_T, CT(54, 3))], CT(54, 4) - 0.1, seed=161, glow=0.45)
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
-        fr = fx2.god_rays(fr, (1700, 260), strength=0.6, length=1.0, t=t)
-        fr, info = put(fr, t, 'S127/profile_up', (560 + 40 * u, 1180), h=1120, rim=GOLDW, rim_amt=3.4, rim_dir=(1.0, -0.4), wind=10)
+        fr = fx2.god_rays(fr, (1600, 300), strength=0.7, length=1.0, t=t)
+        fr, info = put(fr, t, 'S127/profile_up', (600 + 40 * u, 1190), h=1150, rim=(1.0, 0.86, 0.6), rim_amt=5.0, rim_dir=(1.0, -0.35),
+                       grade=self.GR, wind=12)
         fr = E.dust_motes(fr, t, 1271, n=80, amt=0.5, drift=(-20, -30), depth=True)
-        return bloom(fr, 0.8, 0.45)
+        return bloom(fr, 0.75, 0.55)
 
-    def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
+    def text(self, fr, t):
+        to = CT(54, 4) - 0.1
+        return R3.rub_text(fr, [('判', 1230, 400, 230, CT(54, 2), to, t), ('我', 1560, 600, 330, CT(54, 3), to, t)], seed=21)
 
 
 class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他自己成了秤；「我来量」刻在刀身上（逐字烧亮）
@@ -797,7 +793,7 @@ class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他
         cx = [960 - 130, 960, 960 + 130]   # 双手之间的刀身段
         self.eng = Lyr([(c, cx[i], self.cal['y'] + 1, 30, 'serif_b', GOLD_T if i < 2 else REDT, ts[i]) for i, c in enumerate(ch)],
                        CT(55, 0) - 0.1, seed=170, glow=1.1, shadow=0.0, direction=(1.0, 0.0))
-        self.big = Lyr(row('我来量', ts, 1560, 560, size=74, vertical=True, red='量', track=0.45), CT(55, 0) - 0.1, seed=171)
+        self.big = Sub('我来量', ts, 'right', CT(55, 0) - 0.1, red='量', seed=171)
 
     def render(self, t):
         u = self.u(t); dy = -20 * u
@@ -828,7 +824,7 @@ class E23(Shot):   # S129 MCU 后撤蓄力，速度坡度推近（吸气）
     def __init__(self):
         n = K.fbm(H // 2, W // 2, 1290, base=4, octaves=5)
         self.bg = cv2.resize(((0.10 + 0.18 * n)[..., None] * np.array([1.0, 0.75, 0.45], np.float32)).astype(np.float32), (W, H))
-        self.l = Lyr(row('这一', cts(55, [0, 1]), 1700, 420, size=70, vertical=True, base=WHITE_T, track=0.45), CT(55, 2) - 0.08, seed=180)
+        self.l = Sub('这一', cts(55, [0, 1]), 'left', CT(55, 2) - 0.08, seed=180)
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
         self.ang = np.arctan2(yy - 300, xx - 480); self.rad = np.hypot(xx - 480, yy - 300) / 540
         r = np.random.default_rng(129); self.ph = r.uniform(0, 6.28, 7); self.fq = r.integers(40, 160, 7)
@@ -855,7 +851,7 @@ class E24(Shot):   # S129b ECU 刃身满屏，寒光自柄扫到尖；巨字「�
     def __init__(self):
         self.bg = E.dawn_sky(1291, horizon=0.5, top=(0.06, 0.05, 0.04), mid=(0.25, 0.18, 0.1), hor=(0.6, 0.42, 0.22), cloud=0.3)
         self.l1 = Lyr([('刀', 1440, 520, 440, 'serif_black', REDT, CT(55, 2))], CT(55, 6) - 0.05, seed=190)
-        self.l2 = Lyr(row('就是我', cts(55, [3, 4, 5]), 560, 250, size=66, base=WHITE_T, track=0.3), CT(55, 6) - 0.05, seed=191)
+        self.l2 = Sub('就是我', cts(55, [3, 4, 5]), 'left', CT(55, 6) - 0.05, seed=191)
 
     def render(self, t):
         u = self.u(t)

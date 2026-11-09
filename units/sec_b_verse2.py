@@ -865,11 +865,14 @@ class V15(Shot):
         fr = self.bg * (1 + 2.5 * env)
         if t >= tl - 0.06:
             fr = self.bolt.draw(fr, t, tl, intensity=1.1)
-        walk = 1060 - 80 * e
+        walk = 1120 - 90 * e
         bob = 6 * abs(math.sin(t * 6.5))
-        fr, _ = put(fr, self.sp, t, 820, (walk, 930 - bob), rim=dict(col=(0.75, 0.82, 1.0), amt=2.6 + 4 * env, dir=(0.7, -0.7)),
-                    grade=dict(expo=0.80 + 0.4 * env, sat=0.5, tint=(0.9, 0.96, 1.06), lift=0.0, gamma=1.2), wind_amp=8,
-                    shade=(500, 1500, 0.2, 600, 0.3))
+        # 第三棒：人物放大提亮（820→1000px，常亮冷轮廓 + 前左方冷补光），闪电时再炸亮
+        x_, y_ = K.grid()
+        fr = fr + np.exp(-(((x_ - walk) / 380) ** 2 + ((y_ - 560) / 420) ** 2))[..., None] * np.array([0.10, 0.12, 0.16], np.float32)
+        fr, _ = put(fr, self.sp, t, 1000, (walk, 1110 - bob), rim=dict(col=(0.80, 0.88, 1.0), amt=3.6 + 4 * env, dir=(0.7, -0.7)),
+                    grade=dict(expo=1.18 + 0.4 * env, sat=0.55, tint=(0.92, 0.97, 1.06), lift=0.02, gamma=1.05), wind_amp=8,
+                    shade=(500, 1500, 0.12, 600, 0.2))
         # 积水反光
         ref = fr[::-1].copy(); ref = cv2.warpAffine(ref, np.float32([[1, 0, 0], [0, 1, 2 * 860 - H]]), (W, H))
         fr = fr + ref * (self.gm * 0.25)[..., None]
@@ -1061,7 +1064,7 @@ class V20(Shot):
     def scene(self, t):
         x, y = K.grid()
         refl = self.sky.copy()
-        refl, _ = put(refl, self.sp, t, 700, (960, 900), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
+        refl, _ = put(refl, self.sp, t, 720, (640, 900), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
                       shade=None, wrap=0.2)
         refl = refl[::-1] if False else refl
         # 倒影：人物头朝下（脚在上沿）
@@ -1080,7 +1083,7 @@ class V20(Shot):
         pr = prs(26, [0, 1, 2], t)
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('若这世', pr)):
-            if pc > 0: T.place(L, ch, 1240, 330 + i * 160, 140, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+            if pc > 0: T.place(L, ch, 1360, 330 + i * 170, 150, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
         fr = T.compose(fr, L, shadow=0.85, glow=0.12)
         ang = 90 * ein(u, 2)
         fr = cam(fr, 1.0 + 0.12 * math.sin(math.pi * u * 0.5), 0, 0, ang)
@@ -1099,9 +1102,10 @@ class V21(Shot):
         for i, (ch, pc) in enumerate(zip('道黑白颠倒', pr)):
             if pc <= 0: continue
             col = (0.04, 0.04, 0.045) if ch == '黑' else ('white' if ch != '白' else (0.98, 0.97, 0.94))
-            T.place(L, ch, 560 + i * 200, 540 + (40 if i % 2 else -40), 170 if ch in '黑白' else 130, color=col, fname='serif_black',
+            T.place(L, ch, 1330 + (30 if i % 2 else -30), 200 + i * 150, 160 if ch in '黑白' else 128, color=col, fname='serif_black',
                     alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
-        fr = T.compose(fr, L, shadow=0.6, glow=0.15)
+        fr = fr * (1 - 0.45 * K.blur_ds(((np.abs(K.grid()[0] - 1330) < 130) & (K.grid()[1] > 100) & (K.grid()[1] < 980)).astype(np.float32), 40)[..., None])
+        fr = T.compose(fr, L, shadow=0.6, glow=0.15, outline=3, outline_color=(0.5, 0.5, 0.5))
         # 90°→180°，同时反相（黑白颠倒）；「黑」「白」随反相互换
         e = eio(u)
         ang = 90 + 90 * eout(u, 2)
@@ -1175,6 +1179,52 @@ def gash(fr, t, pts, width, heat=1.0, seed=0):
     return fr, core
 
 
+def trench(fr, t, hor, camH, z0, z1, width=0.8, f=1000.0, cx=960.0, seed=0, heat=1.0, xc=None, fog_z=200.0):
+    """第三棒：地面透视刀痕（按针孔相机逐像素反投影到地面：Z = f·camH/(y-hor)，X = (x-cx)·Z/f）。
+    近宽远窄、自动收向消失点；熔芯（金白→朱红）+ 翻起的焦黑唇边 + 唇边受光 + 地面红辉 + 远处雾化 + 热浪闪烁 + 侧向细裂纹。
+    xc(Z) 中线横向偏移（米）；返回 (fr, core)"""
+    x, y = K.grid()
+    dy = np.maximum(y - hor, 0.5)
+    Z = f * camH / dy
+    X = (x - cx) * Z / f
+    ground = (y > hor + 1).astype(np.float32)
+    nzz = np.log(Z + 1.0)
+    rng = np.random.default_rng(seed)
+    ph = rng.uniform(0, 6.28, 4)
+    wob = 0.10 * np.sin(Z * 0.35 + ph[0]) + 0.05 * np.sin(Z * 1.3 + ph[1]) + 0.025 * np.sin(Z * 4.1 + ph[2])
+    cen = wob + (xc(Z) if xc else 0.0)
+    d = np.abs(X - cen)
+    lod = np.clip(f / Z / 60.0, 0, 1)                          # 远处高频细节淡出，防止横向锯齿条纹
+    jag = 1.0 + 0.22 * np.sin(Z * 9.0 + ph[3]) * np.sin(Z * 2.3) * lod + 0.06 * np.sin(Z * 23.0) * lod ** 2 + 0.15 * np.sin(Z * 0.9 + ph[1])
+    hw = width * 0.5 * jag
+    inz = ((Z >= z0) & (Z <= z1)).astype(np.float32) * ground
+    endf = np.clip((z1 - Z) / 3.0, 0, 1) * np.clip((Z - z0) / 0.4, 0, 1)
+    px = f / Z                                                   # 1 米在该深度的像素数
+    aa = 1.0 / np.maximum(px, 1e-3)                              # 1 像素对应米数（抗锯齿）
+    core = np.clip((hw * 0.45 - d) / (aa * 1.5) + 0.5, 0, 1) * inz * endf
+    pit = np.clip((hw - d) / (aa * 1.5) + 0.5, 0, 1) * inz * endf
+    lip = np.clip(1 - np.abs(d - hw * 1.15) / (hw * 0.35 + aa), 0, 1) * inz * endf
+    flick = 0.85 + 0.15 * np.sin(Z * 3.0 - t * 18.0) * np.sin(Z * 0.7 + t * 5.0)
+    zf = np.clip(1 - Z / fog_z, 0.15, 1)                         # 远处雾化
+    hotc = np.clip(1 - d / (hw * 0.45 + aa), 0, 1)
+    molten = (RED * 1.4 + GOLD * 1.1 * hotc[..., None] + np.array([1.0, 0.95, 0.85], np.float32) * 0.6 * hotc[..., None] ** 3)
+    fr = fr * (1 - pit[..., None] * 0.85) + pit[..., None] * np.array([0.02, 0.008, 0.006], np.float32)          # 焦黑沟
+    fr = fr * (1 - lip[..., None] * 0.5) + lip[..., None] * RED * 0.55 * zf[..., None] * heat                     # 唇边被照亮
+    fr = fr * (1 - core[..., None]) + core[..., None] * molten * (flick * heat)[..., None]
+    # 地面红辉（按米衰减 → 透视正确）
+    glow = np.exp(-np.maximum(d - hw, 0) / (0.9 + 0.02 * Z)) * inz * endf * ground * zf
+    fr = fr + glow[..., None] * RED * 0.30 * heat + K.blur_ds(core, 20)[..., None] * RED * 0.8 * heat
+    # 侧向细裂纹（地面坐标里画几条短裂口）
+    cr = np.zeros_like(d)
+    for k in range(6):
+        zk = z0 + (z1 - z0) * ((k * 0.137 + 0.05) % 1.0) ** 2.2
+        s = 1 if k % 2 else -1
+        band = np.exp(-((Z - zk - s * 0.4 * (X - cen)) / (0.03 * Z ** 0.6 + aa)) ** 2)
+        cr = np.maximum(cr, band * ((X - cen) * s > hw) * ((X - cen) * s < hw + 0.3 + 0.01 * zk) * inz)
+    fr = fr + cr[..., None] * RED * 0.9 * zf[..., None] * heat
+    return fr, core
+
+
 class V23(Shot):
     def __init__(self):
         self.sp = spr('drag_blade')
@@ -1233,23 +1283,26 @@ class V24(Shot):
         u = self.u(t)
         e = eio(u)
         fr = self.bg.copy()
-        grow = clamp01(u * 1.4 + 0.2)
-        near, far = np.array([520.0, 1000.0]), np.array([1080.0, 432.0])
-        n = 30
-        pts = [tuple(near + (far - near) * (i / n) ** 0.8) for i in range(int(2 + n * grow))]
-        fr, core = gash(fr, t, pts, 70, heat=1.0, seed=6806)
-        fr = self.fog.draw(fr, t, density=0.55, y0=300, y1=700, color=(0.32, 0.33, 0.36), speed=(30, 0))
-        fp = near + (far - near) * 0.22 ** 0.8
-        fr, _ = put(fr, self.sp, t, 260, (fp[0] - 20, fp[1]), look='sil', rim=dict(col=(1.0, 0.4, 0.25), amt=3.0, dir=(0.3, 1.0)), wind_amp=6,
-                    shade=None, wrap=0.2)
+        grow = clamp01(u * 1.25 + 0.15)
+        HOR, CH, FF = 432.0, 5.0, 1100.0                              # 高机位（摇臂）
+        X0, AX = -2.5, 0.03                                           # 刀痕从左前方斜着划向远墙（不正对镜头 → 读得出是地面）
+        zend = 12.5 + (380 - 12.5) * grow ** 2.2                       # 刀痕从脚下向远墙疾速延伸
+        fr, core = trench(fr, t, HOR, CH, 12.5, zend, width=1.0, f=FF, seed=6806, fog_z=420.0,
+                          xc=lambda Z: X0 + AX * Z + 0.4 * np.sin(Z / 40.0))
+        fr = self.fog.draw(fr, t, density=0.5, y0=300, y1=640, color=(0.32, 0.33, 0.36), speed=(30, 0), light=(960, 460), light_r=500,
+                           light_color=RED * 0.6)
+        # 鬼屠站在刀痕起点（Z=10 m）：逆光剪影，透视尺寸与地面一致
+        fy = HOR + FF * CH / 12.0
+        fr, _ = put(fr, self.sp, t, 300, (960 + FF * (X0 + AX * 12 - 0.9) / 12.0, fy), look='sil', rim=dict(col=(1.0, 0.4, 0.25), amt=3.0, dir=(0.3, 1.0)),
+                    wind_amp=6, shade=None, wrap=0.2)
+        # 「出方」立在刀痕两侧（远近两处，近大远小），随刀痕到达时燃起
         pr = prs(27, [8, 9], t)
-        for i, (ch, pc) in enumerate(zip('出方', pr)):
+        for i, (ch, pc, Zc, Xs) in enumerate(zip('出方', pr, (24.0, 42.0), (5.0, 6.5))):
             if pc <= 0: continue
-            q = 0.40 + 0.30 * i
-            pp = near + (far - near) * q ** 0.8
-            sz = 230 * (1 - q * 0.75)
-            L = T.Layer(); T.place(L, ch, pp[0] + sz * 0.9, pp[1] - sz * 0.1, sz, color=(0.95, 0.18, 0.07), fname='xing', alpha=min(1, pc * 2), sy=0.55)
-            fr = T.compose(fr, L, shadow=0.5, glow=0.7, glow_color=(1.0, 0.3, 0.08))
+            sx_ = 960 + FF * (X0 + AX * Zc + Xs) / Zc; sy_ = HOR + FF * CH / Zc
+            sz = (210, 160)[i]
+            L = T.Layer(); T.place(L, ch, sx_, sy_ - sz * 0.45, sz, color=(0.98, 0.22, 0.08), fname='xing', alpha=min(1, pc * 2), sy=0.8)
+            fr = T.compose(fr, L, shadow=0.6, glow=0.7, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=10)
         fr = cam(fr, 1.10 - 0.10 * e, 0, 60 - 60 * e)          # 摇臂升：画面下压 + 拉开
         return fr, 0
@@ -1275,10 +1328,9 @@ class V25(Shot):
         u = self.u(t)
         x, y = K.grid()
         fr = self.bg.copy()
-        pts = [(960 + (i / 30) ** 1.0 * 0, 1080 - (1080 - 605) * (1 - (1 - i / 30) ** 2)) for i in range(31)]
-        fr, core = gash(fr, t, pts, 120, heat=1.0, seed=6906)
+        fr, core = trench(fr, t, 605.0, 0.6, 1.0, 600.0, width=0.75, f=1000.0, seed=6906, fog_z=700.0)
         fr = self.fog.draw(fr, t, density=0.5, y0=420, y1=760, color=(0.30, 0.30, 0.33), light=(960, 600), light_r=500, light_color=RED * 0.8)
-        fr, _ = put(fr, self.sp, t, 440, (760, 960), look='sil', rim=dict(col=(1.0, 0.38, 0.22), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
+        fr, _ = put(fr, self.sp, t, 470, (760, 790), look='sil', rim=dict(col=(1.0, 0.38, 0.22), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
                     shade=None, wrap=0.2)
         pr = prs(27, [10], t, 0.3)[0]
         if pr > 0:

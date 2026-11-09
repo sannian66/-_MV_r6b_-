@@ -157,7 +157,7 @@ def rub_text(fr, chars, seed=3, outline_gold=True):
         M = cv2.getRotationMatrix2D((g / 2, g / 2), 0, sc)
         m = cv2.warpAffine(m, M, (g, g))
         if outline_gold:
-            ring = np.clip(cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))) - m, 0, 1)
+            ring = np.clip(cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))) - m * 0.9, 0, 1)
             Lg = T.Layer(); Lg.paste(ring, x, y, (1.0, 0.80, 0.45), p)
             fr = T.compose(fr, Lg, shadow=0.8, shadow_sigma=18, glow=0.6, glow_sigma=14, glow_color=(1.0, 0.6, 0.25))
         L = T.Layer(); L.paste(m, x, y, (0.78, 0.07, 0.05), p)
