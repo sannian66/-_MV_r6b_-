@@ -1262,7 +1262,7 @@ class C28(Shot):
         fr = fr * (1 - hole[..., None]) + sky * hole[..., None]
         # 体积光：字形光源向镜头放射（径向拖影）
         src = (hole[..., None] * sky).astype(np.float32)
-        acc = np.zeros_like(src); n = 10
+        acc = np.zeros_like(src); n = 16
         for i in range(n):
             z = 1 + 0.9 * lt * (i + 1) / n
             acc += cv2.warpAffine(src, np.float32([[z, 0, HX * (1 - z)], [0, z, 470 * (1 - z)]]), (W, H)) * (1 - i / n)
@@ -1614,7 +1614,7 @@ class C40b(Shot):
                     area=(600, 60), color=(1.0, 0.6, 0.25))
         # 第四棒：换生图 point_cam（刀尖指镜、直视镜头；S090 只剩 C39 一次）
         fr, A = put(fr, t, 'C/point_cam', 760 - 30 * u, 470, 1100 * (1 + 0.05 * u), anchor='src', src=(0.39, 0.33), rim=COLD,
-                    rim_amt=2.8, rim_dir=(0.8, -0.6), expo=1.0, wind=10 + 14 * pulse(t, tw, 0.2), flash=fl, breathe=0.0)
+                    rim_amt=1.5, rim_dir=(0.8, -0.6), expo=1.0, wind=10 + 14 * pulse(t, tw, 0.2), flash=fl, breathe=0.0)
         # 刀刃上一道冷光扫过（「是」）：沿精灵里刀的方向（右上斜）
         q = (t - ts) / 0.30
         if 0 < q < 1:
@@ -1779,7 +1779,7 @@ SENTS = [
     S(34, [7], 1600, 470, size=260, mode='fly', exit='shatter', out=V(144.70)),                                      # 墙（C24 低频震）
     S(35, [0, 1], 460, 300, size=84, mode='fly', exit='shatter', out=V(145.60), layout='v'),                        # 那就（C25）
     S(35, [3, 4], 1480, 830, size=84, mode='fly', exit='shatter', out=V(146.40)),                                    # 开它
-    S(35, [5, 6, 7], 1560, 300, size=100, mode='fly', layout='v', exit='cut', out=V(147.52), track=0.3, back=0.6),    # 看个天（竖排压在暗墙上）
+    S(35, [5, 6, 7], 1560, 300, size=100, mode='fly', layout='v', exit='cut', out=V(147.38), track=0.3, back=0.6),    # 看个天（竖排压在暗墙上）
     S(36, [0, 1, 2], 1600, 230, size=150, mode='fly', layout='v', red='血', exit='shatter', out=V(150.22), track=0.05,
       sizes=[220, 110, 110]),                                                                                          # 血未冷（C30）
     S(36, [3, 4, 5], 420, 260, size=110, mode='fly', red='骨', exit='shatter', out=V(151.62)),                       # 骨未凉（C31）
