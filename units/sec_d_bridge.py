@@ -1389,8 +1389,8 @@ class S27_Bullet(Shot):
             fr = TR._slash_streak(fr, (lerp(dst[0] - 200, dst[0] + 120, q), lerp(150, 950, q)), np.array((0.25, 0.97)), q, length=1600, width=1, amt=0.5)
         # 刻完推近：镜头压向刀身上的「刀」（ECU），字在画里变大
         gy = dst[1] + 0.06 * self.sp.h * self.SC; gx = dst[0] + self.slope * (gy - dst[1])
-        zq = eo(cl((t - tk) / 0.6), 2)
-        fr = shake_cam(fr, t, [tk], 6, z=1.0 + 0.55 * zq, ox=(gx - 960) * 0.0 - 20 + 40 * u, center=(gx, gy))
+        zq = eo(cl((t - tk + 0.05) / 0.35), 2) + 0.08 * cl((t - tk - 0.3) / 0.45)
+        fr = shake_cam(fr, t, [tk], 6, z=1.0 + 0.6 * zq, ox=(gx - 960) * 0.0 - 20 + 40 * u, center=(gx, gy))
         return (self.text_only(fr, t) if text else fr), 0.0
 
     def text_only(self, fr, t):
