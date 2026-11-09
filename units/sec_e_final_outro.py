@@ -93,14 +93,15 @@ class E02(Shot):   # S112 低机位大仰拍（第三棒重做）：人物占画
         fr = self.sky.copy()
         z, info = put(np.zeros((H, W, 3), np.float32), t, 'S112/sword_sky|flip', (1150, 1460 + 20 * u), h=1220, anc=(0.5, 1.0),
                       rim=(1.0, 0.86, 0.62), rim_amt=3.4, rim_dir=(-0.2, -1.0), grade=self.GR, wind=10)
-        tip = info['top']
+        tip = info['top']; self.tip = tip
         sun = (tip[0], tip[1] - 6 - 24 * eio(u))
         fr = E.sun_disc(fr, sun, 46, amt=1.0, core=(1.0, 0.98, 0.94))
         fr = fx2.god_rays(fr, sun, strength=0.7, length=1.0, t=t, occluder=info['A'])
         a = info['A'][..., None]
         fr = fr * (1 - a) + z * a
-        p = (t - (CT(48, 5) - 0.12)) / 0.5
+        p = (t - (CT(48, 5) + 0.08)) / 0.22                               # 第五棒：三字随唱沿刀身自下而上烧出，「放」落定后才凝成朱印
         if p > 0: fr = T.stamp_seal(fr, '刀不放', sun[0] - 6, sun[1] + 40, 210, min(1, p), style='yin', rot=-6, seed=4, alpha=0.95)
+        self.seal_p = p
         G = np.zeros((H // 2, W // 2), np.float32)                         # 前景：贴镜头的草叶（强虚化、压暗）
         for (x, s_, lean) in self.grass:
             x0 = (x + 60 * u) / 2
@@ -109,6 +110,16 @@ class E02(Shot):   # S112 低机位大仰拍（第三棒重做）：人物占画
         fr = fr * (1 - np.clip(G * 1.3, 0, 1)[..., None] * 0.92)
         fr = E.dust_motes(fr, t, 1121, n=36, amt=0.5, drift=(30, -40), size=(3, 9), blur=4, col=(0.9, 0.85, 0.8))
         return bloom(fr, 0.8, 0.45)
+
+    def text(self, fr, t):
+        if not hasattr(self, 'tip'): return fr
+        if not hasattr(self, 'col'):
+            x = self.tip[0] - 230
+            self.col = LyrO([('刀', x, 380, 170, 'serif_black', REDT, CT(48, 3) + 0.03), ('不', x, 580, 150, 'serif_black', WHITE_T, CT(48, 4)),
+                             ('放', x, 770, 150, 'serif_black', WHITE_T, CT(48, 5))], None, seed=12, outline=5, plate_amt=0.35, glow=0.35,
+                            direction=(0.0, -1.0))
+        a = 1 - c01(getattr(self, 'seal_p', 0) / 0.8)
+        return self.col.draw(fr, t, alpha=a, dy=-30 * (1 - a)) if a > 0 else fr
 
 
 class E03(Shot):   # S113（第三棒重做）一点透视碑林：两列刻满律令的「天理」碑沿纵深排开，冷灰蓝晨雾，尽头门洞白光；推轨前进 + 前景碑擦镜虚化。
@@ -441,7 +452,9 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         pos = [p0 + (p1 - p0) * f for f in (0.18, 0.36, 0.60, 0.80)]
         nrm = np.array([0.32, -0.95])
         cols = [WHITE_T, WHITE_T, REDT, REDT]
-        self.la = Lyr([(c, *(pos[i] + nrm * 70), 120, 'serif_black', cols[i], ts[i]) for i, c in enumerate('那就撕碎')], CT(51, 4) - 0.1, seed=60)
+        sz = [130, 130, 190, 190]                                            # 第五棒：撕碎 1.6 倍、墨描边 + 字后暗晕，离开斩光（线下侧）
+        self.la = LyrO([(c, *(pos[i] - nrm * 150), sz[i], 'serif_black', cols[i], ts[i]) for i, c in enumerate('那就撕碎')], 6129 / 30 - 0.12, seed=60,
+                       outline=6, plate_amt=0.7, glow=0.25)
 
     def render(self, t):
         u = self.u(t)
@@ -465,7 +478,7 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         return bloom(fr, 0.8, 0.45)
 
     def text(self, fr, t):
-        tb = CT(51, 3)
+        tb = CT(51, 3) + 0.2                                                  # 第五棒：「碎」完整清晰停留 6 帧后才被斩开
         if t < tb: return self.la.draw(fr, t)
         # 「碎」：沿刀线把整句一分为二，上半往左上、下半往右下错开
         q = eout((t - tb) / 0.25)
@@ -473,9 +486,9 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         F1 = self.la.draw(fr.copy(), t, dx=-d[0] * 50 * q - 10 * q, dy=-d[1] * 50 * q - 30 * q)
         F2 = self.la.draw(fr.copy(), t, dx=d[0] * 50 * q + 10 * q, dy=d[1] * 50 * q + 30 * q)
         yy, xx = E.grid()
-        side = ((xx - self.p0[0]) * d[1] - (yy - self.p0[1]) * d[0] + 70 > 0)[..., None]
+        side = ((xx - self.p0[0]) * d[1] - (yy - self.p0[1]) * d[0] - 150 > 0)[..., None]
         out = np.where(side, F2, F1)
-        g = np.exp(-(((xx - self.p0[0]) * d[1] - (yy - self.p0[1]) * d[0] + 70) / 3) ** 2) * (1 - q * 0.8)
+        g = np.exp(-(((xx - self.p0[0]) * d[1] - (yy - self.p0[1]) * d[0] - 150) / 3) ** 2) * (1 - q * 0.8)
         return out + g[..., None] * GOLDW * 1.2
 
 
