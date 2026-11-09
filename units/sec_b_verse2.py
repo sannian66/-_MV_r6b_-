@@ -1416,7 +1416,14 @@ class V25(Shot):
         x, y = K.grid()
         self.gm = sstep(590, 620, y)
         mud = (0.015 + 0.03 * cv2.resize(K.fbm(H // 2, W // 2, 6903, 12, 6), (W, H)))[..., None] * np.ones(3, np.float32)
-        self.bg = (sk * (1 - wm[..., None]) + K.blur_ds(wl, 4) * wm[..., None]) * (1 - self.gm[..., None]) + mud * self.gm[..., None]
+        # 第五棒 9/n：城楼平涂块（程序味）→ 远景大气透视：墙体/城楼重虚化 + 檐口上方雾幕吞掉硬边 + 刀痕红光反打墙根
+        wmb = cv2.GaussianBlur(wm, (0, 0), 6)
+        wall = K.blur_ds(wl, 8) + (0.02 * cv2.resize(K.fbm(H // 4, W // 4, 6907, 6, 5), (W, H)))[..., None] * wmb[..., None]
+        bg = sk * (1 - wmb[..., None]) + wall * wmb[..., None]
+        haze = np.exp(-((y - 360) / 150) ** 2)[..., None] * np.array([0.11, 0.11, 0.125], np.float32) * (0.6 + 0.4 * cv2.resize(K.fbm(H // 4, W // 4, 6908, 8, 4), (W, H)))[..., None]
+        bg = bg + haze
+        bg += (wmb * np.exp(-((x - 960) / 460) ** 2) * np.clip((y - 470) / 130, 0, 1))[..., None] * RED * 0.10
+        self.bg = bg * (1 - self.gm[..., None]) + mud * self.gm[..., None]
         self.fog = fx2.Fog(6904)
         self.rain = fx2.RainSheet(6905, density=0.8)
         T.warm('方向', 'xing', 260)
