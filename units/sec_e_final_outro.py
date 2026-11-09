@@ -1357,22 +1357,57 @@ class Credits(Shot):
     def text(self, fr, t): return self.credits(fr, t)
 
 
-class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / 编剧·导演
+class E31(Credits):   # S134（第六棒重做，去尾奏「地平线 + 中心光」同构）：正俯拍微距 —— 焦土上散着被斩碎的律令残纸（「天」「理」「规」「章」残字），
+    #  焦边余烬一明一灭、逐渐冷却，细烟上升；晨光从右上斜掠。署名① 在右侧
     def __init__(self):
-        self.sky = E.dawn_sky(1350, horizon=0.62, top=(0.06, 0.055, 0.06), mid=(0.40, 0.33, 0.27), hor=(1.0, 0.84, 0.60), cloud=0.5, sun=(560, 560))   # 第五棒：破晓后余温（中调暖灰、地平线淡金）
-        self.rd, self.ra = E.ridges(w=W + 480, n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.82, 0.70, 0.54), far=0.75, near=0.05)   # 第五棒：层宽 W+480（平移 120×1.05 有足量出血，右边不再露底）；雾色偏晨暖
         self.blocks = [('出品人', ['西几王传媒'], 1660, 230, 227.85, 0.9), ('编剧 / 导演', ['苏打'], 1430, 230, 228.45, 0.8)]
-        self.fog = K.fbm(H // 4, W // 2, 1351, base=5, octaves=5)
+        yy, xx = E.grid()
+        n1 = cv2.resize(K.fbm(H // 2, W // 2, 1350, base=10, octaves=6), (W, H)); n2 = cv2.resize(K.fbm(H // 2, W // 2, 1351, base=60, octaves=3), (W, H))
+        key = np.clip(0.35 + 0.75 * np.exp(-(((xx - 1900) / 1400) ** 2 + ((yy - 0) / 900) ** 2)), 0, 1.2)
+        self.gnd = ((0.05 + 0.09 * n1 + 0.04 * (n2 - 0.5)) * key)[..., None] * np.array([1.0, 0.80, 0.62], np.float32)
+        r = np.random.default_rng(1352)
+        self.pcs = []
+        for k, (ch, cx, cy, sz, rot) in enumerate((('天', 430, 420, 250, -18), ('理', 820, 690, 220, 24), ('规', 1060, 330, 180, 8), ('章', 320, 790, 170, -40), ('律', 1150, 820, 150, 60))):
+            g = int(sz * 1.6)
+            yv, xv = np.mgrid[0:g, 0:g].astype(np.float32)
+            nz = cv2.resize(r.random((7, 7)).astype(np.float32), (g, g), interpolation=cv2.INTER_CUBIC)
+            nf = cv2.resize(r.random((31, 31)).astype(np.float32), (g, g), interpolation=cv2.INTER_LINEAR)
+            d = np.hypot((xv - g / 2) / (g * 0.40), (yv - g / 2) / (g * 0.33)) + 0.45 * (nz - 0.5) + 0.12 * (nf - 0.5)
+            m = np.clip((1 - d) * 18, 0, 1)
+            band = np.exp(-((1 - d) / 0.05) ** 2) * (d < 1.05)
+            gl = T.glyph(ch, 'serif_black', sz * 0.8, False)
+            G = np.zeros((g, g), np.float32); gs = gl.shape[0]; o = (g - gs) // 2
+            if o >= 0: G[o:o + gs, o:o + gs] = gl
+            else: G = cv2.resize(gl, (g, g))
+            G = np.roll(np.roll(G, int(r.uniform(-0.17, 0.17) * g), 1), int(r.uniform(-0.12, 0.12) * g), 0)     # 字偏出纸边 → 残字
+            tone = (0.40 + 0.22 * cv2.resize(K.fbm(g // 2, g // 2, 1360 + k, base=8, octaves=4), (g, g)))[..., None] * np.array([0.92, 0.80, 0.60], np.float32)
+            singe = np.clip((1 - d) / 0.35, 0, 1) ** 0.8                     # 焦黄：越近烧边越暗
+            C = tone * (0.35 + 0.65 * singe)[..., None] * (1 - 0.85 * G[..., None] * m[..., None]) * (1 - 0.8 * np.clip(band * 2.5, 0, 1))[..., None]
+            M = cv2.getRotationMatrix2D((g / 2, g / 2), rot, 1.0)
+            self.pcs.append((cv2.warpAffine(C, M, (g, g)), cv2.warpAffine(m, M, (g, g)), cv2.warpAffine(band.astype(np.float32), M, (g, g)), cx, cy, k))
+        self.smoke = K.fbm(H // 4, W // 4, 1355, base=5, octaves=5)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (560, 600), 70, amt=0.8)
-        fr = E.place_layer(fr, self.rd, self.ra, ox=-120 * u, z=1.05)
-        f = cv2.resize(R3.slide(self.fog, 30 * u), (W, H))
-        m = np.clip((f - 0.45) * 2.5, 0, 1) * sstep(0.45, 0.85, np.arange(H, dtype=np.float32)[:, None] / H)
-        fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.90, 0.80, 0.66], np.float32) * 0.6
-        fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(1.0, 0.9, 0.75))
-        fr = R5.dawn_warm(fr, 0.9)
+        fr = self.gnd.copy()
+        EMB = np.zeros((H, W), np.float32)
+        for (C, m, band, cx, cy, k) in self.pcs:
+            g = m.shape[0]; x0 = int(cx - g / 2); y0 = int(cy - g / 2)
+            xs, ys = max(0, x0), max(0, y0); xe, ye = min(W, x0 + g), min(H, y0 + g)
+            if xe <= xs or ye <= ys: continue
+            sub = (slice(ys - y0, ye - y0), slice(xs - x0, xe - x0))
+            sh = cv2.GaussianBlur(m, (0, 0), 10)[sub]
+            F = fr[ys:ye, xs:xe]
+            F *= (1 - 0.55 * np.roll(np.roll(sh, 14, 0), -10, 1))[..., None]
+            F[:] = F * (1 - m[sub][..., None]) + C[sub] * m[sub][..., None]
+            fl = 0.55 + 0.45 * math.sin(t * (7 + k) + k * 1.7)
+            EMB[ys:ye, xs:xe] += band[sub] * fl * (1 - 0.65 * u)
+        fr = fr + EMB[..., None] * np.array([1.4, 0.48, 0.10], np.float32) + cv2.GaussianBlur(EMB, (0, 0), 8)[..., None] * np.array([0.8, 0.25, 0.05], np.float32)
+        Mt = np.float32([[1, 0, 0], [0, 1, -10 * (t - self.t0)]])            # 细烟上升（反射边界，无接缝）
+        sm = cv2.resize(cv2.warpAffine(self.smoke.astype(np.float32), Mt, (W // 4, H // 4), borderMode=cv2.BORDER_REFLECT), (W, H))
+        sm = np.clip((sm - 0.5) * 2.0, 0, 1) * 0.18
+        fr = fr * (1 - sm[..., None]) + sm[..., None] * np.array([0.62, 0.58, 0.55], np.float32)
+        fr = RS.fx_embers(fr, t, 1356, amt=0.5, n=30)
         return bloom(fr, 0.85, 0.35)
 
 
@@ -1566,7 +1601,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
     'E32': ('blade_sweep', 0.12, 0.16, dict(direction=1)),      # 第五棒：平灰板 → 近景刀身掠镜（钢纹/脊线/刃口暖光/运动模糊）
     'E33': ('fog_wall', 0.14, 0.20, dict(direction=-1)),        # 第五棒：平灰板 → 晨雾墙横扫（体积明暗/顶部暖光/运动模糊）
-    'E34': ('match_cut', 0.0, 0.30, dict(shape='circle', center=(960, 560), radius=60)),   # 第五棒：E33 线尽头的日 → E34 日出（图形匹配）
+    'E34': ('smoke_through', 0.20, 0.30, dict(seed=34, direction=1, color=(0.55, 0.5, 0.46))),   # 第六棒：E33 落灰 → 灰烟穿过 → 日出全景
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
@@ -1606,7 +1641,7 @@ MOVE = {
     'E28': ('sine', 1.0, 1.05, 0, 0, 0, 0, 0, 0),
     'E29': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
     'E30': ('sine', 1.04, 1.07, 0, 0, 0, 0, 0, 0),
-    'E31': ('sine', 1.0, 1.02, 0, 0, 0, 0, 0, 0),
+    'E31': ('sine', 1.04, 1.09, 0, 0, 0, 0, -1.0, 1.0),         # 第六棒：俯拍缓推 + 微转
     'E32': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
     'E33': ('sine', 1.0, 1.06, 30, -30, 0, 0, 0, 0),           # 第六棒：近景缓推 + 横移
     'E34': ('sine', 1.0, 1.06, 0, 0, 30, -10, 0, 0),          # 第六棒：1.0→1.06 推镜（不再 2.73s 静止）
