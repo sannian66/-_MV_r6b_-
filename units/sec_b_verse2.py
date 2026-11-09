@@ -719,7 +719,7 @@ class V11(Shot):
     T_LIANG = 99.0
     def __init__(self):
         import sec_b_pre1 as P1
-        pg = P1.ledger(5602, cols=11, size=52, x0=120, x1=1800, y0=140, y1=940)
+        pg = P1.ledger(5602, cols=11, size=52, x0=120, x1=1800, y0=140, y1=940, chars='壹贰叁肆伍陆柒捌玖拾佰仟万两石斗升银钱')   # 第五棒：人名→账目大写数字（名单母题 ≤2）
         x, y = K.grid()
         self.page = pg * (0.35 + 0.55 * np.exp(-(((x - 960) / 900) ** 2 + ((y - 560) / 520) ** 2)))[..., None] * np.array([0.9, 0.92, 1.0], np.float32)
         wet = np.clip((cv2.resize(K.fbm(H // 6, W // 6, 5605, 6, 4), (W, H)) - 0.55) * 3, 0, 1)
@@ -753,8 +753,8 @@ class V11(Shot):
 #   「被牺牲的人」马善政竖排，随它下坠、遇雨晕开
 class V12(Shot):
     def __init__(self):
-        self.fig = BP.NameFigure(5701, name='许平', view='front')
-        self.far = [BP.NameFigure(5720 + i, name=BP.NAMES[i], view=('front', 'side')[i % 2]) for i in range(7)]
+        self.fig = BC.figs('effigy_fall')[0]     # 第五棒：名帖纸人 → 生图湿透纸扎人坠落
+        self.far = self.fig                       # 远处群坠 = 同一张（同镜内）
         self.bg = BK.dark_bg(5702, 0.006, 0.025)
         ab = BA.Abacus(5706, beam_h=120)
         rgb, al = ab.flat([5, 2, 3, 5, 0, 1, 4, 5, 2, 0, 3, 5, 1])
@@ -784,19 +784,19 @@ class V12(Shot):
         Mt = np.float32([[1, 0, 0], [0, 1, oy]])
         aW = cv2.warpAffine(self.abW, Mt, (W, H)); aA = cv2.warpAffine(self.abA, Mt, (W, H))
         fr = fr * (1 - aA[..., None]) + aW * aA[..., None]
-        for i, f_ in enumerate(self.far):
+        for i in range(7):
             ph = (i * 0.37) % 1.0
             qq = (u * 0.8 + ph) % 1.0
             fx_ = 160 + i * 250 + 40 * math.sin(t * 2 + i)
-            fr = f_.draw(fr, fx_, -200 + 1300 * qq, 150 + 30 * (i % 3), tilt=90 * math.sin(i * 1.7 + t * 1.5) + 180, card=40 * math.sin(t * 5 + i),
-                         light='back', alpha=0.55, blur=5 + 2 * (i % 3), rim_col=(0.5, 0.55, 0.7), grade=(0.55, 0.57, 0.62))
+            fr, _ = BC.draw(fr, self.far, (fx_, -100 + 1300 * qq), 170 + 30 * (i % 3), tilt=70 * math.sin(i * 1.7 + t * 1.5) + 150, flip=bool(i % 2),
+                            expo=0.35, sat=0.3, rim_col=(0.5, 0.55, 0.7), rim_amt=0.4, alpha=0.6, blur=5 + 2 * (i % 3), wet=0.6)
         fr = self.mist.draw(fr, t, density=0.35, y0=300, y1=1000, color=(0.18, 0.19, 0.22))
         # 运动拖影：前 3 个时刻的半透明残影
         for k, dt in enumerate((0.09, 0.05, 0.0)):
             px, py, h, tl, cd, q = self.pose(t - dt)
             wet = 0.25 + 0.6 * clamp01(q * 1.2)                # 第四棒：雨打湿更重（墨晕开）、整体压暗冷调，去「奶油色纸板」感
-            fr = self.fig.draw(fr, px, py, h, tilt=tl, card=cd, light='back', wet=wet, alpha=(0.15, 0.25, 1.0)[k], blur=(6, 3, 0.6)[k] + 1.2 * q,
-                               rim_col=(0.80, 0.86, 1.0), ink_k=1.2, grade=(0.62, 0.62, 0.64))
+            fr, _ = BC.draw(fr, self.fig, (980 + 80 * q + 40 * math.sin(q * 2.6), 620 + 300 * q), 500 + 300 * q ** 1.3, tilt=-6 + 30 * q + 4 * math.sin(q * 9),
+                            expo=0.95, sat=0.5, tint=(0.94, 0.97, 1.04), rim_col=(0.80, 0.86, 1.0), rim_amt=0.7, rim_dir=(-0.6, -0.8), alpha=(0.15, 0.25, 1.0)[k], blur=(6, 3, 0.6)[k] + 1.2 * q, wet=wet)
         pr = prs(23, [0, 1, 2, 3, 4], t, 0.22)
         P = [dict(ch=c, x=1360, y=250 + i * 128 + 60 * eio(u), size=112, rot=0, font='kai', idx=i, emph=c in '牺牲') for i, c in enumerate('被牺牲的人')]
         fr = fr * (1 - 0.4 * K.blur_ds(((np.abs(x - 1360) < 90) & (y > 180) & (y < 960)).astype(np.float32), 30)[..., None])

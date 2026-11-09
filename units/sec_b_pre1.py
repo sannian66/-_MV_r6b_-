@@ -28,7 +28,7 @@ DOCT = '纲常礼法忠孝节义尊卑贵贱王法天道规矩名分本分顺从
 NAMES = '张王李赵刘陈杨黄周吴徐孙胡朱高林何郭马罗梁宋郑谢韩唐冯于董萧程曹袁邓许傅沈曾彭吕苏卢蒋蔡贾丁魏薛叶阎余潘杜戴夏钟汪田任姜范方石姚谭廖邹熊金陆郝孔白崔康毛邱秦江史顾侯邵孟龙万段雷钱汤尹黎易常武乔贺赖龚文'
 
 
-def ledger(seed, cols=13, size=46, x0=150, x1=1770, y0=150, y1=930, rule=(0.55, 0.12, 0.08), ink=(0.12, 0.10, 0.09), tone=(0.80, 0.74, 0.62)):
+def ledger(seed, cols=13, size=46, x0=150, x1=1770, y0=150, y1=930, rule=(0.55, 0.12, 0.08), ink=(0.12, 0.10, 0.09), tone=(0.80, 0.74, 0.62), chars=None):
     """生死簿纸面：竖格朱丝栏 + 宋体人名竖排（右起）"""
     fr = BK.paper(seed, tone)
     r = np.random.default_rng(seed)
@@ -43,7 +43,8 @@ def ledger(seed, cols=13, size=46, x0=150, x1=1770, y0=150, y1=930, rule=(0.55, 
         while y < y1 - size:
             n = int(r.integers(2, 4))
             for k in range(n):
-                T.place(L, NAMES[int(r.integers(len(NAMES)))], cx, y, size, color=ink, fname='serif_m', alpha=r.uniform(0.6, 0.9))
+                cs = chars or NAMES
+                T.place(L, cs[int(r.integers(len(cs)))], cx, y, size, color=ink, fname='serif_m', alpha=r.uniform(0.6, 0.9))
                 y += size * 1.12
             y += size * r.uniform(0.6, 1.4)
     A = L.A
