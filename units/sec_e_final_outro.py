@@ -16,6 +16,7 @@ import paper as PA
 import rest_sprites as RS
 import e_kit as E
 import e_r3 as R3
+import e_r5 as R5
 from e_r3 import Sub, LyrO
 from e_kit import (W, H, BAR, GOLD, GOLDW, RED, REDT, WHITE_T, GOLD_T, INK, put, Lyr, row, sstep, c01, eio, eout, ein,
                    G_DAWN, G_HOT, G_SIL)
@@ -1165,7 +1166,7 @@ class Credits(Shot):
 class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / 编剧·导演
     def __init__(self):
         self.sky = E.dawn_sky(1350, horizon=0.62, top=(0.05, 0.06, 0.08), mid=(0.30, 0.33, 0.38), hor=(0.86, 0.80, 0.72), cloud=0.5, sun=(560, 560))
-        self.rd, self.ra = E.ridges(n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.62, 0.68, 0.76), far=0.75, near=0.05)
+        self.rd, self.ra = E.ridges(w=W + 480, n=5, base=0.50, step=0.07, seed=134, amp=0.11, haze=(0.74, 0.70, 0.66), far=0.75, near=0.05)   # 第五棒：层宽 W+480（平移 120×1.05 有足量出血，右边不再露底）；雾色偏晨暖
         self.blocks = [('出品人', ['西几王传媒'], 1660, 230, 227.85, 0.9), ('编剧 / 导演', ['苏打'], 1430, 230, 228.45, 0.8)]
         self.fog = K.fbm(H // 4, W // 2, 1351, base=5, octaves=5)
 
@@ -1176,7 +1177,8 @@ class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / �
         f = cv2.resize(R3.slide(self.fog, 30 * u), (W, H))
         m = np.clip((f - 0.45) * 2.5, 0, 1) * sstep(0.45, 0.85, np.arange(H, dtype=np.float32)[:, None] / H)
         fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.80, 0.82, 0.84], np.float32) * 0.6
-        fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(0.9, 0.9, 0.95))
+        fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(1.0, 0.9, 0.75))
+        fr = R5.dawn_warm(fr, 0.9)
         return bloom(fr, 0.85, 0.35)
 
 
@@ -1222,7 +1224,8 @@ class E33(Credits):   # S135b（第三棒重做）晨后冷调：贴地低机位
         f = cv2.resize(R3.slide(self.fog, 25 * u), (W, H))
         m = np.clip((f - 0.4) * 2.0, 0, 1) * sstep(0.45, 0.62, np.arange(H, dtype=np.float32)[:, None] / H) * (1 - sstep(0.7, 0.95, np.arange(H, dtype=np.float32)[:, None] / H))
         fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.82, 0.84, 0.88], np.float32) * 0.55
-        fr = E.dust_motes(fr, t, 1373, n=40, amt=0.25, drift=(15, -5), col=(0.9, 0.92, 0.96))
+        fr = E.dust_motes(fr, t, 1373, n=40, amt=0.25, drift=(15, -5), col=(1.0, 0.9, 0.75))
+        fr = R5.dawn_warm(fr, 0.8)
         return bloom(fr, 0.85, 0.35)
 
 
@@ -1336,13 +1339,13 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E29': ('ink_swallow', 0.18, 0.18, dict(center=(1000, 500), seed=9)),
     'E30': ('hard', 0, 0, {}),
     'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
-    'E32': ('occlusion', 0.10, 0.18, dict(kind='blade', direction=1)),
-    'E33': ('occlusion', 0.10, 0.20, dict(kind='branch', direction=-1, color=(0.03, 0.035, 0.04))),
+    'E32': ('blade_sweep', 0.12, 0.16, dict(direction=1)),      # 第五棒：平灰板 → 近景刀身掠镜（钢纹/脊线/刃口暖光/运动模糊）
+    'E33': ('fog_wall', 0.14, 0.20, dict(direction=-1)),        # 第五棒：平灰板 → 晨雾墙横扫（体积明暗/顶部暖光/运动模糊）
     'E34': ('ink_bleed', 0.0, 0.45, dict(center=(960, 620), white=False, seed=8)),
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
-CUSTOM = {'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow, 'push_h': R3.push_h, 'door_open': R3.door_open}
+CUSTOM = {'blade_sweep': R5.blade_sweep, 'fog_wall': R5.fog_wall, 'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow, 'push_h': R3.push_h, 'door_open': R3.door_open}
 
 # 运镜：(缓动, z0, z1, x0, x1, y0, y1, rot0, rot1)
 MOVE = {
