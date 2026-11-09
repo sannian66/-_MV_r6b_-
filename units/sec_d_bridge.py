@@ -867,7 +867,7 @@ class S18_Draw(Shot):
         fr = D.night(t, 181, top=(0.05, 0.055, 0.07), bot=(0.015, 0.015, 0.02), glow=(1500, 160, 520, (0.45, 0.5, 0.65), 0.35), clouds=0.6)
         x, y = K.grid()
         cx = 1040 + 40 * u
-        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (cx, 1010), D.fit_scale(self.sp, 860), expo=0.85, sat=0.6,
+        fr, Aw = D.real_figure(fr, self.sp, t, D.feet(self.sp), (cx, 1010), D.fit_scale(self.sp, 900), expo=1.0, sat=0.6,
                                rim=COLD, rim_amt=3.4, rim_dir=(0.7, -0.7), wind=7)
         # 积水倒影：画面下缘翻转、压暗、水纹扰动
         gy = 1010
@@ -884,8 +884,9 @@ class S18_Draw(Shot):
         fr = D.metal_sheen(fr, metal, np.ones_like(lum), t, (600, 0), 0, speed=lerp(500, 1500, eo(u, 2)), width=90, amt=2.0)
         fr = K.rain(fr, t, 18, n=500, amt=0.3, angle=6)
         fr = K.fog(fr, t, 44, amt=0.35, speed=(60, 0), y0=0.72, y1=1.0, color=(0.25, 0.27, 0.32))
-        its = [('只', 300, 280, 130, cp(t, O[44][7], 0.16), 'w'), ('听', 330, 580, 300, cp(t, O[44][8], 0.12), 'w')]
-        fr = D.song(fr, its)
+        # [r4] 「只」「听」= 冷钢字：与刃上同一道寒光同步扫过（字和刀是同一块钢），不再是白宋体
+        fr = D.steel_glyph(fr, [('只', 330, 300, 140, cp(t, O[44][7], 0.16)), ('听', 360, 600, 310, cp(t, O[44][8], 0.12))], t,
+                           sweep_x=lerp(-200, 900, eo(u, 2)))
         return K.cam(fr, 1.03, -20 + 40 * u, 0), 0.0
 
 

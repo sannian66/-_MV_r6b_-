@@ -684,3 +684,24 @@ def crack_glyph(fr, ch, cx, cy, size, p, seed=0, col=(1.0, 0.80, 0.42)):
     hi = np.clip(A - np.roll(A, 4, 0), 0, 1)
     out = out * (1 - A[..., None]) + A[..., None] * (np.array([0.95, 0.62, 0.22], np.float32) * 1.0) + hi[..., None] * 0.6
     return out
+
+
+def steel_glyph(fr, items, t, sweep_x, col_dark=(0.30, 0.33, 0.38), col_hi=(0.92, 0.95, 1.0)):
+    """冷钢字：竖向金属渐变 + 与刀刃同步扫过的高光带 + 刃口亮边 + 投影。items: (ch, x, y, size, p)"""
+    L = T.Layer()
+    for ch, x, y, s, p in items:
+        if p <= 0: continue
+        e = K.eout(p, 3)
+        T.place(L, ch, x, y, s, 'white', 'serif_black', alpha=min(1, p * 2), scale=1 + 0.35 * (1 - e), blur=6 * (1 - e), texture=False)
+    A = L.A
+    if A.max() <= 0: return fr
+    x, y = K.grid()
+    grad = 0.55 + 0.45 * np.cos((y / 160.0) * math.pi) ** 2
+    band = np.exp(-(((x + (y - 540) * 0.35) - sweep_x) / 70) ** 2)
+    base = np.array(col_dark, np.float32) * (1 - grad[..., None]) + np.array(col_hi, np.float32) * grad[..., None] * 0.75
+    rgb = base + band[..., None] * np.array(col_hi, np.float32) * 1.2
+    edge = np.clip(A - np.roll(A, 3, 0), 0, 1)
+    sh = cv2.GaussianBlur(np.roll(A, (12, 8), (0, 1)), (0, 0), 12)
+    out = fr * (1 - 0.8 * sh[..., None])
+    out = out * (1 - A[..., None]) + rgb * A[..., None] + edge[..., None] * np.array(col_hi, np.float32) * 0.9
+    return out
