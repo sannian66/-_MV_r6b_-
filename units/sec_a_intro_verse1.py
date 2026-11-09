@@ -1297,6 +1297,8 @@ class V15(Shot):
         pts = [(355, 652), (510, 652), (675, 652), (895, 652)]                   # 刀尖：每字左缘起刀，我 → 的 → 主 → 张
         ts = [CT(5, k) for (_, k, _, _, _) in self.GL]
         if t <= ts[0]: return pts[0]
+        if t >= ts[-1] + 0.12:                                                  # 第六棒：刻完「张」收刀后撤，刀身让开字
+            q = eio(clamp01((t - ts[-1] - 0.12) / 0.3)); return (pts[-1][0] + 420 * q, pts[-1][1])
         for i in range(len(ts) - 1):
             if t < ts[i + 1]:
                 q = eio(clamp01((t - ts[i]) / (ts[i + 1] - ts[i])))
@@ -1423,7 +1425,7 @@ class V17(Shot):
         fr, info = A.place(fr, t, self.seal, (960, by), w=1150 * (0.92 + 0.08 * q), anc=(0.5, 1.0), rim=GOLD, rim_amt=2.2, rim_dir=(0.3, -1.0),
                            grade=dict(expo=0.82, sat=0.55, tint=(1.04, 1.0, 0.95), gamma=1.05), wind=0, breathe=0.0,
                            mblur=(0, 4 + 22 * q * q))
-        fr = fx2.god_rays(fr, (960, max(130, by - 700)), strength=0.35, length=1.2, color=(1.0, 0.78, 0.45), t=t, src_r=300)
+        fr = fx2.god_rays(fr, (960, 130), strength=0.15, length=1.0, color=(1.0, 0.78, 0.45), t=t, src_r=200)
         fr = RAIN.draw(fr, t, 0.6, angle=6, layers=(2,))
         return fr
     def top(self, t, a):
@@ -1626,12 +1628,12 @@ CUTS = {
     'V10': ('hard', 0, 0, {}),
     'V11': ('flash_red', 0.03, 0.10, {}),
     'V12': ('slash_wipe', 0.0, 0.14, dict(angle=58)),
-    'V13': ('slash_wipe', 0.0, 0.14, dict(angle=32)),                                 # 第六棒：沿 V12 斩线一刀两分（原三块错位读成渲染错误）
+    'V13': ('a_split', 0.10, 0.16, dict(angle=32)),                                   # 第六棒：沿 V12 斩线一刀两分（两块）滑开露出 V13（原三块错位读成渲染错误）
     'V14': ('hard', 0, 0, {}),
     'V15': ('match_cut', 0.08, 0.12, dict(shape='line', center=(770, 560), angle=90, mode='cut')),   # 刀身刻字 ↔ 碑面刻字
-    'V16': ('ink_bleed', 0.06, 0.26, dict(seed=16, center=(750, 650))),               # 「主」字墨槽晕开成召印金光
+    'V16': ('a_glyph', 0.08, 0.24, dict(ch='主', center=(750, 650), size=230)),          # 第六棒：以「主」字墨槽为遮罩硬边扩开（原叠化两脸糊在一起）
     'V17': ('hard', 0, 0, {}),
-    'V18': ('flash_red', 0.03, 0.10, {}),
+    'V18': ('smoke_through', 0.06, 0.30, dict(seed=18, direction=1, density=0.6)),     # 第六棒：尘浪卷过（原 flash_red 把印坑「正」染成红方印）
     'V19': ('hard', 0, 0, {}),
     'V20': ('hard', 0, 0, {}),
     'V21': ('slash_wipe', 0.0, 0.14, dict(angle=-62)),
@@ -1828,6 +1830,36 @@ def a_brush(A_, B_, p, seed=0):
     return out * (1 - 0.95 * k) + k * np.array([0.012, 0.012, 0.016], np.float32)
 
 
+def a_split(A_, B_, p, angle=32.0, center=(1200, 620)):
+    """第六棒：A 沿斩线一刀两分（两块），两半沿斩线反向滑开并向两侧退，缝里露出 B；断口一线红热。"""
+    th = math.radians(angle)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    n = -(xx - center[0]) * math.sin(th) + (yy - center[1]) * math.cos(th)
+    e = TR.ease_in(p, 1.8); sl = 260 * e; op = 560 * e
+    out = B_.copy()
+    for sgn in (1, -1):
+        M = np.float32([[1, 0, sgn * (sl * math.cos(th)) - sgn * op * math.sin(th) * 0], [0, 1, sgn * (sl * math.sin(th)) + sgn * op * math.cos(th)]])
+        half = cv2.warpAffine(A_, M, (W, H), borderMode=cv2.BORDER_CONSTANT)
+        mk = cv2.warpAffine(((n > 0) if sgn > 0 else (n <= 0)).astype(np.float32), M, (W, H))[..., None]
+        out = out * (1 - mk) + half * mk
+    nb = -(xx - center[0]) * math.sin(th) + (yy - center[1]) * math.cos(th)
+    seam = np.exp(-(np.abs(nb) - op) ** 2 / 6) * (p < 0.7)
+    return out + seam[..., None] * np.array([1.0, 0.25, 0.12], np.float32) * 1.2
+
+
+def a_glyph(A_, B_, p, ch='主', center=(960, 540), size=230):
+    """第六棒：字形遮罩转场 —— B 从「主」字的墨槽里硬边涌出，字形放大到盖满全屏；边缘带墨的毛刺，不叠化。"""
+    sc = 1 + 16 * TR.ease_in(p, 2.4)
+    L = T.Layer(); T.place(L, ch, center[0], center[1], size, 'white', 'kai', scale=sc, texture=False)
+    m = L.A
+    nz = cv2.resize(A.ink_noise(77, 256), (W, H))
+    m = np.clip((cv2.GaussianBlur(m, (0, 0), 2 + 4 * p) - 0.5 + (nz - 0.5) * 0.25) * 8 + 0.5, 0, 1)
+    if p > 0.75: m = np.maximum(m, (p - 0.75) / 0.25)
+    edge = np.clip(m * (1 - m) * 4, 0, 1)
+    out = A_ * (1 - m[..., None]) + B_ * m[..., None]
+    return out * (1 - 0.8 * edge[..., None]) + edge[..., None] * np.array([1.0, 0.75, 0.4], np.float32) * 0.6
+
+
 def a_cloud(A_, B_, p, seed=0):
     """第四棒：云层横扫（A01 云海 → A02）：一堵带体积的云墙自左向右推过，云墙前沿后露出 B；中间帧同时有 A、云墙、B。"""
     yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
@@ -1909,6 +1941,8 @@ class Section:
             if name == 'a_brush': return a_brush(Af, B, p, **kw), max(ca1, ca2)
             if name == 'a_cloud': return a_cloud(Af, B, p, **kw), max(ca1, ca2)
             if name == 'a_seam': return a_seam(Af, B, p), max(ca1, ca2)
+            if name == 'a_split': return a_split(Af, B, p, **kw), max(ca1, ca2)
+            if name == 'a_glyph': return a_glyph(Af, B, p, **kw), max(ca1, ca2)
             return TR.transition(name, Af, B, p, **kw), max(ca1, ca2)
         fr, ca = s.render(t)
         name = CUTS.get(self.ids[i], ('hard',))[0]

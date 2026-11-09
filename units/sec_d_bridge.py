@@ -394,8 +394,8 @@ class S06_Scale(Shot):
 
     def __init__(self):
         sh = (H, W)
-        post = brush_mask(sh, (962, 895), (958, 300), 36, 1, 0.65)
-        foot = brush_mask(sh, None, None, 30, 2, 0.55, pts=[(770, 905), (860, 892), (960, 888), (1060, 892), (1150, 902)])
+        post = brush_mask(sh, (962, 895), (958, 300), 46, 1, 0.55)       # [r7] 加粗
+        foot = brush_mask(sh, None, None, 38, 2, 0.5, pts=[(750, 908), (860, 892), (960, 886), (1060, 892), (1170, 904)])
         self.post = np.maximum(post, foot)
         # 墨池：底座洇开的淡墨
         x, y = K.grid()
@@ -404,14 +404,14 @@ class S06_Scale(Shot):
         # 背后一轮淡墨晕（像月，也像秤砣的影）
         n2 = cv2.resize(D._tile(62)[:H // 4, :W // 4], (W, H))
         self.moon = np.clip((1 - np.sqrt(((x - 960) / 420) ** 2 + ((y - 470) / 400) ** 2)) * 3 - (n2 - 0.5) * 2.2, 0, 1) * 0.13
-        beam = brush_mask(sh, None, None, 24, 3, 0.6, pts=[(560, 308), (760, 300), (960, 298), (1160, 300), (1370, 306)])
-        cap = np.zeros(sh, np.float32); cv2.circle(cap, self.PIV, 22, 1.0, -1, cv2.LINE_AA)
+        beam = brush_mask(sh, None, None, 32, 3, 0.5, pts=[(552, 312), (760, 300), (960, 296), (1160, 300), (1378, 310)])
+        cap = np.zeros(sh, np.float32); cv2.circle(cap, self.PIV, 28, 1.0, -1, cv2.LINE_AA)
         ch = np.zeros(sh, np.float32)
         for i, (cx, cy) in enumerate((self.LP, self.RP)):
             for dx in (-160, 0, 160):
-                ch = np.maximum(ch, brush_mask(sh, (cx, 310), (cx + dx, cy - 4), 4, 10 + i * 3 + dx // 80, 0.35))
-            bowl = brush_mask(sh, None, None, 15, 20 + i, 0.5, pts=arc_pts((cx, cy), 182, 48, 4, 176))
-            lip = brush_mask(sh, None, None, 6, 30 + i, 0.6, pts=arc_pts((cx, cy), 182, 12, 186, 354))
+                ch = np.maximum(ch, brush_mask(sh, (cx, 314), (cx + dx, cy - 4), 7, 10 + i * 3 + dx // 80, 0.3))
+            bowl = brush_mask(sh, None, None, 22, 20 + i, 0.45, pts=arc_pts((cx, cy), 184, 52, 4, 176))
+            lip = brush_mask(sh, None, None, 9, 30 + i, 0.5, pts=arc_pts((cx, cy), 184, 13, 186, 354))
             ch = np.maximum(ch, np.maximum(bowl, lip))
         self.beam = np.maximum(np.maximum(beam, cv2.GaussianBlur(cap, (0, 0), 1.5)), ch)
         r = np.random.default_rng(66)
@@ -435,23 +435,26 @@ class S06_Scale(Shot):
         ang = 0.9 * math.sin(t * 2.1)
         M = cv2.getRotationMatrix2D(self.PIV, ang, 1.0)
         bm = cv2.warpAffine(self.beam, M, (W, H))
-        # 淡墨投影（光从左上）
-        shadow = cv2.GaussianBlur(np.maximum(self.post, bm), (0, 0), 9)
-        shadow = np.roll(np.roll(shadow, 34, 1), 26, 0) * 0.14
-        fr = fr * (1 - shadow[..., None])
+        # [r7] 主光（左上暖）+ 纸纹浮雕；天平的投影落右下（近实远虚），墨线有浓淡与湿墨受光
+        fr = R7.paper_relief(fr, 66, amt=0.08)
+        allm = np.maximum(self.post, bm)
+        fr = R7.ink_cast(fr, allm, ld=(-0.75, -0.6), dist=46, blur=8, amt=0.36)
         fr = fr * (1 - self.moon[..., None])
         fr = fr * (1 - self.pool[..., None] * 0.55) + self.pool[..., None] * INK * 0.55 * (fr / 0.93)
         fr = fr * (1 - self.post[..., None] * 0.93) + self.post[..., None] * INK * 0.93 * (fr / 0.93)
         fr = fr * (1 - bm[..., None] * 0.93) + bm[..., None] * INK * 0.93 * (fr / 0.93)
+        fr = R7.ink_sheen(fr, allm, ld=(-0.75, -0.6), w=5, amt=0.42, core=0.3)
         fr = D.ink_text(fr, self._rot(self.heap, M), bleed=0.1)
         fr = D.ink_text(fr, self._rot(self.one, M), bleed=0.2, sig=6)
         fr = D.ink_spray(fr, 200.0, 199.0, (960, 890), n=50, seed=606, power=500, size=(2, 7))
+        fr = R7.key_light(fr, (380, 90), 1500, amt=0.12, dark=0.34)
+        fr = R7.light_shaft(fr, t, (300, -40), 52, 210, 0.13, seed=66, motes=45, length=1300)
         prog = [cp(t, o, 0.2) for o in O[41][0:9]]
         items = []
         for i, (ch, p) in enumerate(zip('什么叫以一人换千人', prog)):
             if p <= 0: continue
             big = i < 3                                            # [r5] 递进 3/3：「什么叫」在句首放大成 96px
-            xx = (520 + i * 104) if big else (820 + (i - 3) * 87.5); yy = (220 if big else 240) - 40 * (1 - eo(p))
+            xx = (520 + i * 104) if big else (820 + (i - 3) * 87.5); yy = (242 if big else 260) - 40 * (1 - eo(p))   # [r7] 下移收进安全框
             c = CINNABAR if i in (2, 4, 5) else 'ink'
             items.append((ch, xx, yy, 96 if big else 60, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, c))
         L = D.text_layer(items, fname='serif_sb')
@@ -461,7 +464,7 @@ class S06_Scale(Shot):
     def render(self, t):
         u = self.u(t)
         fr = self.scene(t)
-        return K.cam(fr, 1.0 + 0.07 * eo(u, 2), 0, 30 * (1 - u), rot=-0.6 * u, center=(960, 600)), 1.0
+        return K.cam(fr, 1.0 + 0.07 * eo(u, 2), 0, 30 * (1 - u), rot=-0.6 * u, center=(960, 380)), 1.0   # [r7] 推镜中心上移：顶行不被推出画
 
 
 class S07_Heap(Shot):

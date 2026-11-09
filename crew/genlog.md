@@ -393,3 +393,13 @@
 | 11-09 05:08 | B组/palm_open2 | RH_image2 | 4K 16:9 | 3 | a295f6eb-a254-4549-9ab6-b02c6871ffc2 | submitted | - | try1 medium close-up, three-quarter view facing slightly left, hi |
 | 11-09 05:08 | B组/grab_turn2 | RH_image2 | 4K 16:9 | 3 | 66c3c2db-4e85-4c1a-b5b1-993327d4e428 | submitted | - | try1 seen from BEHIND over his right shoulder in three-quarter ba |
 | 11-09 05:08 | B组/blade_face2 | RH_image2 | 4K 16:9 | 3 | 0221a2c2-8190-4338-93a0-e0d6b3243920 | submitted | - | try1 medium close-up, holding the dao vertically right in front o |
+| 11-09 05:08 | C组/c41_sweep | RH_image2 | 4K 16:9 | 0 | bac2774e-97d3-4bb3-ae7f-d06c47e9a451 | completed | /workspace/work/c_cands6/c41_sweep_try1_0.png | [C组] 第六棒 try1 |
+| 11-09 05:08 | C组/c35b_bear | RH_image2 | 4K 16:9 | 0 | 7be64e98-8892-4b57-a026-f88a8743ed4b | completed | /workspace/work/c_cands6/c35b_bear_try1_0.png | [C组] 第六棒 try1 |
+| 11-09 05:09 | B组/v02_plaza | RH_image2 | 4K 16:9 | 0 | 1e77cfa2-af78-4b83-b080-ce12b7602a58 | completed | b_cands/v02_plaza_try1_0.png | try1 |
+| 11-09 05:09 | B组/hu_hands | RH_image2 | 4K 16:9 | 0 | 75ccc766-c7f9-4435-ac29-157b9c376120 | completed | b_cands/hu_hands_try1_0.png | try1 |
+| 11-09 05:09 | B组/steelyard | RH_image2 | 4K 16:9 | 0 | 0b0a1eec-b0b4-4285-a7e6-6b43d030be10 | completed | b_cands/steelyard_try1_0.png | try1 |
+| 11-09 05:10 | B组/heaven_stele | RH_image2 | 4K 16:9 | 0 | 7e6d3909-3a1c-43eb-8380-8876b493d1f1 | completed | b_cands/heaven_stele_try1_0.png | try1 |
+| 11-09 05:10 | B组/stand_defy | RH_image2 | 4K 16:9 | 0 | 6a7ecb72-1d35-4e33-8149-dc2c9bf48402 | completed | b_cands/stand_defy_try1_0.png | try1 |
+| 11-09 05:10 | B组/guard_h | RH_image2 | 4K 16:9 | 0 | 81042e45-0860-468f-80c4-a30c65945723 | completed | b_cands/guard_h_try1_0.png | try1 |
+| 11-09 05:10 | B组/palm_open2 | RH_image2 | 4K 16:9 | 0 | a295f6eb-a254-4549-9ab6-b02c6871ffc2 | completed | b_cands/palm_open2_try1_0.png | try1 |
+| 11-09 05:10 | B组/grab_turn2 | RH_image2 | 4K 16:9 | 0 | 66c3c2db-4e85-4c1a-b5b1-993327d4e428 | completed | b_cands/grab_turn2_try1_0.png | try1 |
