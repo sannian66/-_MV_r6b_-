@@ -1392,34 +1392,57 @@ class E32(Credits):   # S135 CU 手握刀柄，沿刀身滑移；署名②：美
         return bloom(fr, 0.8, 0.35)
 
 
-class E33(Credits):   # S135b（第三棒重做）晨后冷调：贴地低机位，他划下的那道线已冷成一道暗红焦痕伸向远方，晨雾贴地，远处一线淡日；署名③：AI画师
+class E33(Credits):   # S135b（第六棒重做，去尾奏「地平线 + 中心光」同构）：近景质感 —— 晨光斜掠的焦土上横着一柄黑漆刀鞘，
+    #  红穗在晨风里摆，灰烬一片片落在漆面上；浅景深，背景只剩暖色光斑。署名③ 放左侧：一列职务、一列名字（≥40px）
     def __init__(self):
-        self.sky = E.dawn_sky(1370, horizon=0.52, top=(0.08, 0.075, 0.08), mid=(0.46, 0.39, 0.32), hor=(1.0, 0.86, 0.64), cloud=0.4, sun=(960, 560))   # 第五棒：晨暖
-        self.g = R3.Ground(331, tone=(0.95, 0.88, 0.80))
-        self.blocks = [('AI画师', ['沉溺', '雪晴', '索恩'], 1640, 230, 232.45, 1.3)]
-        self.fog = K.fbm(H // 4, W // 2, 1372, base=5, octaves=5)
-        # 第四棒：地平线不再是一刀硬线 —— 远山两层（被晨雾吃到只剩轮廓）+ 贴地平线的雾带 + 一排远处残碑剪影作焦点
-        self.rd, self.ra = E.ridges(w=W + 200, n=2, base=0.455, step=0.035, seed=337, amp=0.045, haze=(0.86, 0.76, 0.62), far=0.85, near=0.35)
-        r = np.random.default_rng(338); self.stl = [(r.uniform(-1, 1), r.uniform(0.7, 1.3)) for _ in range(9)]
+        n = K.fbm(H // 2, W // 2, 1370, base=6, octaves=5)
+        yy, xx = E.grid()
+        key = np.exp(-(((xx - 2000) / 1300) ** 2 + ((yy - 300) / 700) ** 2))
+        self.bg = cv2.GaussianBlur(cv2.resize(((0.035 + 0.05 * n)[..., None] * np.array([1.0, 0.78, 0.58], np.float32)).astype(np.float32), (W, H)), (0, 0), 6) \
+                  + key[..., None] * np.array([0.55, 0.36, 0.18], np.float32)
+        r = np.random.default_rng(1371)
+        self.bok = [(r.uniform(900, 1950), r.uniform(120, 600), r.uniform(18, 60), r.uniform(0.1, 0.35)) for _ in range(22)]
+        self.ash = [(r.uniform(0, W), r.uniform(-200, H), r.uniform(4, 13), r.uniform(0.3, 1.0), r.uniform(0, 6.28)) for _ in range(70)]
+        self.blocks = [('AI画师', ['沉溺·雪晴·索恩'], 250, 220, 232.40, 1.4)]
+
+    def credits(self, fr, t):
+        for (role, names, x, y, ts, dur) in self.blocks:
+            p = c01((t - ts) / dur)
+            if p <= 0: continue
+            fr = R3.credit_block_up(fr, role, names, x, y, p, role_size=40, name_size=62, seal_text='画', seal_size=46, color='white', name_font='kai', seed=7)
+        return fr
 
     def render(self, t):
         u = self.u(t)
-        hy = 565
-        fr = E.sun_disc(self.sky.copy(), (960, hy - 10), 46 + 10 * u, amt=0.55 + 0.35 * u, core=(1.0, 0.95, 0.85))   # 线尽头一线日 = E34 日出位置
-        fr = E.place_layer(fr, self.rd, self.ra, ox=-40 * u, z=1.0)
-        fr, z = self.g.render(fr, hy, f=900, camh=0.6, dz=-3 * u, cx=960, line=0.75, line_col=(0.70, 0.10, 0.04), fog=(0.92, 0.84, 0.74))
-        yy = np.arange(H, dtype=np.float32)[:, None, None]
-        for k, (xo, sc) in enumerate(self.stl):                       # 远处残碑剪影（线的两侧、地平线上）
-            x = 960 + (xo * 520 if abs(xo) > 0.25 else xo * 520 + np.sign(xo) * 200) - 25 * u
-            wv, hv = 9 * sc, 34 * sc * (1.3 if k % 3 == 0 else 1.0)
-            cv2.rectangle(fr, (int(x - wv / 2), int(hy - hv)), (int(x + wv / 2), hy + 2), (0.40, 0.34, 0.30), -1, cv2.LINE_AA)
-        band = np.exp(-((yy - hy + 6) / 38.0) ** 2)                    # 地平线雾带：软化天/地交界
-        fr = fr * (1 - 0.75 * band) + band * 0.75 * np.array([0.96, 0.86, 0.70], np.float32)
-        f = cv2.resize(R3.slide(self.fog, 25 * u), (W, H))
-        m = np.clip((f - 0.4) * 2.0, 0, 1) * sstep(0.45, 0.62, np.arange(H, dtype=np.float32)[:, None] / H) * (1 - sstep(0.7, 0.95, np.arange(H, dtype=np.float32)[:, None] / H))
-        fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.90, 0.82, 0.72], np.float32) * 0.55
-        fr = E.dust_motes(fr, t, 1373, n=40, amt=0.25, drift=(15, -5), col=(1.0, 0.9, 0.75))
-        fr = R5.dawn_warm(fr, 0.8)
+        fr = self.bg.copy()
+        B = np.zeros((H, W), np.float32)
+        for (x, y, rr, a) in self.bok:                                     # 背景光斑（浅景深）
+            cv2.circle(B, (int(x - 40 * u), int(y)), int(rr), a, -1, cv2.LINE_AA)
+        fr = fr + cv2.GaussianBlur(B, (0, 0), 6)[..., None] * np.array([1.0, 0.75, 0.45], np.float32)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/scabbard_tassel', (1130 - 40 * u, 600), w=1900, anc=(0.5, 0.5),
+                      rim=(1.0, 0.78, 0.5), rim_amt=2.2, rim_dir=(0.8, -0.6), grade=dict(expo=0.9, sat=0.7, tint=(1.06, 0.98, 0.9), lift=0.0, gamma=1.08), wind=0)
+        A = info['A']
+        top = info['to_scr']((2010 / 2560, 640 / 1440)); bot = info['to_scr']((1500 / 2560, 1395 / 1440))
+        yy, xx = E.grid()
+        wy = np.clip((yy - top[1]) / max(1.0, bot[1] - top[1]), 0, 1) ** 1.3
+        wx = np.exp(-((xx - (top[0] + bot[0]) / 2) / 420) ** 2)
+        dx = (26 * math.sin(t * 2.6) + 9 * math.sin(t * 5.3 + 1.0)) * wy * wx                # 红穗在晨风里摆（越往下摆幅越大）
+        mx = (xx - dx).astype(np.float32); my = yy.astype(np.float32)
+        z = cv2.remap(z, mx, my, cv2.INTER_LINEAR); A = cv2.remap(A, mx, my, cv2.INTER_LINEAR)
+        sh = cv2.GaussianBlur(A, (0, 0), 22)                               # 接触阴影
+        fr = fr * (1 - 0.6 * np.roll(np.roll(sh, 26, 0), -18, 1)[..., None])
+        fr = fr * (1 - A[..., None]) + z
+        sweep = np.exp(-((xx - (300 + 1500 * u) + (yy - 540) * 0.6) / 140) ** 2) * A           # 晨光掠过漆面
+        fr = fr + sweep[..., None] * np.array([1.0, 0.8, 0.55], np.float32) * 0.35
+        P = np.zeros((H, W), np.float32)
+        for (x, y0, sz, sp, ph) in self.ash:                              # 灰烬：一片片飘落（灰白片 + 少量余烬红心）
+            y = y0 + (t - self.t0) * 160 * sp
+            if y > H: y -= H + 200
+            xx_ = x + 30 * math.sin(t * 1.5 + ph) - 50 * u
+            cv2.ellipse(P, (int(xx_), int(y)), (int(sz), int(sz * 0.45)), (t * 60 + ph * 57) % 180, 0, 360, 0.55 * sp, -1, cv2.LINE_AA)
+        P = cv2.GaussianBlur(P, (0, 0), 1.0)
+        fr = fr * (1 - 0.5 * P[..., None]) + P[..., None] * np.array([0.52, 0.48, 0.45], np.float32) * 0.8
+        fr = RS.fx_embers(fr, t, 1373, amt=0.4, n=25)
         return bloom(fr, 0.85, 0.35)
 
 
@@ -1437,7 +1460,8 @@ class E34(Credits):   # S136 ELS 日出全景，远处一粒走向太阳的人�
         fr = E.sun_disc(fr, sun, 130, amt=1.15)
         fr = fx2.god_rays(fr, sun, strength=0.8, length=1.1, t=t)
         fr = E.place_layer(fr, self.rd, self.ra, z=z)
-        fr, info = put(fr, t, 'S132/back_walk', (900 + 25 * u, 756), h=135, rim=GOLDW, rim_amt=4.0, grade=G_SIL, look='sil', wind=4)
+        bob = 3 * abs(math.sin(t * 6.0))                                   # 第六棒：远影向日走去（步伐起伏 + 越走越小）
+        fr, info = put(fr, t, 'S132/back_walk', (900 + 40 * u, 758 - 8 * u - bob), h=150 - 28 * u, rim=GOLDW, rim_amt=4.0, grade=G_SIL, look='sil', wind=4)
         return bloom(fr, 0.85, 0.45)
 
 
@@ -1584,8 +1608,8 @@ MOVE = {
     'E30': ('sine', 1.04, 1.07, 0, 0, 0, 0, 0, 0),
     'E31': ('sine', 1.0, 1.02, 0, 0, 0, 0, 0, 0),
     'E32': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
-    'E33': ('sine', 1.0, 1.03, 0, 0, 20, -20, 0, 0),
-    'E34': ('sine', 1.0, 1.0, 0, 0, 30, -10, 0, 0),
+    'E33': ('sine', 1.0, 1.06, 30, -30, 0, 0, 0, 0),           # 第六棒：近景缓推 + 横移
+    'E34': ('sine', 1.0, 1.06, 0, 0, 30, -10, 0, 0),          # 第六棒：1.0→1.06 推镜（不再 2.73s 静止）
     'E35': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
     'E36': ('sine', 1.0, 1.02, 0, 0, 0, 0, 0, 0),
 }

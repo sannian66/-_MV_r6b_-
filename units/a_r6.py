@@ -113,3 +113,27 @@ def engraved(fr, mask, light=(-1, -1), depth=7, dark=0.80, hl=(0.9, 0.75, 0.55),
     if inner_col is not None: out = out + m[..., None] * np.array(inner_col, np.float32)
     out = out * (1 - 0.6 * sh[..., None])
     return out + hi[..., None] * np.array(hl, np.float32) * hl_amt
+
+
+def hair_clean(key, protect=None, thr=0.06, soft=0.08, band=61):
+    """黑发灰晕：抠图 alpha × 与灰底的色距（raw 角落估灰），protect=(x0,y0,x1,y1) 归一化区域内保留原 alpha（如刀身）。"""
+    def b():
+        F = _load(key)
+        R = np.asarray(Image.open(GEN + key + '_raw.png').convert('RGB').resize(F.shape[1::-1], Image.LANCZOS)).astype(np.float32) / 255
+        h, w = R.shape[:2]; m = 24
+        pts = np.concatenate([R[:m].reshape(-1, 3), R[:, -m:].reshape(-1, 3)])
+        g = np.median(pts, 0)
+        d = np.sqrt(((R - g) ** 2).sum(-1))
+        k = np.clip((d - thr) / soft, 0, 1)
+        inner = cv2.erode((F[..., 3] > 0.9).astype(np.uint8), np.ones((band, band), np.uint8)).astype(np.float32)
+        inner = cv2.GaussianBlur(inner, (0, 0), band / 6)
+        a = F[..., 3] * np.maximum(k, inner)                                   # 只在外缘带做色距（脸/手内部不动）
+        if protect:
+            x0, y0, x1, y1 = protect
+            pm = np.zeros((h, w), np.float32); pm[int(y0 * h):int(y1 * h), int(x0 * w):int(x1 * w)] = 1
+            pm = cv2.GaussianBlur(pm, (0, 0), 6)
+            a = a * (1 - pm) + F[..., 3] * pm
+        a = np.minimum(a, cv2.GaussianBlur(cv2.erode(a, np.ones((3, 3), np.uint8)), (0, 0), 0.7))
+        rgb = F[..., :3] * (0.55 + 0.45 * np.clip(a, 0, 1)[..., None] ** 0.5)          # 半透明边只许变暗
+        return np.dstack([rgb, a])
+    return _cached(key.replace('/', '_') + '_hc2', b)

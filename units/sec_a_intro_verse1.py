@@ -1217,20 +1217,22 @@ class V14(Shot):
 #     左 60% 雨中巨碑（粗糙不规则碑边、无线框、雨水流痕），右侧鬼屠侧身 MCU（carve_mcu 精灵）以刀尖刻字，刀尖随当前字移动；
 #     右列「我的」(34.68 / 35.07) 先刻、左列「主张」(35.46 / 35.82) 大字后刻（竖排右起），每字迸石屑；左上体积光束穿雨照碑面
 class V15(Shot):
-    GL = [('我', 7, 900, 440, 160), ('的', 8, 900, 610, 160), ('主', 9, 560, 430, 250), ('张', 10, 560, 700, 250)]
+    GL = [('我', 7, 470, 650, 150), ('的', 8, 630, 650, 150), ('主', 9, 835, 650, 230), ('张', 10, 1065, 650, 230)]   # 第六棒：刀平伸刻一行，人边刻边收刀后撤（刀尖左→右）
     def __init__(self):
         T.warm('我的', 'kai', 170); T.warm('主张', 'kai', 270)
         self.tex = cv2.resize(A.tex(151, 512, 8, 6), (W, H)); self.tex2 = cv2.resize(A.tex(152, 512, 40, 3), (W, H))
         q = 2; edge = cv2.resize(A.tex(153, 256, 6, 4), (W // q, H // q)) * 60
         yy, xx = np.mgrid[0:H // q, 0:W // q].astype(np.float32)
-        x0, x1, y0 = 380, 1200, 140                                           # 碑：不规则粗糙边（不再是直线框）
+        x0, x1, y0 = 290, 1230, 140                                           # 碑：不规则粗糙边（不再是直线框）
         d = np.minimum.reduce([xx * q - x0 + edge, x1 - xx * q + edge * 0.6, yy * q - y0 - 40 * np.sin(xx * q / 300) + edge * 0.8])
         self.st = cv2.resize(np.clip(d / 4, 0, 1), (W, H))
         chip = np.clip((cv2.resize(A.tex(154, 256, 20, 3), (W, H)) - 0.66) * 6, 0, 1) * np.clip(1 - np.abs(cv2.resize(d, (W, H)) - 20) / 30, 0, 1)
         self.chip = chip
-        self.spr = S('A/carve_mcu', 'dm', crop=(0.22, 0.0, 1.0, 1.0))
+        import a_r6
+        self.spr = a_r6.hair_clean('A_r6/carve_grip', protect=(0.0, 0.53, 0.60, 0.66))          # 第六棒：双手握柄、刀身平伸向左（原 carve_mcu 托刃）
+        self.anc = a_r6.anc_for(self.spr, (0.0, 0.592))
     def tip(self, t):
-        pts = [(965, 440), (965, 610), (965, 610), (965, 600)]                   # 刀尖：刻「我」「的」后停在「的」旁
+        pts = [(425, 652), (585, 652), (760, 652), (990, 652)]                   # 刀尖：每字左缘起刀，我 → 的 → 主 → 张
         ts = [CT(5, k) for (_, k, _, _, _) in self.GL]
         if t <= ts[0]: return pts[0]
         for i in range(len(ts) - 1):
@@ -1245,7 +1247,7 @@ class V15(Shot):
         fr = RAIN.draw(fr, t, 0.7, angle=8, light=(200, 60), layers=(0,))
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
         st = self.st[..., None]
-        lit = np.clip(1.2 - (xx - 380) / 1300 - (yy - 140) / 1600, 0.25, 1.1)
+        lit = np.clip(1.2 - (xx - 290) / 1300 - (yy - 140) / 1600, 0.25, 1.1)
         stone = ((0.6 + 0.45 * self.tex) * (0.85 + 0.25 * self.tex2) * lit)[..., None] * np.array([0.13, 0.135, 0.15], np.float32)
         wet = np.clip(np.sin(xx / 23 + self.tex * 6) * 0.5 + 0.5, 0, 1) ** 8
         stone = stone + (wet * 0.07)[..., None] * np.array([0.6, 0.7, 0.9], np.float32) - self.chip[..., None] * 0.05
@@ -1273,8 +1275,10 @@ class V15(Shot):
         # 人：右侧侧身 MCU，刀尖抵住当前在刻的字（随字移动）
         tx, ty = self.tip(t)
         jit = 3 * math.sin(t * 40) if cur is not None else 0
-        fr, info = A.place(fr, t, self.spr, (tx + jit, ty), h=1050, anc=(0.0, 0.515), rim=COLD, rim_amt=3.4,       # 精灵左裁 22%：刀尖=包围盒左缘
-                           rim_dir=(-0.7, -0.6), wind=8, grade=dict(expo=0.82, sat=0.5, gamma=1.12))
+        fr, info = A.place(fr, t, self.spr, (tx + jit, ty), w=1300, anc=self.anc, rim=COLD, rim_amt=3.0,           # 刀尖 = 原图左缘 (0, 0.592)
+                           rim_dir=(-0.7, -0.6), wind=8, grade=dict(expo=0.85, sat=0.5, gamma=1.1), breathe=0.0)
+        fr = K.sparks(fr, t, 159, (tx, ty), n=14, life=0.25, speed=(120, 420), dirc=(0.6, -0.8), spread=1.6, grav=900, area=(6, 6),
+                      amt=0.7 if cur is not None else 0.0, t0=self.t0, burst=False, color=(1.0, 0.85, 0.6))                    # 刀尖抵碑：持续火星
         fr = A.glow(fr, (tx, ty), 50, 0.6 if cur is not None else 0.15, (0.8, 0.88, 1.0))
         fr = fog(fr, t, 0, 800, 1000, 0.4, (0.22, 0.25, 0.32), speed=(-50, 0))
         fr = RAIN.draw(fr, t, 0.8, angle=8, light=(200, 60), layers=(1, 2))
@@ -1551,7 +1555,7 @@ CUTS = {
     'V13': ('split_slide', 0.10, 0.18, dict(angle=90)),
     'V14': ('hard', 0, 0, {}),
     'V15': ('match_cut', 0.08, 0.12, dict(shape='line', center=(770, 560), angle=90, mode='cut')),   # 刀身刻字 ↔ 碑面刻字
-    'V16': ('ink_bleed', 0.06, 0.26, dict(seed=16, center=(770, 420))),               # 「主」字墨槽晕开成召印金光
+    'V16': ('ink_bleed', 0.06, 0.26, dict(seed=16, center=(835, 650))),               # 「主」字墨槽晕开成召印金光
     'V17': ('hard', 0, 0, {}),
     'V18': ('flash_red', 0.03, 0.10, {}),
     'V19': ('hard', 0, 0, {}),
@@ -1663,6 +1667,7 @@ def lyrics(fr, t):
     for (li, chars, cx, by, t_out, sweep) in LY2:
         t_on = CT(li, chars[0][0]) - 0.3
         if li == 2 and chars[0][0] == 0: t_on = max(t_on, V(22.52))          # 第五棒：「谁在高处」等 V06「寒光」切走后再落（不叠团）
+        if li == 6 and chars[0][0] == 3: t_on = max(t_on, V(38.10))          # 第六棒：「由权势执掌」等 V16「若正义」切走后再落
         if not (t_on <= t < t_out + 0.4): continue
         out = clamp01((t - t_out) / 0.35)
         adv = [s * 1.04 for (_, s, _) in chars]
