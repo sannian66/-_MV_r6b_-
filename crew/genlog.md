@@ -288,3 +288,5 @@
 | 11-09 03:05 | C组/face_lit | RH_image2 | 4K 16:9 | 0 | aca831ec-d59a-460a-a30a-d92105c6176a | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/face_lit_try1_0.png | try1 |
 | 11-09 03:05 | D组/draw_side | RH_image2 | 4K 16:9 | 3 | 90a26926-c54d-4330-9653-cbe33e1af485 | submitted | - | try1 in strict side profile facing LEFT, body turned sideways, sl |
 | 11-09 03:05 | C组/brace_cu | RH_image2 | 4K 16:9 | 0 | 396ef948-8613-4d3d-9fd5-1817da443207 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/brace_cu_try1_0.png | try1 |
+| 11-09 03:05 | D组/run_top | RH_image2 | 4K 16:9 | 3 | 19141a90-ebb0-40f5-85b0-ac2ac0ef5d13 | submitted | - | try1 seen from a very HIGH bird-eye angle almost directly above,  |
+| 11-09 03:05 | C组/point_cam | RH_image2 | 4K 16:9 | 0 | 578e0e8e-3338-43ab-bd3d-a16d38bebdd3 | completed | /workspace/projects/bb073534-bbd7-4972-8ee7-8269af99396f/work/c_cands/point_cam_try1_0.png | try1 |
