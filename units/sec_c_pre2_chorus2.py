@@ -128,6 +128,29 @@ def splash(fr, t, t0, c, seed, n=140, spread=520, up=900, col=COLD, amt=0.9):
                   t0=t0, burst=True, color=tuple(col), area=(spread * 0.5, 6))
 
 
+def carve_glyph(fr, ch, cx, cy, size, q, ang=-35.0, color=RED_T, hot=(1.0, 0.75, 0.35), seed=0, t=0.0):
+    """第五棒：字被刀刃「刻出」——沿 ang 方向的斜向擦除显形，前沿一条赤热刃口（白→橙），刻过的笔画朱红 + 余烬闪烁。q 0..1+。"""
+    if q <= 0: return fr
+    L = T.Layer(); T.place(L, ch, cx, cy, size, color, 'serif_black', texture=False)
+    bx = L.box(4)
+    if bx is None: return fr
+    x0, y0, x1, y1 = bx
+    yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+    ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+    d = (xx - x0) * ca + (yy - y0) * sa
+    dmin, dmax = d.min(), d.max(); d = (d - dmin) / max(1.0, dmax - dmin)
+    qq = q * 1.15
+    rev = np.clip((qq - d) / 0.04, 0, 1)
+    edge = np.exp(-((d - qq) / 0.035) ** 2) * (q < 1.1)
+    A = L.A[y0:y1, x0:x1]
+    L.A[y0:y1, x0:x1] = A * rev
+    out = T.compose(fr, L, shadow=0.85, shadow_sigma=20, outline=3, glow=0.6, glow_sigma=20, glow_color=(0.95, 0.12, 0.05))
+    ember = (0.35 + 0.25 * math.sin(t * 37 + seed)) * sm(0, 0.3, q) * (1 - sm(1.2, 3.0, q))
+    hotm = (A * (edge * 2.2 + ember * rev * 0.0))[..., None]
+    out[y0:y1, x0:x1] += hotm * np.asarray(hot, np.float32) * 1.6
+    return out
+
+
 def flash_frame(fr, amt, col=(0.92, 0.95, 1.0)):
     return fr * (1 + amt * 0.6) + amt * np.asarray(col, np.float32) * 0.5
 
@@ -1560,43 +1583,45 @@ class C37(Shot):
 
 
 class C38(Shot):
-    """CU 刀即秤：双手把刀端平如秤杆（生图 blade_level），雨珠沿刃面等距停成刻度；「我来量」刻在刻度上。"""
+    """第五棒重做（评审 P1：刃面微距 + LED 点刃纹撞副歌一 S027/S028，手指悬空没手臂）：
+    CU 握刀手特写——生图 C5/c38_grip：湿透的袖口和护腕从左入画，手背青筋暴起、指节发白，雨水沿指节滴落；
+    冷白侧逆光从左上扫过指节。镜头缓推 + 手腕微旋（握紧）；157.34 一道远雷照亮；「我来」紧排刻在刀身上方的空区（不在手指下）。"""
     def render(self, t):
         u = self.u(t)
-        fr = storm(t, 38, horizon=1300, flash=0.25, ground=False) * 0.9
-        x = lerp(1010, 910, eio(u))
-        fr, A = put(fr, t, 'C/blade_level', x, 560, 2000, anchor='src', src=(0.5, 0.5), rim=COLD, rim_amt=1.5, expo=1.05, sat=0.6,
-                    wind=0, breathe=0.0)
-        # 刻度雨珠：沿刀身等距（按 alpha 求刀身横线）
-        ys, xs = np.nonzero(A[400:720] > 0.5)
-        if len(xs):
-            y0 = 400 + np.median(ys)
-            xa, xb = np.percentile(xs, 8), np.percentile(xs, 96)
-            for i in range(13):
-                px = xa + (xb - xa) * (i + 0.5) / 13; ph = (t * 2.15 * 1 - i * 0.08) % 1
-                rr = 5 + 2 * (i % 2 == 0)
-                fr = K.vol_light(fr, (px, y0 - 6), 10, (0.9, 0.95, 1.0), 0.9 + 0.6 * math.exp(-ph * 6))
-                tick = np.zeros((H, W), np.float32); cv2.line(tick, (int(px), int(y0 + 30)), (int(px), int(y0 + 30 + (24 if i % 3 == 0 else 12))), 1.0, 2, cv2.LINE_AA)
-                fr = fr + tick[..., None] * COLD * 0.6
-            for j, k in enumerate((3, 4, 5)):
-                ti = V(CT(38, k))
-                if t < ti - 0.1: continue
-                e = eout((t - ti + 0.1) / 0.16)
-                px = xa + (xb - xa) * (0.3 + 0.2 * j)
-                c = '我来量'[j]
-                fr = paste_glyph(fr, c, px, y0 + 130, 96, RED_T if c == '量' else (0.95, 0.96, 1.0), glow=0.7,
-                                 glow_c=(0.9, 0.1, 0.05) if c == '量' else (0.6, 0.7, 1.0), alpha=e, scale=lerp(1.6, 1, e), font='serif_b')
-        fr = rain(fr, t, 380, inten=0.6, angle=4, layers=(0, 1, 2))
+        tf = V(157.34)
+        fl = bolt_env(t, tf) * 0.8 + 0.5 * bolt_env(t, V(158.18))
+        fr = storm(t, 38, horizon=1300, flash=0.25 + 0.6 * fl, ground=False, fc=(400, 150)) * 0.8
+        fr = K.vol_light(fr, (300, 200), 600, COLD, 0.25 + 0.4 * fl)
+        grip = eio(clamp((t - self.t0) / 0.6)) + 0.4 * pulse(t, V(158.18), 0.2)
+        fr, _ = put(fr, t, 'C5/c38_grip', 960, 560, 1180 * (1.0 + 0.05 * u), anchor='src', src=(0.5, 0.5), rot=1.5 - 2.5 * grip,
+                    rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.6), flash=fl, expo=0.95, sat=0.55, wind=0, breathe=0.0)
+        # 指节滴水（握紧时甩落）
+        fr = sparks(fr, t, 381, (930, 760), n=26, life=0.9, speed=(40, 160), dirc=(0, 1), spread=0.3, grav=1400, amt=0.7,
+                    color=(0.85, 0.9, 1.0), area=(140, 20))
+        for j, (c, ti) in enumerate((('我', V(158.18)), ('来', V(158.36)))):
+            if t < ti - 0.08: continue
+            e = eout((t - ti + 0.08) / 0.14)
+            fr = paste_glyph(fr, c, 1440 + j * 150, 330, 130, (0.95, 0.96, 1.0), glow=0.6, glow_c=(0.6, 0.7, 1.0), alpha=e,
+                             scale=lerp(1.6, 1, e), font='serif_black')
+        fr = rain(fr, t, 380, inten=0.8, angle=4, layers=(0, 1, 2, 3))
         return fr
 
 
 class C39(Shot):
-    """MCU 蓄力：鬼屠把刀拉到身后（S090），镜头后拉、慢放，159.01 一记底鼓暗角收紧。"""
+    """MCU 蓄力：鬼屠把刀拉到身后（S090），镜头推近 + 慢放；第五棒（评审 P0「量」缺失）：158.56「量」随刀刃出鞘
+    被一刀刻在画面左侧空区（朱红大字、赤热刃口沿刀势斜向划过，余烬闪烁），刀身一道冷光扫过；159.01 底鼓暗角收紧。"""
     def render(self, t):
         u = self.u(t)
-        fr = storm(t, 39, horizon=1300, flash=0.3 + 0.5 * pulse(t, V(159.01), 0.2), ground=False, fc=(500, 200))
-        fr, _ = put(fr, t, 'S090/wind_up', 1150, 1110, 900 * (1.06 - 0.06 * eout(u)), rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.6), expo=1.0,
-                    wind=7, flash=0.4 * pulse(t, V(159.01), 0.2))
+        tq = V(158.56)
+        fr = storm(t, 39, horizon=1300, flash=0.3 + 0.5 * pulse(t, V(159.01), 0.2) + 0.5 * pulse(t, tq, 0.15), ground=False, fc=(500, 200))
+        fr = K.vol_light(fr, (520, 520), 420, (1.0, 0.35, 0.15), 0.45 * sm(tq - 0.02, tq + 0.12, t) * (1 - 0.4 * sm(tq + 0.3, self.t1, t)))
+        fr, _ = put(fr, t, 'S090/wind_up', 1180, 1110, 900 * (1.0 + 0.04 * eout(u)), rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.6), expo=1.0,
+                    wind=7, flash=0.4 * pulse(t, V(159.01), 0.2) + 0.5 * pulse(t, tq, 0.12))
+        q = (t - (tq - 0.03)) / 0.16
+        fr = carve_glyph(fr, '量', 520, 540, 330, q, ang=-35, seed=39, t=t)
+        if 0 < q < 2.5:
+            fr = sparks(fr, t, 391, (lerp(380, 660, min(1, q)), lerp(400, 690, min(1, q))), n=70, life=0.5, speed=(200, 800), dirc=(0.6, 0.8),
+                        spread=1.2, grav=1200, t0=tq, burst=True, color=(1.0, 0.45, 0.15), amt=1.2)
         fr = rain(fr, self.t0 + (t - self.t0) * 0.5, 390, inten=0.9, angle=8)
         return fr
 
