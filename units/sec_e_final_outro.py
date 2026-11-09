@@ -17,6 +17,7 @@ import rest_sprites as RS
 import e_kit as E
 import e_r3 as R3
 import e_r5 as R5
+import e_r6 as R6
 from e_r3 import LyrO
 Sub = R5.SubD          # 第五棒：副句随画面漂移、去句首朱印、暗衬变淡（去卡拉 OK 条模板感）
 from e_kit import (W, H, BAR, GOLD, GOLDW, RED, REDT, WHITE_T, GOLD_T, INK, put, Lyr, row, sstep, c01, eio, eout, ein,
@@ -354,6 +355,7 @@ def sprite_clean(z, A, erode=2, rim_col=(1.0, 0.62, 0.30), rim_amt=0.9, rim_dir=
 class E08(Shot):   # S117 CU（第五棒重做）纸糊巨脸（暖橙主光右上 + 左冷边，无竹骨网格）；「伪装」竖排在脸左侧空背景，
     #  字一落，火从「伪装」笔画边缘沿纸面向外蔓延（暗红焦痕 → 亮橙火线 → 飞灰，连续焦边），一路吃穿纸脸，洞后是暗处他的双眼
     TX, TY, TS = 300, (410, 650), 210
+    CX, CY = 975, 430
 
     def __init__(self):
         r = np.random.default_rng(117)
@@ -373,36 +375,42 @@ class E08(Shot):   # S117 CU（第五棒重做）纸糊巨脸（暖橙主光右�
         self.tm = [None, None]
         for k, ch in enumerate('伪装'):
             L1 = T.Layer(); L1.paste(T.glyph(ch, 'serif_black', self.TS, False), self.TX, self.TY[k], (1, 1, 1)); self.tm[k] = L1.A
-        self.D = [cv2.distanceTransform((m < 0.5).astype(np.uint8), cv2.DIST_L2, 5).astype(np.float32) for m in self.tm]
+        # 第六棒：火从画面中心（老者眉心）烧出一个洞（第一字落点火），第二字「装」笔画边缘再点一处
+        yy0, xx0 = E.grid()
+        self.D = [np.hypot(xx0 - self.CX, yy0 - self.CY).astype(np.float32) * 1.15,
+                  cv2.distanceTransform((self.tm[1] < 0.5).astype(np.uint8), cv2.DIST_L2, 5).astype(np.float32)]
+        self.pmul, self.padd = R6.paper_skin(617)
         self.noise = (lo - 0.5) * 160 + (mid - 0.5) * 45
         self.l = LyrO([('伪', self.TX, self.TY[0], self.TS, 'serif_black', REDT, CT(50, 6)), ('装', self.TX, self.TY[1], self.TS, 'serif_black', REDT, CT(50, 7))],
                       CT(51, 0) - 0.12, seed=50, outline=5, plate_amt=0.0, glow=0.35)
-        self.grade = dict(expo=0.92, sat=0.55, tint=(1.12, 0.98, 0.80), lift=0.0, gamma=1.06)
+        self.grade = dict(expo=0.92, sat=0.42, tint=(1.06, 0.99, 0.90), lift=0.0, gamma=1.06)
 
     def front(self, t):
         """各字点火后的蔓延半径（px），先慢后快。"""
         out = []
         for k in range(2):
             q = t - (CT(50, 6 + k) + 0.06)
-            out.append(-1.0 if q < 0 else 40 + 1150 * (q / 1.1) ** 1.35)
+            out.append(-1.0 if q < 0 else (20 + 760 * (q / 1.1) ** 1.25 if k == 0 else 30 + 700 * (q / 1.1) ** 1.4))
         return out
 
     def field(self, t):
         R = self.front(t)
         F = np.full((H, W), 1e4, np.float32)
         for k in range(2):
-            if R[k] >= 0: F = np.minimum(F, self.D[k] + self.noise * min(1.0, R[k] / 300) - R[k])
+            if R[k] >= 0: F = np.minimum(F, self.D[k] + self.noise * min(1.0, R[k] / (90 if k == 0 else 300)) - R[k])
         return F                                                            # <0 已烧穿；0 = 火线
 
     def render(self, t):
         u = self.u(t)
-        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r5/emperor_face', (1010, 1190), h=1250 * (1 + 0.06 * u), rim=(1.0, 0.6, 0.3), rim_amt=1.2,
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'E_r6/emperor_cu', (1000, 1260), h=1420 * (1 + 0.06 * u), rim=(1.0, 0.6, 0.3), rim_amt=1.2,
                       rim_dir=(0.8, -0.6), wind=1, grade=self.grade)
         C, A = sprite_clean(z, info['A'], erode=2, rim_col=(1.0, 0.58, 0.26), rim_amt=1.4, rim_dir=(0.8, -0.6))
         yy, xx = E.grid()
-        key = np.clip(0.55 + 0.6 * ((xx - 1010) / 600 - (yy - 500) / 900), 0.35, 1.25)        # 右上暖主光 → 左下落入阴影，阴影带橙环境反射
-        C = C * key[..., None] * np.array([1.06, 0.97, 0.86], np.float32) + (1 - np.clip(key, 0, 1))[..., None] * np.array([0.075, 0.03, 0.006], np.float32)
+        key = np.clip(0.55 + 0.6 * ((xx - 1010) / 600 - (yy - 500) / 900), 0.35, 1.0)        # 右上暖主光 → 左下落入阴影，阴影带橙环境反射（第六棒：封顶，白发不被染金）
+        C = C * key[..., None] * np.array([1.03, 0.98, 0.93], np.float32) + (1 - np.clip(key, 0, 1))[..., None] * np.array([0.075, 0.03, 0.006], np.float32)
         C = C * self.tex[..., None]
+        pm = 1 + (self.pmul - 1) * 0.62                                     # 第六棒：宣纸叠皱 + 糊纸接缝压在脸上（约 35%）
+        C = C * pm[..., None] * np.array([1.03, 1.0, 0.94], np.float32) + self.padd * 1.2
         fr = self.bg * (1 - A[..., None]) + C * A[..., None]
         if t >= CT(50, 6):
             F = self.field(t)
