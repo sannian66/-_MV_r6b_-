@@ -525,8 +525,8 @@ class E10(Shot):   # S119（第三棒重做）碎纸扑面：被斩碎的律令�
         """第五棒：前景三层补主体 —— 他斩完收住的刀身从左下斜入画（强虚化、刃口一道暗红反光），碎纸是中景、红底是远景。"""
         u = self.u(t)
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
-        ang = math.radians(-17); c, s_ = math.cos(ang), math.sin(ang)
-        ox, oy = -80 + 40 * u, 455 - 8 * u                                  # 刀脊参考点（半分辨率）
+        ang = math.radians(12); c, s_ = math.cos(ang), math.sin(ang)
+        ox, oy = -80 + 40 * u, 488 - 8 * u                                  # 刀脊参考点（半分辨率）
         a = (xx - ox) * c - (yy - oy) * s_; b = (xx - ox) * s_ + (yy - oy) * c   # a 沿刀身，b 垂直刀身
         L = 780 + 30 * u
         tip = np.clip((L - a) / 70, 0, 1)                                       # 刀尖收窄
@@ -535,7 +535,7 @@ class E10(Shot):   # S119（第三棒重做）碎纸扑面：被斩碎的律令�
         edge = np.exp(-((b + w * 0.92) / 2.0) ** 2) * (a > 0) * (a < L) * tip
         n = _tex_blade(h=H // 2, w=W // 2)
         steel = (0.03 + 0.05 * n)[..., None] * np.array([1.0, 0.9, 0.85], np.float32)
-        col = steel + edge[..., None] * np.array([0.9, 0.25, 0.08], np.float32) * 1.6
+        col = steel + edge[..., None] * np.array([1.0, 0.42, 0.14], np.float32) * 2.4
         body = cv2.GaussianBlur(body, (0, 0), 6); col = cv2.GaussianBlur(col, (0, 0), 6)
         body = cv2.resize(body, (W, H)); col = cv2.resize(col, (W, H))
         return fr * (1 - body[..., None]) + col * body[..., None]
