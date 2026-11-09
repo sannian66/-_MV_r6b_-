@@ -112,25 +112,28 @@
   "kneel_pan": [
    {
     "task_id": "28244dde-92a5-4092-bc07-873d9f709990",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/kneel_pan_28244dde_0.png",
+    "accepted": true
    }
   ],
   "carve_mcu": [
    {
     "task_id": "777f70a0-056d-4d97-8d54-a6687008db14",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/carve_mcu_777f70a0_0.png",
+    "accepted": true
    }
   ],
   "look_up_mcu": [
    {
     "task_id": "72af3abd-e5b7-4b4e-92c8-22403ddfae7e",
-    "status": "running",
+    "status": "done",
     "pts": 3,
-    "file": null
+    "file": "/workspace/work/a_cands/look_up_mcu_72af3abd_0.png",
+    "accepted": true
    }
   ]
  }

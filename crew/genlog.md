@@ -325,3 +325,9 @@
 | 11-09 03:58 | C组/c10_tablets | RH_image2 | 4K 16:9 | 3 | cb8e95cc-3e22-42fb-8dca-2e308a2346af | submitted | - | [C组] 第五棒 C10 try1 (quote 3) |
 | 11-09 03:58 | C组/c23_bronze | RH_image2 | 4K 16:9 | 3 | 780476a2-192b-4210-8eb9-821a9412b440 | submitted | - | [C组] 第五棒 C23 try1 (quote 3) |
 | 11-09 03:58 | C组/c16_drip | RH_image2 | 4K 16:9 | 3 | de51d1de-32c0-4ba6-ab7c-443245348fdb | submitted | - | [C组] 第五棒 C16 try1 (quote 3) |
+| 11-09 03:59 | A/kneel_pan | RH_image2 | 4K 16:9 | 0 | 28244dde-92a5-4092-bc07-873d9f709990 | completed | /workspace/work/a_cands/kneel_pan_28244dde_0.png | A组 候选 |
+| 11-09 03:59 | A/carve_mcu | RH_image2 | 4K 16:9 | 0 | 777f70a0-056d-4d97-8d54-a6687008db14 | completed | /workspace/work/a_cands/carve_mcu_777f70a0_0.png | A组 候选 |
+| 11-09 04:00 | A/look_up_mcu | RH_image2 | 4K 16:9 | 0 | 72af3abd-e5b7-4b4e-92c8-22403ddfae7e | completed | /workspace/work/a_cands/look_up_mcu_72af3abd_0.png | A组 候选 |
+| 11-09 04:00 | A/kneel_pan | RH_image2 | 4K 16:9 | 0 | 28244dde-92a5-4092-bc07-873d9f709990 | 采用 | assets/gen/A/kneel_pan_raw.png | A组 采用 |
+| 11-09 04:00 | A/carve_mcu | RH_image2 | 4K 16:9 | 0 | 777f70a0-056d-4d97-8d54-a6687008db14 | 采用 | assets/gen/A/carve_mcu_raw.png | A组 采用 |
+| 11-09 04:00 | A/look_up_mcu | RH_image2 | 4K 16:9 | 0 | 72af3abd-e5b7-4b4e-92c8-22403ddfae7e | 采用 | assets/gen/A/look_up_mcu_raw.png | A组 采用 |

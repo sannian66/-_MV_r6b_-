@@ -1370,3 +1370,7 @@ Seedance 六种模式以租户实际启用的为准：text2video（文字）、i
 如果返回 invalid_skill_key 或 skill_key_revoked，请提示用户重置 Skills Key；model_package_required 请改用 models 返回的可用模型；审核错误按 reason、mediaType、assetIndex 和 recovery 区分上述格式恢复、审核处理中和内容拒绝。不要靠切换兼容字段或添加顶层 media_type 来重试同一失败素材。该安装提示适用于 Codex、Claude Code、WorkBuddy、OpenClaw、Hermes 以及其他支持 Skills 调用的智能体。
 
 请使用opus5.5模型
+
+### Hark · 2026-11-09T03:56:21Z
+
+剧组复工了。3 分钟一推的后台循环和 30 分钟兜底定时任务已重建，Nano Banana 已装好（Key 存保险库，不进公开仓库）。A、B、C、E 四组正按评审意见返工，D 段第三轮评审也派出去了。
