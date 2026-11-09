@@ -471,7 +471,7 @@ class E12(Shot):   # S120b ELS 正俯拍（第三棒返工）：大地即印面�
         if p > 0: fr = PR.stamp_imprint(fr, self.face, c[0], c[1], 640, min(1, p), angle=-4)
         at = (1390, 600)
         z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, at, h=330, anc=(0.5, 0.5), rim=GOLDW, rim_amt=1.6, rim_dir=(0.7, -0.7),
-                      grade=dict(expo=0.72, sat=0.55, tint=(1.08, 0.97, 0.84), lift=0.0, gamma=1.12), wind=4)
+                      grade=dict(expo=0.95, sat=0.6, tint=(1.1, 0.98, 0.84), lift=0.0, gamma=1.05), wind=4)
         A = info['A']
         Sh = np.zeros_like(A)                                              # 晨光自右上 → 长影拖向左下（印面上也压影）
         for k in range(1, 9):
