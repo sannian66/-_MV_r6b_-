@@ -590,6 +590,11 @@ class S09_Brush(Shot):
     def render(self, t):
         u = self.u(t)
         fr = D.paper(17).copy()
+        # [r5] 远景层：淡墨宫阙剪影（他的朝堂）随镜头慢移；字写在宫阙之上
+        pa = R5.palace_mask(9, y_base=930, hmax=230)
+        pa = cv2.GaussianBlur(np.roll(pa, int(-30 * u), 1), (0, 0), 4) * (0.75 + 0.5 * cv2.resize(D._tile(919)[:H // 4, :W // 4], (W, H)))
+        fr = fr * (1 - pa[..., None] * 0.10)
+        fr = D.wash(fr, 0.10, 0.75, 1.0, seed=171)
         L = T.Layer(); hd = None
         for ch, x, y, s, a0, a1 in self.CH:
             p = cl((t - a0) / (a1 - a0))
@@ -603,6 +608,7 @@ class S09_Brush(Shot):
         # 巨笔（笔尖压在笔序前沿）
         fr, _ = D.ink_figure(fr, self.sp, t, self.tip, (hd[0] + 14, hd[1] + 18), 1.5, rot=-6 + 4 * math.sin(t * 9), wind=0, k=1.4, dens=0.98)
         fr = vcol(fr, '若正义由你定义', 1750, 212, 92, O[42][0:7], t, 'ink', fname='serif_black', adv=1.1)   # [r4] 放大（停用小竖排）
+        fr = D.fall_chars(fr, t, '正义', 909, density=2, sizes=(100, 170), speed=(240, 380), layers=1, alpha=0.35, near_blur=9)   # [r5] 前景虚焦落字
         return K.cam(fr, 1.05 + 0.04 * u, (hd[0] - 960) * 0.05, (hd[1] - 540) * 0.05), 1.0
 
 
@@ -671,15 +677,40 @@ class S12_Pierce(Shot):
     def render(self, t):
         u = self.u(t)
         fr = D.paper(20).copy()
-        fr = D.wash(fr, 0.45, 0.2, 1.1, seed=29)
+        # [r5] 背景层：淡墨远山 + 山脚一排模糊的跪伏人影（被定罪的人）
+        for A_, k_ in R5.mountains_mask(12, y0=620, amp=170):
+            fr = fr * (1 - A_[..., None] * k_)
+        kn = R5.crowd_mask(1212, n=60, y_far=700, y_near=760, s_far=26, s_near=44, kneel=1.0)
+        fr = fr * (1 - cv2.GaussianBlur(kn, (0, 0), 3)[..., None] * 0.35)
+        fr = D.wash(fr, 0.38, 0.2, 1.1, seed=29)
         tc = V(O[42][14])
         tipy = lerp(720, 520, eo(cl((t - self.t0) / (tc - self.t0)), 2)) - (520 * ei(cl((t - tc) / 0.35), 2) if t > tc else 0)
         # 刀在纸上的投影（暖光从左上）
         fr = D.fall_chars(fr, t, '罪状', 120, density=4, sizes=(16, 40), alpha=0.35, near_blur=3, emph={'罪': tuple(CINNABAR)})
         Fw, Aw = D.warp(self.sp, t, self.TIP, (975 + 40, tipy + 30), 1.75, rot=-3, wind=0)
         fr = fr * (1 - cv2.GaussianBlur(Aw, (0, 0), 14)[..., None] * 0.35)
-        fr, Aw = D.real_figure(fr, self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, expo=0.82, sat=0.55, tint=(1.04, 0.98, 0.9),
-                               rim=(1.0, 0.92, 0.8), rim_amt=2.5, rim_dir=(-0.7, -0.7), wind=0, breathe=0.0,
+        # [r5] 前景层：刀尖前方纸面被顶起的隆起（法线高光 + 阴影环），刀身两侧被撕开的纸口卷边
+        x_, y_ = K.grid()
+        if t < tc + 0.05:
+            bq = 0.6 + 0.4 * math.sin(t * 25)
+            dx_, dy_ = (x_ - 975) / 120, (y_ - (tipy - 60)) / 90
+            bump = np.exp(-(dx_ ** 2 + dy_ ** 2))
+            gy_, gx_ = np.gradient(bump)
+            fr = fr * (1 - np.clip(gy_ * 9, 0, 1)[..., None] * 0.35 * bq) + np.clip(-gy_ * 9 - gx_ * 4, 0, 1)[..., None] * 0.22 * bq
+        tear_y = 905
+        for sg in (-1, 1):
+            flap = np.array([[975 + sg * 70, tear_y - 150], [975 + sg * 230, tear_y + 10], [975 + sg * 60, tear_y + 40]], np.int32)
+            fm = np.zeros((H, W), np.float32); cv2.fillPoly(fm, [flap], 1.0, cv2.LINE_AA); fm = cv2.GaussianBlur(fm, (0, 0), 1.2)
+            sh_ = cv2.GaussianBlur(np.roll(fm, (14, sg * 10), (0, 1)), (0, 0), 10)
+            fr = fr * (1 - sh_[..., None] * 0.45)
+            shade = 0.80 + 0.16 * np.clip((y_ - (tear_y - 150)) / 190, 0, 1)        # 卷起的纸背：上暗下亮，跟随底色
+            fr = fr * (1 - fm[..., None]) + fm[..., None] * np.roll(fr, -60, 0) * shade[..., None] * np.array([1.0, 0.98, 0.95], np.float32)
+            edge = np.clip(cv2.dilate(fm, np.ones((3, 3), np.uint8)) - fm, 0, 1)
+            fr = fr * (1 - edge[..., None] * 0.6)
+        hole = np.exp(-(((x_ - 975) / 85) ** 2 + ((y_ - tear_y) / 26) ** 2))
+        fr = fr * (1 - hole[..., None] * 0.85)
+        fr, Aw = D.real_figure(fr, self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, expo=0.82, sat=0.55, tint=(0.98, 1.0, 1.04),
+                               rim=(0.62, 0.76, 1.0), rim_amt=4.5, rim_dir=(-0.7, -0.7), wind=0, breathe=0.0,
                                mblur=(0, 10 * impact(t, self.t0 + 0.02, 0.2) + (14 if t > tc else 0)))
         # 刃口一线寒光沿刃上行
         Fw, A2 = D.warp(self.sp, t, self.TIP, (975, tipy), 1.75, rot=-3, wind=0)
@@ -1117,10 +1148,14 @@ class S23_Eye(Shot):
         fr = D.lightning(fr, t, 184.85, (500, 120), (900, 420), seed=11, amt=1.2)
         fr = D.lightning(fr, t, th, (1650, 120), (1240, 380), seed=12, amt=1.8, life=0.25)
         p = cl((t - th + 0.03) / 0.12)
-        p = max(p, 0.22 * cl((t - self.t0) / 0.3) * (0.7 + 0.3 * math.sin(t * 17)))     # 闪电前「天」已在云眼里隐隐透出
+        p = max(p, 0.62 * cl((t - self.t0) / 0.25) * (0.85 + 0.15 * math.sin(t * 17)))     # [r5] 闪电前「天」已在云眼里可读（≥0.6）
         if p > 0:
-            L = D.text_layer([('天', 1180, 410, 420, p * (0.88 + 0.12 * math.sin(t * 30)), 1.0 + 0.15 * (1 - p))], fname='serif_black', color=(0.88, 0.92, 1.0))
-            fr = T.compose(fr, L, shadow=0.5, glow=0.9, glow_color=(0.6, 0.7, 1.0), glow_sigma=30)
+            L = D.text_layer([('天', 1180, 410, 420, p * (0.9 + 0.1 * math.sin(t * 30)), 1.0 + 0.1 * (1 - p))], fname='serif_black', color=(0.92, 0.95, 1.0))
+            fr = T.compose(fr, L, shadow=0.75, shadow_sigma=26, glow=0.9 + 0.8 * fl, glow_color=(0.6, 0.7, 1.0), glow_sigma=30)
+            if t >= th:   # [r5] 185.26 闪电描边：字缘一圈电光（带抖动的分形断续亮边）
+                ed = np.clip(cv2.dilate(L.A, np.ones((7, 7), np.uint8)) - L.A, 0, 1)
+                nz = (cv2.resize(D._tile(int(t * 30) % 50 + 600)[:135, :240], (W, H)) > 0.45).astype(np.float32)
+                fr = fr + (ed * (0.5 + nz) * 1.8 * math.exp(-(t - th) / 0.22))[..., None] * np.array([0.85, 0.92, 1.0], np.float32)
         fr = fr + impact(t, th, 0.06) * 0.12
         x, y = K.grid()
         fr = fr + np.exp(-(((x - 600) / 420) ** 2 + ((y - 620) / 300) ** 2))[..., None] * np.array([0.25, 0.3, 0.42], np.float32) * (0.6 + fl)

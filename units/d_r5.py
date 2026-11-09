@@ -315,3 +315,50 @@ def crowd_mask(seed, n=120, y_far=560, y_near=840, s_far=26, s_near=90, kneel=0.
     A = cv2.GaussianBlur(A, (0, 0), 1.2)
     _C[key] = A
     return A
+
+
+# ===================================================================== 宫阙远影 / 淡墨远山
+def palace_mask(seed=9, y_base=900, n=5, x_rng=(80, 1840), hmax=330):
+    """一排宫阙剪影（台基 + 殿身 + 起翘的歇山顶），用作淡墨远景层。"""
+    key = ('palace', seed, y_base, n, x_rng, hmax)
+    if key in _C: return _C[key]
+    r = np.random.default_rng(seed)
+    A = np.zeros((H, W), np.float32)
+    xs = np.linspace(x_rng[0], x_rng[1], n) + r.uniform(-60, 60, n)
+    for k, x in enumerate(xs):
+        main = (k == n // 2)
+        w = r.uniform(220, 300) * (1.5 if main else 1.0); h = hmax * (1.0 if main else r.uniform(0.55, 0.8))
+        yb = y_base - (40 if main else 0)
+        cv2.rectangle(A, (int(x - w * 0.62), int(yb - h * 0.12)), (int(x + w * 0.62), int(yb)), 1.0, -1)             # 台基
+        cv2.rectangle(A, (int(x - w * 0.42), int(yb - h * 0.55)), (int(x + w * 0.42), int(yb - h * 0.12)), 0.85, -1)  # 殿身
+        ey = yb - h * 0.55
+        pts = []
+        for i in range(21):                                   # 起翘檐口
+            u = i / 20 * 2 - 1
+            pts.append((x + u * w * 0.78, ey - h * 0.10 * abs(u) ** 3))
+        pts += [(x + w * 0.45, ey - h * 0.40), (x + w * 0.12, ey - h * 0.46), (x - w * 0.12, ey - h * 0.46), (x - w * 0.45, ey - h * 0.40)]
+        cv2.fillPoly(A, [np.array(pts, np.int32)], 1.0, cv2.LINE_AA)
+        if main:                                              # 重檐
+            ey2 = ey - h * 0.46
+            pts2 = [(x + (i / 14 * 2 - 1) * w * 0.5, ey2 - h * 0.07 * abs(i / 14 * 2 - 1) ** 3) for i in range(15)]
+            pts2 += [(x + w * 0.22, ey2 - h * 0.28), (x - w * 0.22, ey2 - h * 0.28)]
+            cv2.fillPoly(A, [np.array(pts2, np.int32)], 1.0, cv2.LINE_AA)
+    A = cv2.GaussianBlur(A, (0, 0), 3)
+    _C[key] = A
+    return A
+
+
+def mountains_mask(seed=5, y0=640, amp=150, layers=2):
+    """淡墨远山（两层山脊，上实下虚）。返回 [(A, 浓度)]"""
+    key = ('mtn', seed, y0, amp, layers)
+    if key in _C: return _C[key]
+    out = []
+    x = np.arange(W, dtype=np.float32)
+    for k in range(layers):
+        r = np.random.default_rng(seed + k)
+        ridge = y0 + k * 70 - amp * (0.6 * np.abs(np.sin(x / r.uniform(260, 380) + r.uniform(0, 6))) + 0.4 * np.abs(np.sin(x / r.uniform(90, 140) + r.uniform(0, 6))))
+        yy = np.arange(H, dtype=np.float32)[:, None]
+        A = np.clip((yy - ridge[None, :]) / 6, 0, 1) * np.clip(1 - (yy - ridge[None, :]) / (260 + 80 * k), 0, 1) ** 0.8
+        out.append((cv2.GaussianBlur(A.astype(np.float32), (0, 0), 2 + 3 * (1 - k)), 0.10 + 0.08 * k))
+    _C[key] = out
+    return out
