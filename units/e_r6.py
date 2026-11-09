@@ -47,13 +47,14 @@ def light_sweep(A, B, p, y=600, col=(1.0, 0.82, 0.5)):
     xx = np.arange(W, dtype=np.float32)[None, :]
     yy = np.arange(H, dtype=np.float32)[:, None]
     x = -300 + (W + 600) * e
-    m = np.clip((x - xx) / 140 + 0.5, 0, 1)                                    # 光头之后 = B
+    m = np.clip((x - xx) / 420 + 0.5, 0, 1) ** 1.5                             # 光头之后 = B（宽软边，光幕里完成交接）
     m = np.broadcast_to(m, (H, W))
     out = A * (1 - m[..., None]) + B * m[..., None]
     d = xx - x
     head = np.exp(-(d / 60) ** 2) + 0.55 * np.exp(-np.clip(-d, 0, None) / 520) * (d < 0)
     vert = np.exp(-((yy - y) / 26) ** 2) * 1.6 + np.exp(-((yy - y) / 220) ** 2) * 0.35
-    L = (head * vert) * (1 - abs(2 * e - 1) ** 3)
+    curtain = np.exp(-(d / 110) ** 2) * (0.55 + 0.45 * np.exp(-((yy - y) / 380) ** 2))     # 光头 = 一道竖向光幕，盖住交接线
+    L = (head * vert + curtain * 1.1) * (1 - abs(2 * e - 1) ** 3)
     return out + L[..., None] * np.asarray(col, np.float32) * 1.4
 
 

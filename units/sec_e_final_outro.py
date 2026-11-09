@@ -870,46 +870,57 @@ class E19(Shot):   # S125 CU 直视镜头；金匾碎片在他周围漂浮；「
     def text(self, fr, t): return self.l.draw(fr, t)
 
 
-class E20(Shot):   # S126 ELS 巨大日轮占满画面；「天」字在日中被烧化
+class E20(Shot):   # S126 ELS（第六棒重做，去和副歌一 S042「居中满月 + 中心巨字」撞构图）：低地平线，日轮只露上缘、偏右 1/3 从地平线下顶出；
+    #  墨色巨字「天」大于半屏、偏左，逆着日光成剪影，光束从笔画缝里透出；「天」自下而上熔化、坍塌（熔滴下坠）。入转场 = 横向光线扫入（贴地平线）
+    HZ = 770
+
     def __init__(self):
         self.tex = K.fbm(H // 2, W // 2, 1260, base=24, octaves=5)
-        self.tex2 = K.fbm(H // 2, W // 2, 1261, base=60, octaves=3)
-        self.sky = E.dawn_sky(1262, horizon=0.95, mid=(0.5, 0.33, 0.16), hor=(1.0, 0.7, 0.35), cloud=0.7)
-        self.l = Sub('不', [CT(54, 1)], 'center', CT(54, 2) + 0.1, seed=150)
+        self.sky = E.dawn_sky(1262, horizon=self.HZ / H, mid=(0.42, 0.27, 0.13), hor=(1.0, 0.68, 0.32), cloud=0.75)
+        self.l = Sub('不', [CT(54, 1)], 'right', CT(54, 2) + 0.1, seed=150)
         self.tt = CT(54, 0)
+        r = np.random.default_rng(126)
+        self.land = (cv2.resize(K.fbm(H // 4, W // 4, 1263, base=8, octaves=4), (W, H)) * 0.05).astype(np.float32)
 
     def render(self, t):
         u = self.u(t)
         fr = self.sky.copy()
-        c = (960, 520); R = 360 * (1 + 0.06 * u)
+        R = 430; c = (1290, self.HZ + R * (0.80 - 0.22 * eio(u)))          # 日从地平线下缓缓顶出
         yy, xx = E.grid()
         d = np.hypot(xx - c[0], yy - c[1])
         disc = np.clip((R - d) / 2.5, 0, 1)
-        k = cv2.resize(self.tex * 0.6 + self.tex2 * 0.4, (W, H))
-        k = R3.slide(k, 30 * (t - self.t0))
+        k = cv2.resize(self.tex, (W, H)); k = R3.slide(k, 30 * (t - self.t0))
         limb = np.clip(1 - (d / R) ** 2, 0, 1) ** 0.35
-        surf = (0.75 + 0.5 * k) * limb
-        col = np.stack([surf * 1.25, surf * 0.95, surf * 0.55], -1)
+        surf = (0.8 + 0.45 * k) * limb
+        col = np.stack([surf * 1.3, surf * 0.98, surf * 0.6], -1)
         fr = fr * (1 - disc[..., None]) + col * disc[..., None]
-        halo = np.exp(-np.maximum(d - R, 0) / 160) * (d > R)
-        fr = fr + halo[..., None] * GOLD * 0.9
-        fr = fx2.god_rays(fr, c, strength=0.6, length=0.9, t=t, src_r=R)
-        # 天：日面上的墨色剪影字 → 被烧化（热扭曲 + 自下而上烧穿 + 熔滴）
+        halo = np.exp(-np.maximum(d - R, 0) / 190) * (d > R)
+        fr = fr + halo[..., None] * GOLD * 1.0
+        # 天：墨色剪影巨字（偏左、大于半屏高）→ 熔化坍塌
         e = c01((t - (self.tt - 0.2)) / 0.2)
+        A = np.zeros((H, W), np.float32)
         if e > 0:
-            a = T.glyph('天', 'serif_black', 520, False).copy()
+            a = T.glyph('天', 'serif_black', 640, False).copy()
             g = a.shape[0]
-            q = c01((t - (self.tt + 0.25)) / 0.55)
+            q = c01((t - (self.tt + 0.22)) / 0.75)
             if q > 0:
                 ys, xs = np.mgrid[0:g, 0:g].astype(np.float32)
-                wob = np.sin(ys / 9 + t * 25) * 6 * q
-                drip = (np.sin(xs / 23) * 0.5 + 0.5) ** 4 * 60 * q
+                wob = np.sin(ys / 45 + t * 7) * 5 * q + np.sin(ys / 13 + t * 19) * 1.5 * q
+                drip = ((np.sin(xs / 31) * 0.5 + 0.5) ** 4 * 140 * q) * (ys / g) ** 2 + 40 * q * q      # 下半先软塌，上半横画保持平直
                 a = cv2.remap(a, xs + wob, ys - drip, cv2.INTER_LINEAR)
                 nz = E._nz(g, 7)
-                a = a * np.clip(((1 - ys / g) * 0.7 + nz * 0.3 - q * 1.1) * 6, 0, 1)
-            L = T.Layer(); L.paste(a, c[0], c[1] + 10, (0.06, 0.03, 0.02), e)
-            ember = cv2.GaussianBlur(L.A, (0, 0), 3) - L.A
-            fr = fr * (1 - L.A[..., None] * 0.92) + np.clip(ember, 0, 1)[..., None] * np.array([1.0, 0.4, 0.1], np.float32) * 2.0 * (0.4 + q)
+                a = a * np.clip(((ys / g) * -0.7 + 0.7 + nz * 0.3 - q * 1.15 + 0.35) * 6, 0, 1)
+            L = T.Layer(); L.paste(a, 640, 470 + 40 * q if e > 0 and q > 0 else 470, (0.04, 0.02, 0.015), e)
+            A = L.A
+        fr = fx2.god_rays(fr, (c[0], self.HZ - 20), strength=0.85, length=1.1, t=t, src_r=260, occluder=A)   # 光束从笔画缝里透出
+        if e > 0:
+            ember = np.clip(cv2.GaussianBlur(A, (0, 0), 3) - A, 0, 1)
+            fr = fr * (1 - A[..., None] * 0.94) + ember[..., None] * np.array([1.0, 0.42, 0.1], np.float32) * 1.6
+        # 地面：暗土，地平线下压住日轮下半
+        gnd = sstep(self.HZ - 3, self.HZ + 3, yy)
+        land = (0.03 + self.land + 0.12 * np.exp(-((xx - c[0]) / 420) ** 2) * np.exp(-(yy - self.HZ) / 60)) [..., None] * np.array([1.0, 0.62, 0.35], np.float32)
+        fr = fr * (1 - gnd[..., None]) + land * gnd[..., None]
+        fr = fr + (np.exp(-((yy - self.HZ) / 6) ** 2) * np.exp(-((xx - c[0]) / 600) ** 2))[..., None] * np.array([1.0, 0.8, 0.5], np.float32) * 0.9
         return bloom(fr, 0.85, 0.55)
 
     def text(self, fr, t): return self.l.draw(fr, t)
@@ -1443,7 +1454,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E17': ('push_h', 0.07, 0.13, {}),                         # 第四棒：横推，中间帧 = 金脸 | 朱缝 | 朱脸 正面相对
     'E18': ('hard', 0, 0, {}),
     'E19': ('shatter', 0.04, 0.22, dict(center=(960, 540))),
-    'E20': ('iris_moon', 0.0, 0.30, dict(center=(960, 520), radius=120, sun=True)),
+    'E20': ('light_sweep', 0.06, 0.22, dict(y=770)),           # 第六棒：圆形 iris → 贴地平线的横向光线扫入
     'E21': ('flash_red', 0.0, 0.16, {}),
     'E22': ('match_cut', 0.0, 0.18, dict(shape='circle', center=(960, 330), radius=120)),
     'E23': ('impact', 0, 0, dict(col=(1.0, 0.86, 0.6), amp=10)),     # 第五棒：硬切加冲击（金白闪 2 帧 + 抖 4 帧 + 色散）
@@ -1463,7 +1474,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
-CUSTOM = {'blade_sweep': R5.blade_sweep, 'fog_wall': R5.fog_wall, 'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow, 'push_h': R3.push_h, 'door_open': R3.door_open}
+CUSTOM = {'light_sweep': R6.light_sweep, 'gold_leaf': R6.gold_leaf, 'blade_sweep': R5.blade_sweep, 'fog_wall': R5.fog_wall, 'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow, 'push_h': R3.push_h, 'door_open': R3.door_open}
 
 # 运镜：(缓动, z0, z1, x0, x1, y0, y1, rot0, rot1)
 MOVE = {
@@ -1486,7 +1497,7 @@ MOVE = {
     'E17': ('sine', 1.0, 1.03, 40, -40, 0, 0, 0, 0),
     'E18': ('sine', 1.0, 1.04, 0, 0, 0, 0, 0, 0),
     'E19': ('expo_in', 1.0, 1.10, 0, 0, 0, 0, 0, 0),
-    'E20': ('sine', 1.0, 1.08, 0, 0, 30, -20, 0, 0),
+    'E20': ('sine', 1.0, 1.06, 20, -30, 10, -10, 0, 0),
     'E21': ('sine', 1.0, 1.06, 30, -10, 0, 0, 0, 0),
     'E22': ('sine', 1.0, 1.04, 0, 0, -30, 0, 0, 0),           # 摇臂降对齐
     'E23': ('expo_in', 1.0, 1.18, 0, 0, 0, 0, 0, 0),           # 吸气
