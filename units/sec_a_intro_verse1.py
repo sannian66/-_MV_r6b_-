@@ -1289,32 +1289,39 @@ class V18(Shot):
         e = np.clip(self.pit - cv2.warpAffine(self.pit, np.float32([[1, 0, -8], [0, 1, -8]]), (W, H)), 0, 1)
         fr = fr + e[..., None] * np.array([0.6, 0.25, 0.15], np.float32) * 0.8                  # 印坑边缘余热
         fr = A.glow(fr, (300, 150), 600, 0.3, (0.9, 0.7, 0.5))
-        at = (1180 + 40 * u, 820)
+        at = (1180 + 40 * u, 880)
         sh = np.zeros((H // 2, W // 2), np.float32)                                              # 长影
         cv2.line(sh, (int(at[0] / 2), int(at[1] / 2)), (int((at[0] + 520) / 2), int((at[1] + 300) / 2)), 1.0, 22, cv2.LINE_AA)
         sh = cv2.resize(cv2.GaussianBlur(sh, (0, 0), 6), (W, H))[..., None]
         fr = fr * (1 - 0.6 * sh)
-        fr, info = A.place(fr, t, S('A/stand_ha'), at, h=430, rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.5), wind=13,
-                           grade=dict(expo=0.75, sat=0.35, tint=(0.97, 0.98, 1.02)))
+        cs = np.zeros((H // 2, W // 2), np.float32)                                              # 第五棒：脚下接触阴影 + 积水
+        cv2.ellipse(cs, (int(at[0] / 2), int(at[1] / 2)), (70, 16), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+        cs = cv2.resize(cv2.GaussianBlur(cs, (0, 0), 5), (W, H))[..., None]
+        fr = fr * (1 - 0.75 * cs)
+        fr = fx2.ripples(fr, t, [(at[0] - 30, at[1] + 4), (at[0] + 50, at[1] + 2)], [self.t0 + 0.1, self.t0 + 0.6], speed=160, amt=0.5, life=1.0)
+        fr, info = A.place(fr, t, S('A/stand_ha'), at, h=560, rim=COLD, rim_amt=2.6, rim_dir=(-0.8, -0.5), wind=13,
+                           grade=dict(expo=0.80, sat=0.38, tint=(0.97, 0.98, 1.02)), breathe=0.0)
         fr = fog(fr, t, 1, 300, 1000, 0.5, (0.30, 0.28, 0.26), speed=(380, 60), light=(300, 150))
         fr = RAIN.draw(fr, t, 0.7, angle=20, light=(300, 150), layers=(0, 1, 2))
         fr = ASH.draw(fr, t, 0.8, wind=(420, 40))
         return fr, 0
 
 
-# V19 40.84–41.77 MCU 仰望巨印（第四棒：人物缩小留出头顶，推镜改为有方向的竖向拖影，眼中寒光；冷雨边光）
+# V19 40.84–41.77 MCU 仰望巨印（第五棒：换 look_up_mcu 统一主角脸 + defringe 去发丝灰边，人物右移让出左上歌词）
 class V19(Shot):
+    def __init__(self):
+        self.spr = S('A/look_up_mcu2')                                     # 自抠：色距 + 连通背景，发丝间灰底清掉
     def render(self, t):
         u = self.u(t)
         fr = night((0.02, 0.02, 0.024), (0.06, 0.06, 0.065))
         fr = A.glow(fr, (960, 100), 600, 0.4, (1.0, 0.82, 0.55))
         fr = RAIN.draw(fr, t, 0.6, angle=4, light=(960, 100), layers=(0, 1))
-        hh = 780 * (1 + 0.08 * eio(u))
-        fr, info = A.place(fr, t, S('S018/look_up'), (1220, 1110 + 30 * u), h=hh, anc=(0.5, 1.0), rim=COLD, rim_amt=3.0,
+        hh = 1010 * (1 + 0.05 * eio(u))                                      # 第五棒：换 look_up_mcu（参考脸统一），顶边出画在黑边之上
+        fr, info = A.place(fr, t, self.spr, (1420, 1125 + 20 * u), h=hh, anc=(0.5, 1.0), rim=COLD, rim_amt=3.0,
                            rim_dir=(0.0, -1.0), wind=10, grade=dict(expo=0.82, sat=0.38, tint=(0.97, 0.99, 1.03)),
                            mblur=(0, 10 * eio(u)))
         g = math.exp(-max(0, t - V(41.40)) / 0.12) * (t >= V(41.40))
-        for p in ((0.455, 0.235), (0.545, 0.235)):
+        for p in ((0.486, 0.26), (0.559, 0.26)):
             fr = pupil_glint(fr, info['to_scr'](p), 0.6 * g, 1.0)
         fr = RAIN.draw(fr, t, 0.6, angle=4, layers=(2,))
         return fr, (3 if g > 0.5 else 0)
@@ -1346,18 +1353,19 @@ class V20(Shot):
 # V21 42.68–44.03 ECU 巨字「锋」压满屏，与巨印「正」一同被斩成两半错开，碎块飞散；末帧墨缝 → 交给 B 组（墨渗成纸）
 class V21(Shot):
     def __init__(self):
-        T.warm('锋', 'xing', 560); T.warm('芒', 'xing', 150)
+        T.warm('锋芒', 'xing', 500)
         self.face = PR.seal_face('正', 760, style='bai', wear=0.35, seed=4)
     def render(self, t):
         u = self.u(t); ts = V(43.30)
         fr = night((0.03, 0.025, 0.025), (0.06, 0.05, 0.05))
         a = t - ts
         L = T.Layer()                                                                   # 印面
-        L.paste_rgba(self.face[..., :3], self.face[..., 3] * 0.9, 960 - 380, 540 - 380)
+        # 第五棒：去红方印（全段红印 ≤2：V08 罪状、V17 正）；印面改墨色石刻暗纹作底，「锋」「芒」同号成对压满屏
+        L.paste_rgba(self.face[..., :3] * 0 + 0.10, self.face[..., 3] * 0.55, 960 - 380, 540 - 380)
         p = cprog(7, [8], t, 0.12)[0]
-        if p > 0: T.place(L, '锋', 900, 520, 560, (0.97, 0.94, 0.88), 'xing', alpha=eout(p), scale=1 + 0.3 * (1 - eout(p)))
-        p2 = cprog(7, [9], t, 0.15)[0]
-        if p2 > 0: T.place(L, '芒', 1350, 760, 150, (0.86, 0.12, 0.08), 'xing', alpha=eout(p2))
+        if p > 0: T.place(L, '锋', 690, 530, 500, (0.97, 0.94, 0.88), 'xing', alpha=eout(p), scale=1 + 0.3 * (1 - eout(p)))
+        p2 = cprog(7, [9], t, 0.12)[0]
+        if p2 > 0: T.place(L, '芒', 1240, 530, 500, (0.86, 0.12, 0.08), 'xing', alpha=eout(p2), scale=1 + 0.3 * (1 - eout(p2)))
         if a < 0:
             fr = T.compose(fr, L, shadow=0.7, glow=0.25)
         else:
@@ -1519,7 +1527,7 @@ LY2 = [
     (6, [(0, 120, _Wt), (1, 220, _R), (2, 220, _R)], 560, 880, 38.08, False),                       # 若「正义」
     (6, [(3, 90, _Wt), (4, 165, _G), (5, 165, _G), (6, 90, _Wt), (7, 90, _Wt)], 960, 300, 39.85, False),  # 由「权势」执掌
     (7, [(0, 96, _Wt), (1, 96, _Wt), (2, 180, _G), (3, 180, _G), (4, 96, _Wt), (5, 180, _R), (6, 180, _R), (7, 96, _Wt)],
-     900, 300, 42.40, True),                                                                        # 那我「宁愿」做「乱世」的（随刀光逐字点亮）
+     640, 300, 42.40, True),                                                                        # 那我「宁愿」做「乱世」的（随刀光逐字点亮）
 ]
 
 
