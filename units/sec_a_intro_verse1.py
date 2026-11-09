@@ -920,17 +920,35 @@ class V17(Shot):
             fr = K.paste_sprite(fr, img[..., :3] * 1.1, img[..., 3], 960, 540)
             fr = fx2.god_rays(fr, (960, 540), strength=0.5 * (1 - q), length=1.3, color=(1.0, 0.8, 0.5), t=t, src_r=sz * 0.6)
             return fr, 0
-        fr = A.vgrad((0.10, 0.085, 0.075), (0.05, 0.04, 0.035))
-        fr = fr * (0.8 + 0.4 * cv2.resize(A.tex(5, 512, 8, 5), (W, H))[..., None])
+        # 第二棒：夯土石板地面（大块石板缝 + 细噪声），印坑下陷（偏移投影 + 斜面高光），裂缝朱红余热
+        fr = A.vgrad((0.11, 0.09, 0.075), (0.05, 0.04, 0.034))
+        if not hasattr(self, 'ground'):
+            g = 0.75 + 0.5 * cv2.resize(A.tex(5, 512, 8, 5), (W, H)) + 0.25 * cv2.resize(A.tex(6, 512, 40, 3), (W, H))
+            sl = np.zeros((H, W), np.float32)
+            r = np.random.default_rng(5); y = 140
+            while y < H:
+                cv2.line(sl, (0, y), (W, y + int(r.uniform(-8, 8))), 1.0, 2, cv2.LINE_AA); x = int(r.uniform(0, 200))
+                while x < W:
+                    cv2.line(sl, (x, y), (x + int(r.uniform(-6, 6)), y + 150), 1.0, 2, cv2.LINE_AA); x += int(r.uniform(220, 380))
+                y += int(r.uniform(130, 170))
+            self.ground = (g * (1 - 0.6 * cv2.GaussianBlur(sl, (0, 0), 1.2)))[..., None]
+            sq = np.zeros((H, W), np.float32); cv2.rectangle(sq, (960 - 290, 600 - 290), (960 + 290, 600 + 290), 1.0, -1)
+            self.pit = cv2.GaussianBlur(cv2.warpAffine(sq, np.float32([[1, 0, 18], [0, 1, 24]]), (W, H)), (0, 0), 14)
+            e = cv2.GaussianBlur(sq, (0, 0), 3); self.bevel = np.clip(e - cv2.warpAffine(e, np.float32([[1, 0, 6], [0, 1, 6]]), (W, H)), 0, 1)
+        fr = fr * self.ground
         for c in self.cracks:
-            m = K.draw_crack((H, W), c, 3, branches=4, seed=3, prog=clamp01(a / 0.5))
-            fr = fr * (1 - m[..., None] * 0.9) + m[..., None] * RED * 0.6 * math.exp(-a / 0.6)
+            m = K.draw_crack((H, W), c, 4, branches=4, seed=3, prog=clamp01(a / 0.5))
+            mg = cv2.GaussianBlur(m, (0, 0), 6)
+            fr = fr * (1 - m[..., None] * 0.9) + (m[..., None] * 0.9 + mg[..., None] * 1.2) * RED * (0.25 + 0.6 * math.exp(-a / 0.6))
+        fr = fr * (1 - 0.75 * self.pit[..., None])
         fr = PR.stamp_imprint(fr, self.face, 960, 600, 560, prog=1.0, alpha=0.95)
+        fr = fr + self.bevel[..., None] * np.array([0.9, 0.7, 0.5], np.float32) * 0.5
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
         d = np.hypot(xx * 2 - 960, (yy * 2 - 600) * 1.6)
         R = 320 + 1400 * eout(a / 0.9)
         ring = np.exp(-((d - R) / (90 + 260 * a)) ** 2) * math.exp(-a / 0.8)
-        fr = fr * (1 - cv2.resize(ring, (W, H))[..., None] * 0.2) + cv2.resize(ring, (W, H))[..., None] * np.array([0.6, 0.55, 0.5], np.float32)
+        rg = cv2.resize(ring, (W, H))[..., None] * (0.6 + 0.4 * cv2.resize(A.tex(9, 256, 6, 4), (W, H))[..., None])
+        fr = fr * (1 - rg * 0.3) + rg * np.array([0.34, 0.28, 0.22], np.float32)
         fr = K.sparks(fr, t, 71, (960, 600), n=90, life=0.9, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=0, area=(260, 260), amt=0.6,
                       t0=th, burst=True, color=(0.8, 0.7, 0.55))
         if a < 0.06: fr = fr * 0.15
