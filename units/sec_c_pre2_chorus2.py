@@ -1036,7 +1036,7 @@ class C21(Shot):
                    flash=0.6 * pulse(t, tx, 0.2))
         A = rain(A, t, 211, inten=0.7, angle=10, color=np.array([1.0, 0.5, 0.45], np.float32))
         B = storm(t, 212, horizon=1300, flash=0.3, ground=False) * np.array([1.08, 0.98, 0.82], np.float32)
-        B, _ = put(B, t, 'S074/head_turn', 1450 + 60 * u, 1100, 1100, flip=True, rim=GOLD, rim_amt=3.0, rim_dir=(-0.9, -0.4), expo=0.7, wind=5)
+        B, _ = put(B, t, 'S074/head_turn', 1560 + 50 * u, 1260, 1100, flip=True, rim=GOLD, rim_amt=3.0, rim_dir=(-0.9, -0.4), expo=0.7, wind=5)
         B = rain(B, t, 212, inten=0.7, angle=10, color=np.array([1.0, 0.85, 0.6], np.float32))
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
         d = (xx - 960) * 0.88 + (yy - 540) * 0.47              # 斜线（约 62°）
@@ -1044,10 +1044,11 @@ class C21(Shot):
         fr = A * (1 - m) + B * m
         line = np.exp(-(d / 3) ** 2) + 0.4 * np.exp(-(d / 30) ** 2)
         fr = fr + line[..., None] * np.array([1.0, 0.95, 0.9], np.float32) * (0.9 + 0.8 * pulse(t, tx, 0.2))
-        fr = paste_glyph(fr, '正', 1380, 390, 300, GOLD_T, glow=0.7, glow_c=(1, 0.6, 0.2), alpha=sm(V(138.88) - 0.2, V(138.88), t) if t < self.t0 + 0.05 else 1.0)
+        # 第五棒（评审 P0）：「正」移到反派上方空区（不压脸），「邪」对称放左上，不压主角刀身
+        fr = paste_glyph(fr, '正', 1330, 300, 230, GOLD_T, glow=0.7, glow_c=(1, 0.6, 0.2), alpha=sm(V(138.88) - 0.2, V(138.88), t) if t < self.t0 + 0.05 else 1.0)
         if t >= tx - 0.12:
             e = eout((t - (tx - 0.12)) / 0.12)
-            fr = paste_glyph(fr, '邪', 560, 420, 300, RED_T, glow=0.9, glow_c=(0.9, 0.08, 0.04), scale=lerp(1.8, 1, e), alpha=min(1, e * 2))
+            fr = paste_glyph(fr, '邪', 330, 330, 230, RED_T, glow=0.9, glow_c=(0.9, 0.08, 0.04), scale=lerp(1.8, 1, e), alpha=min(1, e * 2))
         self.ca = 4 if 0 <= t - tx < 0.1 else 0
         return fr
 
@@ -1679,11 +1680,12 @@ SHOTS = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12, C13, C14, C
 # 切点（声音时刻，秒）：拍 / 人声首字 / 起音；帧 = 视觉帧（最近帧再提前 1 帧）。首尾 = 段落边界。
 # 第三棒：按 librosa 起音复核，6 个偏离切点改到最近强起音（118.95→118.92、128.78→128.87、134.50→134.57、135.60→135.63、
 # 148.49→148.34、149.30→149.15）；C15 133.22→133.135；新增 C35b（154.545「扛」前）、C40b（159.93「是」）；C39 158.62→158.54。
-CUT_T = [117.80, 118.92, 120.53, 121.46, 122.83, 123.74, 124.88, 125.70, 126.27, 127.41, 128.87, 130.17, 131.08, 132.30, 133.135,
+CUT_T = [117.80, 118.92, 120.53, 121.46, 122.83, 123.74, 124.88, 125.70, 126.27, 127.41, 128.87, 130.17, 131.08, 132.45, 133.38,
          134.57, 135.63, 136.56, 137.49, 138.39, 139.32, 140.69, 142.06, 143.43, 144.82, 145.73, 146.63, 147.56, 148.34, 149.15,
          150.30, 151.70, 152.60, 153.07, 153.97, 154.545, 155.36, 156.27, 157.18, 158.54, 159.47, 159.93, 160.38]
 assert len(CUT_T) == len(SHOTS)
-CUT_F = [F0] + [round(x * FPS) - 1 for x in CUT_T[1:]] + [F1]
+# 第五棒：评审 P1「整体比拍点晚 1–2 帧」→ 视觉帧再前移 1 帧（最近帧 -2，切在拍前）；间奏 C14/C15 改到拍点 132.45 / 133.38（评审 P0）
+CUT_F = [F0] + [round(x * FPS) - 2 for x in CUT_T[1:]] + [F1]
 for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
     _S.t0, _S.t1 = _a / FPS, _b / FPS
 
@@ -1771,7 +1773,7 @@ S = Sent
 SENTS = [
     # 预副歌二：铅字打字机（权力的话）
     S(29, [0, 1, 2, 3], 560, 880, size=58, mode='type', glitch='正义', exit='glitch', out=V(122.79)),                 # 谁的正义（C04）
-    S(29, [4, 5, 6, 7, 8], 1480, 220, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.72)),  # 成了交易的（C05）
+    S(29, [4, 5, 6, 7, 8], 1480, 220, size=58, mode='type', glitch='交易', gold='交易', exit='glitch', out=V(123.90)),   # 第五棒：延续进 C06 前 6 帧，「的」不断档  # 成了交易的（C05）
     # 「我不低头」起：他自己的重字（Black，朱红「不」逐拍落下）
     S(30, [0, 1, 2, 3], 420, 330, size=96, mode='fly', layout='v', red='不', exit='shatter', out=V(125.62), track=0.12),
     S(30, [4, 5, 6], 960, 900, size=110, mode='fly', red='不命', exit='shatter', out=V(126.22), track=0.15),
@@ -1807,6 +1809,13 @@ for _s in SENTS:
     if _nx - _s.out < 0.30:
         if _nx - _s.out < 0.12: _s.out = _nx - 0.12
         _s.exit_len = max(0.12, _nx - _s.out - 1 / FPS)
+
+
+# 第五棒（评审 P0 碎字残片）：字层不许早于它首字所在镜头的切点出现（上一镜/转场过渡帧只带出镜那一镜自己的字）
+for _s in SENTS:
+    _j = max([0] + [j for j, c in enumerate(_CUTS_S, 1) if c <= _s.tin[0] + 1e-6])
+    _post = CUTS.get(SHOTS[_j].__name__, ('hard', 0, 0))[2] if _j else 0
+    _s.t_start = (CUT_F[_j] / FPS) + 0.6 * _post        # 带内容转场：等入镜画面占上风再出字
 
 
 class _Lazy:
@@ -1867,11 +1876,13 @@ class Sec:
             if 0 < k <= n + 1e-6: fr = CX.dark_breath(fr, min(1.0, (n + 1 - k) / n))
         name = CUTS.get(self.ids[i], ('hard',))[0]
         if name == 'hard' and i > 0:
+            # 第五棒（评审 P1「硬切没有冲击」）：切后 3 帧 = 电白闪 + 8px 抖 + 推近 + 色偏，强度 1 / 0.5 / 0.2
             k = int((t - s.t0) * FPS + 1e-6)
-            if k < 2:
-                a = 1.0 if k == 0 else 0.45
-                fr = camxf(fr, 1 + 0.03 * a) * (1 + 0.18 * a) + 0.04 * a
-                ca = max(ca, 4 if k == 0 else 2)
+            if k < 3:
+                a = (1.0, 0.5, 0.2)[k]
+                r_ = np.random.default_rng(i * 7 + k).uniform(-1, 1, 2) * 8 * a
+                fr = camxf(fr, 1 + 0.035 * a, r_[0], r_[1]) * (1 + 0.55 * a) + 0.07 * a * np.array([0.92, 0.96, 1.0], np.float32)
+                ca = max(ca, (7, 4, 2)[k])
         return fr, ca, cm
 
     def frame(self, f):
@@ -1887,7 +1898,7 @@ class Sec:
         fr = fr + 0.014 * (1 - np.clip(fr, 0, 1))
         dx, dy, z = cm
         for s in SENTS:
-            if s.tin[0] - s.lead - 0.05 <= t < s.out + 0.32:
+            if max(s.tin[0] - s.lead - 0.05, s.t_start) <= t < s.out + 0.32:
                 fr = draw_sent(fr, s, t, cam=(dx * 0.35, dy * 0.35, 1 + (z - 1) * 0.35))
         # 段尾：最后 4 帧切黑（接 Bridge 白纸虚空，由 D 组白闪入）
         if f >= F1 - 4:
