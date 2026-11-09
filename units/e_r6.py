@@ -63,7 +63,7 @@ def gold_leaf(A, B, p, center=(960, 540), seed=19, red_frac=0.12):
     e = c01(p)
     out = B.copy()
     r = np.random.default_rng(seed)
-    n = 70
+    n = 110
     cov = np.clip(1 - e * 1.35, 0, 1)
     if cov > 0:
         # A 先被一张随时间扩大的不规则洞吃掉
@@ -73,7 +73,7 @@ def gold_leaf(A, B, p, center=(960, 540), seed=19, red_frac=0.12):
         hole = np.clip((e * 1.5 - d - 0.25 * nz) / 0.05, 0, 1)
         out = A * (1 - hole[..., None]) + B * hole[..., None]
     for i in range(n):
-        ang = r.uniform(0, 2 * math.pi); sp = r.uniform(300, 1300); sz = r.uniform(30, 120)
+        ang = r.uniform(0, 2 * math.pi); sp = r.uniform(300, 1300); sz = r.uniform(12, 52)
         x = center[0] + math.cos(ang) * (r.uniform(0, 500) + sp * e); y = center[1] + math.sin(ang) * (r.uniform(0, 300) + sp * e) + 200 * e * e
         rot = r.uniform(0, 6.28) + e * r.uniform(-8, 8)
         flip = abs(math.cos(e * r.uniform(4, 12) + i))                      # 3D 翻转：宽度随 cos 变化
@@ -83,13 +83,14 @@ def gold_leaf(A, B, p, center=(960, 540), seed=19, red_frac=0.12):
         a = (1 - sstep(0.7, 1.0, e)) * sstep(0.0, 0.08, e)
         if a <= 0: continue
         red = r.random() < red_frac
-        face = np.array([0.75, 0.10, 0.06], np.float32) if red else np.array([1.0, 0.78, 0.40], np.float32) * (0.6 + 0.8 * flip)
-        edge = face * 0.35
+        face = np.array([0.75, 0.10, 0.06], np.float32) * (0.5 + 0.6 * flip) if red else np.array([1.0, 0.76, 0.38], np.float32) * (0.25 + 1.1 * flip ** 3)
+        edge = np.array([0.30, 0.18, 0.06], np.float32)
         Pt = P + np.array([4, 7], np.int32)                                   # 厚度：错位的暗缘
         cv2.fillPoly(out, [Pt], tuple(float(v) * a + 0 for v in edge), cv2.LINE_AA)
         m = np.zeros((H, W), np.float32)
         cv2.fillPoly(m, [P], 1.0, cv2.LINE_AA)
         out = out * (1 - a * m[..., None]) + a * m[..., None] * face
+        cv2.line(out, tuple(int(v) for v in P[0]), tuple(int(v) for v in P[1]), tuple(float(v) * a for v in (1.6, 1.4, 1.0)), 1, cv2.LINE_AA)   # 箔边高光
     return out
 
 
@@ -99,7 +100,7 @@ def lava_crack(fr, x, t, seed=18, width=34, top=120, bot=960):
     r = np.random.default_rng(seed)
     path = np.zeros(H, np.float32)
     for k in range(5):
-        f = r.uniform(0.004, 0.03); path += r.uniform(10, 40) * np.sin(yy * f + r.uniform(0, 6))
+        f = r.uniform(0.006, 0.05); path += r.uniform(3, 9) * np.sin(yy * f + r.uniform(0, 6))       # 小幅抖动：裂缝贴住两卡接缝
     cx = x + path
     xx = np.arange(W, dtype=np.float32)[None, :]
     d = np.abs(xx - cx[:, None])

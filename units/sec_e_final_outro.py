@@ -877,19 +877,12 @@ class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂
         if not hasattr(self, 'AB'):   # 两半是定格（各取上一镜字落定的一帧），只算一次
             self.AB = (self.a.l1.draw(self.a.render(211.05), 211.05), self.b.l1.draw(self.b.render(211.85), 211.85))   # 第五棒：只取大字（副句不带进分屏，避免半句出画）
         A, B = self.AB                                                # 第五棒：左 =「对」（E16 右半），右 =「错」（E17 左半），中缝留给金色「何」
-        o = int(40 * u)
+        o = int(20 + 20 * eout(u))                                    # 第六棒：两张字卡沿熔岩裂缝向外错位
         fr = np.concatenate([A[:, 960 - o:1920 - o], B[:, o:960 + o]], 1)
-        m = np.zeros((H, W), np.float32)
-        pts = self.zz.copy(); pts[:, 0] = 960 + (pts[:, 0] - 960) * (0.4 + 2.5 * u)
-        cv2.polylines(m, [pts.astype(np.int32)], False, 1.0, 3 + int(14 * u), cv2.LINE_AA)
-        m = cv2.GaussianBlur(m, (0, 0), 2)
-        fr = fr * (1 - m[..., None]) + m[..., None] * GOLDW * 2.0
-        return fr + cv2.GaussianBlur(m, (0, 0), 25)[..., None] * GOLD * 1.5 * u
+        fr, _ = R6.lava_crack(fr, 960, t, seed=18, width=40 + 34 * eout(u))        # 熔岩裂缝：有厚度、边缘发红、喷碎屑（取代折线）
+        return fr
 
-    def text(self, fr, t):
-        if not hasattr(self, 'he'):
-            self.he = LyrO([('何', 960, 520, 300, 'serif_black', GOLD_T, CT(53, 8))], None, seed=145, outline=6, plate_amt=0.5, glow=0.6)
-        return self.he.draw(fr, t)
+    def text(self, fr, t): return fr                                  # 第六棒：「何」移到 E19 唱（本镜只留 对｜错）
 
 
 class E19(Shot):   # S125 CU 直视镜头；金匾碎片在他周围漂浮；「何须伪装」灰飞
@@ -1604,7 +1597,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E16': ('door_open', 0.0, 0.20, dict(cx=960)),             # 第四棒：E15 沿竖缝裂开两扇滑出 → E16 自己的中缝（图形匹配）
     'E17': ('push_h', 0.07, 0.13, {}),                         # 第四棒：横推，中间帧 = 金脸 | 朱缝 | 朱脸 正面相对
     'E18': ('hard', 0, 0, {}),
-    'E19': ('shatter', 0.04, 0.22, dict(center=(960, 540))),
+    'E19': ('gold_leaf', 0.04, 0.22, dict(center=(960, 540), seed=19, red_frac=0.12)),   # 第六棒：三角碎片 → 有厚度的金箔碎片（与镜内箔片同质）
     'E20': ('light_sweep', 0.06, 0.22, dict(y=770)),           # 第六棒：圆形 iris → 贴地平线的横向光线扫入
     'E21': ('flash_red', 0.0, 0.16, {}),
     'E22': ('match_cut', 0.0, 0.18, dict(shape='circle', center=(960, 330), radius=120)),
