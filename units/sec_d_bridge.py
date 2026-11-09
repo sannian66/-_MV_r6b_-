@@ -1334,7 +1334,7 @@ class S30_Da(Shot):
                           t0=td, color=tuple(GOLD), amt=1.5)
         fr = fr + impact(t, td, 0.12) * GOLD * 0.8
         wo = ei(cl((t - (self.t1 - 0.5)) / 0.5), 2)        # 白金出画（接 E 组 flash_white）
-        fr = fr * (1 + 1.5 * wo) + wo * np.array([1.0, 0.92, 0.75], np.float32) * 0.9
+        fr = fr * (1 + 1.0 * wo) + wo * np.array([1.0, 0.92, 0.75], np.float32) * 0.55   # 金白出画但「答」轮廓仍在
         z = 1.0 + 0.04 * u + 0.1 * impact(t, td, 0.15)
         return shake_cam(fr, t, [td], 10, z=z, oy=-60 * eo(u, 2)), 0.0
 
@@ -1358,13 +1358,13 @@ CUTS = {
     'S13_PaperCut': ('paper_tear', 0.1, 0.3, dict(seed=12, angle=6)),
     'S14_Burn': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S15_Hole': ('flash_red', 0.04, 0.1, dict(one_frame=True)),
-    'S16_Closed': ('smoke_through', 0.1, 0.25, dict(seed=16, direction=-1)),
+    'S16_Closed': ('zoom_through', 0.08, 0.14, dict(center=(960, 700))),
     'S17_Eye': ('match_cut', 0, 0.3, dict(shape='circle', center=(int(0.29 * W), int(0.555 * H)), radius=8, glow=EMBER)),
     'S18_Draw': ('slash_wipe', 0.05, 0.2, dict(angle=-12)),
     'S19_Forge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S20_Wall': ('occlusion', 0.1, 0.15, dict(kind='pillar', direction=1)),
     'S21_Charge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
-    'S22_Chuang': ('zoom_through', 0.08, 0.12, dict()),
+    'S22_Chuang': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.2)),
     'S23_Eye': ('shatter', 0.04, 0.14, dict(center=(1060, 560), seed=23, n=60)),
     'S24_Defy': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.25)),
     'S25_Leap': ('slash_wipe', 0.05, 0.2, dict(angle=-40)),
