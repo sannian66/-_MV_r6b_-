@@ -639,38 +639,52 @@ class C12(Shot):
 
 
 class C13(Shot):
-    """riser：镜头冲进雷暴之眼——云层成漩涡，雨丝化作迎面的光速线，刀上的赤热余烬被卷进风眼；鼓点上闪。"""
+    """riser（第三棒重做，去白色爆点）：镜头冲进雷暴之眼——四周云墙绕成漩涡、被环形闪电照亮，正中是风眼：一块黑而静的天，
+    眼壁一圈被刀上带来的赤热余烬烧成红边（承接 C12 烧红的刃口）；雨丝化作迎面的光速线；鼓点上闪电沿眼壁跑一圈。"""
     def render(self, t):
         u = self.u(t)
         hits = [V(x) for x in (131.42, 131.61, 131.96, 132.07)]
-        fl = sum(0.7 * pulse(t, h, 0.07) for h in hits) + 0.6 * ein(u, 2)
-        fr = storm_sky(t * 3, 13, 2000, flash=fl, flash_c=(960, 480), speed=(30, -40), cloud=1.3)
-        # 漩涡：极坐标扭曲
+        fl = sum(0.6 * pulse(t, h, 0.07) for h in hits) + 0.3 * ein(u, 2)
+        fr = storm_sky(t * 3, 13, 2000, flash=0.35 + fl, flash_c=(960, 520), speed=(30, -40), cloud=1.6)
+        fr = fr * 1.15
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32) * 2
-        dx, dy = xx - 960, yy - 520; rr = np.sqrt(dx * dx + dy * dy) + 1
-        tw = (1.4 + 2.5 * ein(u, 2)) * np.exp(-rr / 700)
-        ca, sa = np.cos(tw), np.sin(tw)
-        mx = (960 + dx * ca - dy * sa).astype(np.float32); my = (520 + dx * sa + dy * ca).astype(np.float32)
+        dx, dy = xx - 960, (yy - 520) * 1.25; rr = np.sqrt(dx * dx + dy * dy) + 1
+        tw = (1.6 + 2.8 * ein(u, 2)) * np.exp(-rr / 750)
+        ca_, sa_ = np.cos(tw), np.sin(tw)
+        mx = (960 + dx * ca_ - dy * sa_).astype(np.float32); my = (520 + (dx * sa_ + dy * ca_) / 1.25).astype(np.float32)
         fr = cv2.remap(fr, cv2.resize(mx, (W, H)), cv2.resize(my, (W, H)), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        z = 1.0 + 0.5 * ein(u, 2.5)
-        fr = camxf(fr, z, rot=12 * ein(u, 2))
-        # 风眼核心：一点赤热（承接 C12 烧红的刀）
-        fr = K.vol_light(fr, (960, 520), 90 + 160 * ein(u, 2), (1.0, 0.35, 0.12), 0.5 + 0.8 * ein(u, 2))
+        z = 1.0 + 0.45 * ein(u, 2.5)
+        fr = camxf(fr, z, rot=14 * ein(u, 2))
+        # 风眼：黑而静的圆 + 眼壁红边（余烬）+ 眼壁冷光
+        R0 = 150 + 200 * ein(u, 2)
+        rf = cv2.resize(rr, (W, H))
+        eye = np.clip((R0 - rf) / 30 + 0.5, 0, 1)
+        fr = fr * (1 - eye[..., None] * 0.92)
+        ring = np.exp(-((rf - R0) / (18 + 10 * u)) ** 2)
+        nz = cv2.resize(K.tex('c13r', seed=13, base=24), (W, H))
+        ang = np.arctan2(cv2.resize(dy, (W, H)), cv2.resize(dx, (W, H)))
+        flick = 0.6 + 0.4 * np.sin(ang * 9 + t * 14) * nz
+        fr = fr + ring[..., None] * np.array([1.0, 0.32, 0.10], np.float32) * (0.9 + 0.8 * fl) * flick[..., None]
+        ring2 = np.exp(-((rf - R0 * 1.5) / 60) ** 2)
+        fr = fr + ring2[..., None] * COLD * 0.25 * (0.4 + fl)
+        # 鼓点：闪电沿眼壁跑一段弧
+        for i, h in enumerate(hits):
+            q = (t - h) / 0.12
+            if 0 <= q < 1:
+                fr = arc_streak(fr, (960, 520), R0 * 1.35, R0 * 1.35 / 1.25, i * 90, i * 90 + 200, min(1, q * 2), width=4,
+                                col=(0.85, 0.9, 1.0), amt=1.4)
         # 迎面光速线（雨丝径向拉长）
         r = np.random.default_rng(13)
         Ls = np.zeros((H // 2, W // 2), np.float32)
         for i in range(160):
             a = r.uniform(0, 6.283); ph = r.random(); sp = r.uniform(0.8, 1.6)
             k = (t * sp * 2.2 + ph) % 1.0
-            d0 = 40 + 1100 * k ** 2; d1 = d0 * (1.10 + 0.5 * k * (0.5 + u))
+            d0 = R0 * 1.2 + 1100 * k ** 2; d1 = d0 * (1.10 + 0.5 * k * (0.5 + u))
             p0 = (480 + math.cos(a) * d0 / 2, 260 + math.sin(a) * d0 / 2 * 0.62); p1 = (480 + math.cos(a) * d1 / 2, 260 + math.sin(a) * d1 / 2 * 0.62)
             cv2.line(Ls, (int(p0[0]), int(p0[1])), (int(p1[0]), int(p1[1])), float(0.25 + 0.75 * k), 1, cv2.LINE_AA)
-        fr = fr + cv2.resize(Ls, (W, H))[..., None] * COLD * (0.5 + 0.8 * u)
-        fr = radial(fr, (960, 520), 0.05 + 0.25 * ein(u, 2))
-        for i, h in enumerate(hits):
-            fr = bolt(fr, t, h, 130 + i, (300 + 400 * i, 150), (800 + 120 * i, 980), inten=0.6, sky=0.0, width=2)
-        fr = sparks(fr, t, 131, (960, 520), n=120, life=0.8, speed=(200, 900), dirc=(0, -1), spread=3.1, grav=0, amt=0.9,
-                    color=(1.0, 0.45, 0.15))
+        fr = fr + cv2.resize(Ls, (W, H))[..., None] * COLD * (0.4 + 0.6 * u)
+        fr = sparks(fr, t, 131, (960, 520), n=90, life=1.0, speed=(60, 260), dirc=(0, -1), spread=3.1, grav=0, amt=0.8,
+                    color=(1.0, 0.45, 0.15), area=(R0 * 2, R0 * 1.6))
         return fr
 
 
@@ -723,23 +737,52 @@ class C15(Shot):
 # =====================================================================================
 # 副歌二「破」
 class C16(Shot):
-    """ECU 血雨：雨在空中瞬间变红（慢放），巨字「血」砸进雨幕，「冷」上碎成血珠落下。"""
+    """ECU 血雨（第三棒加材质）：雨在空中瞬间变红（慢放），巨字「血」砸进雨幕——字是湿的：有厚度和高光、内部更暗、
+    下缘不断淌出血线（滴落末端带血珠），「冷」上碎成血珠落下。"""
+    def __init__(self):
+        r = np.random.default_rng(16)
+        self.drips = [(r.uniform(0.05, 0.95), r.uniform(0.4, 1.0), r.uniform(5, 11), r.uniform(0, 0.25)) for _ in range(16)]
     def render(self, t):
         u = self.u(t)
         tb = V(134.50); ts = V(135.06)
-        fl = bolt_env(t, tb) * 1.3
-        fr = storm(t, 16, horizon=1300, flash=0.5 + fl, ground=False, fc=(960, 300))
-        fr = fr * np.array([1.05, 0.9, 0.9], np.float32)
+        fl = bolt_env(t, tb) * 1.1
+        fr = storm(t, 16, horizon=1300, flash=0.4 + fl, ground=False, fc=(960, 300))
+        fr = fr * np.array([1.05, 0.88, 0.88], np.float32)
         tr = 134.0 + (t - 134.0) * 0.3
         fr = rain(fr, tr, 160, inten=1.3, angle=6, red=sm(tb - 0.05, tb + 0.25, t), freeze=0.35)
         L = T.Layer()
-        sc = 1 + 0.35 * (1 - eout((t - tb) / 0.22)) if t >= tb else 1.4
-        T.place(L, '血', 960, 520, 640, RED_T, 'serif_black', scale=sc, texture=False)
+        sc = 1 + 0.35 * (1 - eout((t - tb) / 0.22)) if t >= tb else 1.0
+        T.place(L, '血', 960, 500, 600, (1, 1, 1), 'serif_black', scale=sc, texture=False)
+        A = L.A
+        bx = L.box(0)
+        if bx is not None:
+            x0, y0, x1, y1 = bx
+            k = max(0.0, t - tb)
+            for fx, ln, wd, dl in self.drips:      # 血线：从笔画下缘淌下
+                x = int(x0 + fx * (x1 - x0))
+                col = A[:, x]; ys = np.nonzero(col > 0.5)[0]
+                if len(ys) == 0: continue
+                yb = int(ys.max()); L_ = 230 * ln * eout(clamp((k - dl) / 0.9), 1.6)
+                if L_ < 3: continue
+                cv2.line(A, (x, yb - 4), (x, int(yb + L_)), 1.0, int(wd), cv2.LINE_AA)
+                cv2.circle(A, (x, int(yb + L_)), int(wd * 0.9), 1.0, -1, cv2.LINE_AA)
+            # 湿润材质：高度 → 法线 → 漫反射 + 高光
+            sub = A[max(0, y0 - 20):min(H, y1 + 260), max(0, x0 - 20):min(W, x1 + 20)]
+            hgt = cv2.GaussianBlur(sub, (0, 0), 6)
+            gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=3) * 6; gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=3) * 6
+            nrm = np.dstack([-gx, -gy, np.ones_like(gx)]); nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True)
+            lv = np.array([-0.45, -0.65, 0.6]); lv /= np.linalg.norm(lv)
+            hv = lv + np.array([0, 0, 1.0]); hv /= np.linalg.norm(hv)
+            dif = np.clip(nrm @ lv, 0, 1); spc = np.clip(nrm @ hv, 0, 1) ** 60
+            deep = np.clip(cv2.GaussianBlur(sub, (0, 0), 14) * 1.3 - 0.3, 0, 1)
+            base = np.array([0.55, 0.03, 0.025], np.float32)
+            Cs = base * (0.35 + 0.75 * dif[..., None]) * (1 - 0.45 * deep[..., None]) + spc[..., None] * np.array([1.0, 0.85, 0.82], np.float32) * (1.3 + fl)
+            L.C[max(0, y0 - 20):min(H, y1 + 260), max(0, x0 - 20):min(W, x1 + 20)] = Cs
+            L.bb = [max(0, x0 - 20), max(0, y0 - 20), min(W, x1 + 20), min(H, y1 + 260)]
         q = sm(ts, ts + 0.55, t)
         if q > 0: L = T.shatter_layer(L, q, (960, 470), 140, seed=16, power=0.7, gravity=1600, spin=200)
-        fr = T.compose(fr, L, shadow=0.6, shadow_sigma=30, glow=0.9, glow_sigma=30, glow_color=(0.9, 0.08, 0.04))
-        if 0 < t - ts < 0.12: self.ca = 6
-        else: self.ca = 0
+        fr = T.compose(fr, L, shadow=0.7, shadow_sigma=26, glow=0.45, glow_sigma=26, glow_color=(0.7, 0.04, 0.02))
+        self.ca = 6 if 0 < t - ts < 0.12 else 0
         return fr
 
 
@@ -798,7 +841,7 @@ def draw_spear(C, M, B, P, w=12, tip=1.0, light=(-0.6, -0.8), t=0.0, seed=0, hea
     q = np.array([B + n * w / 2, P + n * w * 0.35, P - n * w * 0.35, B - n * w / 2]).astype(np.int32)
     cv2.fillPoly(C, [q], (0.05, 0.035, 0.025), cv2.LINE_AA); cv2.fillPoly(M, [q], 1.0, cv2.LINE_AA)
     e0 = B + n * side * w * 0.38; e1 = P + n * side * w * 0.25
-    cv2.line(C, tuple(e0.astype(int)), tuple(e1.astype(int)), tuple(float(v) for v in COLD * (0.55 + 0.8 * flash)), max(1, int(w * 0.18)), cv2.LINE_AA)
+    cv2.line(C, tuple(e0.astype(int)), tuple(e1.astype(int)), tuple(float(v) for v in COLD * (0.16 + 0.35 * flash)), max(1, int(w * 0.12)), cv2.LINE_AA)
     if not head: return
     hc = P + d * 10 * tip + np.asarray(head_off, float)
     ang = math.atan2(d[1], d[0]) + head_rot
@@ -817,9 +860,9 @@ def draw_spear(C, M, B, P, w=12, tip=1.0, light=(-0.6, -0.8), t=0.0, seed=0, hea
     cv2.line(C, tuple((base - nn * wd * 0.35).astype(int)), tuple((base + nn * wd * 0.35).astype(int)), (0.45, 0.30, 0.12), max(2, int(8 * tip)), cv2.LINE_AA)
     # 红缨：从箍往后甩，随风 + 下垂
     r = np.random.default_rng(seed)
-    for k in range(26):
+    for k in range(14):
         a0 = math.pi + ang + r.normal(0, 0.45) + 0.25 * math.sin(t * 9 + k + seed)
-        l0 = r.uniform(50, 110) * tip
+        l0 = r.uniform(40, 80) * tip
         p0 = base - dd * 4
         pm = p0 + np.array([math.cos(a0), math.sin(a0)]) * l0 * 0.5
         p1 = p0 + np.array([math.cos(a0), math.sin(a0) + 0.5]) * l0
@@ -857,7 +900,7 @@ class C19(Shot):
             a = -math.pi * 0.98 + (i + r.uniform(-0.3, 0.3)) / (self.N - 1) * math.pi * 0.96 * 1.0
             a = a if i % 2 == 0 else a * 0.98 + math.pi * 0.02
             near = i % 4 == 0
-            self.sp.append(dict(a=a, rad=r.uniform(250, 330), dep=1.25 if near else r.uniform(0.75, 1.0), near=near, seed=190 + i,
+            self.sp.append(dict(a=a, rad=r.uniform(400, 480), dep=1.25 if near else r.uniform(0.75, 1.0), near=near, seed=190 + i,
                                 spin=r.uniform(-9, 9), fly=r.uniform(500, 900)))
     def render(self, t):
         u = self.u(t)
@@ -865,8 +908,8 @@ class C19(Shot):
         fl = 0.6 * bolt_env(t, ts) + 0.4 * bolt_env(t, V(137.55))
         fr = storm(t, 19, horizon=980, flash=0.45 + fl, fc=(960, 160), ox=120 * u, refl=0.6)
         fr = fog(fr, t, 19, density=0.5, y0=650, y1=1000, color=(0.35, 0.38, 0.45), speed=(40, 0))
-        c = np.array([960.0, 640.0])
-        close = 1.0 - 0.10 * sum(eout((t - x) / 0.12) for x in ti if t >= x)
+        c = np.array([960.0, 600.0])
+        close = 1.0 - 0.08 * sum(eout((t - x) / 0.12) for x in ti if t >= x)
         k = max(0.0, t - ts)
         layers = {}
         for far in (True, False):
@@ -912,7 +955,7 @@ class C20(Shot):
         fl = bolt_env(t, tb) + 0.8 * bolt_env(t, tz)
         fr = storm(t, 20, horizon=1300, flash=0.3 + fl, fc=(600, 300), ground=False)
         a = sm(td - 0.06, td + 0.1, t) * (0.35 + 0.65 * min(1, fl + 0.3))
-        fr = paste_glyph(fr, '定', 640, 500, 760, GOLD_T, alpha=a, glow=0.9, glow_c=(1.0, 0.6, 0.2), shadow=0, scale=1 + 0.06 * u)
+        fr = paste_glyph(fr, '定', 600, 500, 560, GOLD_T, alpha=a, glow=0.9, glow_c=(1.0, 0.6, 0.2), shadow=0, scale=1 + 0.06 * u)
         fr = bolt(fr, t, tb, 201, (300, 80), (500, 900), inten=0.9)
         fr, _ = put(fr, t, 'S074/head_turn', 1330, 1100, 1100, anchor='foot', rim=(0.9, 0.92, 1.0), rim_amt=3.0, rim_dir=(-0.9, -0.4),
                     flash=fl, expo=0.75, look=None, wind=6, sat=0.5)
@@ -1117,21 +1160,54 @@ class C27(Shot):
 
 
 class C28(Shot):
-    """字即光：惨白天光里金色巨字「亮」墨晕显出（147.74，墨边金芯，压得住白底），随即四周黑墨涌来把它吞掉——只是闪电的伪天亮。"""
+    """字即光（第三棒重做，去白底字卡）：劈开的墙上留下一道「亮」字形的裂口，惨白的电光天从字形里灌进来，
+    化成一束束体积光扫过画面；他背对镜头站在光里（look_up_back 第 2 次，C14 过肩大特写 → 这里中景逆光剪影），
+    147.74 光最满；随后乌云从字形边缘涌回、光束暗下去——只是闪电的伪天亮。"""
+    def __init__(self):
+        a = T.glyph('亮', 'serif_black', 560, False).astype(np.float32)
+        g = a.shape[0]
+        r = np.random.default_rng(28)
+        nz = cv2.resize(r.random((g // 10, g // 10)).astype(np.float32), (g, g))
+        a = np.clip(cv2.dilate(a, np.ones((9, 9), np.uint8)) * (0.75 + 0.5 * nz) - 0.25, 0, 1) * 1.5
+        self.hole = np.zeros((H, W), np.float32)
+        y0, x0 = 470 - g // 2, 960 - g // 2
+        self.hole[y0:y0 + g, x0:x0 + g] = np.clip(a, 0, 1)
+        wall = 0.035 + 0.03 * cv2.resize(K.tex('c28w', seed=28, base=14, octaves=4), (W, H))
+        bw = np.zeros((H, W), np.float32)
+        for j, yb in enumerate(range(BAR, H - BAR, 64)):
+            bw[yb:yb + 3] = 1
+            for xb in range((j % 2) * 75, W, 150): bw[yb:yb + 64, xb:xb + 3] = 1
+        self.wall = (wall * (1 - 0.6 * bw))[..., None] * np.array([0.9, 0.95, 1.0], np.float32)
+        # 裂缝：从字形向四周开裂
+        cr = np.zeros((H // 4, W // 4), np.float32)
+        for i in range(9):
+            a0 = i / 9 * 6.283 + 0.3
+            p = crack_path((960, 470), (960 + math.cos(a0) * 1100, 470 + math.sin(a0) * 650), 280 + i, n=22, jag=0.08)
+            cr = np.maximum(cr, draw_crack(cr.shape, p / 4, 1, branches=2, seed=i, prog=1.0))
+        self.crack = cv2.resize(cr, (W, H))
     def render(self, t):
         u = self.u(t)
         tl = V(147.74)
-        base = 0.86 - 0.70 * sm(tl + 0.25, self.t1, t)
-        fr = np.ones((H, W, 3), np.float32) * np.array([0.86, 0.88, 0.93], np.float32) * base
-        fr = storm_sky(t, 28, 2000, flash=0.6, cloud=0.6) * 0.3 + fr
-        if t >= tl - 0.15:
-            e = eout((t - tl + 0.15) / 0.2)
-            sc = lerp(1.25, 1.0, e) + 0.04 * u
-            # 墨晕底（字形外扩的墨）+ 金字
-            L = T.Layer(); T.place(L, '亮', 960, 520, 620, (0.03, 0.025, 0.02), 'serif_black', alpha=e * 0.85, scale=sc * 1.02, blur=6, texture=False)
-            fr = T.compose(fr, L, shadow=0.0, glow=0.0)
-            fr = paste_glyph(fr, '亮', 960, 520, 620, (1.0, 0.70, 0.26), glow=0.9, glow_c=(1.0, 0.55, 0.15), alpha=e, scale=sc, shadow=0.9)
-        fr = ink_vignette(fr, sm(tl + 0.15, self.t1, t))
+        lt = sm(self.t0, tl, t) * (1 - 0.75 * sm(tl + 0.25, self.t1, t))          # 光强：涨到「亮」→ 被乌云吞回
+        hole = self.hole
+        sky = storm_sky(t, 28, 2000, flash=0.9 + 0.8 * lt, cloud=0.8)
+        sky = sky * 0.4 + np.array([0.95, 0.93, 0.88], np.float32) * (0.35 + 0.65 * lt)
+        fr = self.wall * (1 + 2.5 * lt * cv2.GaussianBlur(hole, (0, 0), 120)[..., None])
+        fr = fr + self.crack[..., None] * np.array([1.0, 0.9, 0.7], np.float32) * (0.25 + 0.9 * lt) * cv2.GaussianBlur(hole, (0, 0), 200)[..., None] * 8
+        fr = fr * (1 - hole[..., None]) + sky * hole[..., None]
+        # 体积光：字形光源向镜头放射（径向拖影）
+        src = (hole[..., None] * sky).astype(np.float32)
+        acc = np.zeros_like(src); n = 10
+        for i in range(n):
+            z = 1 + 0.9 * lt * (i + 1) / n
+            acc += cv2.warpAffine(src, np.float32([[z, 0, 960 * (1 - z)], [0, z, 470 * (1 - z)]]), (W, H)) * (1 - i / n)
+        fr = fr + acc / n * 0.9 * lt * np.array([1.0, 0.92, 0.8], np.float32)
+        fr = dust(fr, t, 281, n=160, amt=0.6 * lt, drift=(10, -20), region=(300, BAR, 1620, H - BAR), color=(1.0, 0.9, 0.7))
+        fr, _ = put(fr, t, 'C/look_up_back', 960, 1030, 640, look='sil', rim=(1.0, 0.85, 0.6), rim_amt=3.2 + 2 * lt, rim_dir=(0, -1), wind=5,
+                    flash=0.4 * lt)
+        fr = rain(fr, t, 280, inten=0.9, angle=6, light=(960, 470))
+        # 乌云从边缘涌回（墨色）
+        fr = ink_vignette(fr, 0.55 * sm(tl + 0.2, self.t1, t))
         return fr
 
 
@@ -1322,9 +1398,9 @@ class C36(Shot):
     def __init__(self):
         r = np.random.default_rng(36)
         self.items = []
-        for row in range(14):
-            z = 1.0 + row * 0.55
-            n = int(10 + row * 3.5)
+        for row in range(12):
+            z = 1.0 + row * 0.7
+            n = int(16 + row * 2.0)
             for i in range(n):
                 self.items.append(dict(z=z * r.uniform(0.95, 1.05), x=r.uniform(-1.15, 1.15), kind='banner' if r.random() < 0.45 else 'spear',
                                        seed=int(r.integers(1e6)), ph=r.uniform(0, 6.28), lean=r.uniform(-4, 4)))
@@ -1333,7 +1409,7 @@ class C36(Shot):
         u = self.u(t)
         tt = V(155.96)
         fl = bolt_env(t, tt) * 1.3 + 0.5 * bolt_env(t, V(155.40))
-        hz = 640
+        hz = 700
         fr = storm(t, 36, horizon=hz, flash=0.45 + fl, fc=(960, 380), refl=0.7, oy=-40 * u)
         fr = bolt(fr, t, tt, 361, (60, 300), (1860, 360), inten=1.3, branches=12, width=4)
         fr = bolt(fr, t, V(155.40), 362, (1400, 140), (1500, 620), inten=0.8)
@@ -1344,10 +1420,10 @@ class C36(Shot):
         cam = 0.0 + 40 * u
         for it in self.items:
             z = it['z']; sc = 1.0 / z
-            gy = hz + 520 * sc                                                           # 落地点
+            gy = hz + 300 * sc                                                           # 落地点（低机位）
             x = 960 + (it['x'] * 1400 - cam) * sc * 1.6
             if x < -100 or x > W + 100: continue
-            ht = 560 * sc
+            ht = 760 * sc * (0.85 + 0.3 * ((it['seed'] % 97) / 97))
             fog_k = min(1.0, (z - 1) / 7.0)
             dark = 0.02 + 0.10 * fog_k
             lean = math.radians(it['lean'])
@@ -1371,7 +1447,7 @@ class C36(Shot):
             ax0, ay0 = max(0, -x0), max(0, -y0)
             aa = a[ay0:y1 - y0, ax0:x1 - x0]; ff = f_[ay0:y1 - y0, ax0:x1 - x0]
             sl = (slice(max(0, y0), y1), slice(max(0, x0), x1))
-            col = np.array([0.20, 0.025, 0.02], np.float32) * (0.6 + 0.6 * ff[..., None]) * (1 - 0.5 * fog_k) + dark
+            col = np.array([0.075, 0.012, 0.012], np.float32) * (0.6 + 0.6 * ff[..., None]) * (1 - 0.4 * fog_k) + dark
             C[sl] = C[sl] * (1 - aa[..., None]) + col * aa[..., None]
             M[sl] = np.maximum(M[sl], aa)
             G[sl] = np.maximum(G[sl], aa * (0.5 + 0.5 * ff) * (1 - fog_k * 0.6))
@@ -1379,11 +1455,11 @@ class C36(Shot):
         # 倒影（压扁、模糊、半透明）
         hzr = hz
         Cr = cv2.GaussianBlur(cv2.flip(C, 0), (0, 0), 3); Mr = cv2.GaussianBlur(cv2.flip(M, 0), (0, 0), 3)
-        sh = int(2 * (hz + 520) - H)
-        Cr = np.roll(Cr, sh, 0); Mr = np.roll(Mr, sh, 0); Mr[:hz + 520] = 0
-        fr = fr * (1 - 0.5 * Mr[..., None]) + Cr * 0.5 * Mr[..., None]
+        sh = int(2 * (hz + 300) - H)
+        Cr = np.roll(Cr, sh, 0); Mr = np.roll(Mr, sh, 0); Mr[:hz + 300] = 0
+        fr = fr * (1 - 0.3 * Mr[..., None]) + Cr * 0.3 * Mr[..., None]
         fr = fr * (1 - M[..., None]) + C * M[..., None]
-        fr = fr + G[..., None] * np.array([0.9, 0.12, 0.06], np.float32) * (0.25 + 0.9 * fl)      # 闪电透旗
+        fr = fr + G[..., None] * np.array([0.9, 0.12, 0.06], np.float32) * (0.10 + 0.55 * fl)      # 闪电透旗
         edge = np.clip(M - cv2.erode(M, np.ones((3, 3), np.uint8)), 0, 1)
         fr = fr + edge[..., None] * COLD * (0.15 + 0.8 * fl)
         fr = fog(fr, t, 36, density=0.4, y0=hz - 60, y1=hz + 300, color=(0.32, 0.35, 0.42), speed=(60, 0))
@@ -1664,16 +1740,16 @@ SENTS = [
     S(34, [7], 1600, 470, size=260, mode='fly', exit='shatter', out=V(144.70)),                                      # 墙（C24 低频震）
     S(35, [0, 1], 460, 300, size=84, mode='fly', exit='shatter', out=V(145.60), layout='v'),                        # 那就（C25）
     S(35, [3, 4], 1480, 830, size=84, mode='fly', exit='shatter', out=V(146.40)),                                    # 开它
-    S(35, [5, 6, 7], 960, 860, size=96, mode='fly', exit='cut', out=V(147.52), track=0.3),                          # 看个天
+    S(35, [5, 6, 7], 1560, 300, size=100, mode='fly', layout='v', exit='cut', out=V(147.52), track=0.3, back=0.6),    # 看个天（竖排压在暗墙上）
     S(36, [0, 1, 2], 1600, 230, size=150, mode='fly', layout='v', red='血', exit='shatter', out=V(150.22), track=0.05,
       sizes=[220, 110, 110]),                                                                                          # 血未冷（C30）
     S(36, [3, 4, 5], 420, 260, size=110, mode='fly', red='骨', exit='shatter', out=V(151.62)),                       # 骨未凉（C31）
     S(37, [0, 2, 3], 960, 250, size=70, mode='fly', exit='shatter', out=V(153.00), track=0.6, text='是对错', red='错'),   # 是/对/错（随印）
-    S(37, [4, 5, 6, 7], 1560, 260, size=110, mode='fly', layout='v', red='扛', exit='shatter', out=V(155.25), sizes=[110, 110, 110, 200]),   # 我自己扛
-    S(38, [0, 1], 960, 830, size=130, mode='fly', exit='shatter', out=V(156.62), track=0.3),                       # 天不
+    S(37, [4, 5, 6, 7], 1380, 820, size=100, mode='fly', red='扛', exit='shatter', out=V(155.25), sizes=[96, 96, 96, 190], back=0.6),   # 我自己扛（C35 → C35b）
+    S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.62), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
     S(39, [0, 1], 420, 860, size=100, mode='fly', exit='shatter', out=V(159.40)),                                    # 这一
     S(39, [2, 3, 4, 5], 960, 230, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
-    S(39, [6, 7, 8], 960, 860, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25),           # 的回答
+    S(39, [6, 7, 8], 1340, 840, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
 ]
 
 
@@ -1748,7 +1824,7 @@ class Sec:
         ins = INSERTS.get(f)
         if ins == 'white': fr = fr * 1.9 + 0.04 * np.array([0.9, 0.95, 1.0], np.float32); ca = max(ca, 3)   # 电光过曝（保留画面结构，不是白帧）
         elif ins == 'neg':
-            l = fr.mean(-1, keepdims=True); fr = np.clip(1.0 - l * 1.3, 0, 1) * np.array([0.95, 0.97, 1.0], np.float32); ca = max(ca, 5)
+            l = fr.mean(-1, keepdims=True); fr = np.clip(1.0 - l * 1.3, 0, 1) * np.array([0.62, 0.07, 0.05], np.float32); ca = max(ca, 5)   # 朱红负片（不是白帧）
         sid = self.ids[self.idx(t)]
         fr = fr * (EXPO_ALL * EXPO.get(sid, 1.0))
         fr = fr + 0.014 * (1 - np.clip(fr, 0, 1))

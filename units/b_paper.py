@@ -226,3 +226,32 @@ class NameFigure:
 
 NAMES = ['李四', '王五', '赵六', '陈七', '刘大', '周二', '吴三', '郑九', '孙十', '何青', '许平', '黄安', '林生', '谢远', '冯直', '曹宁',
          '萧汪', '叶董', '姚宋', '熊张', '郭何', '徐许', '魏白', '夏黎', '方崔', '杜卢']
+
+
+class NameCrowd:
+    """名帖纸人队列（侧面朝右），rows 排纵深 × cols 列；draw 时按 wave 从队首（右）到队尾（左）依次鞠躬"""
+    def __init__(self, seed, rows=3, cols=10, x_span=(120, 1820), y_front=930, h_front=300, depth_scale=0.72, view='side'):
+        r = np.random.default_rng(seed)
+        self.items = []
+        k = 0
+        for row in range(rows - 1, -1, -1):                       # 远排先画
+            sc = depth_scale ** row
+            y = y_front - (1 - sc) * 520
+            n = cols + row * 2
+            for c in range(n):
+                xx = x_span[0] + (x_span[1] - x_span[0]) * (c + 0.5 + r.uniform(-0.2, 0.2)) / n
+                F = NameFigure(int(seed * 10 + k), name=NAMES[k % len(NAMES)], view=view)
+                self.items.append(dict(F=F, x=xx, y=y + r.uniform(-8, 8) * sc, h=h_front * sc * r.uniform(0.92, 1.06), row=row,
+                                       order=(xx - x_span[0]) / (x_span[1] - x_span[0])))
+                k += 1
+
+    def draw(self, fr, t, bow=1.0, wave=0.9, wet=0.0, light='back', dof=1.0, x_off=0.0, rim_col=(1.0, 0.78, 0.38), grade=None, alpha=1.0):
+        for it in self.items:
+            # 队首（右侧 order≈1）先鞠躬
+            b = np.clip(bow * (1 + wave) - (1 - it['order']) * wave, 0, 1)
+            b = b * b * (3 - 2 * b)
+            par = 1.0 - 0.25 * it['row']
+            g = grade if grade is not None else (1.0 - 0.18 * it['row'],) * 3
+            fr = it['F'].draw(fr, it['x'] + x_off * par, it['y'], it['h'], bow=0.85 * b, light=light, wet=wet, blur=dof * 2.2 * it['row'],
+                              rim_col=rim_col, grade=g, alpha=alpha, tilt=1.5 * math.sin(t * 1.3 + it['x']))
+        return fr

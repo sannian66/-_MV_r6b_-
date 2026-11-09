@@ -346,7 +346,7 @@ class E08(Shot):   # S117 CU（第三棒重做）纸糊巨脸自中心烧穿 →
 class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；「那就撕碎」沿刀线排、被一分为二
     def __init__(self):
         self.sky = E.dawn_sky(1180, horizon=0.72, sun=(1500, 500), hor=(1.0, 0.84, 0.55), mid=(0.55, 0.40, 0.24), cloud=0.3)
-        self.cur = PA.PaperCurtain(seed=18, n=13, x_span=(60, 1860), top=60, length=(900, 1000), width=(90, 130), text=True)
+        self.cur = R3.Scrolls(18, 11, (60, 1860), 70, (880, 960), (120, 160), text_size=17)
         ts = cts(51, [0, 1, 2, 3])
         self.ts = CT(51, 2)
         p0, p1 = np.array([300.0, 300.0]), np.array([1700.0, 780.0])
@@ -360,8 +360,14 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         u = self.u(t)
         fr = E.sun_disc(self.sky.copy(), (1500, 500), 70, amt=1.0)
         ts = self.ts
-        cuts = [(tuple(self.p0 - (self.p1 - self.p0)), tuple(self.p1 + (self.p1 - self.p0)), ts)]
-        fr = self.cur.draw(fr, t, wind=1.2, light_color=GOLD, backlit=1.0, cuts=cuts, depth_blur=1.5)
+        C, A = self.cur.layer(t, wind=1.1)
+        C, A = R3.Scrolls.light(C, A, fr, 0.9, blur=1.2)
+        if t >= ts:                                                          # 挂轴沿刀线断开：线下半截下坠，断口烧红
+            C, A, em = R3.cut_layer(C, A, tuple(self.p0), tuple(self.p1), t - ts, fall=1.0, side=1)
+            fr = R3.comp(fr, C, A)
+            fr = fr + (em * 1.6 + cv2.GaussianBlur(em, (0, 0), 8) * 1.5)[..., None] * np.array([1.0, 0.5, 0.15], np.float32)
+        else:
+            fr = R3.comp(fr, C, A)
         pose_mb = (60, -30) if t < ts + 0.05 else (0, 0)
         fr, info = put(fr, t, 'S118/xslash', (900 - 40 * u, 1060), h=820, rim=GOLDW, rim_amt=2.8, wind=10, mblur=pose_mb)
         if t >= ts - 0.03:
@@ -386,20 +392,23 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         return out + g[..., None] * GOLDW * 1.2
 
 
-class E10(Shot):   # S119 碎纸慢放扑向镜头，日前剪影；字写在飞纸上
+class E10(Shot):   # S119（第三棒重做）碎纸扑面：被斩碎的律令纸片 + 金箔，有厚度、3D 翻转、焦边余烬，前景大片强虚化擦镜；
+    #  墨黑底、残存一点暗红火光（次色调），不再用日前黑剪影；「它 / 自己」大字描边落在纸片之间
     def __init__(self):
-        self.sky = E.dawn_sky(1190, horizon=0.78, sun=(960, 560), hor=(1.0, 0.86, 0.6), mid=(0.5, 0.36, 0.2), cloud=0.5)
-        self.sh = PA.PaperShreds(119, n=110, size=(26, 90))
-        self.l = Lyr([('它', 560, 380, 170, 'serif_black', WHITE_T, CT(51, 4)), ('自', 1380, 330, 120, 'serif_black', GOLD_T, CT(51, 5)),
-                      ('己', 1420, 520, 120, 'serif_black', GOLD_T, CT(51, 6))], CT(51, 7) - 0.12, seed=70, glow=0.5)
+        n = K.fbm(H // 2, W // 2, 1190, base=4, octaves=5)
+        yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
+        glow = np.exp(-(((xx - 480) / 420) ** 2 + ((yy - 300) / 260) ** 2))
+        bg = (0.015 + 0.04 * n)[..., None] * np.array([1.0, 0.85, 0.75], np.float32) + glow[..., None] * np.array([0.45, 0.12, 0.04], np.float32) * (0.6 + 0.5 * n[..., None])
+        self.bg = cv2.resize(bg.astype(np.float32), (W, H))
+        self.sh = R3.Shreds(119, n=70, gold=0.3, size=(60, 200), spread=(1500, 700), zr=(0.5, 3.4))
+        self.l = LyrO([('它', 520, 430, 240, 'serif_black', WHITE_T, CT(51, 4)), ('自', 1330, 380, 190, 'serif_black', GOLD_T, CT(51, 5)),
+                       ('己', 1520, 560, 190, 'serif_black', GOLD_T, CT(51, 6))], CT(51, 7) - 0.12, seed=70, glow=0.4, outline=4)
 
     def render(self, t):
-        u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (960, 560), 210, amt=1.15)
-        fr = fx2.god_rays(fr, (960, 560), strength=0.8, length=1.0, t=t)
-        fr, info = put(fr, t, 'S120/plant', (960, 1000), h=560, rim=GOLDW, rim_amt=3.5, grade=G_SIL, look='sil', wind=4)
-        ts = (t - self.t0) * 0.35                                          # 慢放
-        fr = self.sh.draw(fr, ts + 0.5, t0=0.0, origin=(960, 500), spread=(1100, 600), to_camera=1.0, gravity=60, wind=(30, 0), burn=0.15)
+        fr = self.bg.copy()
+        q = (t - self.t0) * 0.45 + 0.6                                          # 慢放
+        fr = self.sh.draw(fr, q, light=(-0.5, -0.4, -0.75), dof=(2.5, 14.0), zfocus=1.3, emb=1.2, paper=(1.0, 0.84, 0.62))
+        fr = E.dust_motes(fr, t, 1191, n=80, amt=0.8, drift=(30, -80), col=(1.0, 0.55, 0.25), size=(1, 4))
         return bloom(fr, 0.8, 0.5)
 
     def text(self, fr, t):
@@ -437,8 +446,9 @@ class E11(Shot):   # S120a 低机位 MS：刀插大地，尘环冲击；巨字�
     def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
 
 
-class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印以刀为中心盖下（摇臂升）；人+插地刀=真俯视精灵 E_r2/top_down，晨光拉出长影
-    KEY = 'E_r2/top_down'
+class E12(Shot):   # S120b ELS 正俯拍（第三棒返工）：大地即印面，「鬼屠」朱印盖下（摇臂升）；人物立在印旁（不压字），
+    #  精灵只裁人（去掉插地刀土堆那团圆形物），按地面光调色 + 接触阴影 + 晨光长影
+    KEY = 'E_r2/top_down|crop=0,0,0.56,1'
 
     def __init__(self):
         n = K.fbm(H, W, 1210, base=6, octaves=6)
@@ -448,10 +458,8 @@ class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印�
         peb = cv2.resize(np.clip((pb - 0.6) * 5, 0, 1), (W, H))
         g = 0.10 + 0.16 * n - crack * 0.06 + peb * 0.05
         self.ground = (g[..., None] * np.array([1.0, 0.80, 0.58], np.float32)).astype(np.float32)
-        self.face = PR.seal_face('鬼屠', 700, style='bai', wear=0.25, seed=12)
-        self.cap = Lyr(row('自己定规章', [CT(51, 5), CT(51, 6), CT(51, 7), CT(51, 8), CT(51, 9)], 960, 900, size=62, red='自己'),
-                       CT(52, 0) - 0.15, seed=90)
-        self.SW = (0.66, 0.79)       # 插地刀（土堆中心）在精灵包围盒里的相对位置
+        self.face = PR.seal_face('鬼屠', 640, style='bai', wear=0.25, seed=12)
+        self.cap = Sub('自己定规章', [CT(51, 5), CT(51, 6), CT(51, 7), CT(51, 8), CT(51, 9)], 'center', CT(52, 0) - 0.15, red='自己', seed=90)
 
     def render(self, t):
         u = self.u(t)
@@ -459,22 +467,24 @@ class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印�
         yy, xx = E.grid()
         fr = fr * (0.55 + 0.6 * np.exp(-((xx - 1300) ** 2 + (yy - 200) ** 2) / (2 * 700 ** 2)))[..., None]   # 晨光斜照
         p = (t - (CT(51, 9) - 0.18)) / 0.7
-        c = (960, 560)
-        if p > 0: fr = PR.stamp_imprint(fr, self.face, c[0], c[1], 700, min(1, p), angle=-4)
-        z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, c, h=380, anc=self.SW, rim=GOLDW, rim_amt=2.0, rim_dir=(0.7, -0.7),
-                      grade=G_DAWN, wind=5)
+        c = (820, 500)
+        if p > 0: fr = PR.stamp_imprint(fr, self.face, c[0], c[1], 640, min(1, p), angle=-4)
+        at = (1390, 600)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, at, h=330, anc=(0.5, 0.5), rim=GOLDW, rim_amt=1.6, rim_dir=(0.7, -0.7),
+                      grade=dict(expo=0.72, sat=0.55, tint=(1.08, 0.97, 0.84), lift=0.0, gamma=1.12), wind=4)
         A = info['A']
-        Sh = np.zeros_like(A)                                              # 晨光自右上 → 长影拖向左下（多层位移叠出拉长感）
-        for k in range(1, 7):
-            M = np.float32([[1, 0, -40 * k], [0, 1, 30 * k]]); Sh = np.maximum(Sh, cv2.warpAffine(A, M, (W, H)) * (1 - 0.08 * k))
-        Sh = cv2.GaussianBlur(Sh, (0, 0), 7)
-        fr = fr * (1 - 0.65 * Sh[..., None])
+        Sh = np.zeros_like(A)                                              # 晨光自右上 → 长影拖向左下（印面上也压影）
+        for k in range(1, 9):
+            M = np.float32([[1, 0, -34 * k], [0, 1, 26 * k]]); Sh = np.maximum(Sh, cv2.warpAffine(A, M, (W, H)) * (1 - 0.07 * k))
+        Sh = cv2.GaussianBlur(Sh, (0, 0), 6)
+        con = cv2.GaussianBlur(cv2.dilate(A, np.ones((9, 9), np.uint8)), (0, 0), 14)        # 接触阴影
+        fr = fr * (1 - 0.6 * Sh[..., None]) * (1 - 0.5 * con[..., None])
         fr = fr * (1 - A[..., None]) + z * A[..., None]
         if p > 0.3:
             q = (p - 0.3) / 0.7
-            r = 380 + 600 * eout(q)
+            r = 330 + 600 * eout(q)
             ring = np.exp(-((np.hypot(xx - c[0], yy - c[1]) - r) / 40) ** 2) * (1 - q)
-            fr = fr + ring[..., None] * np.array([0.8, 0.5, 0.3], np.float32) * 0.6
+            fr = fr + ring[..., None] * np.array([0.8, 0.5, 0.3], np.float32) * 0.5
             fr = E.dust_motes(fr, t, 1213, n=60, amt=0.5 * (1 - q), drift=(40, 30), col=(0.9, 0.7, 0.5), size=(2, 5))
         return fr
 

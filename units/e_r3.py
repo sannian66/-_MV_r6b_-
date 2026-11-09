@@ -285,18 +285,22 @@ def cut_layer(C, A, p0, p1, q, fall=1.0, side=1):
 
 # ============================================================== 有厚度的纸片 / 金箔
 class Shreds:
-    """3D 翻转的碎纸 / 金箔：不规则多边形，正面纸色、背面暗、金箔面朝光时闪；烧焦边 + 余烬边线；按深度分层虚化（前景大片强虚化）。"""
+    """3D 翻转的碎纸 / 金箔：不规则撕边多边形（7–11 顶点 + 撕口抖动），纸面有纤维纹理与明暗渐变，金箔有皱褶高光；
+    焦边 + 余烬边线；按深度分三层虚化（前景大片强虚化）。只在每片包围盒内运算。"""
     def __init__(self, seed, n=80, gold=0.35, size=(30, 120), spread=(1400, 700), zr=(0.4, 3.0)):
         r = np.random.default_rng(seed)
         self.P = []
         for i in range(n):
-            k = int(r.integers(4, 7))
-            ang = np.sort(r.uniform(0, 2 * math.pi, k)); rad = r.uniform(0.55, 1.0, k)
-            self.P.append(dict(v=np.stack([np.cos(ang) * rad, np.sin(ang) * rad * r.uniform(0.5, 1.0)], 1), s=r.uniform(*size),
+            k = int(r.integers(7, 12))
+            ang = np.sort(r.uniform(0, 2 * math.pi, k)); rad = r.uniform(0.6, 1.0, k)
+            rad = rad * (1 + 0.12 * np.sin(ang * r.integers(3, 7) + r.uniform(0, 6)))
+            self.P.append(dict(v=np.stack([np.cos(ang) * rad, np.sin(ang) * rad * r.uniform(0.55, 1.0)], 1), s=r.uniform(*size),
                                x=r.uniform(-1, 1) * spread[0], y=r.uniform(-1, 1) * spread[1], z=r.uniform(*zr),
                                vx=r.uniform(-60, 60), vy=r.uniform(-30, 60), vz=-r.uniform(0.3, 0.9),
-                               rx=r.uniform(0, 6.28), ry=r.uniform(0, 6.28), wx=r.uniform(-4, 4), wy=r.uniform(-4, 4), wz=r.uniform(-2, 2),
-                               gold=r.random() < gold, tone=r.uniform(0.85, 1.05), burn=r.uniform(0.2, 1.0)))
+                               rx=r.uniform(0, 6.28), ry=r.uniform(0, 6.28), wx=r.uniform(-3, 3), wy=r.uniform(-3, 3), wz=r.uniform(-2, 2),
+                               gold=r.random() < gold, tone=r.uniform(0.85, 1.05), burn=r.uniform(0.2, 1.0), gd=r.uniform(0, 6.28)))
+        self.tex = cv2.resize(K.fbm(H // 2, W // 2, seed + 9, base=30, octaves=4), (W, H))
+        self.crin = cv2.resize(K.fbm(H // 2, W // 2, seed + 10, base=90, octaves=3), (W, H))
 
     def draw(self, fr, t, c=(W / 2, H / 2), f=900.0, to_cam=1.0, light=(0.3, -0.6, -0.75), paper=(0.93, 0.86, 0.70),
              gold=(1.0, 0.78, 0.42), amt=1.0, dof=(1.0, 9.0), zfocus=1.4, emb=1.0, tint_back=(0.25, 0.18, 0.12)):
@@ -307,34 +311,43 @@ class Shreds:
         for p in self.P:
             z = p['z'] + p['vz'] * t * to_cam
             if z < 0.15: continue
-            x = p['x'] + p['vx'] * t; y = p['y'] + p['vy'] * t
-            rx, ry, rz = p['rx'] + p['wx'] * t, p['ry'] + p['wy'] * t, p['wz'] * t
-            items.append((z, p, x, y, rx, ry, rz))
+            items.append((z, p, p['x'] + p['vx'] * t, p['y'] + p['vy'] * t, p['rx'] + p['wx'] * t, p['ry'] + p['wy'] * t, p['wz'] * t))
         items.sort(key=lambda q: -q[0])
         for (z, p, x, y, rx, ry, rz) in items:
             v = p['v'] * p['s']
             cz, sz = math.cos(rz), math.sin(rz)
             v = v @ np.array([[cz, sz], [-sz, cz]], np.float32)
-            X = v[:, 0] * math.cos(ry); Y = v[:, 1] * math.cos(rx)
-            nrm = np.array([math.sin(ry), -math.sin(rx), math.cos(rx) * math.cos(ry)], np.float32)
-            px = c[0] + (x + X) / z; py = c[1] + (y + Y) / z
-            pts = np.stack([px, py], 1)
-            if pts[:, 0].max() < -50 or pts[:, 0].min() > W + 50 or pts[:, 1].max() < 0 or pts[:, 1].min() > H: continue
+            cyy = math.cos(ry); cxx = math.cos(rx)
+            X = v[:, 0] * (0.25 + 0.75 * abs(cyy)) * np.sign(cyy or 1); Y = v[:, 1] * (0.25 + 0.75 * abs(cxx))
+            nrm = np.array([math.sin(ry), -math.sin(rx), cxx * cyy], np.float32)
+            pts = np.stack([c[0] + (x + X) / z, c[1] + (y + Y) / z], 1)
+            x0, y0 = np.floor(pts.min(0)).astype(int) - 4; x1, y1 = np.ceil(pts.max(0)).astype(int) + 4
+            x0, y0 = max(0, x0), max(0, y0); x1, y1 = min(W, x1), min(H, y1)
+            if x1 - x0 < 2 or y1 - y0 < 2: continue
+            m = np.zeros((y1 - y0, x1 - x0), np.float32)
+            ip = (pts - [x0, y0]).astype(np.int32)
+            cv2.fillPoly(m, [ip], 1.0, cv2.LINE_AA)
             front = nrm[2] > 0
             ndl = abs(float(nrm @ lv))
+            yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+            grad = 0.8 + 0.35 * np.sin(((xx - pts[:, 0].mean()) * math.cos(p['gd']) + (yy - pts[:, 1].mean()) * math.sin(p['gd'])) / max(8, p['s'] / z) )
+            tx = self.tex[y0:y1, x0:x1]
             if p['gold']:
-                spec = ndl ** 12
-                col = np.array(gold, np.float32) * (0.35 + 0.5 * ndl) + spec * 1.6
+                cr = self.crin[y0:y1, x0:x1]
+                spec = np.clip(ndl * (0.6 + 0.8 * cr), 0, 1.4) ** 6
+                col = np.asarray(gold, np.float32) * ((0.3 + 0.5 * ndl) * (0.7 + 0.6 * cr) * grad)[..., None] + spec[..., None] * 1.4
             else:
-                col = np.array(paper, np.float32) * p['tone'] * (0.45 + 0.55 * ndl) if front else np.array(paper, np.float32) * np.array(tint_back, np.float32) * 2.2 * (0.4 + 0.5 * ndl)
+                base = np.asarray(paper, np.float32) * p['tone'] if front else np.asarray(paper, np.float32) * np.asarray(tint_back, np.float32) * 2.2
+                col = base * ((0.45 + 0.55 * ndl) * (0.8 + 0.35 * tx) * grad)[..., None]
+                ink = np.clip((tx - 0.62) * 6, 0, 1) * 0.0
+                col = col * (1 - ink[..., None])
             li = 0 if z > zfocus * 1.6 else (1 if z > zfocus * 0.55 else 2)
-            ip = pts.astype(np.int32)
-            m = np.zeros((H, W), np.float32)
-            cv2.fillPoly(m, [ip], 1.0, cv2.LINE_AA)
-            layers[li] = layers[li] * (1 - m[..., None]) + col * m[..., None]; alph[li] = np.maximum(alph[li], m)
+            Lc, La = layers[li][y0:y1, x0:x1], alph[li][y0:y1, x0:x1]
+            Lc[:] = Lc * (1 - m[..., None]) + col * m[..., None]; np.maximum(La, m, out=La)
             if not p['gold']:
-                cv2.polylines(layers[li], [ip], True, (0.06, 0.03, 0.02), max(1, int(3 / z)), cv2.LINE_AA)   # 焦边
-                cv2.polylines(em, [ip], True, float(p['burn'] * emb), max(1, int(2 / z)), cv2.LINE_AA)
+                e_ = np.zeros_like(m); cv2.polylines(e_, [ip], True, 1.0, max(1, int(4 / z)), cv2.LINE_AA)
+                Lc[:] = Lc * (1 - 0.85 * e_[..., None] * m[..., None])
+                np.maximum(em[y0:y1, x0:x1], e_ * m * float(p['burn'] * emb) * (0.4 + 0.6 * tx), out=em[y0:y1, x0:x1])
         out = fr
         for li, sig in zip((0, 1, 2), (dof[0], 0.0, dof[1])):
             Cc, Aa = layers[li], alph[li]
@@ -343,8 +356,8 @@ class Shreds:
                 Cc = cv2.GaussianBlur(Cc * Aa[..., None], (0, 0), sig); Aa = cv2.GaussianBlur(Aa, (0, 0), sig)
                 Cc = Cc / np.maximum(Aa[..., None], 1e-3)
             out = out * (1 - Aa[..., None] * amt) + Cc * Aa[..., None] * amt
-        em = cv2.GaussianBlur(em, (0, 0), 1.2)
-        return out + (em * 1.2 + cv2.GaussianBlur(em, (0, 0), 6) * 1.2)[..., None] * np.array([1.0, 0.45, 0.12], np.float32) * amt
+        em = cv2.GaussianBlur(em, (0, 0), 1.0)
+        return out + (em * 1.3 + cv2.GaussianBlur(em, (0, 0), 6) * 1.2)[..., None] * np.array([1.0, 0.45, 0.12], np.float32) * amt
 
 
 # ============================================================== 碑林纵深

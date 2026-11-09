@@ -266,7 +266,7 @@ class V02(Shot):
 #   「世人教我顾全」思源宋 3 个深度的空间字，随横移视差
 class V03(Shot):
     def __init__(self):
-        self.crowd = PA.PaperCrowd(4903, rows=3, cols=10, view='side', x_span=(120, 1820), y_front=930, h_front=300)
+        self.crowd = BP.NameCrowd(4903, rows=3, cols=9, x_span=(60, 1860), y_front=905, h_front=340)
         sk = night_sky(4901, top=(0.03, 0.03, 0.04), bot=(0.13, 0.12, 0.11), horizon=0.75)
         x, y = K.grid()
         sk += np.exp(-(((x - 1450) / 520) ** 2 + ((y - 560) / 260) ** 2))[..., None] * GOLD * 0.22
@@ -284,7 +284,7 @@ class V03(Shot):
         fr = self.fog.draw(fr, t, density=0.5, y0=480, y1=900, color=(0.34, 0.33, 0.32), speed=(30, 0), light=(1450, 560),
                            light_r=600, light_color=GOLD * 0.8, cam=(pan * 0.3, 0))
         bow = clamp01((t - (V(CT(20, 4)) - 0.4)) / 1.0)
-        fr, _ = self.crowd.draw(fr, t, bow=eio(bow), wave=0.9, wet=0.6, light='back', light_color=GOLD, dof=1.2, x_off=pan * 0.7)
+        fr = self.crowd.draw(fr, t, bow=eio(bow), wave=0.9, wet=0.3, light='back', dof=1.2, x_off=pan * 0.7)
         pr = prs(20, [0, 1, 2, 3, 4, 5], t)
         items = [dict(text='世人', x=-520, y=-170, z=1700, size=150, color='white', font='serif_sb', style='h', prog=pr[0:2]),
                  dict(text='教我', x=80, y=-60, z=1250, size=150, color='white', font='serif_sb', style='h', prog=pr[2:4]),
@@ -302,7 +302,7 @@ class V04(Shot):
     def __init__(self):
         sk = night_sky(4911, top=(0.02, 0.022, 0.03), bot=(0.09, 0.085, 0.08), horizon=0.9)
         self.bg = sk
-        self.crowd = PA.PaperCrowd(4912, rows=2, cols=8, view='side', x_span=(-80, 2000), y_front=1120, h_front=520, depth_scale=0.8)
+        self.crowd = BP.NameCrowd(4912, rows=2, cols=7, x_span=(-80, 2000), y_front=1160, h_front=560, depth_scale=0.8)
         self.rain = fx2.RainSheet(4913, density=1.0)
         T.warm('大局', 'serif_black', 300); T.warm('退让', 'serif_sb', 90)
 
@@ -339,7 +339,7 @@ class V04(Shot):
         # 纸人头顶剪影（下沿，前景，逆光金边，随鞠躬下压）
         bowk = eio(clamp01((t - V(CT(20, 8)) + 0.2) / 0.8))
         tmp = np.zeros_like(fr)
-        tmp, _ = self.crowd.draw(tmp, t, bow=0.3 + 0.6 * bowk, wave=0.6, light='back', rim=0.0, dof=0.0)
+        tmp = self.crowd.draw(tmp, t, bow=0.3 + 0.6 * bowk, wave=0.6, light='back', dof=0.0)
         fr = sil_over(fr, tmp, GOLD, rim_w=5, amt=1.3)
         k = hitp(t, 91.314, 0.12)
         fr = cam(fr, 1.04 + 0.04 * eio(u) + 0.03 * k, 0, -20 * eio(u))
@@ -360,7 +360,7 @@ class V05(Shot):
         self.lat = cv2.GaussianBlur(lat, (0, 0), 1.2)
         self.pap = pap
         self.sp = spr('S050/scepter')
-        self.figs = [PA.PaperFigure(5010 + i, view='front') for i in range(6)]
+        self.figs = [BP.NameFigure(5010 + i, name=BP.NAMES[i + 8], view='front') for i in range(6)]
         T.warm('可大局背后', 'serif_black', 110)
 
     def render(self, t):
@@ -389,7 +389,7 @@ class V05(Shot):
         tmp = np.zeros_like(fr)
         for i, f_ in enumerate(self.figs):
             xx = -60 + i * 400 + (i % 2) * 60
-            tmp, _ = f_.draw(tmp, xx, 1080 + 420 + sink + 50 * (i % 3), 820, t, bow=0.35, light='back', light_color=GOLD, rim=0.0)
+            tmp = f_.draw(tmp, xx, 1080 + 230 + sink + 50 * (i % 3), 820, bow=0.2, light='back')
         fr = sil_over(fr, tmp, GOLD * 0.8, rim_w=4, amt=0.9, blur=5)
         fr = fr + 0.03 * glow[..., None] * GOLD
         fr = cam(fr, 1.0 + 0.07 * e, 0, -30 * e)

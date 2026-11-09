@@ -1010,14 +1010,17 @@ class S23_Eye(Shot):
         fr = D.lightning(fr, t, 184.85, (500, 120), (900, 420), seed=11, amt=1.2)
         fr = D.lightning(fr, t, th, (1650, 120), (1240, 380), seed=12, amt=1.8, life=0.25)
         p = cl((t - th + 0.03) / 0.12)
+        p = max(p, 0.22 * cl((t - self.t0) / 0.3) * (0.7 + 0.3 * math.sin(t * 17)))     # 闪电前「天」已在云眼里隐隐透出
         if p > 0:
             L = D.text_layer([('天', 1180, 410, 420, p * (0.88 + 0.12 * math.sin(t * 30)), 1.0 + 0.15 * (1 - p))], fname='serif_black', color=(0.88, 0.92, 1.0))
             fr = T.compose(fr, L, shadow=0.5, glow=0.9, glow_color=(0.6, 0.7, 1.0), glow_sigma=30)
         fr = fr + impact(t, th, 0.06) * 0.12
+        x, y = K.grid()
+        fr = fr + np.exp(-(((x - 600) / 420) ** 2 + ((y - 620) / 300) ** 2))[..., None] * np.array([0.25, 0.3, 0.42], np.float32) * (0.6 + fl)
         # 前景：背影大特写（肩背压在画左下，头在画左中，抬头看天）
         sc = D.fit_scale(self.sp, 2100)
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (560 - 30 * u, 2520 - 40 * u), sc, expo=0.38 + 0.3 * fl, sat=0.4,
-                              tint=(0.9, 0.95, 1.08), rim=(0.75, 0.85, 1.0), rim_amt=4.5 + 4 * fl, rim_dir=(0.75, -0.65), wind=8)
+        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (560 - 30 * u, 2520 - 40 * u), sc, expo=0.6 + 0.4 * fl, sat=0.45,
+                              tint=(0.9, 0.95, 1.08), rim=(0.75, 0.85, 1.0), rim_amt=8.0 + 6 * fl, rim_dir=(0.75, -0.65), wind=8)
         fr = K.rain(fr, t, 23, n=300, amt=0.25, angle=-6)
         return K.cam(fr, 1.0 + 0.06 * u, 0, -20 * u, rot=2 * u, center=(1180, 400)), 0.0
 
@@ -1157,12 +1160,12 @@ class S27_Bullet(Shot):
         u = self.u(t)
         if self.bg is None:
             x, y = K.grid()
-            self.bg = (0.02 + 0.05 * np.exp(-(((x - 520) / 600) ** 2 + ((y - 300) / 380) ** 2)))[..., None] * np.array([0.8, 0.9, 1.15], np.float32)
+            self.bg = (0.025 + 0.09 * np.exp(-(((x - 700) / 650) ** 2 + ((y - 380) / 380) ** 2)))[..., None] * np.array([0.8, 0.9, 1.15], np.float32)
         fr = self.bg.copy()
         fr = K.fog(fr, t, 271, amt=0.3, speed=(20, 0), y0=0.7, y1=1.0, color=(0.2, 0.22, 0.27))
         fr = D.droplets(fr, t, 271, n=110, orbit=-0.3 + 0.6 * u, focus=0.9)
-        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (720 + 30 * u, 990), D.fit_scale(self.sp, 720), expo=1.0, sat=0.55,
-                              rim=COLD, rim_amt=5.0, rim_dir=(-0.6, -0.8), wind=0, breathe=0.0)
+        fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (720 + 30 * u, 990), D.fit_scale(self.sp, 720), expo=1.25, sat=0.55,
+                              rim=COLD, rim_amt=8.0, rim_dir=(-0.6, -0.8), wind=0, breathe=0.0)
         fr = D.droplets(fr, t, 272, n=40, orbit=-0.8 + 1.6 * u, focus=0.2)
         tk = V(O[47][0])
         its = [('刀', 1440, 420, 380, cp(t, O[47][0], 0.12), 'r'), ('不', 1360, 770, 150, cp(t, O[47][1], 0.14), 'w'),

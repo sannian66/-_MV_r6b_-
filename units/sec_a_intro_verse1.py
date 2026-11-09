@@ -262,8 +262,8 @@ class A06(Shot):
         if k >= 0:
             fr = EMB.draw(fr, t, 1.6 * max(0.35, 1 - k / 2.5), wind=(60, -30), burst=(960, TITLE_Y, 900) if k < 0.6 else None, t0=TITLE_HIT if k < 0.6 else None)
         fr = TITLE.draw(fr, t, glow=0.5 * math.exp(-max(0, k) / 0.3))
-        if 0 <= k < 0.2:                                                                # 闪白
-            fr = fr * (1 + 1.5 * (1 - k / 0.2)) + 0.6 * (1 - k / 0.2)
+        if 0 <= k < 0.14:                                                               # 闪白（全段唯一一处，HANDOFF §1；第三棒压短压轻，片名不被洗掉）
+            fr = fr * (1 + 1.1 * (1 - k / 0.14)) + 0.22 * (1 - k / 0.14)
         fr = streak(fr, TITLE_Y + 10, -100, 2100, (t - (TITLE_HIT - 0.06)) / 0.12, ang=-3, amt=1.2)
         ca = 6 if 0 <= k < 0.15 else (2 if 0 <= k < 0.4 else 0)
         return fr, ca
@@ -542,12 +542,12 @@ class V06(Shot):
         p = cprog(1, [9], t, 0.25)[0]
         if p > 0:
             L = T.Layer()
-            L.paste(T.brush_glyph('寒', 'kai', 230, p, seed=1), 800, 790, (0.94, 0.92, 0.88))
-            L.paste(T.brush_glyph('光', 'kai', 230, cprog(1, [10], t, 0.12)[0], seed=2), 1080, 790, (0.86, 0.12, 0.08))
+            L.paste(T.brush_glyph('寒', 'kai', 230, p, seed=1), 800, 760, (0.94, 0.92, 0.88))
+            L.paste(T.brush_glyph('光', 'kai', 230, cprog(1, [10], t, 0.12)[0], seed=2), 1080, 760, (0.86, 0.12, 0.08))
             if a < 0:
                 fr = T.compose(fr, L, shadow=0.7, glow=0.2)
             else:
-                fr = T.slash_layer(fr, L, clamp01(a / 1.0), (940, 790), -4, slide=0.25, sz=230, length=900, sparks=50,
+                fr = T.slash_layer(fr, L, clamp01(a / 1.0), (940, 760), -4, slide=0.25, sz=230, length=900, sparks=50,
                                    style_kw=dict(shadow=0.7, glow=0.3))
         return fr, (5 if 0 <= a < 0.1 else 0)
 
@@ -995,7 +995,8 @@ class V17(Shot):
         R = 320 + 1400 * eout(a / 0.9)
         ring = np.exp(-((d - R) / (90 + 260 * a)) ** 2) * math.exp(-a / 0.8)
         rg = cv2.resize(ring, (W, H))[..., None] * (0.6 + 0.4 * cv2.resize(A.tex(9, 256, 6, 4), (W, H))[..., None])
-        fr = fr * (1 - rg * 0.3) + rg * np.array([0.34, 0.28, 0.22], np.float32)
+        rg = rg * np.clip(cv2.resize(A.ink_noise(19, 256), (W, H))[..., None] * 1.6 - 0.3, 0, 1)        # 第三棒：尘浪打碎成团，不再是整圈椭圆光环
+        fr = fr * (1 - rg * 0.35) + rg * np.array([0.20, 0.16, 0.12], np.float32)
         fr = K.sparks(fr, t, 71, (960, 600), n=90, life=0.9, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=0, area=(260, 260), amt=0.6,
                       t0=th, burst=True, color=(0.8, 0.7, 0.55))
         if a < 0.06: fr = fr * 0.35
@@ -1108,7 +1109,7 @@ CUTS = {
     'A05': ('hard', 0, 0, {}),
     'A06': ('slash_wipe', 0.0, 0.14, dict(angle=-3, center=(960, 480))),
     'A07': ('a_zoom', 0.10, 0.14, dict(center=(960, 480))),                         # 第三棒：去 glint 白场，片名位置不动推入刀面
-    'A08': ('smoke_through', 0.06, 0.40, dict(seed=8, direction=1)),                 # 第三棒：flash_white → 片名化灰成烟，烟后露出城墙
+    'A08': ('smoke_through', 0.06, 0.40, dict(seed=8, direction=1, density=0.65)),                 # 第三棒：flash_white → 片名化灰成烟，烟后露出城墙
     'V01': ('ink_bleed', 0.14, 0.22, dict(seed=11, center=(960, 300))),                 # 雾 → 乌云
     'V02': ('hard', 0, 0, {}),
     'V03': ('shatter', 0.04, 0.20, dict(seed=3, center=(1060, 880), n=60)),       # 第三棒：水洼倒影碎裂 → 俯瞰方阵
@@ -1207,7 +1208,7 @@ LY = [  # (行, [(字序, 列 x), ...], 列顶 y, 字号, 朱, 金, 退场)
     (1, [([4, 5, 6, 7, 8], 1735)], 250, 104, '', '', 21.15),                       # 「五百重甲」V03 巨字、「寒光」V06 斩开
     (2, [([0, 1, 2, 3], 350), ([4, 5, 6], 220)], 250, 100, '', '', 25.10),         # 「罪状」= V08 朱印
     (4, [([0, 1, 2, 3, 4], 1745), ([5, 6, 7, 8, 9], 1615)], 250, 96, '杀', '', 32.50),
-    (6, [([0, 1, 2, 3], 350), ([4, 5, 6, 7], 220)], 250, 100, '正义', '权势', 40.75),
+    (6, [([0, 1, 2, 3], 350), ([4, 5, 6, 7], 220)], 250, 100, '正义', '权势', 39.85),   # 不与下一句同屏
     (7, [([0, 1, 2, 3], 1750), ([4, 5, 6, 7], 1620)], 250, 96, '', '', 42.62),  # 「锋芒」V21 满屏
 ]
 LY_TXT = {0: '长夜压在我刀锋之上', 1: '五百重甲拦不住一道寒光', 2: '谁在高处定对错罪状', 4: '我杀过恶徒也放过混账',
@@ -1229,8 +1230,8 @@ def lyrics(fr, t):
 def a_zoom(A_, B_, p, center=(960, 540)):
     """第三棒：推镜穿越（无闪白版）。A 加速推近 + 径向模糊，B 从放大态减速回位；0.35–0.65 两画面按亮度叠化，
     中间帧始终同时带着前后镜的画面元素（不出现白场/灰雾）。"""
-    e = TR.ease_in(min(1, p / 0.65), 2.4); A2 = TR._radial_blur(TR._zoom(A_, 1 + 0.9 * e, center), center, 0.22 * e)
-    q = 1 - TR.ease_out(max(0, (p - 0.35) / 0.65), 3); B2 = TR._radial_blur(TR._zoom(B_, 1 + 0.5 * q, center), center, 0.2 * q)
+    e = TR.ease_in(min(1, p / 0.65), 2.4); A2 = TR._radial_blur(TR._zoom(A_, 1 + 0.7 * e, center), center, 0.09 * e)
+    q = 1 - TR.ease_out(max(0, (p - 0.35) / 0.65), 3); B2 = TR._radial_blur(TR._zoom(B_, 1 + 0.4 * q, center), center, 0.08 * q)
     m = TR.ease_io((p - 0.35) / 0.3)
     return np.maximum(A2 * (1 - m), B2 * m) * 0.6 + (A2 * (1 - m) + B2 * m) * 0.4
 
