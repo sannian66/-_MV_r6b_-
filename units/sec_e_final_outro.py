@@ -1184,7 +1184,7 @@ class E29(Title):   # S133 片名《谁定正邪》金色火烧显字（志莽�
 
 
 TS = 225.42 - 1 / 30
-class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼屠 · 第三季」+「主题曲《谁定正邪》」+ 鬼屠朱印
+class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼屠 · 第二季」+「主题曲《谁定正邪》」+ 鬼屠朱印
     def render(self, t):
         fr = self.base(t)
         q = t - TS
@@ -1202,9 +1202,10 @@ class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼�
         p = c01((q - 0.25) / 0.6)
         if p > 0:
             L = T.Layer()
-            for i, (ch, x) in enumerate((('鬼', 505), ('屠', 705), ('第', 1015), ('三', 1215), ('季', 1415))):
+            # 用户要求：第二季。「二」只有两横、字面轻且显小 → 字号略放、两侧字距略收，保持「第二季」视觉重心与「鬼屠」等重
+            for i, (ch, x, sz) in enumerate((('鬼', 505, 200), ('屠', 705, 200), ('第', 1025, 200), ('二', 1215, 214), ('季', 1405, 200))):
                 e = c01(p * 1.6 - i * 0.12)
-                T.place(L, ch, x, 470 - 20 * (1 - eout(e)), 200, GOLD_T, 'kai', alpha=eout(e), texture=True)
+                T.place(L, ch, x, 470 - 20 * (1 - eout(e)), sz, GOLD_T, 'kai', alpha=eout(e), texture=True)
             fr = T.compose(fr, L, shadow=0.75, shadow_sigma=24, glow=0.5, glow_sigma=18, glow_color=(1.0, 0.6, 0.25))
             cv2.circle(fr, (860, 475), int(13 * eout(p)), tuple(float(v) for v in REDT), -1, cv2.LINE_AA)
             s2 = c01((q - 0.75) / 0.5)
