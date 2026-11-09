@@ -53,20 +53,43 @@ JOBS = {
     'stand_ha': (GT, 'LS', 'High-angle view from above and behind (camera about 45 degrees down): full body, he stands alone with feet apart, '
                             'dao held low in his right hand with the tip touching the ground, head tilted up looking up over his shoulder toward the sky, '
                             'robe hem and red sash blown sideways by strong wind. Whole figure inside the frame with margin.'),
+    # 第六棒（r6）：V08 手握玉玺抬起、V09 青铜天平道具、V17/V16 巨印侧面体积、V15 握柄刻碑
+    'tsh_seal_lift': (TSH, 'CU', 'Close-up of ONLY his aged long-fingered right hand firmly gripping the carved knob of a heavy dark green jade imperial seal '
+                                 '(a square jade block about the size of a fist, knob carved as a coiled dragon, glossy polished jade with inner translucency and '
+                                 'small chips), lifting it straight up, the flat square base of the seal facing down toward the bottom of the frame with traces of '
+                                 'red cinnabar seal paste on the bottom edge, the wide embroidered dark charcoal sleeve edge at the top of the frame. Seen from a '
+                                 'low side angle. NO face, NO paper, NO table.', 'WARM'),
+    'bronze_scale': ('PROP', 'LS', 'Single object, full view, centered, whole object inside the frame with margin: an ancient Chinese bronze equal-arm balance '
+                                   'scale, heavy dark patinated bronze central pillar on a stepped base, thick bronze crossbeam with engraved taotie and cloud patterns '
+                                   'and a gilded edge highlight, the beam tilted slightly (right side lower), heavy bronze chains to two deep round bronze pans. '
+                                   'LEFT pan: piled high with dozens of small white rice-paper cut-out human figures (paper dolls, simple flat silhouettes with ink '
+                                   'line faces), layered and overlapping, some hanging over the rim. RIGHT pan: a single heavy gold imperial seal with a coiled dragon '
+                                   'knob, glinting. Photorealistic museum-grade materials, worn bronze with green patina and polished golden wear on edges.', 'WARM'),
+    'giant_seal': ('PROP', 'LS', 'Single object, full view, whole object inside the frame with margin: a colossal ancient square imperial seal carved from dark '
+                                 'grey-green stone (jade-stone), seen from a low three-quarter side angle so we see two side faces and the underside edge but NOT '
+                                 'the carved bottom face, on top a carved crouching qilin beast knob, the side faces weathered with deep cracks, chipped broken '
+                                 'corners, carved cloud bands near the top, faint traces of old red cinnabar on the bottom rim. Massive, heavy, monumental.', 'WARM'),
+    'carve_grip': (GT, 'MCU', 'Side view medium close-up (facing left): he grips the black cord-wrapped handle of the long dao with BOTH hands near his chest, '
+                              'pressing the blade forward and down so the blade extends straight out to the LEFT edge of the frame horizontally, the tip at the '
+                              'very left edge, as if carving into a stone wall just outside the frame, intense focused eyes looking along the blade, jaw set, '
+                              'rain-wet hair strands.', 'COLD'),
 }
+LIGHTS = dict(WARM='Lighting: warm golden candlelight key from the upper right, a cold faint rim from behind left, deep shadows, cinematic photorealistic. ')
+PROP_LOOK = 'Grounded realistic ancient Chinese artifact, no people, no hands, no text, no letters. '
 VILLAIN_LOOK = ('Gritty realistic Chinese wuxia film costume, weathered fabric, scarred rough face, no modern items. ')
 
 
-def prompt(char, size, pose):
-    look = GT_LOOK if char == GT else (TSH_LOOK if char == TSH else VILLAIN_LOOK)
-    return (BG + 'Subject: ' + pose + ' ' + look + ' ' + FRAME[size] + LIGHT_COLD + HANDS +
+def prompt(char, size, pose, light=None):
+    look = GT_LOOK if char == GT else (TSH_LOOK if char == TSH else (PROP_LOOK if char == 'PROP' else VILLAIN_LOOK))
+    lt = LIGHTS.get(light, LIGHT_COLD) if light else LIGHT_COLD
+    return (BG + 'Subject: ' + pose + ' ' + look + ' ' + FRAME[size] + lt + ('' if char == 'PROP' else HANDS) +
             'Photorealistic high-end wuxia film still, sharp focus, ultra detailed fabric and skin texture.')
 
 
 def body(k):
-    c, s, p = JOBS[k]
-    d = dict(model='RH_image2', prompt=prompt(c, s, p), ratio='16:9', size='4K')
-    if c: d['input'] = [REFS[c + '.webp']]
+    c, s, p = JOBS[k][:3]; lt = JOBS[k][3] if len(JOBS[k]) > 3 else None
+    d = dict(model='RH_image2', prompt=prompt(c, s, p, lt), ratio='16:9', size='4K')
+    if c and c != 'PROP': d['input'] = [REFS[c + '.webp']]
     return d
 
 

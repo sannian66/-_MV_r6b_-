@@ -363,3 +363,9 @@
 | 11-09 04:06 | D组/raise_low | RH_image2 | 4K 16:9 | 0 | 2a80c463-976d-439d-989b-079e53b8125d | completed | d_cands/raise_low_try1_0.png | try1 |
 | 11-09 04:06 | D组/sword_planted | RH_image2 | 4K 16:9 | 0 | 531053a4-6467-4204-9efa-c104351ffe61 | 采用 | assets/gen/D_bridge/sword_planted_raw.png | try1 采用 |
 | 11-09 04:06 | D组/raise_low | RH_image2 | 4K 16:9 | 0 | 2a80c463-976d-439d-989b-079e53b8125d | 采用 | assets/gen/D_bridge/raise_low_raw.png | try1 采用 |
+| 11-09 04:20 | A/tsh_seal_lift | RH_image2 | 4K 16:9 | 3 | 01ff5849-3970-4061-9c2e-16837354ac35 | submitted | - | A组 tsh_seal_lift try1 |
+| 11-09 04:20 | A/bronze_scale | RH_image2 | 4K 16:9 | 3 | b48a9237-d21f-42d3-80cd-e8f5eecb17ec | submitted | - | A组 bronze_scale try1 |
+| 11-09 04:20 | A/giant_seal | RH_image2 | 4K 16:9 | 3 | eca9483c-53b8-4110-8955-e2a087037091 | submitted | - | A组 giant_seal try1 |
+| 11-09 04:20 | A/carve_grip | RH_image2 | 4K 16:9 | 3 | a5fb7985-55d5-429f-bcab-b85d9aa7eac2 | submitted | - | A组 carve_grip try1 |
+| 11-09 04:21 | E组/E_r6/scabbard_tassel | RH_image2 | 4K 16:9 | 3 | 08c0ed5b-776e-4f50-9b20-32c2f0a9731d | completed | gen_cands/E/E_r6/scabbard_tassel_try1_0.png | [E组] 第六棒 scabbard_tassel try1 |
+| 11-09 04:22 | E组/E_r6/shoulder_low | RH_image2 | 4K 16:9 | 3 | 4b46ec30-5cbc-4e8d-9f67-0d304f0c2a73 | completed | gen_cands/E/E_r6/shoulder_low_try1_0.png | [E组] 第六棒 shoulder_low try1 |

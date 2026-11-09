@@ -1,5 +1,5 @@
 {
- "spent": 45,
+ "spent": 57,
  "jobs": {
   "eyes": [
    {
@@ -134,6 +134,38 @@
     "pts": 3,
     "file": "/workspace/work/a_cands/look_up_mcu_72af3abd_0.png",
     "accepted": true
+   }
+  ],
+  "tsh_seal_lift": [
+   {
+    "task_id": "01ff5849-3970-4061-9c2e-16837354ac35",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "bronze_scale": [
+   {
+    "task_id": "b48a9237-d21f-42d3-80cd-e8f5eecb17ec",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "giant_seal": [
+   {
+    "task_id": "eca9483c-53b8-4110-8955-e2a087037091",
+    "status": "running",
+    "pts": 3,
+    "file": null
+   }
+  ],
+  "carve_grip": [
+   {
+    "task_id": "a5fb7985-55d5-429f-bcab-b85d9aa7eac2",
+    "status": "running",
+    "pts": 3,
+    "file": null
    }
   ]
  }
