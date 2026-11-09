@@ -263,7 +263,7 @@ class Section:
             if j <= 0 or j >= len(self.shots): continue
             b = self.shots[j]; name, pre, post, kw = self.cuts.get(self.ids[j], ('hard', 0, 0, {}))
             c = b.t0
-            if name in ('hard', 'flash', 'flashr', 'gold', 'none') or not (c - pre - 1e-6 <= t < c + post - 1e-6): continue
+            if name in ('hard', 'flash', 'flashr', 'gold', 'punch', 'none') or not (c - pre - 1e-6 <= t < c + post - 1e-6): continue
             a = self.shots[j - 1]
             B, ca2 = b.render(t)
             A, ca1 = a.render(t) if (pre > 0 or t < c) else (B, 0)
@@ -273,7 +273,7 @@ class Section:
             return out, max(ca1, ca2)
         fr, ca = s.render(t)
         name = self.cuts.get(self.ids[i], ('hard',))[0]
-        if i > 0 and name in ('hard', 'flash', 'flashr', 'gold'):
+        if i > 0 and name in ('hard', 'flash', 'flashr', 'gold', 'punch'):
             k = int((t - s.t0) * 30 + 1e-6)
             if k < 2:
                 a = 1.0 if k == 0 else 0.45
@@ -281,6 +281,8 @@ class Section:
                 if name == 'flash': fr = fr * (1 - 0.6 * a) + 0.85 * a
                 elif name == 'flashr': fr = fr * (1 - 0.55 * a) + RED * 1.2 * a
                 elif name == 'gold': fr = fr * (1 - 0.5 * a) + GOLD * 0.9 * a
+                elif name == 'punch':                       # 无白闪的硬切冲击：推近 + 色散错位
+                    fr = np.stack([np.roll(fr[..., 0], int(10 * a), 1), fr[..., 1], np.roll(fr[..., 2], -int(10 * a), 1)], -1)
                 ca = max(ca, 3 if k == 0 else 1)
         return fr, ca
 

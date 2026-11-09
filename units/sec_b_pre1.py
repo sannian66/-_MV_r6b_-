@@ -748,16 +748,16 @@ for _S, _a, _b in zip(SHOTS, CUT_F, CUT_F[1:]):
 P01.t0 = 44.048
 
 CUTS = {
-    'P02': ('flash', 0, 0, {}),                                     # 落墨帧闪白
+    'P02': ('flashr', 0, 0, {}),                                    # 落墨帧朱红闪（第三棒：去白闪）
     'P03': ('paper_tear', 0.06, 0.20, dict(seed=3, angle=10)),
     'P04': ('none', 0, 0, {}),                                      # 同一机位连续后拉（图形匹配）
-    'P05': ('whip_pan_blur', 0.06, 0.12, dict(direction='right')),
+    'P05': ('ink_bleed', 0.06, 0.16, dict(seed=5)),                 # 第三棒：去 whip，墨从指尖洇成宫门
     'P06': ('flashr', 0, 0, {}),
     'P07': ('flash_white', 0.0, 0.17, {}),                          # 雷闪
-    'P08': ('whip_pan_blur', 0.05, 0.10, dict(direction='up')),
+    'P08': ('smoke_through', 0.08, 0.14, dict(seed=8, direction=-1)),  # 第三棒：去 whip，穿云
     'P09': ('glitch_cut', 0.03, 0.12, dict(seed=9)),
     'P10': ('slash_wipe', 0.05, 0.14, dict(angle=-28)),
-    'P11': ('flash', 0, 0, {}),
+    'P11': ('gold', 0, 0, {}),                                      # 金属火花金闪（第三棒：去白闪）
     'P12': ('match_cut', 0.0, 0.12, dict(shape='rect', center=(960, 470), radius=140)),
     'P13': ('flash_red', 0.03, 0.12, {}),
     'P14': ('hard', 0, 0, {}),

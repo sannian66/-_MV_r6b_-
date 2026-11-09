@@ -1,5 +1,5 @@
 """[B组] 联系表 / 关键帧（按本组 SHOTS/CUT 表取帧，不用 tools/sec_contact.py）
-  python3 tools/b_contact.py render <tag> i0 i1     渲第 i0..i1 帧条目到 /workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/b_cache/<tag>/（分块跑，>1 帧须 tools/cpu_slot.sh 包裹）
+  python3 tools/b_contact.py render <tag> i0 i1     渲第 i0..i1 帧条目到 /workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/<tag>/（分块跑，>1 帧须 tools/cpu_slot.sh 包裹）
   python3 tools/b_contact.py sheet  <tag> out.jpg   拼图
 tag: contact（每镜中点帧，预副歌一 14 + 主歌二 25） | keys（转场中间帧 + 歌词关键帧）"""
 import sys, os, json
@@ -31,7 +31,7 @@ def items(tag):
 
 
 def render(tag, i0, i1):
-    d = f'/workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/b_cache/{tag}'; os.makedirs(d, exist_ok=True)
+    d = f'/workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/{tag}'; os.makedirs(d, exist_ok=True)
     for i, (key, f, lab) in enumerate(items(tag)):
         if not (i0 <= i <= i1): continue
         m = P1 if key == 'pre1' else V2
@@ -44,7 +44,7 @@ def sheet(tag, out):
     its = items(tag); cols = 6; rows = (len(its) + cols - 1) // cols
     sh = Image.new('RGB', (cols * 640 // 2 * 2, rows * 360))
     for i, (key, f, lab) in enumerate(its):
-        p = f'/workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/work/b_cache/{tag}/{i:03d}.jpg'
+        p = f'/workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/work/b_cache/{tag}/{i:03d}.jpg'
         if not os.path.exists(p): continue
         im = Image.open(p); ImageDraw.Draw(im).text((6, 4), f'{lab}  f{f}', fill=(240, 220, 120), font=font)
         sh.paste(im, ((i % cols) * 640, (i // cols) * 360))
