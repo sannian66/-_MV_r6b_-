@@ -823,7 +823,7 @@ class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂
     def render(self, t):
         u = self.u(t)
         if not hasattr(self, 'AB'):   # 两半是定格（各取上一镜字落定的一帧），只算一次
-            self.AB = (self.a.text(self.a.render(211.05), 211.05), self.b.text(self.b.render(211.85), 211.85))
+            self.AB = (self.a.l1.draw(self.a.render(211.05), 211.05), self.b.l1.draw(self.b.render(211.85), 211.85))   # 第五棒：只取大字（副句不带进分屏，避免半句出画）
         A, B = self.AB                                                # 第五棒：左 =「对」（E16 右半），右 =「错」（E17 左半），中缝留给金色「何」
         o = int(40 * u)
         fr = np.concatenate([A[:, 960 - o:1920 - o], B[:, o:960 + o]], 1)
