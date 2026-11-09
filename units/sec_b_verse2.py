@@ -271,8 +271,10 @@ class V02(Shot):
         sc = self.scene0.copy()
         if t >= tl - 0.05:
             sc = self.bolt.draw(sc, t, tl, intensity=1.0)
-        sc, _ = put(sc, self.sp, t, 820, (900, 760), grade=GR_COLD, rim=dict(col=(0.85, 0.88, 1.0), amt=2.4 + 3 * env, dir=(0.6, -0.8)),
-                    look='sil', wind_amp=3, shade=None, wrap=0.1)
+        # 第五棒 9/n：倒影里的太上皇整身入框（原 820px 顶出画、剪影读成「猫」）→ 640px 全身、正常受光（白发可读），雷闪时冷边加亮
+        sc, _ = put(sc, self.sp, t, 600, (960, 820), grade=GR_COLD, rim=dict(col=(0.85, 0.88, 1.0), amt=1.6 + 3 * env, dir=(0.6, -0.8)),
+                    wind_amp=3, shade=None, wrap=0.15)
+        sc = sc * (0.8 + 0.6 * env)
         fr = self.bg.copy()
         fr = fr * (1 + 1.2 * env)
         fr = K.rain(fr, t, 4804, n=220, amt=0.22, speed=900, angle=4, near=0.5, length=(60, 160))
@@ -281,13 +283,15 @@ class V02(Shot):
         R = 150
         x, y = K.grid()
         Rz = R * z
-        dist = np.sqrt((x - cx) ** 2 + ((y - cy) * 0.92) ** 2)
+        # 第五棒 9/n：正圆光圈（≈副歌一 S045）→ 垂坠水滴形：上部收窄拉长、下部饱满
+        up = np.clip((cy - y) / max(Rz, 1), 0, 2)
+        dist = np.sqrt(((x - cx) * (1 + 0.55 * up ** 1.6)) ** 2 + ((y - cy) * np.where(y < cy, 0.78, 0.97)) ** 2)
         rn = np.clip(dist / max(Rz, 1), 0, 1)
-        fe = rn ** 0.65
-        k = 1.0 / (0.9 + 0.6 * (1 - u))
+        fe = rn ** 0.9                                # 第五棒 9/n：近线性折射（原 0.65 中心过度放大，倒影只剩一截躯干）
+        k = 0.62 / (0.9 + 0.3 * (1 - u))
         sx = (960 + (x - cx) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)
         sy = (540 - (y - cy) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)   # 倒置
-        inner = cv2.remap(sc, sx, sy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        inner = cv2.remap(sc, sx, sy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
         m = np.clip((Rz - dist) / (3 + 0.02 * Rz), 0, 1)
         m = cv2.GaussianBlur(m, (0, 0), 1.5)
         ang_ = np.arctan2(y - cy, x - cx)
@@ -296,7 +300,7 @@ class V02(Shot):
         rim = caus
         spec = np.exp(-(((x - cx + Rz * 0.35) ** 2 + (y - cy + Rz * 0.42) ** 2) / (Rz * 0.1 + 2) ** 2)) * 0.9
         # 水滴挂在刀镡下沿：上方一条细水颈
-        neck = np.exp(-((x - cx) / (8 + 0.04 * Rz)) ** 2) * (y < cy - Rz * 0.9) * (y > cy - Rz * 1.6) * (1 - u)
+        neck = np.exp(-((x - cx) / (8 + 0.04 * Rz)) ** 2) * np.clip((cy - Rz * 1.15 - y) / 30, 0, 1) * np.clip((y - (cy - Rz * 1.9)) / 60, 0, 1) * (1 - u)
         fr = fr * (1 - m[..., None]) + inner * m[..., None] * 0.92
         fr = fr * (1 - dark[..., None])
         fr += (rim * m + spec * m + neck * 0.3)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
