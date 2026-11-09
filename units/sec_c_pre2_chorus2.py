@@ -780,7 +780,8 @@ class C19(Shot):
         for i, (x, sc) in enumerate(((360, 1.0), (1560, 1.05), (1240, 0.8))):
             sp = crowd.soldier_sprite(phase=0.3 * i, arm=0.6, weapon='spear', view='front', seed=i)
             A = sp['A'].astype(np.float32)
-            Cs = sp['base'].astype(np.float32) * (1 + 0.8 * fl) + sp['rim'][..., None].astype(np.float32) * COLD * (1.2 + 2 * fl)
+            Cs = sp['base'].astype(np.float32) * (0.22 + 0.3 * fl) + sp['rim'][..., None].astype(np.float32) * COLD * (0.9 + 1.5 * fl)
+            Cs = cv2.GaussianBlur(Cs, (0, 0), 1.6)   # 前景甲士：压暗成带轮廓光的剪影 + 轻微失焦，避免玩具感
             A = cv2.resize(A, None, fx=sc * 1.6, fy=sc * 1.6); Cs = cv2.resize(Cs, (A.shape[1], A.shape[0]))
             h, w = A.shape[:2]
             k = max(0.0, t - ts - 0.05 * i)
