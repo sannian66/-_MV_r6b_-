@@ -1293,78 +1293,107 @@ class V16(Shot):
         vort = cv2.resize((sw * np.exp(-r / 600)).astype(np.float32), (W, H))
         fr = fr + vort[..., None] * np.array([0.25, 0.2, 0.12], np.float32) * (0.5 + u)
         fr = fx2.god_rays(fr, c, strength=0.6 + 0.8 * u, length=1.2, color=(1.0, 0.8, 0.5), t=t, src_r=140)
-        # 巨印轮廓（尚在云中，半透明）
-        k = eio(clamp01((t - V(37.3)) / 0.8))
+        # 第六棒：金光里成形的是同一方巨印（giant_seal 生图）的逆光剪影 + 金边，37.0 起自云涡中压出、下沉，云絮从前面掠过；接 V17 坠落
+        k = eio(clamp01((t - V(36.9)) / 1.0))
         if k > 0:
-            m = np.zeros((H, W), np.float32)
-            cv2.rectangle(m, (int(c[0] - 230), int(c[1] - 200 - 40 * k)), (int(c[0] + 230), int(c[1] + 60)), 1.0, -1)
-            m = cv2.GaussianBlur(m, (0, 0), 30 * (1 - k) + 4)
-            fr = fr * (1 - m[..., None] * 0.6 * k)
+            import a_r6
+            if not hasattr(self, 'seal'): self.seal = a_r6.clean('A_r6/giant_seal', lo=0.2, erode=3)
+            fr, _ = A.place(fr, t, self.seal, (c[0] + 20, 470 + 90 * k), w=520 + 80 * k, anc=(0.5, 1.0), look='sil', rim=GOLD,
+                            rim_amt=5.0 * k, rim_dir=(0.2, -1.0), alpha=0.92 * k, wind=0, breathe=0.0,
+                            grade=dict(expo=0.2, sat=0.3))
+            fr = A.clouds(fr, t, 61, speed=(60, -20), y0=120, y1=520, amt=0.55, col=(0.16, 0.12, 0.08), dark=0.3, thr=0.52,
+                          light=c, light_r=500, light_col=(1.0, 0.75, 0.4))
         fr, info = A.place(fr, t, S('A/tsh_raise', 'dm'), (1250, 1040), h=860, look=None, rim=GOLD, rim_amt=4.0, rim_dir=(-0.6, -0.8),
                            grade=dict(expo=0.55, sat=0.45, tint=(1.05, 0.97, 0.9)), wind=7)
         fr = fog(fr, t, 1, 820, 1000, 0.5, (0.25, 0.22, 0.2), speed=(40, 0))
         return fr, 0
 
 
-# V17 38.10–39.47 ELS 巨印「正」自天砸下，38.72 落地：尘浪环形爆开、全屏震
+# V17 38.07–39.47（第六棒重做，critic_A_r3 不可交付：红方印「正」撞副歌一 S032 + 平涂贴纸 + glitch 碎屑 + 竖黄线）
+#   前段（→ 38.72）：地平线低机位侧看 —— 巨印（giant_seal 生图：青灰玉石、麒麟钮、侧面云纹与裂口、印底残朱）自云层压下，
+#       越落越快（竖向运动模糊），印面朝下看不见字；广场石板上玺影由虚变实；雨被巨印推开。
+#   38.72「势」落地：压黑一拍 + 震 + 两侧尘浪贴地翻滚。
+#   后段：俯拍地面 —— 石板被压出方形印坑，坑底是凹进去的「正」字（石材，不着红，靠左上侧光的内壁投影/高光读字），
+#       裂缝里透暖金余热（不是朱红）；尘浪向外推散。红方印母题本段只剩 V08 纸面印痕一处。
 class V17(Shot):
-    """仰视：巨印「正」的印面自天压下、越来越大（38.10–38.72）→ 落地：画面压黑 + 震屏 → 俯拍：大地上压出朱红「正」字印痕、裂纹、尘浪环"""
     def __init__(self):
-        self.face = PR.seal_face('正', 900, style='bai', wear=0.25, seed=6)
+        import a_r6
+        self.R = a_r6
+        self.seal = a_r6.clean('A_r6/giant_seal', lo=0.2, erode=3)
         r = np.random.default_rng(17)
-        self.cracks = [K.crack_path((960, 600), (960 + math.cos(a) * 1300, 600 + math.sin(a) * 700), 17 + i) for i, a in
-                       enumerate(r.uniform(0, 2 * math.pi, 9))] if hasattr(K, 'crack_path') else []
-    def render(self, t):
-        th = V(38.72); a = t - th
-        if a < 0:
-            q = clamp01((t - self.t0) / (th - self.t0))
-            fr = night((0.03, 0.025, 0.025), (0.10, 0.08, 0.07))
-            fr = A.clouds(fr, t, 71, speed=(0, -60), y0=120, y1=960, amt=0.9, col=(0.13, 0.11, 0.10), thr=0.42, light=(960, 520),
-                          light_r=700, light_col=(1.0, 0.75, 0.45))
-            sz = int(260 + 2200 * q ** 2.2)
-            sh = A.glow(np.zeros_like(fr), (960, 540), sz * 0.7, 1.0, (1, 1, 1))[..., :1]
-            fr = fr * (1 - np.clip(sh * 0.8, 0, 0.85))
-            img = cv2.resize(self.face, (sz, sz), interpolation=cv2.INTER_AREA)
-            stone = np.zeros((sz + 40, sz + 40, 4), np.float32); stone[..., :3] = (0.05, 0.05, 0.05); stone[..., 3] = 1.0
-            fr = K.paste_sprite(fr, stone[..., :3], stone[..., 3], 960, 540, alpha=1.0)
-            fr = K.paste_sprite(fr, img[..., :3] * 1.1, img[..., 3], 960, 540)
-            fr = fx2.god_rays(fr, (960, 540), strength=0.5 * (1 - q), length=1.3, color=(1.0, 0.8, 0.5), t=t, src_r=sz * 0.6)
-            return fr, 0
-        # 第二棒：夯土石板地面（大块石板缝 + 细噪声），印坑下陷（偏移投影 + 斜面高光），裂缝朱红余热
-        fr = A.vgrad((0.11, 0.09, 0.075), (0.05, 0.04, 0.034))
-        if not hasattr(self, 'ground'):
-            g = 0.75 + 0.5 * cv2.resize(A.tex(5, 512, 8, 5), (W, H)) + 0.25 * cv2.resize(A.tex(6, 512, 40, 3), (W, H))
-            sl = np.zeros((H, W), np.float32)
-            r = np.random.default_rng(5); y = 140
-            while y < H:
-                cv2.line(sl, (0, y), (W, y + int(r.uniform(-8, 8))), 1.0, 2, cv2.LINE_AA); x = int(r.uniform(0, 200))
-                while x < W:
-                    cv2.line(sl, (x, y), (x + int(r.uniform(-6, 6)), y + 150), 1.0, 2, cv2.LINE_AA); x += int(r.uniform(220, 380))
-                y += int(r.uniform(130, 170))
-            self.ground = (g * (1 - 0.6 * cv2.GaussianBlur(sl, (0, 0), 1.2)))[..., None]
-            sq = np.zeros((H, W), np.float32); cv2.rectangle(sq, (960 - 290, 600 - 290), (960 + 290, 600 + 290), 1.0, -1)
-            self.pit = cv2.GaussianBlur(cv2.warpAffine(sq, np.float32([[1, 0, 18], [0, 1, 24]]), (W, H)), (0, 0), 14)
-            e = cv2.GaussianBlur(sq, (0, 0), 3); self.bevel = np.clip(e - cv2.warpAffine(e, np.float32([[1, 0, 6], [0, 1, 6]]), (W, H)), 0, 1)
-        fr = fr * self.ground
-        for c in self.cracks:
-            m = K.draw_crack((H, W), c, 4, branches=4, seed=3, prog=clamp01(a / 0.5))
-            mg = cv2.GaussianBlur(m, (0, 0), 6)
-            fr = fr * (1 - m[..., None] * 0.9) + (m[..., None] * 0.9 + mg[..., None] * 1.2) * RED * (0.25 + 0.6 * math.exp(-a / 0.6))
-        fr = fr * (1 - 0.75 * self.pit[..., None])
-        fr = PR.stamp_imprint(fr, self.face, 960, 600, 560, prog=1.0, alpha=0.95)
-        fr = fr + self.bevel[..., None] * np.array([0.9, 0.7, 0.5], np.float32) * 0.5
+        self.cracks = [K.crack_path((960 + math.cos(a) * 300, 540 + math.sin(a) * 260), (960 + math.cos(a) * 1400, 540 + math.sin(a) * 800), 17 + i)
+                       for i, a in enumerate(r.uniform(0, 2 * math.pi, 9))] if hasattr(K, 'crack_path') else []
+        g = 0.75 + 0.5 * cv2.resize(A.tex(5, 512, 8, 5), (W, H)) + 0.25 * cv2.resize(A.tex(6, 512, 40, 3), (W, H))
+        sl = np.zeros((H, W), np.float32); rr = np.random.default_rng(5); y = 60
+        while y < H:
+            cv2.line(sl, (0, y), (W, y + int(rr.uniform(-8, 8))), 1.0, 2, cv2.LINE_AA); x = int(rr.uniform(0, 200))
+            while x < W:
+                cv2.line(sl, (x, y), (x + int(rr.uniform(-6, 6)), y + 150), 1.0, 2, cv2.LINE_AA); x += int(rr.uniform(220, 380))
+            y += int(rr.uniform(130, 170))
+        self.ground = (g * (1 - 0.6 * cv2.GaussianBlur(sl, (0, 0), 1.2)))[..., None]
+        sq = np.zeros((H, W), np.float32); cv2.rectangle(sq, (960 - 290, 540 - 250), (960 + 290, 540 + 250), 1.0, -1)
+        self.sq = sq
+        Lg = T.Layer(); T.place(Lg, '正', 960, 540, 400, 'white', 'kai', texture=False); self.zm = Lg.A
+        self.ytop = 0
+    def side(self, t, th):
+        q = clamp01((t - self.t0) / (th - self.t0))
+        fr = night((0.03, 0.022, 0.018), (0.10, 0.075, 0.055), y1=720)
+        fr = A.clouds(fr, t, 71, speed=(0, -40), y0=120, y1=700, amt=0.9, col=(0.13, 0.10, 0.08), thr=0.42, light=(960, 200),
+                      light_r=800, light_col=(1.0, 0.72, 0.40))
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        gm = np.clip((yy - 720) / 3, 0, 1)[..., None]                                   # 广场地面（透视石板缝向灭点 960,720 收拢）
+        z = 1.0 / np.maximum(yy - 700, 1)
+        tile = 1 - 0.4 * ((np.mod((xx - 960) * z * 60, 1.0) < 0.05 * 60 * z) | (np.mod(80 * np.log(np.maximum(yy - 700, 1)), 6) < 0.4))
+        gcol = (self.ground * tile[..., None]) * np.array([0.045, 0.04, 0.036], np.float32) * (0.5 + np.clip((yy - 720) / 240, 0, 1))[..., None]
+        fr = fr * (1 - gm) + gcol * gm
+        fr = fr + gm * (np.exp(-((xx - 960) / 500) ** 2) * np.exp(-np.clip(yy - 720, 0, None) / 80))[..., None] * np.array([0.30, 0.20, 0.10], np.float32) * 0.5   # 远处天光在湿地面上的反光
+        fr = fog(fr, t, 1, 640, 780, 0.5, (0.22, 0.17, 0.12), speed=(30, 0))
+        by = 140 + 740 * ein(q, 1.8)                                                       # 印底 y（落地 = 880）
+        sh = np.zeros((H // 2, W // 2), np.float32)
+        cv2.ellipse(sh, (480, 440), (int(330 + 140 * (1 - q)), int(26 + 10 * (1 - q))), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+        sh = cv2.resize(cv2.GaussianBlur(sh, (0, 0), 4 + 22 * (1 - q)), (W, H))[..., None] * gm
+        fr = fr * (1 - (0.25 + 0.6 * q) * sh)
+        fr = RAIN.draw(fr, t, 0.7, angle=6, light=(960, 200), layers=(0, 1))
+        fr, info = A.place(fr, t, self.seal, (960, by), w=1150 * (0.92 + 0.08 * q), anc=(0.5, 1.0), rim=GOLD, rim_amt=2.2, rim_dir=(0.3, -1.0),
+                           grade=dict(expo=0.82, sat=0.55, tint=(1.04, 1.0, 0.95), gamma=1.05), wind=0, breathe=0.0,
+                           mblur=(0, 4 + 22 * q * q))
+        fr = fx2.god_rays(fr, (960, max(130, by - 700)), strength=0.35, length=1.2, color=(1.0, 0.78, 0.45), t=t, src_r=300)
+        fr = RAIN.draw(fr, t, 0.6, angle=6, layers=(2,))
+        return fr
+    def top(self, t, a):
+        fr = A.vgrad((0.11, 0.09, 0.075), (0.05, 0.04, 0.034)) * self.ground
+        fr = fr * (1 - 0.25 * cv2.GaussianBlur(self.sq, (0, 0), 60)[..., None])
+        for c in self.cracks:                                                                # 裂缝：暖金余热（不着朱红）
+            m = K.draw_crack((H, W), c, 4, branches=4, seed=3, prog=clamp01(a / 0.45))
+            mg = cv2.GaussianBlur(m, (0, 0), 7)
+            fr = fr * (1 - m[..., None] * 0.9) + (m[..., None] * 0.7 + mg[..., None] * 1.0) * np.array([1.0, 0.55, 0.18], np.float32) * (0.18 + 0.5 * math.exp(-a / 0.7))
+        # 印坑：坑底压暗，左上光 → 上/左内壁亮、下/右内壁投影
+        fr = self.R.engraved(fr, self.sq, light=(-1, -1), depth=26, dark=0.30, hl=(0.85, 0.66, 0.45), hl_amt=0.55)
+        # 坑底凹进去的「正」：再深一层（暗槽 + 槽壁高光），槽底一线暖光渗出
+        fr = self.R.engraved(fr, self.zm, light=(-1, -1), depth=10, dark=0.85, hl=(0.95, 0.75, 0.5), hl_amt=0.9)
+        zg = cv2.GaussianBlur(self.zm, (0, 0), 2.5)[..., None]
+        fr = fr + zg * np.array([1.0, 0.55, 0.2], np.float32) * (0.05 + 0.12 * math.exp(-a / 0.9))      # 槽底余热（暖金，不着红）
         yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
-        d = np.hypot(xx * 2 - 960, (yy * 2 - 600) * 1.6)
-        R = 320 + 1400 * eout(a / 0.9)
+        d = np.hypot(xx * 2 - 960, (yy * 2 - 540) * 1.5)
+        R = 420 + 1300 * eout(a / 0.9)
         ring = np.exp(-((d - R) / (90 + 260 * a)) ** 2) * math.exp(-a / 0.8)
         rg = cv2.resize(ring, (W, H))[..., None] * (0.6 + 0.4 * cv2.resize(A.tex(9, 256, 6, 4), (W, H))[..., None])
-        rg = rg * np.clip(cv2.resize(A.ink_noise(19, 256), (W, H))[..., None] * 1.6 - 0.3, 0, 1)        # 第三棒：尘浪打碎成团，不再是整圈椭圆光环
+        rg = rg * np.clip(cv2.resize(A.ink_noise(19, 256), (W, H))[..., None] * 1.6 - 0.3, 0, 1)
         fr = fr * (1 - rg * 0.35) + rg * np.array([0.20, 0.16, 0.12], np.float32)
-        fr = K.sparks(fr, t, 71, (960, 600), n=90, life=0.9, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=0, area=(260, 260), amt=0.6,
-                      t0=th, burst=True, color=(0.8, 0.7, 0.55))
-        if a < 0.06: fr = fr * 0.35
-        elif a < 0.14: fr = fr * 1.45 + 0.08 * GOLDV          # 第三棒：暖色曝光脉冲，不再灰白
-        return fr, (6 if 0 <= a < 0.2 else 0)
+        fr = K.sparks(fr, t, 71, (960, 540), n=70, life=0.9, speed=(300, 1200), dirc=(0, -1), spread=3.0, grav=0, area=(300, 280), amt=0.45,
+                      t0=V(38.72), burst=True, color=(0.8, 0.7, 0.55))
+        return fr
+    def render(self, t):
+        th = V(38.72); a = t - th
+        if a < 0: return self.side(t, th), 0
+        if a < 0.12:                                                                           # 落地：侧面画面压黑一拍 + 两侧尘浪
+            fr = self.side(t, th) * (0.30 + 2.5 * max(0, a - 0.05))
+            fr = K.sparks(fr, t, 72, (960, 880), n=120, life=0.5, speed=(500, 1600), dirc=(0, -0.2), spread=3.0, grav=200, area=(560, 10),
+                          amt=0.7, t0=th, burst=True, color=(0.75, 0.6, 0.45))
+            return fr, 6
+        fr = self.top(t, a)
+        if a < 0.2: fr = fr * 1.35 + 0.06 * GOLDV
+        return fr, (3 if a < 0.25 else 0)
 
 
 # V18 39.47–40.84 HA 高机位大远景（第四棒：原 MCU 回头 → 俯拍）：印坑边缘的石板地上鬼屠一人极小、长影拖向画外，尘浪掠过，
@@ -1623,8 +1652,8 @@ LY2 = [
     (2, [(4, 96, _Wt), (5, 96, _Wt), (6, 96, _Wt)], 1660, 820, 24.40, False),                       # 定对错（第六棒：移到右下太上皇袍面暗区，切俯拍前退净）
     (4, [(k, 80, _R if k == 1 else _Wt) for k in range(0, 5)], 1360, 880, 30.74, False),            # 我杀过恶徒
     (4, [(k, 80, _Wt) for k in range(5, 10)], 640, 880, 32.55, False),                              # 也放过混账
-    (6, [(0, 120, _Wt), (1, 220, _R), (2, 220, _R)], 560, 880, 38.08, False),                       # 若「正义」
-    (6, [(3, 90, _Wt), (4, 165, _G), (5, 165, _G), (6, 90, _Wt), (7, 90, _Wt)], 960, 300, 39.85, False),  # 由「权势」执掌
+    (6, [(0, 120, _Wt), (1, 220, _R), (2, 220, _R)], 600, 905, 38.08, False),   # 第六棒：挨着金光里的巨印剪影                       # 若「正义」
+    (6, [(3, 80, _Wt), (4, 140, _G), (5, 140, _G), (6, 80, _Wt), (7, 80, _Wt)], 960, 925, 39.85, False),  # 由「权势」执掌（第六棒：离开印面，放到下三分之一）
     (7, [(0, 96, _Wt), (1, 96, _Wt), (2, 180, _G), (3, 180, _G), (4, 96, _Wt), (5, 180, _R), (6, 180, _R), (7, 96, _Wt)],
      640, 300, 42.40, True),                                                                        # 那我「宁愿」做「乱世」的（随刀光逐字点亮）
 ]

@@ -1200,13 +1200,13 @@ class E27c(Shot):   # 匾碎（第五棒重做，去和 E04 正面平拍撞构�
         self.pl = PR.Plaque('天理昭彰', seed=3)
         self.burst = R3.Shreds(271, n=60, gold=0.9, size=(30, 110), spread=(900, 360), zr=(0.6, 2.0))
         z = np.zeros((H, W, 3), np.float32)
-        P = plaque_lit(self.pl, z, 0.0, 960, 540, 1500, [-9] * 4, crack=0.25, dim=0.85)
+        P = plaque_lit(self.pl, z, 0.0, 960, 540, 1500, [99] * 4, crack=0.25, dim=1.0)          # 第六棒：不再叠第二层发光字（与匾面刻字错位成重影）
         A = np.clip(P.max(-1) * 14, 0, 1)
         src = np.float32([[210, 270], [1710, 270], [1710, 810], [210, 810]])            # 匾的大致四角 → 低角度 3/4 透视（左近右远、仰视）
         dst = np.float32([[120, 330], [1500, 140], [1560, 560], [60, 900]])
         M = cv2.getPerspectiveTransform(src, dst)
         self.P = cv2.warpPerspective(P, M, (W, H)); self.A = cv2.warpPerspective(A, M, (W, H))
-        self.cut = (np.array([860.0, 150.0]), np.array([700.0, 960.0]))                   # 斩线（斜竖）
+        self.cut = (np.array([888.0, 0.0]), np.array([919.0, 960.0]))                     # 第六棒：斩线 = 透视后「理｜昭」字缝（不再落在「理」上）
 
     def render(self, t):
         u = self.u(t)
@@ -1224,9 +1224,7 @@ class E27c(Shot):   # 匾碎（第五棒重做，去和 E04 正面平拍撞构�
             cx, cy = (600, 520) if not s_ else (1250, 420)
             R = cv2.getRotationMatrix2D((cx, cy), rot * q, 1.0); R[0, 2] += dx * q; R[1, 2] += fall
             C = cv2.warpAffine(C, R, (W, H)); Am = cv2.warpAffine(Am, R, (W, H))
-            if q > 0.05:
-                C = K.mblur(C, 0, 18 * q) if hasattr(K, 'mblur') else cv2.blur(C, (1, int(1 + 22 * q)))
-                Am = cv2.blur(Am, (1, int(1 + 22 * q)))
+            # 第六棒：去掉下坠运动模糊（读成横向重影）
             sd = np.abs(((xx - p0[0]) * d[1] - (yy - p0[1]) * d[0]))                    # 断口烧红
             edge = np.exp(-(sd / 10) ** 2)
             edge = cv2.warpAffine(edge.astype(np.float32), R, (W, H)) * Am
@@ -1593,7 +1591,7 @@ MOVE = {
 }
 SHAKE = {   # 冲击抖：(时刻, 幅度 px)
     'E05': [(CT(49, 11), 10)], 'E09': [(CT(51, 2), 12)], 'E11': [(6157 / 30, 12)], 'E12': [(CT(51, 9), 8)],
-    'E25': [(CT(55, 6), 18)], 'E27b': [(6658 / 30, 14)], 'E27c': [(6678 / 30, 18)], 'E15': [(210.058, 16)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
+    'E25': [(CT(55, 6), 18)], 'E27b': [(6658 / 30, 14)], 'E27c': [(6678 / 30, 7)], 'E15': [(210.058, 16)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
 }
 
 
