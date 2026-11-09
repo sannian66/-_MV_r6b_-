@@ -180,6 +180,26 @@ def blade_smear(fr, p0, p1, q, bend=0.25, width=70, col=(0.92, 0.95, 1.0), amt=1
     return fr + lay[..., None] * colv * amt * fade
 
 
+def water_ripple(fr, c, k, flat=0.28, speed=520.0, amp=14.0, wl=46.0, y_top=0, life=1.4):
+    """第五棒：真实积水涟漪——对画面做径向位移（透视压扁的同心波），波峰带冷高光；不画白色椭圆线。k = 落点后秒数。"""
+    if k <= 0 or k > life: return fr
+    cx, cy = c
+    yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32) * 2
+    dx = xx - cx; dy = (yy - cy) / flat
+    r = np.sqrt(dx * dx + dy * dy) + 1e-3
+    R = speed * k
+    env = np.exp(-((r - R) / (wl * 2.2)) ** 2) * (1 - k / life) ** 1.5 * (r < R + wl * 3)
+    env += 0.5 * np.exp(-((r - R * 0.62) / (wl * 1.6)) ** 2) * (1 - k / life) ** 2
+    w = np.sin((r - R) / wl * 6.283) * env
+    off = w * amp
+    mx = (xx + dx / r * off).astype(np.float32); my = (yy + dy * flat / r * off).astype(np.float32)
+    mask = (yy >= y_top).astype(np.float32)
+    mx = xx + (mx - xx) * mask; my = yy + (my - yy) * mask
+    out = cv2.remap(fr, cv2.resize(mx, (W, H)), cv2.resize(my, (W, H)), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    hl = cv2.resize(np.clip(w, 0, 1) * mask, (W, H))[..., None]
+    return out + hl * np.array([0.55, 0.6, 0.7], np.float32) * 0.18
+
+
 def flash_frame(fr, amt, col=(0.92, 0.95, 1.0)):
     return fr * (1 + amt * 0.6) + amt * np.asarray(col, np.float32) * 0.5
 
@@ -857,52 +877,53 @@ class C15(Shot):
 # =====================================================================================
 # 副歌二「破」
 class C16(Shot):
-    """ECU 血雨（第三棒加材质）：雨在空中瞬间变红（慢放），巨字「血」砸进雨幕——字是湿的：有厚度和高光、内部更暗、
-    下缘不断淌出血线（滴落末端带血珠），「冷」上碎成血珠落下。"""
+    """第五棒重做（评审 P1：立体红「血」+滴血 ≈ 副歌一 S038）：贴水面低机位——画顶垂下他刀尖（生图 C5/c16_drip），
+    一滴血从刃尖坠进积水（134.50「血」= 落水帧），涟漪荡开，血在水里像墨一样晕开、被透视压扁成一个躺在水面上的「血」字；
+    135.06「冷」第二滴落下，字被涟漪搅碎、散成血丝。字是水里的血，不是立在空中的立体字。"""
     def __init__(self):
+        g = T.glyph('血', 'serif_black', 600, False).astype(np.float32)
+        g = cv2.resize(g, (g.shape[1], int(g.shape[0] * 0.56)), interpolation=cv2.INTER_AREA)
+        self.g = np.zeros((H, W), np.float32)
+        gh, gw = g.shape; y0, x0 = 770 - gh // 2, 960 - gw // 2
+        self.g[y0:y0 + gh, x0:x0 + gw] = g
         r = np.random.default_rng(16)
-        self.drips = [(r.uniform(0.05, 0.95), r.uniform(0.4, 1.0), r.uniform(5, 11), r.uniform(0, 0.25)) for _ in range(16)]
+        self.nz = cv2.resize(cv2.GaussianBlur(r.random((H // 8, W // 8)).astype(np.float32), (0, 0), 2), (W, H))
     def render(self, t):
         u = self.u(t)
-        tb = V(134.50); ts = V(135.06)
-        fl = bolt_env(t, tb) * 1.1
-        fr = storm(t, 16, horizon=1300, flash=0.4 + fl, ground=False, fc=(960, 300))
-        fr = fr * np.array([1.05, 0.88, 0.88], np.float32)
-        tr = 134.0 + (t - 134.0) * 0.3
-        fr = rain(fr, tr, 160, inten=1.3, angle=6, red=sm(tb - 0.05, tb + 0.25, t), freeze=0.35)
-        L = T.Layer()
-        sc = 1 + 0.35 * (1 - eout((t - tb) / 0.22)) if t >= tb else 1.0
-        T.place(L, '血', 960, 500, 600, (1, 1, 1), 'serif_black', scale=sc, texture=False)
-        A = L.A
-        bx = L.box(0)
-        if bx is not None:
-            x0, y0, x1, y1 = bx
-            k = max(0.0, t - tb)
-            for fx, ln, wd, dl in self.drips:      # 血线：从笔画下缘淌下
-                x = int(x0 + fx * (x1 - x0))
-                col = A[:, x]; ys = np.nonzero(col > 0.5)[0]
-                if len(ys) == 0: continue
-                yb = int(ys.max()); L_ = 230 * ln * eout(clamp((k - dl) / 0.9), 1.6)
-                if L_ < 3: continue
-                cv2.line(A, (x, yb - 4), (x, int(yb + L_)), 1.0, int(wd), cv2.LINE_AA)
-                cv2.circle(A, (x, int(yb + L_)), int(wd * 0.9), 1.0, -1, cv2.LINE_AA)
-            # 湿润材质：高度 → 法线 → 漫反射 + 高光
-            sub = A[max(0, y0 - 20):min(H, y1 + 260), max(0, x0 - 20):min(W, x1 + 20)]
-            hgt = cv2.GaussianBlur(sub, (0, 0), 6)
-            gx = cv2.Sobel(hgt, cv2.CV_32F, 1, 0, ksize=3) * 6; gy = cv2.Sobel(hgt, cv2.CV_32F, 0, 1, ksize=3) * 6
-            nrm = np.dstack([-gx, -gy, np.ones_like(gx)]); nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True)
-            lv = np.array([-0.45, -0.65, 0.6]); lv /= np.linalg.norm(lv)
-            hv = lv + np.array([0, 0, 1.0]); hv /= np.linalg.norm(hv)
-            dif = np.clip(nrm @ lv, 0, 1); spc = np.clip(nrm @ hv, 0, 1) ** 60
-            deep = np.clip(cv2.GaussianBlur(sub, (0, 0), 14) * 1.3 - 0.3, 0, 1)
-            base = np.array([0.55, 0.03, 0.025], np.float32)
-            Cs = base * (0.35 + 0.75 * dif[..., None]) * (1 - 0.45 * deep[..., None]) + spc[..., None] * np.array([1.0, 0.85, 0.82], np.float32) * (1.3 + fl)
-            L.C[max(0, y0 - 20):min(H, y1 + 260), max(0, x0 - 20):min(W, x1 + 20)] = Cs
-            L.bb = [max(0, x0 - 20), max(0, y0 - 20), min(W, x1 + 20), min(H, y1 + 260)]
-        q = sm(ts, ts + 0.55, t)
-        if q > 0: L = T.shatter_layer(L, q, (960, 470), 140, seed=16, power=0.7, gravity=1600, spin=200)
-        fr = T.compose(fr, L, shadow=0.7, shadow_sigma=26, glow=0.45, glow_sigma=26, glow_color=(0.7, 0.04, 0.02))
-        self.ca = 6 if 0 < t - ts < 0.12 else 0
+        t1 = V(134.50); t2 = V(135.06)
+        fl = bolt_env(t, t1) * 0.35
+        fr = storm(t, 16, horizon=560, flash=0.35 + fl, refl=0.85, rip=0.6, fc=(960, 200))
+        fr = fr * np.array([1.0, 0.9, 0.9], np.float32)
+        bd = cv2.GaussianBlur(fr[480:660], (0, 0), sigmaX=6, sigmaY=22)          # 水天线：竖向柔化 + 雾，避免硬边
+        wv = np.exp(-((np.arange(480, 660) - 562) / 40.0) ** 2)[:, None, None]
+        fr[480:660] = fr[480:660] * (1 - wv) + (bd * 0.8 + 0.06) * wv
+        # 刀尖（画顶垂下）与它在水里的倒影
+        tip_y = 470
+        fr, A = put(fr, t, 'C5/c16_drip', 960, tip_y, 470, anchor='src', src=(0.497, 0.92), rim=COLD, rim_amt=2.4, rim_dir=(0.3, -1),
+                    flash=fl, expo=0.9, sat=0.9, tint=(1.0, 0.97, 1.0), wind=0, breathe=0.0)
+        # 第二滴：在刃尖聚起 → 135.06 前坠落
+        if t < t2:
+            gr = sm(t1 + 0.1, t2 - 0.12, t)
+            yd = tip_y + 6 + (0 if t < t2 - 0.12 else 1900 * (t - (t2 - 0.12)) ** 2)
+            fr = K.vol_light(fr, (960, yd), 7 + 5 * gr, (0.55, 0.02, 0.02), 1.2 * gr) if gr > 0 else fr
+        # 血在水里晕开成字
+        k = t - t1
+        grow = eout(clamp(k / 0.35), 2)
+        yy = (np.arange(H)[:, None] - 770) / 0.56; xx = np.arange(W)[None, :] - 960
+        rr = np.sqrt(xx * xx + yy * yy)
+        reveal = np.clip((grow * 520 - rr) / 60 + (self.nz - 0.5) * 2, 0, 1)
+        k2 = max(0.0, t - t2)
+        sig = 1.5 + 10 * eout(clamp(k2 / 0.5))
+        Gb = cv2.GaussianBlur(self.g, (0, 0), sig) * reveal * (1 - 0.45 * sm(0, 0.5, k2))
+        Gb = np.clip(Gb * (1 + 0.6 * (self.nz - 0.5)), 0, 1)[..., None]
+        fr = fr * (1 - 0.82 * Gb) + Gb * np.array([0.50, 0.02, 0.02], np.float32) * (0.7 + 0.5 * fl)
+        fr = water_ripple(fr, (960, 770), k + 0.02, flat=0.45, speed=700, amp=4 + 6 * sm(0.15, 0.4, k), y_top=560)
+        fr = water_ripple(fr, (960, 770), k2 + 0.01 if t >= t2 else -1, flat=0.45, speed=760, amp=14, y_top=560)
+        fr = splash(fr, t, t1, (960, 770), 161, n=60, spread=160, up=420, col=(0.55, 0.05, 0.04), amt=0.8)
+        fr = splash(fr, t, t2, (960, 770), 162, n=60, spread=180, up=460, col=(0.6, 0.06, 0.05), amt=0.8)
+        tr = 134.0 + (t - 134.0) * 0.4
+        fr = rain(fr, tr, 160, inten=0.9, angle=6, red=0.35 * sm(t1, t1 + 0.4, t))
+        self.ca = 5 if 0 <= k2 < 0.1 else 0
         return fr
 
 
@@ -915,7 +936,7 @@ class C17(Shot):
         fr = storm(t, 17, horizon=760, flash=0.45 + fl, refl=0.7, rip=1.2)
         fr = fog(fr, t, 17, density=0.4, y0=680, y1=940, color=(0.4, 0.42, 0.48), speed=(50, 0))
         y = 960 if t >= tl else lerp(200, 960, ein(sm(self.t0, tl, t), 2))
-        fr = shock_ring(fr, (960, 975), (t - tl) / 0.7, rx=1300, flat=0.16, amt=1.2)
+        fr = water_ripple(fr, (960, 975), t - tl, flat=0.16, speed=1500, amp=16, wl=60, y_top=760)   # 第五棒：真实积水涟漪替代白色椭圆波纹
         fr, _ = put(fr, t, 'S071/land_kneel', 960, y, 560, rim=COLD, rim_amt=2.2, flash=fl + 0.3 * pulse(t, tl, 0.2), expo=0.95,
                     mblur=(0, 40) if t < tl else (0, 0), wind=8)
         fr = splash(fr, t, tl, (960, 975), 171, n=220, spread=900, up=1100)
