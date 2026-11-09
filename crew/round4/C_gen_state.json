@@ -1,5 +1,5 @@
 {
- "spent": 24,
+ "spent": 39,
  "jobs": {
   "slash_strings": {
    "tries": [
@@ -86,6 +86,61 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/blade_level_try1_0.png"
+    }
+   ]
+  },
+  "face_lit": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "aca831ec-d59a-460a-a30a-d92105c6176a",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "brace_cu": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "396ef948-8613-4d3d-9fd5-1817da443207",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "point_cam": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "578e0e8e-3338-43ab-bd3d-a16d38bebdd3",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "soldiers3": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "a6e34a40-a54d-4d82-bd8f-46fa267b8395",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "army_kneel": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "20df00ab-2a9f-4878-8939-7ba8552b1a68",
+     "status": "running",
+     "pts": 3,
+     "file": null
     }
    ]
   }
