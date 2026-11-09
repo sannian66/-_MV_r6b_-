@@ -298,13 +298,15 @@ def paper_frame(fr, A, t, seed=0, amt=0.55):
     return out + np.clip(halo, 0, 1)[..., None] * k * np.array([1.0, 0.85, 0.6], np.float32) * 0.08 * (amt / 0.55)
 
 
-class E08(Shot):   # S117 CU 纸糊巨脸自中心烧穿，背后空无一物（白金虚空）
+class E08(Shot):   # S117 CU（第三棒重做）纸糊巨脸自中心烧穿 → 洞后不是白光，是暗处他的双眼（S123 眼部裁切，火光从下照亮）
     def __init__(self):
         r = np.random.default_rng(117)
         self.nz = cv2.resize(r.random((H // 24, W // 24)).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
         self.nz2 = cv2.resize(r.random((H // 6, W // 6)).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
-        self.void = E.dawn_sky(118, horizon=0.4, top=(0.75, 0.62, 0.42), mid=(1.0, 0.86, 0.62), hor=(1.0, 0.95, 0.85), cloud=0.0)
-        self.l = Lyr(row('伪装', cts(50, [6, 7]), 960, 860, size=150, red='伪装', track=0.15), CT(51, 0) - 0.12, seed=50)
+        n = K.fbm(H // 2, W // 2, 1171, base=4, octaves=5)
+        self.void = cv2.resize(((0.015 + 0.035 * n)[..., None] * np.array([1.0, 0.8, 0.62], np.float32)).astype(np.float32), (W, H))
+        self.l = LyrO(row('伪装', cts(50, [6, 7]), 960, 820, size=230, red='伪装', track=0.08, font='serif_black'), CT(51, 0) - 0.12, seed=50,
+                      outline=5, plate_amt=0.6, glow=0.3)
         self.bg = E.dawn_sky(119, horizon=0.8, mid=(0.5, 0.36, 0.2), cloud=0.0)
 
     def render(self, t):
@@ -319,18 +321,24 @@ class E08(Shot):   # S117 CU 纸糊巨脸自中心烧穿，背后空无一物（
             c = (960, 470)
             d = np.hypot(xx - c[0], (yy - c[1]) * 1.15) / 900
             field = d + (self.nz - 0.5) * 0.35 + (self.nz2 - 0.5) * 0.08
-            R = eout(prog, 2) * 0.6
+            R = eout(prog, 2) * 0.62
             keep = np.clip((field - R) / 0.015, 0, 1)
             ember = np.exp(-((field - R) / 0.02) ** 2)
             char = np.exp(-np.maximum(field - R, 0) / 0.05) * (field > R)
             A = info['A']
             burned = A * (1 - keep)
+            # 洞后：暗处横刀（S128 刀身裁切），刃口受光
+            v = self.void.copy()
+            v, bi = put(v, t, 'S123/front|crop=0.36,0.25,0.64,0.45', (960, 350 - 20 * u), w=2100, anc=(0.5, 0.5),
+                        rim=(1.0, 0.6, 0.3), rim_amt=2.0, rim_dir=(0.0, 1.0), grade=dict(expo=0.95, sat=0.6, tint=(1.1, 0.96, 0.84), lift=0.0, gamma=1.08), wind=3)
+            yy2 = yy - 470; glow = np.exp(-(((xx - 960) / 700) ** 2 + (yy2 / 330) ** 2))                 # 火光从洞口照进去：中心亮、四周沉入黑
+            v = v * (0.25 + 0.85 * glow)[..., None] + (np.exp(-((yy - 900) / 260) ** 2) * 0.12)[..., None] * np.array([1.0, 0.4, 0.1], np.float32)
             fr = fr * (1 - 0.85 * char * A)[..., None]
-            fr = fr * (1 - burned[..., None]) + self.void * 1.15 * burned[..., None]
+            fr = fr * (1 - burned[..., None]) + v * burned[..., None]
             em = ember * A
-            fr = fr + (em * 2.2 + cv2.GaussianBlur(em, (0, 0), 10) * 2.0)[..., None] * np.array([1.0, 0.55, 0.2], np.float32)
+            fr = fr + (em * 2.2 + cv2.GaussianBlur(em, (0, 0), 10) * 2.0)[..., None] * np.array([1.0, 0.5, 0.18], np.float32)
             fr = E.dust_motes(fr, t, 1170, n=120, amt=0.9 * prog, drift=(20, -160), col=(1.0, 0.6, 0.3), size=(1, 4))
-        return bloom(fr, 0.8, 0.5)
+        return bloom(fr, 0.85, 0.45)
 
     def text(self, fr, t): return self.l.draw(fr, t)
 
