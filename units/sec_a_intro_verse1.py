@@ -590,6 +590,39 @@ class V08(Shot):
         return fr, (4 if 0 <= a < 0.08 else 0)
 
 
+PAPER_BODY = np.array([(0, -1.0), (-0.07, -0.97), (-0.09, -0.86), (-0.06, -0.80), (-0.22, -0.74), (-0.30, -0.40), (-0.24, -0.38),
+                       (-0.20, -0.62), (-0.18, -0.30), (-0.30, 0), (0.30, 0), (0.18, -0.30), (0.20, -0.62), (0.24, -0.38), (0.30, -0.40),
+                       (0.22, -0.74), (0.06, -0.80), (0.09, -0.86), (0.07, -0.97)], np.float32)
+
+
+def paper_crowd(fr, t, cx, cy, wpx, rows=5, per=11, hpx=70, seed=0, light=(0, -1)):
+    """第三棒：秤盘里的「千人」= 层层叠叠的剪纸人（宣纸纹理 + 顶光金边 + 每人轻微晃动），后排更小更暗、堆成丘，
+    替换原来的白色小方块（评审口径：程序道具不能是白模几何体）。cx,cy = 盘心（脚底线），wpx = 盘宽。"""
+    r = np.random.default_rng(seed)
+    Lp = np.zeros((H, W), np.float32); Sh = np.zeros((H, W), np.float32)
+    for row in range(rows - 1, -1, -1):
+        k = row / max(1, rows - 1)
+        n = per - row; sc = 1 - 0.12 * row
+        span = wpx * (0.92 - 0.12 * row)
+        for i in range(n):
+            x = cx - span / 2 + span * (i + 0.5 + r.uniform(-0.3, 0.3)) / n
+            y = cy - row * hpx * 0.42 - (1 - ((x - cx) / (wpx / 2)) ** 2) * hpx * 0.25 * row
+            ang = r.uniform(-8, 8) + 4 * math.sin(t * 2.2 + i + row)
+            th = math.radians(ang); Rm = np.array([[math.cos(th), -math.sin(th)], [math.sin(th), math.cos(th)]], np.float32)
+            P = (PAPER_BODY * hpx * sc * r.uniform(0.85, 1.1) @ Rm.T + [x, y]).astype(np.int32)
+            tmp = np.zeros_like(Lp); cv2.fillPoly(tmp, [P], 1.0, cv2.LINE_AA)
+            tone = 1.0 - 0.45 * k
+            Sh = np.maximum(Sh * (1 - tmp), tmp * (1 - tone))          # 近排盖住远排
+            Lp = np.maximum(Lp, tmp)
+    Lp = cv2.GaussianBlur(Lp, (0, 0), 0.7)
+    paper = (0.72 + 0.28 * cv2.resize(A.tex(seed + 102, 256, 10, 4), (W, H)))[..., None] * np.array([0.90, 0.74, 0.50], np.float32)
+    shade = 1 - Sh[..., None]
+    top = np.clip(Lp - cv2.warpAffine(Lp, np.float32([[1, 0, -light[0] * 3], [0, 1, -light[1] * 3]]), (W, H)), 0, 1)[..., None]
+    edge = np.clip(Lp - cv2.erode(Lp, np.ones((3, 3), np.uint8)), 0, 1)[..., None]
+    col = paper * 0.80 * shade + top * GOLDV * 0.9 - edge * 0.10
+    return fr * (1 - Lp[..., None]) + np.clip(col, 0, 2) * Lp[..., None]
+
+
 # V09 25.29–27.10 MS 悬空巨天平：左盘千人、右盘一枚金印仍压下；环绕；字沿横梁排列，「人命」朱红
 class V09(Shot):
     def __init__(self):
@@ -600,15 +633,17 @@ class V09(Shot):
         fr = A.glow(fr, (960, 260), 650, 0.3, (0.6, 0.55, 0.45))
         fr = fx2.god_rays(fr, (960, 160), strength=0.5, length=1.0, color=(0.9, 0.8, 0.6), t=t, src_r=160)
         tilt = -9 + 2 * math.sin(t * 1.3)
-        fr, info = self.bal.draw(fr, t, 960, 330, 1300, tilt=tilt, left_people=1.0, right='seal', rim_color=GOLDV, drip=0.5)
+        fr, info = self.bal.draw(fr, t, 960, 262, 1120, tilt=tilt, left_people=0.0, right='seal', rim_color=GOLDV, drip=0.5)
+        pl = info.get('pan_L')
+        if pl is not None: fr = paper_crowd(fr, t, pl[0], pl[1] - 6, 290, hpx=62, seed=9)
         fr = fog(fr, t, 1, 700, 960, 0.4, (0.25, 0.24, 0.26), speed=(-30, 0))
         # 沿横梁排字（屏幕层随梁倾斜）
         txt = '谁把人命装进天平里'; ks = list(range(9))
         L = T.Layer(); ang = math.radians(tilt)
         for i, (c, p) in enumerate(zip(txt, cprog(3, ks, t, 0.2))):
             if p <= 0: continue
-            d = (i - 4) * 120
-            x = 960 + d * math.cos(ang); y = 245 - d * math.sin(ang) + 30 * (1 - p)
+            d = (i - 4.5) * 120 + (60 if i >= 5 else -0)                       # 第三棒：字挂在梁下（让开支柱），守安全区
+            x = 960 + d * math.cos(ang); y = 262 + 100 - d * math.sin(ang) + 30 * (1 - p)
             col = (0.86, 0.12, 0.08) if c in '人命' else (0.95, 0.92, 0.86)
             T.place(L, c, x, y, 88, col, 'kai', alpha=eout(p), rot=-tilt, blur=4 * (1 - p))
         fr = T.compose(fr, L, shadow=0.7, glow=0.25)
