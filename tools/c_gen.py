@@ -39,12 +39,34 @@ JOBS = {
                  'left hand on the black cord-wrapped handle, right hand two fingers resting flat under the spine near the middle of the blade, black sleeves and leather wrist guards, '
                  'cold polished steel with a wavy temper line, wet with small water droplets along the blade. Framing: the whole blade from pommel to tip inside the frame with margin, blade horizontal across the frame. '
                  'Lighting: cold white lightning rim light from above, dim fill, cinematic photorealistic film still. ' + HANDS + BG),
+ # ---- 第三棒（r3）：人物表演中近景 + 军阵替换（评审 P0/P2）
+ 'face_lit': ('男主_鬼屠', 'C28', GT_LOOK + ' Extreme close-up of his FACE ONLY (from chin to top of head, ponytail base visible), three-quarter view turned slightly to camera left, '
+              'eyes wide open and fierce, looking past camera into a blinding light, lips slightly parted, rain water running down his cheek and dripping from wet strands of hair. '
+              'Lighting: a hard narrow band of brilliant warm white-gold light falls across his eyes and cheekbones from the front-left (light pouring through a crack), the rest of the face in deep cold shadow, '
+              'cold blue rim on the far edge, cinematic photorealistic film still, shallow depth of field. Framing: face fills about 70% of frame height, margin around the head. ' + BG),
+ 'brace_cu': ('男主_鬼屠', 'C35', GT_LOOK + ' Pose: medium close-up from a LOW angle looking up at him, waist up, he holds the dao HORIZONTALLY above his head with BOTH hands (one hand on the handle, the other palm pressing up under the back of the blade) '
+              'pushing upward against a crushing invisible weight from above, elbows bent, shoulders hunched, teeth gritted, veins on neck, face straining but eyes defiant looking up, sweat and rain on his face. '
+              'Framing: from waist to above the raised blade, the whole blade and both hands inside the frame with margin. ' + STORM + HANDS + BG),
+ 'point_cam': ('男主_鬼屠', 'C40', GT_LOOK + ' Pose: medium close-up, he thrusts the dao straight toward the camera, the blade strongly foreshortened, the blade tip close to the lens and the long blade receding to his hand, '
+               'his face right behind the hilt looking along the blade directly into the lens with a calm, cold, absolutely resolute stare, ponytail swinging. '
+               'Framing: head, shoulders, arm and the whole foreshortened blade inside the frame with margin, face sharp. ' + STORM + HANDS + BG),
+ 'soldiers3': (None, 'C19', 'Three ancient Chinese imperial heavy infantry soldiers in dark iron lamellar armor charging toward the camera in a staggered line, '
+               'helmets with red horsehair plumes and cheek guards, faces hidden in shadow, two holding long spears leveled forward, one raising a halberd, armor plates wet and glinting, tattered dark red cloth. '
+               'Lighting: harsh cold white lightning from behind as a hard rim light on helmets, plumes, shoulder plates and spear blades, bodies mostly in dark silhouette, cinematic photorealistic film still. '
+               'Framing: full body, all three figures entirely inside the frame with margin, feet visible. Studio sprite plate: plain flat neutral mid-grey seamless background (RGB about 128,128,128), NOTHING else in the background, no ground, no rain, no text, no watermark.'),
+ 'army_kneel': (None, 'C36', 'Epic wide establishing shot, cinematic photorealistic film still, 2.39:1 feel: on a flooded black plain at night in a violent thunderstorm, an immense army of thousands of ancient Chinese armored soldiers '
+                'KNEELING in perfect rows in the shallow water, heads bowed, spears and tall dark red banners planted upright, receding to the horizon under a low churning storm sky. '
+                'A single empty aisle runs down the center of the formation toward the camera. Lightning flash from the far horizon backlights the helmets and banners with cold white rim light, the water mirrors the sky, '
+                'heavy slanted rain, mist between rows, atmospheric perspective. Composition: horizon at about 40% from the top, the army fills the lower 60%, the upper sky is dark and fairly empty. No text, no watermark, no letterbox bars.'),
 }
 
 
 def load(): return json.load(open(STATE)) if os.path.exists(STATE) else {'spent': 0, 'jobs': {}}
 def save(s): json.dump(s, open(STATE, 'w'), ensure_ascii=False, indent=1)
-def body(k): ch, _, pr = JOBS[k]; return dict(model='RH_image2', prompt=pr, ratio='16:9', size='4K', input=[REFS[ch + '.webp']])
+def body(k):
+    ch, _, pr = JOBS[k]; b = dict(model='RH_image2', prompt=pr, ratio='16:9', size='4K')
+    if ch: b['input'] = [REFS[ch + '.webp']]
+    return b
 def log(name, pts, tid, res, path, note):
     open(LOG, 'a').write('| %s | C组/%s | RH_image2 | 4K 16:9 | %s | %s | %s | %s | %s |\n' % (time.strftime('%m-%d %H:%M'), name, pts, tid, res, path, note))
 

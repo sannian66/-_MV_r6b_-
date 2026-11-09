@@ -452,3 +452,109 @@ def d_finish(fr, t, ca=0, grain=0.04, vig=0.45, bloom_amt=0.3, bloom_thr=0.75, p
     fr = np.where(fr > 0.85, 0.85 + (1 - np.exp(-(fr - 0.85) * 4)) * 0.15, fr)
     fr[:BAR] = 0; fr[H - BAR:] = 0
     return np.clip(fr, 0, 1).astype(np.float32)
+
+
+# ===================================================================== 第三棒：后半段统一字体系统（宋体大字 + 朱印）与新空间
+SONG_WHITE = (0.96, 0.93, 0.86)
+
+
+def song(fr, items, glow=0.15):
+    """后半段歌词：宋体（serif_black，带墨迹毛边）大字砸落。items: (ch, x, y, size, p, color)；
+    color: 'w' 暖白 / 'r' 朱红 / 'g' 金 / 'k' 墨。p 为 cp() 落字进度（0→1 时放大回弹 + 去虚焦）。"""
+    groups = {}
+    for it in items:
+        ch, x, y, s, p, c = it
+        if p <= 0: continue
+        groups.setdefault(c, []).append(it)
+    for c, its in groups.items():
+        L = T.Layer()
+        colr = {'w': SONG_WHITE, 'r': RED, 'g': GOLD, 'k': INK}[c]
+        for ch, x, y, s, p, _ in its:
+            e = K.eout(p, 3)
+            T.place(L, ch, x, y, s, colr, 'serif_black', alpha=min(1, p * 2), scale=1 + 0.45 * (1 - e), blur=7 * (1 - e), texture=False)
+        if c == 'r':
+            fr = T.compose(fr, L, shadow=0.7, shadow_sigma=30, outline=3, outline_color=(0.03, 0.02, 0.02), glow=0.5 * glow / 0.15,
+                           glow_color=(0.9, 0.12, 0.06), glow_sigma=26)
+        elif c == 'g':
+            fr = T.compose(fr, L, shadow=0.75, shadow_sigma=30, glow=0.55, glow_color=(1.0, 0.55, 0.2), glow_sigma=30)
+        elif c == 'k':
+            fr = ink_text(fr, L, bleed=0.1, sig=4)
+        else:
+            fr = T.compose(fr, L, shadow=0.85, shadow_sigma=30, glow=glow, glow_color=(1, 0.93, 0.85), glow_sigma=18)
+    return fr
+
+
+def seal_p(t, t_on, hold=1.4):
+    """stamp_seal 进度：落印正好在 V(t_on)"""
+    th = V(t_on)
+    if t < th - 0.1: return 0.0
+    return 0.3 * K.clamp01((t - (th - 0.1)) / 0.1) if t < th else min(1.0, 0.3 + (t - th) / hold)
+
+
+def night(t, seed, top=(0.035, 0.04, 0.055), bot=(0.012, 0.012, 0.016), glow=None, clouds=0.5, drift=40):
+    """非漩涡夜空：纵向渐变 + 横向漂移的层云（不旋转）+ 可选光源晕。glow=(x, y, r, col, amt)"""
+    x, y = K.grid()
+    v = (y / H)[..., None]
+    fr = np.array(top, np.float32) * (1 - v) + np.array(bot, np.float32) * v
+    if clouds > 0:
+        tx = _tile(seed)
+        n = cv2.remap(tx, ((x / 3.2 + t * drift) % 512).astype(np.float32), ((y / 1.6) % 512).astype(np.float32), cv2.INTER_LINEAR)
+        n2 = cv2.remap(_tile(seed + 1), ((x / 1.4 + t * drift * 2.2) % 512).astype(np.float32), ((y / 0.9) % 512).astype(np.float32), cv2.INTER_LINEAR)
+        c = np.clip((n * 0.65 + n2 * 0.35 - 0.45) * 2.2, 0, 1) * (1 - v[..., 0]) ** 0.8
+        fr = fr * (1 + c[..., None] * clouds * 2.2)
+    if glow is not None:
+        gx, gy, r, col, amt = glow
+        g = np.exp(-(((x - gx) ** 2 + (y - gy) ** 2) / (2 * r * r)))
+        fr = fr + g[..., None] * np.array(col, np.float32) * amt
+    return fr.astype(np.float32)
+
+
+_SHARDS = {}
+
+
+def seal_shards(seed=0, n=70):
+    """碎印章：若干方朱印（阴文宋体字）被裂成三角碎片 → [(rgba alpha, w)]"""
+    if seed in _SHARDS: return _SHARDS[seed]
+    r = np.random.default_rng(seed)
+    out = []
+    chars = '正义规矩理所应当天判忍让大局'
+    for k in range(n):
+        s = int(r.uniform(150, 260))
+        a = T._seal_img(chars[k % len(chars)], s, 'yin', seed * 100 + k)
+        pts = r.uniform(0, s, (3, 2)).astype(np.int32)
+        pts[0] = (r.uniform(0, s * 0.3), r.uniform(0, s * 0.3)) if k % 2 else pts[0]
+        m = np.zeros((s, s), np.float32); cv2.fillConvexPoly(m, pts, 1.0, cv2.LINE_AA)
+        if m.sum() < s * s * 0.06: m = np.zeros((s, s), np.float32); cv2.rectangle(m, (0, 0), (s // 2, s // 2), 1.0, -1)
+        out.append(a * m)
+    _SHARDS[seed] = out
+    return out
+
+
+def shard_rain(fr, t, seed, n=55, speed=(500, 1100), depth=(0.3, 1.3), t0=0.0, burst=None, col=(0.72, 0.06, 0.04), blur_far=2.5):
+    """碎印章雨：朱红印章碎片从天坠落、翻转（远小慢糊、近大快），burst=(t_hit, (x,y)) 时从该点炸开"""
+    S = seal_shards(seed)
+    r = np.random.default_rng(seed + 7)
+    items = []
+    for k in range(n):
+        z = r.uniform(*depth); a = S[k % len(S)]
+        x0 = r.uniform(-100, W + 100); ph = r.uniform(0, 1)
+        v = r.uniform(*speed) * z
+        y = (ph * (H + 400) + (t - t0) * v) % (H + 400) - 200
+        x = x0 + math.sin(t * 1.3 + k) * 40 * z
+        rot = (r.uniform(-1, 1) * 200 * (t - t0) + r.uniform(0, 360)) % 360
+        if burst is not None and t > burst[0]:
+            q = t - burst[0]; dx, dy = x - burst[1][0], y - burst[1][1]; d = math.hypot(dx, dy) + 1
+            x += dx / d * 900 * q * z; y += dy / d * 900 * q * z
+        items.append((z, a, x, y, rot))
+    items.sort(key=lambda it: it[0])
+    out = fr
+    for z, a, x, y, rot in items:
+        sc = 0.5 * z
+        g = a.shape[0]; d = int(g * sc * 1.5) + 4
+        M = cv2.getRotationMatrix2D((g / 2, g / 2), rot, sc); M[:, 2] += (d - g) / 2
+        aa = cv2.warpAffine(a, M, (d, d))
+        if z < 0.7: aa = cv2.GaussianBlur(aa, (0, 0), blur_far * (0.7 - z) / 0.4 + 0.3)
+        sh = 0.45 + 0.55 * min(1, z)          # 远处更暗（大气）
+        L = T.Layer(); L.paste(aa, x, y, tuple(np.array(col) * sh), 1.0)
+        out = T.compose(out, L, shadow=0.0, glow=0.0)
+    return out
