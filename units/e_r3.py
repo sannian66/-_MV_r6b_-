@@ -306,7 +306,7 @@ class Shreds:
              gold=(1.0, 0.78, 0.42), amt=1.0, dof=(1.0, 9.0), zfocus=1.4, emb=1.0, tint_back=(0.25, 0.18, 0.12)):
         lv = np.array(light, np.float32); lv /= np.linalg.norm(lv)
         layers = [np.zeros((H, W, 3), np.float32) for _ in range(3)]; alph = [np.zeros((H, W), np.float32) for _ in range(3)]
-        em = np.zeros((H, W), np.float32)
+        ems = [np.zeros((H, W), np.float32) for _ in range(3)]
         items = []
         for p in self.P:
             z = p['z'] + p['vz'] * t * to_cam
@@ -347,17 +347,18 @@ class Shreds:
             if not p['gold']:
                 e_ = np.zeros_like(m); cv2.polylines(e_, [ip], True, 1.0, max(1, int(4 / z)), cv2.LINE_AA)
                 Lc[:] = Lc * (1 - 0.85 * e_[..., None] * m[..., None])
-                np.maximum(em[y0:y1, x0:x1], e_ * m * float(p['burn'] * emb) * (0.4 + 0.6 * tx), out=em[y0:y1, x0:x1])
+                np.maximum(ems[li][y0:y1, x0:x1], e_ * m * float(p['burn'] * emb) * (0.4 + 0.6 * tx), out=ems[li][y0:y1, x0:x1])
         out = fr
         for li, sig in zip((0, 1, 2), (dof[0], 0.0, dof[1])):
-            Cc, Aa = layers[li], alph[li]
+            Cc, Aa, em = layers[li], alph[li], ems[li]
             if Aa.max() <= 0: continue
             if sig > 0.5:
                 Cc = cv2.GaussianBlur(Cc * Aa[..., None], (0, 0), sig); Aa = cv2.GaussianBlur(Aa, (0, 0), sig)
-                Cc = Cc / np.maximum(Aa[..., None], 1e-3)
+                Cc = Cc / np.maximum(Aa[..., None], 1e-3); em = cv2.GaussianBlur(em, (0, 0), sig) * 0.6
+            else: em = cv2.GaussianBlur(em, (0, 0), 1.0)
             out = out * (1 - Aa[..., None] * amt) + Cc * Aa[..., None] * amt
-        em = cv2.GaussianBlur(em, (0, 0), 1.0)
-        return out + (em * 1.3 + cv2.GaussianBlur(em, (0, 0), 6) * 1.2)[..., None] * np.array([1.0, 0.45, 0.12], np.float32) * amt
+            out = out + (em * 1.3 + cv2.GaussianBlur(em, (0, 0), 6) * 1.2)[..., None] * np.array([1.0, 0.45, 0.12], np.float32) * amt
+        return out
 
 
 # ============================================================== 碑林纵深

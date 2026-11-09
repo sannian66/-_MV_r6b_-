@@ -363,7 +363,7 @@ class E09(Shot):   # S118 MS 交叉斩：一刀斜劈，纸帘沿刀线断开；
         C, A = self.cur.layer(t, wind=1.1)
         C, A = R3.Scrolls.light(C, A, fr, 0.9, blur=1.2)
         if t >= ts:                                                          # 挂轴沿刀线断开：线下半截下坠，断口烧红
-            C, A, em = R3.cut_layer(C, A, tuple(self.p0), tuple(self.p1), t - ts, fall=1.0, side=1)
+            C, A, em = R3.cut_layer(C, A, tuple(self.p0), tuple(self.p1), t - ts, fall=1.0, side=-1)
             fr = R3.comp(fr, C, A)
             fr = fr + (em * 1.6 + cv2.GaussianBlur(em, (0, 0), 8) * 1.5)[..., None] * np.array([1.0, 0.5, 0.15], np.float32)
         else:
@@ -498,8 +498,7 @@ class E13(Shot):   # S121 MCU 晨风中马尾与暗红腰带甩动，背景日�
         self.bg = cv2.GaussianBlur(sky, (0, 0), 18)
         r = np.random.default_rng(121)
         self.bok = [(r.uniform(900, 1900), r.uniform(150, 900), r.uniform(25, 70), r.uniform(0.2, 0.6)) for _ in range(18)]
-        self.l1 = Lyr([('血', 440, 520, 440, 'serif_black', REDT, CT(52, 0))], CT(52, 3) - 0.1, seed=100)
-        self.l2 = Lyr(row('未冷', cts(52, [1, 2]), 740, 610, size=66, vertical=True, base=GOLD_T, track=0.4), CT(52, 3) - 0.1, seed=101)
+        self.l2 = Sub('未冷', cts(52, [1, 2]), 'left', CT(52, 3) - 0.1, seed=101)
 
     def render(self, t):
         u = self.u(t)
@@ -512,29 +511,35 @@ class E13(Shot):   # S121 MCU 晨风中马尾与暗红腰带甩动，背景日�
         fr = RS.fx_embers(fr, t, 1213, amt=0.8, n=50)
         return bloom(fr, 0.8, 0.4)
 
-    def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
+    def text(self, fr, t):
+        if t < CT(52, 3) - 0.1: fr = R3.blood_drip(fr, '血', 470, 470, 470, t, CT(52, 0), seed=13)   # 「血」滴血笔触（与 E01 碑拓不同）
+        return self.l2.draw(fr, t)
 
 
-class E14(Shot):   # S122 LS 他逆光朝镜头走来，灰烬与焦纸在晨风中飘；拉轨
+class E14(Shot):   # S122（第三棒重做）低机位仰拍：他从烟尘里朝镜头走来，人物偏右占 4/5 高；墨灰冷调烟幕（次色调），
+    #  左前景大片焦纸强虚化擦过镜头（前景遮挡），火星斜飞。不再是「居中小剪影 + 日落」。
     def __init__(self):
-        self.sky = E.dawn_sky(1220, horizon=0.66, sun=(960, 300), hor=(1.0, 0.84, 0.55), mid=(0.6, 0.42, 0.24), cloud=0.4)
-        self.rd, self.ra = E.ridges(n=3, base=0.60, step=0.05, seed=122, amp=0.05, far=0.5, near=0.08)
+        self.sky = E.dawn_sky(1220, horizon=0.95, top=(0.02, 0.022, 0.03), mid=(0.12, 0.13, 0.16), hor=(0.42, 0.36, 0.32), cloud=0.9, sun=None)
         n = K.fbm(H // 2, W // 2, 1222, base=10, octaves=5)
-        self.ground = cv2.resize(((0.06 + 0.10 * n)[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32), (W, H))
-        self.sh = PA.PaperShreds(122, n=40, size=(14, 40))
+        self.ground = cv2.resize(((0.03 + 0.06 * n)[..., None] * np.array([0.9, 0.85, 0.82], np.float32)).astype(np.float32), (W, H))
+        self.smoke = K.fbm(H // 4, W // 2, 1224, base=4, octaves=5)
+        self.sh = R3.Shreds(122, n=12, gold=0.0, size=(120, 240), spread=(380, 360), zr=(0.35, 1.0))
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (960, 300), 110, amt=1.1)
-        fr = E.place_layer(fr, self.rd, self.ra)
-        hy = 760
-        m = sstep(hy - 3, hy + 40, np.arange(H, dtype=np.float32))[:, None, None]
+        fr = self.sky.copy()
+        hy = 905
+        m = sstep(hy - 3, hy + 30, np.arange(H, dtype=np.float32))[:, None, None]
         fr = fr * (1 - m) + self.ground * m
-        fr = fx2.god_rays(fr, (960, 300), strength=0.7, length=1.0, t=t)
+        sm = cv2.resize(np.roll(self.smoke, int(-80 * (t - self.t0)), 1), (W, H))
+        fr = fr + (np.clip(sm - 0.4, 0, 1) * 0.5)[..., None] * np.array([0.55, 0.55, 0.6], np.float32) * sstep(200, 900, np.arange(H, dtype=np.float32))[:, None, None]
+        yy, xx = E.grid()
+        fr = fr + (np.exp(-(((xx - 1700) / 500) ** 2 + ((yy - 800) / 260) ** 2)) * 0.35)[..., None] * np.array([1.0, 0.45, 0.15], np.float32)  # 右后方余火
         bob = 6 * abs(math.sin(t * 5.5))
-        fr, info = put(fr, t, 'S122/walk_toward', (960, 1000 - bob), h=740, rim=GOLDW, rim_amt=3.0, wind=10)
-        fr = self.sh.draw(fr, t, t0=self.t0 - 1.5, origin=(960, 300), spread=(1200, 500), to_camera=0.4, gravity=40, wind=(-40, 0), burn=0.6)
-        fr = RS.fx_embers(fr, t, 1223, amt=0.7, n=60)
+        fr, info = put(fr, t, 'S122/walk_toward', (1270, 1210 - bob + 30 * u), h=1000 * (1 + 0.06 * u), rim=(1.0, 0.62, 0.32), rim_amt=3.2,
+                       rim_dir=(0.8, -0.3), grade=dict(expo=0.82, sat=0.5, tint=(0.95, 0.97, 1.03), lift=0.0, gamma=1.1), wind=10)
+        fr = RS.fx_embers(fr, t, 1223, amt=0.9, n=70)
+        fr = self.sh.draw(fr, (t - self.t0) * 0.6 + 0.3, c=(420, 620), dof=(4.0, 18.0), zfocus=2.5, emb=0.8, paper=(0.55, 0.45, 0.36), amt=0.95)
         return bloom(fr, 0.8, 0.45)
 
 
@@ -542,7 +547,7 @@ L_GU = None
 def lyr_gu():
     global L_GU
     if L_GU is None:
-        L_GU = Lyr(row('骨未凉', cts(52, [3, 4, 5]), 420, 860, size=78, red='骨', track=0.3), CT(53, 0) - 0.15, seed=110)
+        L_GU = Sub('骨未凉', cts(52, [3, 4, 5]), 'left', CT(53, 0) - 0.15, red='骨', seed=110)
     return L_GU
 
 
@@ -566,6 +571,11 @@ class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（�
         ys, xs = np.where(info['A'] > 0.4)
         k = np.argmax(ys)                                                          # 最低点 = 刀尖
         self.off = (float(xs[k]) - 960, float(ys[k]) - 540)
+        # 爆点：刀尖拖过时斩断一幅「天理」律令轴（第三棒新增：砍中东西）
+        self.scr = R3.Scrolls(150, 1, (1180, 1180), 100, (760, 760), (250, 250), big=['天理'], tone=(0.92, 0.86, 0.72))
+        self.scr.items[0]['amp'] = 0.3
+        us = np.linspace(0, 1, 400); xs_ = -100 + 1900 * np.array([eio(0.3 + v * 0.7) for v in us])
+        self.tcut = 209.83 + float(us[np.argmax(xs_ >= 1180)]) * (210.33 - 209.83)
 
     @staticmethod
     def ly(x): return 640 + (x - 960) * 0.03
@@ -587,6 +597,18 @@ class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（�
         fr = fr * (1 - 0.6 * np.exp(-((yy - ly) / 8) ** 2) * on)[..., None]
         hot = np.array([1.0, 0.85, 0.5], np.float32) * cool[..., None] + np.array([0.8, 0.12, 0.04], np.float32) * (1 - cool[..., None])
         fr = fr + (line * 1.6)[..., None] * hot + glow[..., None] * np.array([1.0, 0.35, 0.1], np.float32) * 0.9
+        C, A = self.scr.layer(t, wind=1.0)
+        C = C * (0.55 + 0.5 * lit[..., None]) + lit[..., None] * np.array([0.5, 0.2, 0.05], np.float32)
+        q = t - self.tcut
+        if q >= 0:
+            p0 = (900.0, self.ly(900.0) - 60); p1 = (1460.0, self.ly(1460.0) + 30)
+            C, A, em = R3.cut_layer(C, A, p0, p1, q, fall=1.3, side=-1)
+            fr = R3.comp(fr, C, A)
+            fr = fr + (em * 2.0 + cv2.GaussianBlur(em, (0, 0), 10) * 2.0)[..., None] * np.array([1.0, 0.5, 0.15], np.float32)
+            if q < 2.5 / 30: fr = fr * 1.35 + np.array([0.35, 0.14, 0.04], np.float32) * (1 - q * 12)     # 2 帧冲击（橙闪，不发白）
+            fr = RS.fx_sparks(fr, t, self.tcut, (1180, self.ly(1180)), 1501, n=90, spd=1300, dirv=(0.6, -0.8), spread=1.4, grav=1500, amt=1.4)
+        else:
+            fr = R3.comp(fr, C, A)
         fr, info = put(fr, t, self.KEY, (tip[0] - self.off[0], tip[1] - self.off[1]), h=760, anc=(0.06, 0.96), rot=62,
                        rim=(1.0, 0.6, 0.3), rim_amt=2.5, rim_dir=(-0.6, 0.8), wind=0)
         fr = RS.fx_sparks(fr, t, t - 0.3, tip, int(t * 30) % 50 + 1230, n=50, spd=700, dirv=(-1, -0.6), spread=0.8, grav=1200, amt=1.2)
@@ -1228,7 +1250,7 @@ MOVE = {
 }
 SHAKE = {   # 冲击抖：(时刻, 幅度 px)
     'E05': [(CT(49, 11), 10)], 'E09': [(CT(51, 2), 12)], 'E11': [(6157 / 30, 12)], 'E12': [(CT(51, 9), 8)],
-    'E25': [(CT(55, 6), 18)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
+    'E25': [(CT(55, 6), 18)], 'E15': [(210.058, 16)], 'E30': [(TS, 8)], 'E35': [(238.24 - 1 / 30, 5)], 'E20': [(CT(54, 2), 10)],
 }
 
 
