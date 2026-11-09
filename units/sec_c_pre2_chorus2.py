@@ -1218,6 +1218,9 @@ class C27(Shot):
         return fr
 
 
+HX = 620
+
+
 class C28(Shot):
     """字即光（第三棒重做，去白底字卡）：劈开的墙上留下一道「亮」字形的裂口，惨白的电光天从字形里灌进来，
     化成一束束体积光扫过画面；他背对镜头站在光里（look_up_back 第 2 次，C14 过肩大特写 → 这里中景逆光剪影），
@@ -1229,7 +1232,7 @@ class C28(Shot):
         nz = cv2.resize(r.random((g // 10, g // 10)).astype(np.float32), (g, g))
         a = np.clip(cv2.dilate(a, np.ones((9, 9), np.uint8)) * (0.75 + 0.5 * nz) - 0.25, 0, 1) * 1.5
         self.hole = np.zeros((H, W), np.float32)
-        y0, x0 = 440 - g // 2, 960 - g // 2
+        y0, x0 = 440 - g // 2, HX - g // 2
         self.hole[y0:y0 + g, x0:x0 + g] = np.clip(a, 0, 1)
         wall = 0.035 + 0.03 * cv2.resize(K.tex('c28w', seed=28, base=14, octaves=4), (W, H))
         bw = np.zeros((H, W), np.float32)
@@ -1241,7 +1244,7 @@ class C28(Shot):
         cr = np.zeros((H // 4, W // 4), np.float32)
         for i in range(9):
             a0 = i / 9 * 6.283 + 0.3
-            p = crack_path((960, 470), (960 + math.cos(a0) * 1100, 470 + math.sin(a0) * 650), 280 + i, n=22, jag=0.08)
+            p = crack_path((HX, 470), (HX + math.cos(a0) * 1100, 470 + math.sin(a0) * 650), 280 + i, n=22, jag=0.08)
             cr = np.maximum(cr, draw_crack(cr.shape, p / 4, 1, branches=2, seed=i, prog=1.0))
         self.crack = cv2.resize(cr, (W, H))
         h4 = cv2.resize(self.hole, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
@@ -1262,12 +1265,13 @@ class C28(Shot):
         acc = np.zeros_like(src); n = 10
         for i in range(n):
             z = 1 + 0.9 * lt * (i + 1) / n
-            acc += cv2.warpAffine(src, np.float32([[z, 0, 960 * (1 - z)], [0, z, 470 * (1 - z)]]), (W, H)) * (1 - i / n)
+            acc += cv2.warpAffine(src, np.float32([[z, 0, HX * (1 - z)], [0, z, 470 * (1 - z)]]), (W, H)) * (1 - i / n)
         fr = fr + acc / n * 0.9 * lt * np.array([1.0, 0.92, 0.8], np.float32)
         fr = dust(fr, t, 281, n=160, amt=0.6 * lt, drift=(10, -20), region=(300, BAR, 1620, H - BAR), color=(1.0, 0.9, 0.7))
-        fr, _ = put(fr, t, 'C/look_up_back', 960, 1070, 470, look='sil', rim=(1.0, 0.85, 0.6), rim_amt=3.2 + 2 * lt, rim_dir=(0, -1), wind=5,
-                    flash=0.4 * lt)
-        fr = rain(fr, t, 280, inten=0.9, angle=6, light=(960, 470))
+        # 第四棒：生图 face_lit 大特写——字形里灌出的光正好横过他的双眼（「亮」照在人脸上，而不是白底字卡）
+        fr, _ = put(fr, t, 'C/face_lit', 1400 - 20 * u, 560, 980 * (1 + 0.04 * u), anchor='src', src=(0.47, 0.53), rim=(1.0, 0.85, 0.6),
+                    rim_amt=2.0 + 2.5 * lt, rim_dir=(-1, -0.2), expo=0.55 + 0.6 * lt, sat=0.75, tint=(1.05, 0.98, 0.9), wind=4, breathe=0.004)
+        fr = rain(fr, t, 280, inten=0.9, angle=6, light=(HX, 470))
         # 乌云从边缘涌回（墨色）
         fr = ink_vignette(fr, 0.55 * sm(tl + 0.2, self.t1, t))
         return fr
@@ -1439,8 +1443,9 @@ class C35b(Shot):
         # 印压下来的阴影罩住他上半身
         yy = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]
         fr = fr * (1 - 0.35 * np.clip(1.2 - yy * 1.8, 0, 1) * sm(self.t0, tk, t))
-        fr, A = put(fr, t, 'S087/brace_overhead', 960, 610 + sink, 2065, anchor='src', src=(0.484, 0.213), rim=(1.0, 0.45, 0.3), rim_amt=2.2,
-                    rim_dir=(0, -1), expo=1.0, wind=4, flash=0.7 * hit, breathe=0.012)
+        # 第四棒：换生图 brace_cu（咬牙、肘弯、刀横过顶；S087 只剩 C35 全身一次）
+        fr, A = put(fr, t, 'C/brace_cu', 960, 250 + sink, 900, anchor='src', src=(0.52, 0.07), rim=(1.0, 0.45, 0.3), rim_amt=2.4,
+                    rim_dir=(0, -1), expo=0.95, wind=4, flash=0.7 * hit, breathe=0.012)
         # 刀背与印底的接触线：火星沿刃喷射
         if t >= tk - 0.02:
             for sd, x0 in ((-1, 700), (1, 1220)):
@@ -1607,19 +1612,20 @@ class C40b(Shot):
         # 背景：断开的天平余烬从右上落下（承接 C40）
         fr = sparks(fr, t, 403, (1500, 140), n=120, life=1.4, speed=(40, 200), dirc=(0, 1), spread=1.0, grav=200, amt=0.9,
                     area=(600, 60), color=(1.0, 0.6, 0.25))
-        fr, A = put(fr, t, 'S090/wind_up', 780 - 30 * u, 560, 2300 * (1 + 0.04 * u), anchor='src', src=(0.414, 0.378), rim=COLD,
-                    rim_amt=2.8, rim_dir=(0.8, -0.6), expo=1.02, wind=10 + 14 * pulse(t, tw, 0.2), flash=fl, breathe=0.0)
+        # 第四棒：换生图 point_cam（刀尖指镜、直视镜头；S090 只剩 C39 一次）
+        fr, A = put(fr, t, 'C/point_cam', 760 - 30 * u, 470, 1100 * (1 + 0.05 * u), anchor='src', src=(0.39, 0.33), rim=COLD,
+                    rim_amt=2.8, rim_dir=(0.8, -0.6), expo=1.0, wind=10 + 14 * pulse(t, tw, 0.2), flash=fl, breathe=0.0)
         # 刀刃上一道冷光扫过（「是」）：沿精灵里刀的方向（右上斜）
         q = (t - ts) / 0.30
         if 0 < q < 1:
             G = np.zeros((H // 2, W // 2), np.float32)
-            p0 = np.array([1130, 420]); p1 = np.array([1900, 60]); c = p0 + (p1 - p0) * q
+            p0 = np.array([720, 840]); p1 = np.array([1850, 895]); c = p0 + (p1 - p0) * q
             cv2.line(G, tuple((c / 2 - (p1 - p0) / 2 * 0.08).astype(int)), tuple((c / 2 + (p1 - p0) / 2 * 0.08).astype(int)), 1.0, 3, cv2.LINE_AA)
             G = cv2.resize(cv2.GaussianBlur(G, (0, 0), 3) * 2 + G, (W, H))
             fr = fr + G[..., None] * np.array([0.9, 0.95, 1.0], np.float32) * 1.6 * math.sin(math.pi * q)
         # 眼中一亮（「我」）
-        for ex in (690, 860):
-            fr = K.vol_light(fr, (ex - 30 * u, 575), 26, (1.0, 0.75, 0.4), 1.4 * pulse(t, tw, 0.18))
+        for ex in (700, 872):
+            fr = K.vol_light(fr, (ex - 30 * u, 490), 26, (1.0, 0.75, 0.4), 1.4 * pulse(t, tw, 0.18))
         fr = rain(fr, t, 404, inten=0.8, angle=10, layers=(2, 3))
         self.ca = 5 if 0 <= t - tw < 0.08 else 0
         return fr
@@ -1781,7 +1787,7 @@ SENTS = [
     S(37, [4, 5, 6, 7], 1380, 820, size=100, mode='fly', red='扛', exit='shatter', out=V(155.25), sizes=[96, 96, 96, 190], back=0.6),   # 我自己扛（C35 → C35b）
     S(38, [0, 1], 960, 262, size=130, mode='fly', exit='shatter', out=V(156.38), track=0.3, back=1.0),             # 天不（暗衬，压在闪电天上可读）
     S(39, [0, 1], 420, 820, size=100, mode='fly', exit='shatter', out=V(159.64), back=0.5),                         # 这一
-    S(39, [2, 3, 4, 5], 960, 230, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
+    S(39, [2, 3, 4, 5], 1400, 290, size=110, mode='fly', red='刀', exit='shatter', out=V(160.30), track=0.2),        # 刀就是我
     S(39, [6, 7, 8], 1340, 840, size=120, mode='fly', red='答', exit='glitch', out=V(161.20), track=0.25, back=0.5),  # 的回答
 ]
 

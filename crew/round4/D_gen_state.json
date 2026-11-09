@@ -1,5 +1,5 @@
 {
- "spent": 33,
+ "spent": 39,
  "jobs": {
   "walk_back": {
    "tries": [
@@ -110,6 +110,24 @@
     }
    ],
    "state": "done"
+  },
+  "draw_side": {
+   "tries": [
+    {
+     "tid": "90a26926-c54d-4330-9653-cbe33e1af485",
+     "pts": 3
+    }
+   ],
+   "state": "running"
+  },
+  "run_top": {
+   "tries": [
+    {
+     "tid": "19141a90-ebb0-40f5-85b0-ac2ac0ef5d13",
+     "pts": 3
+    }
+   ],
+   "state": "running"
   }
  }
 }

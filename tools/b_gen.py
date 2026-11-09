@@ -27,8 +27,11 @@ JOBS = {
  'tsh_brush_hand': (TSH, 'ECU', 'extreme close-up of ONLY his right hand and wide sleeve cuff: a gaunt pale old hand with long fingernails holding a thin Chinese calligraphy brush vertically with the tip pointing DOWN, the brush tip soaked in bright vermilion red ink with one red drop hanging from it, no face visible', plan.LIGHT_WARM),
  'blade_face': (GT, 'MCU', 'medium close-up, holding the dao vertically right in front of his face with both hands on the handle at chin height, the flat of the blade dividing his face down the middle so one amber eye looks past each side of the blade, intense glare at the camera, loose hair strands', COLD),
  'back_stand': (GT, 'LS', 'full body seen squarely from BEHIND, standing still with feet apart, the long dao held low in his right hand pointing down and slightly outward, head raised looking far into the distance, ponytail and red sash blown to the left by wind', COLD),
+
+ # 第四棒：V01/V02 用真实插地刀（替掉程序灰板刀 + 十字护手）
+ 'blade_stuck': (None, 'LS', 'product-style shot of ONLY the hero\'s long single-edged Chinese dao saber from the reference sheet (no person, no hands, no body): the saber is planted diagonally into a small clump of dark wet mud, tilted about 15 degrees, blade tip buried, the whole blade and the complete handle visible vertically centred and filling most of the frame height, slightly low camera angle; dark forged steel with a subtle hamon line, wet surface with rain water beads and thin streams running down the flat of the blade, a round dark iron guard (tsuba) with one large clear raindrop hanging from its lower edge, handle tightly wrapped in dark red cord with a short red tassel. Only the small mud clump at the base, nothing else on the ground', COLD),
 }
-INPUTS = {}
+INPUTS = {'blade_stuck': ['男主_鬼屠.webp']}
 
 
 def prompt(name):

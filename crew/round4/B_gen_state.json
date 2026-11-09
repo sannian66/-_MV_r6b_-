@@ -1,5 +1,5 @@
 {
- "spent": 18,
+ "spent": 21,
  "jobs": {
   "slash_h": {
    "tries": [
@@ -60,6 +60,15 @@
     }
    ],
    "state": "done"
+  },
+  "blade_stuck": {
+   "tries": [
+    {
+     "tid": "268f9623-b37e-4c74-b916-6e2ce5cd506c",
+     "pts": 3
+    }
+   ],
+   "state": "running"
   }
  }
 }

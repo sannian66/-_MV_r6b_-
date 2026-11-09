@@ -1001,8 +1001,11 @@ class S21_Charge(Shot):
                               rim=COLD, rim_amt=4.0, rim_dir=(0.0, -1.0), wind=10, mblur=(0, 6 * u))
         fr = K.rain(fr, t, 21, n=400, amt=0.25, angle=8)
         fr = T.text_wall(fr, 0.05 + 0.6 * u, mode='fly', bricks=self.F, brick=(150, 92), seed=9, center=(980, 520))
-        its = [('我', 330, 420, 280, cp(t, O[45][5], 0.14), 'w'), ('偏', 330, 760, 190, cp(t, O[45][6], 0.08), 'w')]
-        fr = D.song(fr, its)
+        # [r4] 「我」「偏」由崩落的字砖碎石在右上拼合（石纹 + 冷轮廓光），不再是左侧白宋体
+        for ch, x_, y_, sz, on, sd in (('我', 1470, 400, 330, O[45][5], 31), ('偏', 1500, 760, 210, O[45][6], 32)):
+            tv = V(on)
+            pq = cl((t - (tv - 0.24)) / 0.24)
+            if pq > 0: fr = D.shard_glyph(fr, ch, x_, y_, sz, pq, seed=sd, spread=620)
         return K.cam(fr, 1.0 + 0.04 * u, *K.shake(t, 6, 3, 21)[:2]), 0.0
 
 
@@ -1124,7 +1127,10 @@ class S25_Leap(Shot):
         d = np.abs((x - 1080) * 0.6 + (yy - 420) * 0.8)
         trail = np.exp(-(d / 5) ** 2) * cl((t - ts) / 0.3) * np.exp(-max(0, t - ts - 0.3) / 0.5)
         fr = fr + trail[..., None] * np.array([1.0, 0.25, 0.15], np.float32) * 1.2
-        fr = D.song(fr, [('我', 360, 560, 330, cp(t, O[46][3], 0.12), 'w')])
+        # [r4] 「我」被刀光沿斩线方向刻出：空心白热描边 + 朱红外发光，斜放在刀光轨迹上（右上）
+        tw = V(O[46][3])
+        rv = cl((t - (tw - 0.12)) / 0.3)
+        if rv > 0: fr = D.light_glyph(fr, '我', 1440, 360, 340, rv, rot=20.0, d=(0.8, -0.6))
         return shake_cam(fr, t, [ts], 8, z=1.02 + 0.05 * u, oy=-15 * u), 0.0
 
 
@@ -1244,6 +1250,8 @@ class S28_Spin(Shot):
         tw = V(O[47][3])
         fr = D.droplets(fr, t, 281, n=150, burst=(tw, (1000, 560)), focus=0.6)
         fade = math.exp(-max(0.0, t - self.t0 - 0.2) / 0.25)
+        # [r4] 「我」在他身后：金色定格残影字（残影层随刀圈错位、慢慢收拢），被人物遮挡 → 字在画面空间里，不是贴片
+        fr = D.echo_glyph(fr, '我', 640, 450, 480, cp(t, O[47][3], 0.12), n=5, step=(60, -14), fade=0.4 + 0.6 * math.exp(-max(0.0, t - V(O[47][3])) / 0.35))
         for k in range(5, 0, -1):          # 金色残影
             tk = t - k * 0.035
             a = 0.32 * (1 - k / 6) * fade
@@ -1254,7 +1262,6 @@ class S28_Spin(Shot):
                               tint=(1.05, 0.98, 0.9), rim=GOLDR, rim_amt=4.0, rim_dir=(0.0, -1.0), wind=10)
         fr = K.sparks(fr, t, 2801, (1000, 560), n=140, life=0.8, speed=(400, 1400), dirc=(0, -1), spread=3.0, grav=200, burst=True,
                       t0=tw, color=tuple(GOLD), amt=1.4)
-        fr = D.song(fr, [('我', 340, 540, 340, cp(t, O[47][3], 0.12), 'w')])
         return shake_cam(fr, t, [self.t0 + 0.2, tw], 8, z=1.04 - 0.04 * u, rot=-3 + 3 * eo(u)), 0.0
 
 
@@ -1298,7 +1305,7 @@ class S29_Thrust(Shot):
             for j in range(nc):
                 cy = bot - cs * 0.9 - j * cs * 1.15
                 if cy < 40: break
-                T.place(Lc, chars[(i * 3 + j + k * 7) % len(chars)], x, cy, cs, 'white', 'serif_black', rot=180, texture=False)
+                T.place(Lc, chars[(i * 3 + j + k * 7) % len(chars)], x, cy, cs, 'white', 'serif_black', rot=0, texture=False)   # [r4] 正向可读
             ca = Lc.A[:H + 200] if Lc.A.shape[0] >= H + 200 else np.pad(Lc.A, ((0, H + 200 - Lc.A.shape[0]), (0, 0)))
             ca = ca * m
             Cv = Cv * (1 - ca[..., None] * 0.75) + np.roll(ca, -3, 0)[..., None] * 0.12 * (k + 1)
@@ -1326,7 +1333,10 @@ class S29_Thrust(Shot):
         fr, _ = D.real_figure(fr, self.sp, t, D.feet(self.sp), (960, 1060), sc, expo=0.8, sat=0.6, tint=(1.04, 0.98, 0.9),
                               rim=GOLDR, rim_amt=3.0 + 2 * u, rim_dir=(0.0, -1.0), wind=12)
         fr = K.fog(fr, t, 292, amt=0.3, speed=(50, 0), y0=0.8, y1=1.0, color=(0.25, 0.22, 0.2))
-        fr = D.song(fr, [('来', 1560, 640, 340, cp(t, O[47][4], 0.12), 'w')])
+        # [r4] 「来」被刀尖金光从正中碑里裂出来（金缝沿笔画推进 → 整字爆亮）
+        tl = V(O[47][4])
+        pq = cl((t - (tl - 0.15)) / 0.4)
+        if pq > 0: fr = D.crack_glyph(fr, '来', 960, 285, 200, pq, seed=29)
         return shake_cam(fr, t, [V(O[47][4])], 6, z=1.0 + 0.05 * u, oy=-20 * u), 0.0
 
 
@@ -1405,7 +1415,7 @@ CUTS = {
     'S15_Hole': ('flash_red', 0.04, 0.1, dict(one_frame=True)),
     'S16_Closed': ('zoom_through', 0.08, 0.14, dict(center=(960, 700))),
     'S17_Eye': ('match_cut', 0, 0.3, dict(shape='circle', center=(int(0.29 * W), int(0.555 * H)), radius=8, glow=EMBER)),
-    'S18_Draw': ('slash_wipe', 0.05, 0.2, dict(angle=-12)),
+    'S18_Draw': ('slash_wipe', 0.05, 0.2, dict(angle=-12, center=(960, 860))),
     'S19_Forge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.3)),
     'S20_Wall': ('occlusion', 0.1, 0.15, dict(kind='pillar', direction=1)),
     'S21_Charge': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
@@ -1416,9 +1426,33 @@ CUTS = {
     'S26_Judge': ('match_cut', 0, 0.25, dict(shape='line', center=(1080, 420), angle=-37, mode='grow', glow=np.array([1.0, 0.3, 0.2], np.float32))),
     'S27_Bullet': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, flash=0.0)),
     'S28_Spin': ('freeze_glitch', 0.06, 0.08, dict(seed=28)),
-    'S29_Thrust': ('split_slide', 0.08, 0.14, dict(angle=90, center=(960, 540))),
+    'S29_Thrust': ('gold_beam', 0.08, 0.14, dict(x0=960)),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
 }
+
+
+def gold_beam(A, B, p, x0=960, seed=0):
+    """[r4] 刀尖金光纵向劈开（替代 split_slide）：一道金色竖光自下而上刺穿画面（= 他向天直刺的方向），
+    随后光柱向两侧张开、光柱内就是下一镜（倒悬碑林），柱缘金边 + 体积光；中间帧同时带前后两镜元素。"""
+    x, y = K.grid()
+    nz = cv2.resize(D._tile(seed + 611)[:64, :256], (W, H)) - 0.5
+    if p < 0.35:
+        q = eo(p / 0.35, 2)
+        top = H - (H + 40) * q
+        core = np.exp(-((x - x0 - nz * 6) / 4) ** 2) * (y > top)
+        glow = np.exp(-((x - x0) / 60) ** 2) * (y > top) * 0.6
+        tipg = np.exp(-(((x - x0) / 40) ** 2 + ((y - top) / 40) ** 2)) * 2.0
+        return A + (core * 2.2 + glow + tipg)[..., None] * np.array(GOLDR, np.float32)
+    q = ei((p - 0.35) / 0.65, 2)
+    half = 6 + (W * 0.62) * q
+    dx = np.abs(x - x0 + nz * 30 * (1 - q))
+    m = np.clip((half - dx) / 6, 0, 1)
+    edge = np.exp(-((dx - half) / (8 + 20 * q)) ** 2)
+    Bz = K.cam(B, 1.06 - 0.06 * q, 0, 0)
+    out = A * (1 - m[..., None]) + Bz * m[..., None]
+    out = out + (edge * (1.8 - 1.2 * q))[..., None] * np.array(GOLDR, np.float32)
+    out = out + (np.exp(-((x - x0) / (120 + 500 * q)) ** 2) * 0.35 * (1 - q))[..., None] * np.array(GOLDR, np.float32)
+    return out
 
 
 def ink_bleed_hd(A, B, p, seed=0, center=None, edge=0.8, from_cut=False):
@@ -1470,7 +1504,9 @@ class Bridge:
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
             kw2 = dict(kw)
-            if name == 'ink_bleed_hd':
+            if name == 'gold_beam':
+                out = gold_beam(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
+            elif name == 'ink_bleed_hd':
                 out = ink_bleed_hd(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             elif name == 'gold_tip':
                 out = gold_tip(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)

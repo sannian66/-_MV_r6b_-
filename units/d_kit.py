@@ -558,3 +558,125 @@ def shard_rain(fr, t, seed, n=55, speed=(500, 1100), depth=(0.3, 1.3), t0=0.0, b
         L = T.Layer(); L.paste(aa, x, y, tuple(np.array(col) * sh), 1.0)
         out = T.compose(out, L, shadow=0.0, glow=0.0)
     return out
+
+
+# ------------------------------------------------------------------ [r4] 后半段「他的字」：每个「我/来」一种和画面互动的处理
+_GLYPH = {}
+
+
+def glyph_alpha(ch, size, rot=0.0, fname='serif_black'):
+    """单字 alpha 局部图（中心对齐，边长 ≈ 1.5 size）"""
+    key = (ch, int(size), round(rot, 1), fname)
+    if key not in _GLYPH:
+        n = int(size * 1.6)
+        L = T.Layer(n, n)
+        T.place(L, ch, n / 2, n / 2, size, 'white', fname, rot=rot, texture=False)
+        _GLYPH[key] = L.A.copy()
+    return _GLYPH[key]
+
+
+def _paste_full(a, cx, cy):
+    """局部 alpha 贴到全帧（float32 HxW）"""
+    out = np.zeros((H, W), np.float32)
+    h, w = a.shape
+    x0, y0 = int(round(cx - w / 2)), int(round(cy - h / 2))
+    xs, ys, xe, ye = max(0, x0), max(0, y0), min(W, x0 + w), min(H, y0 + h)
+    if xe > xs and ye > ys: out[ys:ye, xs:xe] = a[ys - y0:ye - y0, xs - x0:xe - x0]
+    return out
+
+
+def shard_glyph(fr, ch, cx, cy, size, p, seed=0, n=7, col=(0.70, 0.71, 0.76), rim=(0.62, 0.74, 1.0), spread=520):
+    """字由碎石块拼出：字形切成 n×n 不规则块，从四散（带旋转、虚焦）飞回原位，p=1 拼合；石纹 + 冷轮廓光 + 投影。"""
+    G = glyph_alpha(ch, size)
+    s = G.shape[0]
+    r = np.random.default_rng(seed)
+    # 不规则切块：jitter 网格的 Voronoi 标签
+    key = ('lab', ch, int(size), seed, n)
+    if key not in _GLYPH:
+        pts = np.array([((i + 0.5 + r.uniform(-0.35, 0.35)) * s / n, (j + 0.5 + r.uniform(-0.35, 0.35)) * s / n) for i in range(n) for j in range(n)], np.float32)
+        yy, xx = np.mgrid[0:s, 0:s].astype(np.float32)
+        d = (xx[..., None] - pts[:, 0]) ** 2 + (yy[..., None] - pts[:, 1]) ** 2
+        lab = d.argmin(-1)
+        crack = (cv2.Laplacian(lab.astype(np.float32), cv2.CV_32F) != 0).astype(np.float32)
+        _GLYPH[key] = (pts, lab, np.clip(1 - cv2.GaussianBlur(crack, (0, 0), 0.8) * 1.5, 0, 1))
+    pts, lab, crk = _GLYPH[key]
+    tex = cv2.resize(_tile(seed + 400)[:256, :256], (s, s))
+    A = np.zeros((H, W), np.float32)
+    for k in range(len(pts)):
+        piece = G * (lab == k) * crk
+        if piece.sum() < 4: continue
+        rr = np.random.default_rng(seed * 997 + k)
+        ang = rr.uniform(0, 2 * math.pi); dist = spread * rr.uniform(0.5, 1.2)
+        lag = rr.uniform(0, 0.35)
+        q = K.eout(K.clamp01((p - lag) / (1 - lag)), 3)
+        tx = math.cos(ang) * dist * (1 - q); ty = math.sin(ang) * dist * (1 - q) - 120 * (1 - q)
+        rot = rr.uniform(-180, 180) * (1 - q)
+        sc = 1 + 0.5 * (1 - q) * rr.uniform(0.3, 1)
+        px, py = pts[k]
+        M = cv2.getRotationMatrix2D((float(px), float(py)), rot, sc)
+        M[0, 2] += cx - s / 2 + tx; M[1, 2] += cy - s / 2 + ty
+        A = np.maximum(A, cv2.warpAffine(piece, M, (W, H)) * min(1.0, q * 3 + 0.2))
+    if A.max() <= 0: return fr
+    T_ = _paste_full(tex, cx, cy) * (A > 0)
+    sh = cv2.GaussianBlur(np.roll(A, (14, 10), (0, 1)), (0, 0), 10)
+    out = fr * (1 - 0.75 * sh[..., None])
+    top = np.clip(A - np.roll(A, 3, 0), 0, 1)            # 上缘受冷光
+    body = np.array(col, np.float32) * (0.7 + 0.5 * T_[..., None])
+    out = out * (1 - A[..., None]) + body * A[..., None] + top[..., None] * np.array(rim, np.float32) * 1.4
+    return out
+
+
+def light_glyph(fr, ch, cx, cy, size, reveal, rot=0.0, d=(0.8, -0.6), core=(1.0, 0.92, 0.85), glow=(1.0, 0.18, 0.08), fill=0.22):
+    """刀光刻字：沿刀光方向 d 依次「刻」出空心发光字（白热描边 + 朱红外发光 + 暗红内填），reveal 0→1。"""
+    G = _paste_full(glyph_alpha(ch, size, rot), cx, cy)
+    x, y = K.grid()
+    dn = np.array(d, np.float32) / np.linalg.norm(d)
+    s = (x - cx) * dn[0] + (y - cy) * dn[1]
+    lo, hi = -size * 0.75, size * 0.75
+    front = lo + (hi - lo) * reveal
+    m = K.clamp01(1.0) * np.clip((front - s) / 25, 0, 1)
+    Gm = G * m
+    edge = np.clip(Gm - cv2.erode(Gm, np.ones((9, 9), np.uint8)), 0, 1)
+    out = fr * (1 - Gm[..., None] * 0.55) + Gm[..., None] * np.array(glow, np.float32) * fill
+    out = out + cv2.GaussianBlur(edge, (0, 0), 14)[..., None] * np.array(glow, np.float32) * 2.2
+    out = out + edge[..., None] * np.array(core, np.float32) * 1.6
+    # 刻刀前沿火花线
+    fl = np.exp(-((s - front) / 6) ** 2) * cv2.dilate(G, np.ones((15, 15), np.uint8)) * (0 < reveal < 1)
+    return out + fl[..., None] * np.array(core, np.float32) * 2.0
+
+
+def echo_glyph(fr, ch, cx, cy, size, p, n=5, step=(46, -10), col=(1.0, 0.78, 0.40), fade=1.0):
+    """定格残影字：主字清晰金色，身后 n 层错位残影（越远越淡越虚、偏暖），fade→0 残影散去。"""
+    if p <= 0: return fr
+    e = K.eout(p, 3)
+    out = fr
+    for k in range(n, 0, -1):
+        a = 0.5 * (1 - k / (n + 1)) * fade * e
+        if a < 0.02: continue
+        L = T.Layer()
+        T.place(L, ch, cx - step[0] * k * (0.4 + 0.6 * e), cy - step[1] * k * (0.4 + 0.6 * e), size * (1 + 0.04 * k), col, 'serif_black',
+                alpha=a, blur=1.5 * k, texture=False)
+        out = T.compose(out, L, shadow=0.0, glow=0.25, glow_color=(1.0, 0.5, 0.15), glow_sigma=20)
+    L = T.Layer()
+    T.place(L, ch, cx, cy, size, col, 'serif_black', alpha=min(1, p * 2), scale=1 + 0.3 * (1 - e), blur=6 * (1 - e), texture=False)
+    return T.compose(out, L, shadow=0.8, shadow_sigma=28, outline=2, outline_color=(0.06, 0.03, 0.01), glow=0.45,
+                     glow_color=(1.0, 0.55, 0.2), glow_sigma=26)
+
+
+def crack_glyph(fr, ch, cx, cy, size, p, seed=0, col=(1.0, 0.80, 0.42)):
+    """金光从石里裂出字：先沿字形笔画亮起细金缝（不规则阈值推进），随后整字金光爆亮 + 光芒外溢，p 0→1。"""
+    G = glyph_alpha(ch, size)
+    s = G.shape[0]
+    nz = cv2.resize(_tile(seed + 77)[:128, :128], (s, s))
+    dist = cv2.distanceTransform((G > 0.5).astype(np.uint8), cv2.DIST_L2, 5)
+    skel = np.exp(-(dist - dist.max() * 0.5) ** 2 / (2 * (dist.max() * 0.25) ** 2)) * (G > 0.5)
+    thr = K.clamp01(p * 1.6)
+    seam = skel * np.clip((thr - nz) * 6, 0, 1)
+    full = G * K.clamp01((p - 0.55) / 0.3)
+    a = np.maximum(seam * 0.9, full)
+    A = _paste_full(a, cx, cy)
+    out = fr * (1 - _paste_full(G, cx, cy)[..., None] * 0.35 * K.clamp01(p * 3))     # 字位先压暗（刻痕）
+    c = np.array(col, np.float32)
+    out = out + cv2.GaussianBlur(A, (0, 0), 30)[..., None] * c * 0.55 + cv2.GaussianBlur(A, (0, 0), 6)[..., None] * c * 0.35
+    out = out * (1 - A[..., None]) + A[..., None] * (c * 1.05)
+    return out
