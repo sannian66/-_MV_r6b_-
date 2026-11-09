@@ -14,3 +14,11 @@
 - **联系表**：out/round4/E_contact_v1.jpg、E_keys_v1.jpg、E_contact_v2.jpg、E_keys_v2.jpg（脚本 tools/e_contact.py；提交脚本 tools/e_commit.sh）。分镜：crew/round4/E_storyboard.md（含接缝、未决）。
 - **自评弱点**：E10/E34 zoom_through 峰值近乎白屏；E16/E17 分屏互切中间帧乱；E26「正道沧桑」金字在亮天上对比偏低；尾奏 E31/E33/E34 仍是程序天空+山脊为主，精致度低于人物镜；E03 云海偏灰糊；credit_block 拉丁名 Cait 竖排被旋转；只看了中点帧和转场中间帧，未逐帧看运动连续性。
 - **下一步**：做一段 mp4 预览（cpu_slot）看运动；E26 字加暗衬/描边；E10/E34 换转场；尾奏署名镜考虑再生 1–2 张人物精灵（远景行走换姿势）替代程序天空。
+
+## D 组（Bridge d_bridge，帧 4839–5797，30 镜，平均 1.06s）— 第二棒 10:05 CST
+- **做了什么**：30 镜逐镜跑通（修 S27 `_slash_streak` 方向、`fall_chars` 颜色元组两处报错），单帧 1.2–3.8s（转场叠帧最高 5.6s）。重写 d_kit.storm（三层云+银边光+自阴影+风带，去旋转滤镜味、修接缝）与 lightning（分形）。S05「忍」点位按字形自动定位 + 朱滴匹配到 S06 左盘；S06 天平写意化；S09 巨笔只留手+笔杆；S12 换新精灵 blade_up_cu（point_up 原第 3 次使用超限）；companions 原抠图只剩 1 人 → tools/d_recut.py 多连通域重抠成四人剪纸；S16 余烬改飞向 S17 瞳孔；S19 改为火星在空中写「主张」（避开副歌一 S046 刀身刻字）；S20 仰拍透视字墙 + 新精灵 wall_stand_back；S28 换暗底；若干顶头/压字/过曝修正。
+- **积分**：本棒 6 点（blade_up_cu、wall_stand_back 各 3，RH_image2 4K，均已 quote、记 genlog），D 组累计 30/80。
+- **联系表**：out/round4/D_contact_v3.jpg（v1、v2 留档）；关键帧 out/round4/D_keys_v1.jpg；分镜 crew/round4/D_storyboard.md（含接缝、未决）；脚本 tools/d_contact.py。
+- **接缝**：4839 自黑场 0.18s 渐入；5797 前 0.5s 金白拉满，接 E 组白闪。
+- **自评弱点**：风暴底仍占 10 镜（已变中心/亮度/色温）；S21 侧墙、S22「闯」碎片偏平；S16/S23/S29/S30 转场中点静帧近乎纯暗/纯白；S11 水墨脸上红唇略像妆；未出动态片段验证运动。
+- **下一步**：出 2–3 段 mp4 片段看运动和卡点；S21/S22 碎片加厚度/石质；再拆 1–2 镜风暴底（如 S29 改雨中地面反打）；送评审。
