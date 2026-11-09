@@ -3,14 +3,14 @@
 import json, glob, os, re
 REDACT = re.compile(r'bsk__[A-Za-z0-9._\-]+')   # 公开仓库：任何 Skills Key 一律打码
 HERE = os.path.dirname(os.path.abspath(__file__))
-JS = ['/workspace/projects/3e8a7e2f-bfaf-4676-9f80-2937a48ee277/.hark/journal']   # 2026-11-09 09:19 起的第五任接手会话（前四任已冻结在 CONVERSATION_part3.md）
+JS = ['/workspace/projects/5196904f-65f8-48f0-848c-4c03aa77b35b/.hark/journal']   # 2026-11-09 09:58 起的第六任接手会话（前五任已冻结在 CONVERSATION_part4.md）
 rows = []
 for J in JS:
     for f in sorted(glob.glob(J + '/*.jsonl')):
         for l in open(f, encoding='utf-8'):
             try: rows.append(json.loads(l))
             except Exception: pass
-out = [open(os.path.join(HERE, 'CONVERSATION_part3.md'), encoding='utf-8').read().rstrip(), '', '---', '', '## 第五任接手（2026-11-09 09:19 起，新沙箱）', '']
+out = [open(os.path.join(HERE, 'CONVERSATION_part4.md'), encoding='utf-8').read().rstrip(), '', '---', '', '## 第六任接手（2026-11-09 09:58 起，新沙箱）', '']
 for r in rows:
     if r.get('role') not in ('user', 'assistant'): continue
     who = '用户' if r.get('role') == 'user' else 'Hark'
