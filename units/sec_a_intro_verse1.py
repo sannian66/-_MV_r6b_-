@@ -856,7 +856,7 @@ class V15(Shot):
     def render(self, t):
         u = self.u(t)
         fr = night((0.01, 0.012, 0.022), (0.04, 0.045, 0.06))
-        fr = A.moon(fr, 1000, 500, 360, 1.0, halo=0.8)
+        fr = A.moon(fr, 1000, 500, 360, 1.0, halo=0.55, bright=0.58)
         fr = A.clouds(fr, t, 61, speed=(-25, 0), y0=600, y1=960, amt=0.8, col=(0.10, 0.11, 0.14), light=(1000, 500), light_r=420, thr=0.45)
         L = T.Layer()
         for i, (c, k) in enumerate((('主', 9), ('张', 10))):
