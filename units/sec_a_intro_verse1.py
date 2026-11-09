@@ -333,7 +333,7 @@ class A08(Shot):
             xt = vx - Aw / zt; sc = 1 / zt
             towers.append((xt * q, top[int(np.clip(xt, 0, w - 1))] * q, sc))
         m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 0.6), (W, H)); face = cv2.resize(face, (W, H)); e = cv2.resize(e, (W, H))
-        Tm = np.zeros((H, W), np.float32); Te = np.zeros((H, W), np.float32)
+        Tm = np.zeros((H, W), np.float32); Te = np.zeros((H, W), np.float32); wins = []
         for (xt, yt, sc) in towers:
             S_ = 2300 * sc
             bw, bh = 0.30 * S_, 0.20 * S_
@@ -348,9 +348,8 @@ class A08(Shot):
                 if k == 0:
                     cv2.rectangle(Tm, (int(xt - 0.11 * S_), int(y0 - 0.11 * S_)), (int(xt + 0.11 * S_), y0), 1.0, -1)
             for j in (-1, 0, 1):                                            # 箭窗（灯火位置）
-                towers_win = (xt + j * bw * 0.28, yt - bh * 0.55, sc)
-                towers.append(towers_win)
-        return (m, Tm), face, (e, Te), towers
+                wins.append((xt + j * bw * 0.28, yt - bh * 0.55, sc))
+        return (m, Tm), face, (e, Te), towers + wins
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
