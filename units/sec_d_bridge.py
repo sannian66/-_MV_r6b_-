@@ -943,7 +943,7 @@ class S22_Chuang(Shot):
         h = lerp(820, 1250, ei(q, 2)) + (600 * eo(cl((t - th) / 0.4)) if t > th else 0)
         fr, _ = D.real_figure(fr, self.sp, t, (0.5, 0.42), (960, 600), D.fit_scale(self.sp, h), expo=0.85, sat=0.6,
                               rim=COLD, rim_amt=3.5, rim_dir=(0.6, -0.8), wind=12)
-        fr = K.radial_blur(fr, (960, 520), 0.05 + 0.1 * q)
+        fr = K.radial_blur(fr, (960, 520), 0.02 + 0.04 * q)
         p_in = cp(t, O[45][5], 0.3)
         if t < th:
             L = D.text_layer([('闯', 960, 520, 700, min(1, p_in * 2), 1.0 + 0.04 * q, 0.0, RED)], fname='xing')
