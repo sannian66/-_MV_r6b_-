@@ -586,11 +586,15 @@ class S10_Giant(Shot):
         fr = D.wash(fr, 0.55, -0.2, 0.55, seed=19)
         fr = D.ink_text(fr, self.zy, bleed=0.35, sig=12)
         fr = D.fall_chars(fr, t, '正义由你定义', 62, density=5, sizes=(16, 40), alpha=0.5, near_blur=3)
-        fr, _ = D.ink_figure(fr, self.sp, t, D.feet(self.sp), (1150, 1500 - 40 * u), D.fit_scale(self.sp, 1500), wind=4, shadow=0)
-        # 笔尖滴墨
+        # [r4] 巨像压下来：前倾旋转 + 下压 + 袍袖风动加大（去 0.7s 静帧）
+        fr, _ = D.ink_figure(fr, self.sp, t, D.feet(self.sp), (1150 - 30 * u, 1500 + 60 * eo(u, 2)), D.fit_scale(self.sp, 1500) * (1 + 0.08 * eo(u, 2)),
+                             rot=-3.5 * eo(u, 2), wind=11, shadow=0)
+        # 笔尖滴墨（两拨）
         fr = D.ink_spray(fr, t, 171.9, (1330, 960), n=30, seed=5, power=300)
+        fr = D.ink_spray(fr, t, 172.25, (1300, 940), n=24, seed=6, power=420)
+        fr = D.ash(fr, t, 101, n=60, fall=(60, 160), size=(2, 6), amt=0.35, dark=True) if hasattr(D, 'ash') else fr
         fr = vcol(fr, '若正义由你定义', 1750, 212, 92, O[42][0:7], t, 'ink', fname='serif_black', adv=1.1)   # [r4] 放大（停用小竖排）
-        return K.cam(fr, 1.0 + 0.05 * eo(u, 2), 0, -20 * u), 1.0
+        return K.cam(fr, 1.0 + 0.09 * eo(u, 2), 0, -34 * u, rot=0.8 * u), 1.0
 
 
 class S11_Answer(Shot):
