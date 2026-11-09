@@ -1788,8 +1788,8 @@ class C39(Shot):
                     wind=7, flash=0.4 * pulse(t, V(159.01), 0.2) + 0.5 * pulse(t, tq, 0.12))
         gq = clamp((t - tq) / 0.30)                # 第五棒（评审 P1 C39 近静止）：出鞘冷光沿刀身从护手扫到刀尖
         if 0 < gq < 1:
-            gx, gy = lerp(1640, 820, eio(gq)), lerp(500, 170, eio(gq))
-            fr = K.vol_light(fr, (gx, gy), 90, (0.92, 0.96, 1.0), 1.1 * math.sin(math.pi * gq))
+            gx, gy = lerp(1400, 990, eio(gq)), lerp(520, 255, eio(gq))
+            fr = K.vol_light(fr, (gx, gy), 38, (0.92, 0.96, 1.0), 0.75 * math.sin(math.pi * gq))
         q = (t - (tq - 0.03)) / 0.16
         fr = carve_glyph(fr, '量', 520, 540, 330, q, ang=-35, seed=39, t=t)
         if 0 < q < 2.5:
