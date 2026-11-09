@@ -1389,11 +1389,11 @@ CUTS = {
     'S02_Steles': ('match_cut', 0, 0.35, dict(shape='circle', center=(960, 560), radius=60, glow=np.array([0.9, 0.2, 0.1], np.float32))),
     'S03_TypeSlam': ('hard_cut_on_beat', 0, 0.07, dict(frames=2, impact=0.06, flash=0.0)),
     'S04_Snow': ('smoke_through', 0.12, 0.2, dict(color=(0.93, 0.91, 0.86), seed=4)),
-    'S05_Ren': ('ink_bleed', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
+    'S05_Ren': ('ink_bleed_hd', 0.1, 0.2, dict(seed=5, center=(1420, 560))),
     'S06_Scale': ('match_cut', 0, 0.3, dict(shape='circle', center=(680, 600), radius=40, glow=np.array([0.74, 0.1, 0.06], np.float32))),
     'S07_Heap': ('zoom_through', 0.1, 0.15, dict(center=(1270, 580))),
     'S08_Seals': ('whip_pan_blur', 0.08, 0.12, dict(direction='down')),
-    'S09_Brush': ('ink_bleed', 0.1, 0.25, dict(seed=9, center=(960, 540))),
+    'S09_Brush': ('ink_bleed_hd', 0.001, 0.28, dict(seed=9, center=(1560, 260))),
     'S10_Giant': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
     'S11_Answer': ('match_cut', 0, 0.2, dict(shape='line', center=(1300, 760), angle=-35, mode='cut')),
     'S12_Pierce': ('hard_cut_on_beat', 0, 0.07, dict(frames=2)),
@@ -1416,6 +1416,28 @@ CUTS = {
     'S29_Thrust': ('split_slide', 0.08, 0.14, dict(angle=90, center=(960, 540))),
     'S30_Da': ('gold_tip', 0.1, 0.14, dict(tip=(960, 345))),
 }
+
+
+def ink_bleed_hd(A, B, p, seed=0, center=None, edge=0.8, from_cut=False):
+    """[r4] 半分辨率场 + 羽化的墨晕转场（替代 trans.ink_bleed 的 1/4 块状边），边缘浓墨带有毛笔纤维感。"""
+    if from_cut: p = cl((p - 0.5) * 2)
+    hs, ws = H // 2, W // 2
+    c = center or (W / 2, H / 2)
+    y, x = np.mgrid[0:hs, 0:ws].astype(np.float32)
+    d = np.sqrt(((x * 2 - c[0]) / W) ** 2 * 3.1 + ((y * 2 - c[1]) / H) ** 2) / 1.05
+    key = ('ibhd', seed)
+    if key not in _TOPSEAL:
+        _TOPSEAL[key] = ((TR.fbm(hs, ws, seed, 60) - 0.5) * 0.6, (TR.fbm(hs, ws, seed + 3, 12) - 0.5) * 0.12)
+    n1, n2 = _TOPSEAL[key]
+    f = d + n1 + n2
+    thr = -0.15 + p * 1.9
+    m = np.clip((thr - f) * 14, 0, 1)
+    band = np.exp(-((thr - f - 0.04) / 0.035) ** 2) * (0 < p < 1)
+    m = cv2.GaussianBlur(cv2.resize(m, (W, H), interpolation=cv2.INTER_CUBIC), (0, 0), 1.5)
+    band = cv2.GaussianBlur(cv2.resize(band.astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC), (0, 0), 1.2)
+    out = A * (1 - m[..., None]) + B * m[..., None]
+    ink = np.array([0.05, 0.045, 0.045], np.float32)
+    return out * (1 - np.clip(band * edge, 0, 1)[..., None]) + ink * np.clip(band * edge, 0, 1)[..., None]
 
 
 class Bridge:
@@ -1445,7 +1467,9 @@ class Bridge:
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
             kw2 = dict(kw)
-            if name == 'gold_tip':
+            if name == 'ink_bleed_hd':
+                out = ink_bleed_hd(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
+            elif name == 'gold_tip':
                 out = gold_tip(np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
             else:
                 out = TR.transition(name, np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw2)
