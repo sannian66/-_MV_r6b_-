@@ -1245,13 +1245,43 @@ class Title(Shot):   # 片名底板（第三棒改）：不再是金色云海空
         return fr
 
 
-class E29(Title):   # S133 片名《谁定正邪》金色火烧显字（志莽行书，邪 朱红）
+TITLE_S, TITLE_ADV, TITLE_Y = 340, 340 * 0.86, 470       # 第六棒：墨迹宽 ≈ 3×292+245 ≈ 1120px（58% 画宽），字间空隙 ≈ 47px ≈ 0.14em
+
+
+def title_layer(t, start=223.97, stagger=0.10, dur=0.30, seed=3):
+    """片名「谁定正邪」：志莽行书，逐字火线烧出（每字 0.30s，按序错 0.10s → 224.60s 前四字全部成形）；
+    「邪」朱红 + 金边；火星只在笔画边缘（burn_glyph 的火线带 = 字内边缘带），不盖字形。返回 (Layer, ember(H,W))。"""
+    L = T.Layer(); EM = np.zeros((H, W), np.float32)
+    x0 = 960 - TITLE_ADV * 1.5
+    for k, ch in enumerate('谁定正邪'):
+        e = c01((t - (start + stagger * k)) / dur)
+        if e <= 0: continue
+        a, em = E.burn_glyph(ch, 'xing', TITLE_S, e, 0.0, seed=seed + k, direction=(0.25, -1.0))
+        cx = x0 + TITLE_ADV * k
+        if ch == '邪':
+            ring = cv2.dilate(a, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
+            L.paste(ring, cx, TITLE_Y, GOLD_T)
+            L.paste(a, cx, TITLE_Y, REDT)
+        else:
+            L.paste(a, cx, TITLE_Y, GOLD_T)
+        if em is not None:
+            g = em.shape[0]; X0 = int(round(cx - g / 2)); Y0 = int(round(TITLE_Y - g / 2))
+            xs, ys = max(0, X0), max(0, Y0); xe, ye = min(W, X0 + g), min(H, Y0 + g)
+            EM[ys:ye, xs:xe] += em[ys - Y0:ye - Y0, xs - X0:xe - X0]
+    return L, EM
+
+
+def draw_title(fr, t, **kw):
+    L, EM = title_layer(t, **kw)
+    fr = T.compose(fr, L, shadow=0.8, shadow_sigma=26, glow=0.45, glow_sigma=20, glow_color=(1.0, 0.55, 0.2))
+    return fr + EM[..., None] * np.array([1.6, 0.85, 0.3], np.float32) + cv2.GaussianBlur(EM, (0, 0), 6)[..., None] * np.array([1.0, 0.45, 0.1], np.float32)
+
+
+class E29(Title):   # S133（第六棒重排）片名《谁定正邪》：字宽 66% 画面、字距 0.12em，224.60s 前四字全部成形、留 0.8s 清楚可读；「邪」朱红金边
     def render(self, t):
-        u = self.u(t)
         fr = self.base(t)
-        p = c01((t - 224.0) / 1.1)
-        fr = T.burn_in(fr, '谁定正邪', p, size=230, fname='xing', color='gold', emph='邪', emph_color='red', anchor=(0.5, 0.45), seed=3)
-        return bloom(fr, 0.85, 0.45)
+        fr = draw_title(fr, t)
+        return bloom(fr, 0.85, 0.4)
 
 
 TS = 225.42 - 1 / 30
@@ -1259,7 +1289,7 @@ class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼�
     def render(self, t):
         fr = self.base(t)
         q = t - TS
-        title = T.burn_in(np.zeros_like(fr), '谁定正邪', 1.0, size=230, fname='xing', color='gold', emph='邪', emph_color='red', anchor=(0.5, 0.45), seed=3)
+        title = draw_title(np.zeros_like(fr), 999.0)
         if q < 0.9:   # 斩开的旧片名：上下两半错开 + 淡出
             e = eout(q / 0.5)
             yy, xx = E.grid()
@@ -1269,7 +1299,7 @@ class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼�
             fr = fr + tt
             line = np.exp(-(s / 3) ** 2) * math.exp(-q / 0.15)
             fr = fr + line[..., None] * GOLDW * 2.5
-            if q < 0.1: fr = fr + 0.4 * (1 - q / 0.1)
+            if q < 0.1: fr = fr + (np.exp(-(s / 60) ** 2) * 0.5 * (1 - q / 0.1))[..., None] * np.array([1.0, 0.75, 0.4], np.float32)   # 第六棒：只沿斩线暖闪，底板保持墨黑（去平灰帧）
         p = c01((q - 0.25) / 0.6)
         if p > 0:
             L = T.Layer()
