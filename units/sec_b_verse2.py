@@ -302,7 +302,7 @@ class V04(Shot):
     def __init__(self):
         sk = night_sky(4911, top=(0.02, 0.022, 0.03), bot=(0.09, 0.085, 0.08), horizon=0.9)
         self.bg = sk
-        self.figs = [PA.PaperFigure(4912 + i, view='front') for i in range(5)]
+        self.crowd = PA.PaperCrowd(4912, rows=2, cols=8, view='side', x_span=(-80, 2000), y_front=1120, h_front=520, depth_scale=0.8)
         self.rain = fx2.RainSheet(4913, density=1.0)
         T.warm('大局', 'serif_black', 300); T.warm('退让', 'serif_sb', 90)
 
@@ -339,9 +339,7 @@ class V04(Shot):
         # 纸人头顶剪影（下沿，前景，逆光金边，随鞠躬下压）
         bowk = eio(clamp01((t - V(CT(20, 8)) + 0.2) / 0.8))
         tmp = np.zeros_like(fr)
-        for i, f_ in enumerate(self.figs):
-            xx = 180 + i * 390
-            tmp, _ = f_.draw(tmp, xx, 1080 + 560 + 60 * bowk + 30 * (i % 2), 900, t, bow=0.25 * bowk, light='back', light_color=GOLD, rim=0.0)
+        tmp, _ = self.crowd.draw(tmp, t, bow=0.3 + 0.6 * bowk, wave=0.6, light='back', rim=0.0, dof=0.0)
         fr = sil_over(fr, tmp, GOLD, rim_w=5, amt=1.3)
         k = hitp(t, 91.314, 0.12)
         fr = cam(fr, 1.04 + 0.04 * eio(u) + 0.03 * k, 0, -20 * eio(u))
