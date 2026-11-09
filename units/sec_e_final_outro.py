@@ -635,8 +635,9 @@ class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂
 
     def render(self, t):
         u = self.u(t)
-        A = self.a.text(self.a.render(211.2), 211.2)
-        B = self.b.text(self.b.render(212.05), 212.05)
+        if not hasattr(self, 'AB'):   # 两半是定格（各取上一镜字落定的一帧），只算一次
+            self.AB = (self.a.text(self.a.render(211.05), 211.05), self.b.text(self.b.render(212.0), 212.0))
+        A, B = self.AB
         A = K.cam(A, 1.0, ox=480 - 40 * u); B = K.cam(B, 1.0, ox=-480 + 40 * u)
         x = np.arange(W)[None, :, None]
         fr = np.where(x < 960, A, B)
@@ -788,13 +789,22 @@ class E23(Shot):   # S129 MCU 后撤蓄力，速度坡度推近（吸气）
         n = K.fbm(H // 2, W // 2, 1290, base=4, octaves=5)
         self.bg = cv2.resize(((0.10 + 0.18 * n)[..., None] * np.array([1.0, 0.75, 0.45], np.float32)).astype(np.float32), (W, H))
         self.l = Lyr(row('这一', cts(55, [0, 1]), 1700, 420, size=70, vertical=True, base=WHITE_T, track=0.45), CT(55, 2) - 0.08, seed=180)
+        yy, xx = np.mgrid[0:H // 2, 0:W // 2].astype(np.float32)
+        self.ang = np.arctan2(yy - 300, xx - 480); self.rad = np.hypot(xx - 480, yy - 300) / 540
+        r = np.random.default_rng(129); self.ph = r.uniform(0, 6.28, 7); self.fq = r.integers(40, 160, 7)
+
+    def zoom_lines(self, t, u):
+        """径向速度线（以人物胸口为灭点），强度随速度坡度上升 → 吸气蓄力。"""
+        v = np.zeros_like(self.ang)
+        for p, f in zip(self.ph, self.fq): v += np.sin(self.ang * f + p + t * 0.7)
+        v = np.clip((v / 3.2) - 0.55, 0, 1) ** 2 * sstep(0.25, 0.9, self.rad)
+        L = cv2.resize(v, (W, H))[..., None]
+        return L * np.array([1.0, 0.8, 0.5], np.float32) * (0.10 + 0.45 * ein(u, 2))
 
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
-        yy, xx = E.grid()
-        st = (np.sin(yy / 7 + xx / 300 + t * 40) > 0.97).astype(np.float32)          # 风线
-        fr = fr + cv2.GaussianBlur(st, (21, 1), 0)[..., None] * GOLD * 0.15
+        fr = fr + self.zoom_lines(t, u)
         fr, info = put(fr, t, 'S129/coil', (1000, 1140), h=1080, rim=GOLDW, rim_amt=2.8, wind=12)
         return bloom(fr, 0.8, 0.35)
 
@@ -854,7 +864,7 @@ class E26(Shot):   # S131 ELS 刀线化为地平线，朝阳从他画的线上�
         self.sky = E.dawn_sky(1310, horizon=0.60, mid=(0.45, 0.31, 0.17), hor=(1.0, 0.82, 0.5), cloud=0.8, sun=(960, 640))
         n = K.fbm(H // 2, W // 2, 1311, base=8, octaves=5)
         self.ground = cv2.resize(((0.03 + 0.06 * n)[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32), (W, H))
-        self.l = Lyr(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 960, 300, size=150, gold='正道', track=0.25),
+        self.l = Lyr(row('正道沧桑', [CT(55, 7), CT(55, 8), CT(55, 9), CT(55, 10)], 1180, 330, size=150, gold='正道', track=0.25),
                      None, seed=210, glow=0.6)
 
     def render(self, t):
@@ -868,7 +878,8 @@ class E26(Shot):   # S131 ELS 刀线化为地平线，朝阳从他画的线上�
         fr = fr * (1 - m) + self.ground * m
         yy = np.arange(H, dtype=np.float32)[:, None, None]
         fr = fr + np.exp(-((yy - hy) / 2.5) ** 2) * GOLDW * 2.0 + np.exp(-((yy - hy) / 30) ** 2) * GOLD * 0.6
-        fr, info = put(fr, t, 'S130/hslash', (640, hy + 2), h=150, rim=GOLDW, rim_amt=3.5, grade=G_SIL, look='sil', wind=8)
+        fr, info = put(fr, t, 'S130/hslash', (400 + 30 * u, hy + 4), h=380, rim=GOLDW, rim_amt=4.0, rim_dir=(1.0, -0.3), grade=G_SIL, look='sil', wind=10)
+        fr = E.dust_motes(fr, t, 1312, n=70, amt=0.5, drift=(40, -30), depth=True)
         return bloom(fr, 0.85, 0.5)
 
     def text(self, fr, t): return self.l.draw(fr, t)
@@ -955,19 +966,19 @@ class E30(Title):   # S133b 刀光斩过片名 → 两半滑开，露出「鬼�
         p = c01((q - 0.25) / 0.6)
         if p > 0:
             L = T.Layer()
-            for i, (ch, x) in enumerate((('鬼', 590), ('屠', 790), ('第', 1100), ('三', 1300), ('季', 1500))):
+            for i, (ch, x) in enumerate((('鬼', 505), ('屠', 705), ('第', 1015), ('三', 1215), ('季', 1415))):
                 e = c01(p * 1.6 - i * 0.12)
                 T.place(L, ch, x, 470 - 20 * (1 - eout(e)), 200, GOLD_T, 'kai', alpha=eout(e), texture=True)
             fr = T.compose(fr, L, shadow=0.75, shadow_sigma=24, glow=0.5, glow_sigma=18, glow_color=(1.0, 0.6, 0.25))
-            cv2.circle(fr, (945, 475), int(13 * eout(p)), tuple(float(v) for v in REDT), -1, cv2.LINE_AA)
+            cv2.circle(fr, (860, 475), int(13 * eout(p)), tuple(float(v) for v in REDT), -1, cv2.LINE_AA)
             s2 = c01((q - 0.75) / 0.5)
             if s2 > 0:
                 L2 = T.Layer()
                 for i, ch in enumerate('主题曲《谁定正邪》'):
                     T.place(L2, ch, 960 + (i - 4) * 58, 650, 46, WHITE_T, 'serif_m', alpha=eout(s2), texture=False)
-                fr = T.compose(fr, L2, shadow=0.7, shadow_sigma=16)
+                fr = T.compose(fr, L2, shadow=1.0, shadow_sigma=8, glow=0.2, glow_sigma=10)
             sp = c01((q - 0.55) / 0.5)
-            if sp > 0: fr = T.stamp_seal(fr, '鬼屠', 1680, 470, 130, sp, style='yin', rot=-5, seed=9)
+            if sp > 0: fr = T.stamp_seal(fr, '鬼屠', 1610, 470, 130, sp, style='yin', rot=-5, seed=9)
         return bloom(fr, 0.85, 0.4)
 
 
@@ -1013,7 +1024,7 @@ class E32(Credits):   # S135 CU 手握刀柄，沿刀身滑移；署名②：美
         u = self.u(t)
         fr = self.bg.copy()
         fr = fx2.light_beam(fr, (200, 120), (900, 960), 50, 500, t=t, strength=0.4, seed=11)
-        fr, info = put(fr, t, 'S135/sheath_hand|crop=0.25,0.08,0.80,0.62', (700 - 140 * u, 540), w=1900, anc=(0.5, 0.5), rim=GOLDW, rim_amt=2.6, wind=3)
+        fr, info = put(fr, t, 'S135/sheath_hand|crop=0.28,0.42,0.95,1', (760 - 140 * u, 560), w=1900, anc=(0.5, 0.5), rim=GOLDW, rim_amt=2.6, wind=3)
         sx = -200 + 1600 * eio(u)
         fr = E.flare_streak(fr, (sx, 520 + (sx - 700) * 0.6), amt=0.6, angle=58, length=0.6)
         return bloom(fr, 0.8, 0.35)
@@ -1072,7 +1083,7 @@ class E35(Shot):   # S137 ECU 刀完全入鞘「咔」，朱印「鬼屠」盖�
         fr = fx2.light_beam(fr, (1500, 100), (900, 960), 40, 600, t=t, strength=0.35, seed=13)
         slide = 0 if t >= self.tc else 70 * (1 - eio((t - self.t0) / (self.tc - self.t0)))
         dim = 0.55 if t >= self.tc + 0.4 else 1.0 - 0.45 * c01((t - self.tc) / 0.4) if t >= self.tc else 1.0
-        fr, info = put(fr, t, 'S137/sheath_close|crop=0,0.40,1,1', (960 - slide, 640), w=2200, anc=(0.5, 0.5), rim=GOLDW, rim_amt=2.4, wind=2,
+        fr, info = put(fr, t, 'S137/sheath_close|crop=0,0.58,1,1', (960 - slide, 600), w=2200, anc=(0.5, 0.5), rim=GOLDW, rim_amt=2.4, wind=2,
                        grade=dict(expo=0.8 * dim, sat=0.6, tint=(1.05, 0.98, 0.9), lift=0.0, gamma=1.12))
         if t >= self.tc:
             q = t - self.tc
