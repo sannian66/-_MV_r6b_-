@@ -155,3 +155,53 @@
 | 11-09 00:43 | S056 | RH_image2 | 4K 16:9 | 3 | 26886895-499f-41e5-b175-b087763c8639 | submitted | - | palm_fist 重抽 try2（第四任，用户 08:43 同意）|
 | 11-09 00:43 | S056 | RH_image2 | 4K 16:9 | 3 | 911163e9-f88b-4c8a-af7b-9862a2eb6867 | submitted | - | palm_fist 重抽 try3（第四任，用户 08:43 同意）|
 | 11-09 00:46 | S056 | RH_image2 | 4K 16:9 | 0 | 911163e9-f88b-4c8a-af7b-9862a2eb6867 | 采用 | assets/gen/S056/palm_fist_raw.png | palm_fist try3 采用（湿拳，滴水）；try2 26886895 未用 |
+| 11-09 00:53 | D组/walk_back | RH_image2 | 4K 16:9 | 3 | 8dde7291-64f4-493d-a9bf-160b7b03b79b | submitted | - | try1 seen squarely from behind, walking away from the camera with |
+| 11-09 00:53 | D组/tsh_brush | RH_image2 | 4K 16:9 | 3 | ef65528f-ba49-41f8-906d-b6bcea7e5223 | submitted | - | try1 standing in three-quarter view, holding a HUGE Chinese calli |
+| 11-09 00:53 | D组/kneel_bow | RH_image2 | 4K 16:9 | 3 | 039ee9a5-b767-4e20-8e05-336f1c6570dd | submitted | - | try1 kneeling on one knee, head bowed low so his face is hidden b |
+| 11-09 00:53 | A/eyes | RH_image2 | 4K 16:9 | 3 | 893325b0-967f-4fb1-ac67-3028eeeef5cb | submitted | - | A组 eyes try1 |
+| 11-09 00:53 | D组/eyes_closed | RH_image2 | 4K 16:9 | 3 | 24e46be9-f84f-48fd-855b-7844442e21e6 | submitted | - | try1 close-up of his face in three-quarter view turned to the lef |
+| 11-09 00:53 | A/blade_face | RH_image2 | 4K 16:9 | 3 | a8251b2c-860c-41b6-87d7-400a49a0102b | submitted | - | A组 blade_face try1 |
+| 11-09 00:53 | D组/slash_sky_back | RH_image2 | 4K 16:9 | 3 | 42275b97-622e-4c07-aa03-53ffa73cddaa | submitted | - | try1 seen from BEHIND and slightly from below, his back to the ca |
+| 11-09 00:53 | A/slash_up | RH_image2 | 4K 16:9 | 3 | df6a6a83-b46a-40d3-a54e-82d8be4a3818 | submitted | - | A组 slash_up try1 |
+| 11-09 00:53 | D组/spin_front | RH_image2 | 4K 16:9 | 3 | 3e3f11ff-0c44-4e7b-9943-b5f64246a018 | submitted | - | try1 facing the camera in a low wide stance in the middle of a fa |
+| 11-09 00:53 | A/boots | RH_image2 | 4K 16:9 | 3 | 3be472e2-97a4-4b74-a952-a1c8ba05cc82 | submitted | - | A组 boots try1 |
+| 11-09 00:53 | D组/thrust_sky_back | RH_image2 | 4K 16:9 | 3 | 879beaaa-43d7-4351-9a4f-69e47a56f38a | submitted | - | try1 seen from BEHIND, his back to the camera, standing with feet |
+| 11-09 00:53 | A/tsh_raise | RH_image2 | 4K 16:9 | 3 | 0f48fbe3-f39e-469b-bec5-43d38718800d | submitted | - | A组 tsh_raise try1 |
+| 11-09 00:53 | E组 | quote | RH_image2 4K 16:9 | 3/张 ×5 | - | quote ok | - | [E组] 报价 S118/S122/S127/S129/S130 共 15 点 |
+| 11-09 00:53 | A/tsh_hand | RH_image2 | 4K 16:9 | 3 | 74335986-b749-422b-9f8a-bc894042ca4e | submitted | - | A组 tsh_hand try1 |
+| 11-09 00:53 | D组/companions | RH_image2 | 4K 16:9 | 3 | 486068a3-f67f-4522-8f56-0eabd78779be | submitted | - | try1 four young martial artists standing side by side in a row, a |
+| 11-09 00:54 | S129 | RH_image2 | 4K 16:9 | 3 | a891f347-dd23-4848-baf0-1ffb41cbca55 | completed | gen_cands/E/S129/coil_try1_0.png | [E组] coil try1: Medium shot from the knees up, front three-quarter view, he  |
+| 11-09 00:54 | S130 | RH_image2 | 4K 16:9 | 3 | a2b378e6-04be-4a4c-ba91-a6e576e9c16f | completed | gen_cands/E/S130/hslash_try1_0.png | [E组] hslash try1: Wide shot, full body, front view, low wide stance right afte |
+| 11-09 00:55 | S122 | RH_image2 | 4K 16:9 | 3 | de5c3b84-be7e-4580-98b0-a8730ef94570 | completed | gen_cands/E/S122/walk_toward_try1_0.png | [E组] walk_toward try1: Long shot, full body, seen from the front, he walks steadily |
+| 11-09 00:55 | S127 | RH_image2 | 4K 16:9 | 3 | c70fd5ba-0c31-412a-ad79-db1c1634d76a | completed | gen_cands/E/S127/profile_up_try1_0.png | [E组] profile_up try1: Close-up, head and shoulders, pure side profile view facing  |
+| 11-09 00:55 | C组 | quote | RH_image2 4K 16:9 | 3/张 ×6 | - | quote ok | - | [C组] 报价 slash_strings/leap_arc/slash_diag_down/slash_back/look_up_back/tsh_brush 共 18 点 |
+| 11-09 00:55 | S118 | RH_image2 | 4K 16:9 | 3 | 02cdeca3-874f-400e-9d04-b26ca1000e71 | completed | gen_cands/E/S118/xslash_try1_0.png | [E组] xslash try1: Medium-wide shot, full body, front three-quarter view, he is |
+| 11-09 00:55 | C组/slash_strings | RH_image2 | 4K 16:9 | 3 | 31ddd6d6-4db9-49e5-abef-cc12c4520692 | submitted | - | C09 try1 (quote 3) |
+| 11-09 00:55 | C组/leap_arc | RH_image2 | 4K 16:9 | 3 | b3f3d287-b618-4552-b74a-a0e2aa380f2b | submitted | - | C14 try1 (quote 3) |
+| 11-09 00:55 | C组/slash_diag_down | RH_image2 | 4K 16:9 | 3 | d46fb9bc-359e-417c-b71d-26d7186f5c61 | submitted | - | C19 try1 (quote 3) |
+| 11-09 00:55 | C组/slash_back | RH_image2 | 4K 16:9 | 3 | 99070403-0cfb-4785-8782-9c4a4c810595 | submitted | - | C25 try1 (quote 3) |
+| 11-09 00:55 | B组 | quote | RH_image2 4K 16:9 | 3/张 ×6 | - | quote ok | - | [B组] 报价 slash_h/drag_blade/tsh_smirk/tsh_brush_hand/blade_face/back_stand 共 18 点 |
+| 11-09 00:55 | C组/look_up_back | RH_image2 | 4K 16:9 | 3 | 6eab862a-e32e-4af0-b43b-cffb4bfd795b | submitted | - | C07 try1 (quote 3) |
+| 11-09 00:55 | C组/tsh_brush | RH_image2 | 4K 16:9 | 3 | 6c432a6d-71de-4dd1-95d4-85d3b70d3d24 | submitted | - | C01 try1 (quote 3) |
+| 11-09 00:55 | B组/slash_h | RH_image2 | 4K 16:9 | 3 | 8b44599c-35c3-4f27-b574-a82c50919252 | submitted | - | try1 full body facing the camera in three-quarter view, low wide  |
+| 11-09 00:55 | B组/drag_blade | RH_image2 | 4K 16:9 | 3 | 9f6aaf31-c906-4449-92d1-b68781386105 | submitted | - | try1 full body seen from the side (profile facing right), stridin |
+| 11-09 00:55 | B组/tsh_smirk | RH_image2 | 4K 16:9 | 3 | ff6b3c9a-6948-4518-a9a9-ba2b41da1bd7 | submitted | - | try1 close-up of his face in three-quarter view turned slightly t |
+| 11-09 00:55 | B组/tsh_brush_hand | RH_image2 | 4K 16:9 | 3 | 12ee8f89-7994-4fa3-99aa-bc2140df9fcf | submitted | - | try1 extreme close-up of ONLY his right hand and wide sleeve cuff |
+| 11-09 00:55 | B组/blade_face | RH_image2 | 4K 16:9 | 3 | 1f1acfd4-d6e7-4a3f-9591-8d22303c1bde | submitted | - | try1 medium close-up, holding the dao vertically right in front o |
+| 11-09 00:55 | B组/back_stand | RH_image2 | 4K 16:9 | 3 | e9db3eeb-c2d0-4a19-8ba5-45941b4b73de | submitted | - | try1 full body seen squarely from BEHIND, standing still with fee |
+| 11-09 00:55 | D组/walk_back | RH_image2 | 4K 16:9 | 0 | 8dde7291-64f4-493d-a9bf-160b7b03b79b | completed | d_cands/walk_back_try1_0.png | try1 |
+| 11-09 00:55 | D组/tsh_brush | RH_image2 | 4K 16:9 | 0 | ef65528f-ba49-41f8-906d-b6bcea7e5223 | completed | d_cands/tsh_brush_try1_0.png | try1 |
+| 11-09 00:55 | A/eyes | RH_image2 | 4K 16:9 | 0 | 893325b0-967f-4fb1-ac67-3028eeeef5cb | completed | /workspace/work/a_cands/eyes_893325b0_0.png | A组 候选 |
+| 11-09 00:55 | D组/kneel_bow | RH_image2 | 4K 16:9 | 0 | 039ee9a5-b767-4e20-8e05-336f1c6570dd | completed | d_cands/kneel_bow_try1_0.png | try1 |
+| 11-09 00:56 | D组/eyes_closed | RH_image2 | 4K 16:9 | 0 | 24e46be9-f84f-48fd-855b-7844442e21e6 | completed | d_cands/eyes_closed_try1_0.png | try1 |
+| 11-09 00:56 | A/blade_face | RH_image2 | 4K 16:9 | 0 | a8251b2c-860c-41b6-87d7-400a49a0102b | completed | /workspace/work/a_cands/blade_face_a8251b2c_0.png | A组 候选 |
+| 11-09 00:56 | E组 | RH_image2 | 4K 16:9 | 0 | (见上 5 条) | 采用 | assets/gen/S118/xslash S122/walk_toward S127/profile_up S129/coil S130/hslash | [E组] try1 全部采用，recut_flat 16 抠图 |
+| 11-09 00:56 | D组/slash_sky_back | RH_image2 | 4K 16:9 | 0 | 42275b97-622e-4c07-aa03-53ffa73cddaa | completed | d_cands/slash_sky_back_try1_0.png | try1 |
+| 11-09 00:56 | A/slash_up | RH_image2 | 4K 16:9 | 0 | df6a6a83-b46a-40d3-a54e-82d8be4a3818 | completed | /workspace/work/a_cands/slash_up_df6a6a83_0.png | A组 候选 |
+| 11-09 00:56 | D组/spin_front | RH_image2 | 4K 16:9 | 0 | 3e3f11ff-0c44-4e7b-9943-b5f64246a018 | completed | d_cands/spin_front_try1_0.png | try1 |
+| 11-09 00:56 | A/boots | RH_image2 | 4K 16:9 | 0 | 3be472e2-97a4-4b74-a952-a1c8ba05cc82 | completed | /workspace/work/a_cands/boots_3be472e2_0.png | A组 候选 |
+| 11-09 00:56 | A/tsh_raise | RH_image2 | 4K 16:9 | 0 | 0f48fbe3-f39e-469b-bec5-43d38718800d | completed | /workspace/work/a_cands/tsh_raise_0f48fbe3_0.png | A组 候选 |
+| 11-09 00:56 | A/tsh_hand | RH_image2 | 4K 16:9 | 0 | 74335986-b749-422b-9f8a-bc894042ca4e | completed | /workspace/work/a_cands/tsh_hand_74335986_0.png | A组 候选 |
+| 11-09 00:56 | D组/thrust_sky_back | RH_image2 | 4K 16:9 | 0 | 879beaaa-43d7-4351-9a4f-69e47a56f38a | completed | d_cands/thrust_sky_back_try1_0.png | try1 |
+| 11-09 00:56 | D组/companions | RH_image2 | 4K 16:9 | 0 | 486068a3-f67f-4522-8f56-0eabd78779be | completed | d_cands/companions_try1_0.png | try1 |
+| 11-09 00:56 | B组/slash_h | RH_image2 | 4K 16:9 | 0 | 8b44599c-35c3-4f27-b574-a82c50919252 | completed | b_cands/slash_h_try1_0.png | try1 |
