@@ -1130,7 +1130,7 @@ class S22_Chuang(Shot):
     def __init__(self):
         self.sp = D.spr('S105/charge_front')
         self.P = R5.Plaques(seed=22, n_far=12, n_mid=7, n_near=0, ytop=-40, cut=(183.45, (-100, 520), (2000, 420)))
-        self.P2 = [dict(ch='闯', x=1160, y=660, size=560, rot=0.0, font='serif_black', idx=0, emph=True)]
+        self.P2 = [dict(ch='闯', x=1160, y=640, size=520, rot=0.0, font='serif_black', idx=0, emph=True)]
 
     def render(self, t):
         u = self.u(t)
@@ -1145,7 +1145,7 @@ class S22_Chuang(Shot):
         fr = K.radial_blur(fr, (1060, 520), 0.015 + 0.03 * q)
         if t < th:
             p_in = cp(t, O[45][7], 0.25)
-            L = D.text_layer([('闯', 1160, 820 - 160 * ei(q, 2), 430 + 130 * ei(q, 2), min(1, p_in * 2), 1.0, 0.0, RED)], fname='serif_black')
+            L = D.text_layer([('闯', 1160, 750 - 110 * ei(q, 2), 400 + 120 * ei(q, 2), min(1, p_in * 2), 1.0, 0.0, RED)], fname='serif_black')
             fr = T.compose(fr, L, **T.auto_style('red'))
         else:
             fr = T.shatter_out(fr, '闯', cl((t - th) / 0.5), places=self.P2, fname='serif_black', color='red', impact=(1100, 560), power=1.6, seed=7)
