@@ -1534,13 +1534,14 @@ LY2 = [
 def lyrics(fr, t):
     for (li, chars, cx, by, t_out, sweep) in LY2:
         t_on = CT(li, chars[0][0]) - 0.3
+        if li == 2 and chars[0][0] == 0: t_on = max(t_on, V(22.52))          # 第五棒：「谁在高处」等 V06「寒光」切走后再落（不叠团）
         if not (t_on <= t < t_out + 0.4): continue
         out = clamp01((t - t_out) / 0.35)
         adv = [s * 1.04 for (_, s, _) in chars]
         x = cx - sum(adv) / 2
         L = T.Layer(); pmax = 0.0; big = max(s for (_, s, _) in chars)
         for (k, s, c), a in zip(chars, adv):
-            p = clamp01((t - (CT(li, k) - 0.16)) / 0.26); pmax = max(pmax, p)
+            p = clamp01((t - max(CT(li, k) - 0.16, t_on)) / 0.26); pmax = max(pmax, p)
             if p > 0:
                 cxx = x + a / 2; cyy = by - s / 2
                 if s >= 150:
