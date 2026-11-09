@@ -317,7 +317,6 @@ class Shreds:
             v = v @ np.array([[cz, sz], [-sz, cz]], np.float32)
             X = v[:, 0] * math.cos(ry); Y = v[:, 1] * math.cos(rx)
             nrm = np.array([math.sin(ry), -math.sin(rx), math.cos(rx) * math.cos(ry)], np.float32)
-            sx = c[0] + (x + X) * f / (z * 1000) * 1.0 * 1000 / f * (f / 900) / z * 0 + c[0] * 0
             px = c[0] + (x + X) / z; py = c[1] + (y + Y) / z
             pts = np.stack([px, py], 1)
             if pts[:, 0].max() < -50 or pts[:, 0].min() > W + 50 or pts[:, 1].max() < 0 or pts[:, 1].min() > H: continue
@@ -363,13 +362,13 @@ class SteleHall:
         g = 1024
         n1 = K.fbm(g, g, seed + 3, base=6, octaves=5); n2 = K.fbm(g, g, seed + 4, base=24, octaves=3)
         gx = (np.arange(g) % 128 < 3)[None, :] | (np.arange(g) % 128 < 3)[:, None]
-        self.floor = (0.14 + 0.12 * n1 + 0.05 * n2 - gx * 0.07).astype(np.float32)
+        self.floor = (0.07 + 0.09 * n1 + 0.04 * n2 - gx * 0.045).astype(np.float32)
 
     @staticmethod
     def _tex(r, tw=300, th=760):
         n = K.fbm(th // 2, tw // 2, int(r.integers(1e6)), base=5, octaves=6)
         n = cv2.resize(n, (tw, th))
-        base = (0.30 + 0.25 * n)[..., None] * np.array([0.82, 0.86, 0.92], np.float32)
+        base = (0.17 + 0.20 * n)[..., None] * np.array([0.82, 0.86, 0.92], np.float32)
         ink = np.zeros((th, tw), np.float32)
         s = 34; ncol = 4
         for c in range(ncol):
@@ -408,7 +407,7 @@ class SteleHall:
         fl = cv2.remap(self.floor, u, v, cv2.INTER_LINEAR)
         fog = np.clip(1 - np.exp(-z / 9), 0, 1)
         flc = fl[..., None] * np.array([0.85, 0.90, 1.0], np.float32)
-        refl = np.exp(-np.abs(xx - cx) / 220)[..., None] * np.exp(-(yy - hy) / 260)[..., None] * 0.5   # 地面反光（湿石板）
+        refl = np.exp(-np.abs(xx - cx) / 160)[..., None] * np.exp(-(yy - hy) / 200)[..., None] * 0.45   # 地面反光（湿石板）
         flc = flc + refl * np.array([0.9, 0.92, 0.95], np.float32)
         fl3 = flc * (1 - fog[..., None]) + self.fog * fog[..., None]
         fr = np.where(below[..., None], fl3, fr)
@@ -429,11 +428,12 @@ class SteleHall:
             q2 = np.float32([P(xs_in, s['h'], zb), P(xs_in, s['h'], zb + th2), P(xs_in, 0, zb + th2), P(xs_in, 0, zb)])
             m2 = np.zeros((H, W), np.float32); cv2.fillConvexPoly(m2, q2.astype(np.int32), 1.0, cv2.LINE_AA)
             fz = np.clip(1 - math.exp(-zz / 9), 0, 1)
-            side_col = np.array([0.16, 0.17, 0.2], np.float32) * (1 - fz) + self.fog * fz
+            side_col = np.array([0.05, 0.055, 0.065], np.float32) * (1 - fz) + self.fog * fz * 0.7
             fr = fr * (1 - m2[..., None]) + side_col * m2[..., None]
             # 碑面受光：越近通道中线越亮（门洞光），加冷边光
-            img = img * (0.75 + 0.5 * (1 - fz)) * (1 - fz) + self.fog * fz
-            rim = np.clip(a - cv2.erode(a, np.ones((3, 3), np.uint8)), 0, 1)[..., None] * 0.35 * (1 - fz)
+            lit = np.clip(1.2 - abs(s['x']) * 0.5, 0.4, 1.0)
+            img = img * (0.6 + 0.6 * (1 - fz)) * lit * (1 - fz) + self.fog * fz
+            rim = np.clip(a - cv2.erode(a, np.ones((3, 3), np.uint8)), 0, 1)[..., None] * 0.6 * (1 - fz) * np.array([0.85, 0.92, 1.0], np.float32)
             if zz < 1.6:
                 bl = (1.6 - zz) * 6
                 img = cv2.GaussianBlur(img * a[..., None], (0, 0), bl + 0.1); a = cv2.GaussianBlur(a, (0, 0), bl + 0.1)

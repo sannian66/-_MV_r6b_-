@@ -15,6 +15,8 @@ import props as PR
 import paper as PA
 import rest_sprites as RS
 import e_kit as E
+import e_r3 as R3
+from e_r3 import Sub, LyrO
 from e_kit import (W, H, BAR, GOLD, GOLDW, RED, REDT, WHITE_T, GOLD_T, INK, put, Lyr, row, sstep, c01, eio, eout, ein,
                    G_DAWN, G_HOT, G_SIL)
 
@@ -58,8 +60,7 @@ def bloom(fr, thr=0.8, amt=0.5, sig=30): return K.bloom(fr, thr, amt, sig)
 class E01(Shot):   # S111 ECU 刃口迎日：日光沿刃口扫过，巨字「血」火烧出
     def __init__(self):
         self.sky = E.dawn_sky(111, horizon=0.78, sun=(1560, 600), mid=(0.42, 0.29, 0.16), cloud=0.5)
-        self.l1 = Lyr(row('血', [CT(48, 0)], 470, 520, size=440, red='血'), CT(48, 2) + 0.12, seed=1)
-        self.l2 = Lyr(row('未冷', cts(48, [1, 2]), 760, 600, size=66, vertical=True, base=GOLD_T, track=0.4), CT(48, 2) + 0.15, seed=2)
+        self.l2 = Sub('未冷', cts(48, [1, 2]), 'left', CT(48, 2) + 0.15, seed=2)   # 统一副句
 
     def render(self, t):
         u = self.u(t)
@@ -74,59 +75,57 @@ class E01(Shot):   # S111 ECU 刃口迎日：日光沿刃口扫过，巨字「�
         return bloom(fr, 0.75, 0.6)
 
     def text(self, fr, t):
-        return self.l2.draw(self.l1.draw(fr, t), t)
+        fr = R3.blood_rub(fr, '血', 470, 500, 440, c01((t - (CT(48, 0) - 0.1)) / 0.22), seed=11)   # 「血」碑拓材质
+        return self.l2.draw(fr, t)
 
 
-class E02(Shot):   # S112 LS 低机位背影举刀指日：刀尖正对日心；「刀不放」朱印盖在日轮上
+class E02(Shot):   # S112 低机位大仰拍（第三棒重做）：人物占画面 3/4 高、偏右，冷灰蓝黎明天（次色调）；刀尖指日，「刀不放」朱印盖在日上；前景虚化草叶/飞灰
+    GR = dict(expo=0.78, sat=0.55, tint=(0.94, 0.98, 1.06), lift=0.0, gamma=1.12)
+
     def __init__(self):
-        self.sky = E.dawn_sky(112, horizon=0.86, mid=(0.36, 0.25, 0.14), cloud=0.8, sun=(960, 300))
-        self.rd, self.ra = E.ridges(n=2, base=0.84, step=0.05, seed=12, amp=0.06, far=0.25, near=0.02)
-        self.l = Lyr(row('刀不放', cts(48, [3, 4, 5]), 1640, 520, size=72, vertical=True, red='刀', track=0.45), CT(48, 5) + 0.25, seed=3)
+        self.sky = E.dawn_sky(112, horizon=0.98, top=(0.025, 0.03, 0.055), mid=(0.16, 0.20, 0.28), hor=(0.62, 0.56, 0.52), cloud=0.9, sun=None)
+        r = np.random.default_rng(112)
+        self.grass = [(r.uniform(-80, 520) if i % 2 else r.uniform(1500, 2000), r.uniform(0.7, 1.5), r.uniform(-0.5, 0.5)) for i in range(30)]
 
     def render(self, t):
         u = self.u(t)
         fr = self.sky.copy()
-        tip = (960, 300)
-        z = np.zeros((H, W, 3), np.float32)
-        z, info = put(z, t, 'S112/sword_sky|flip', (960, 1180 + 30 * u), h=980, anc=(0.5, 1.0), rim=GOLDW, rim_amt=3.0, grade=G_SIL, wind=8)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S112/sword_sky|flip', (1150, 1460 + 20 * u), h=1220, anc=(0.5, 1.0),
+                      rim=(1.0, 0.86, 0.62), rim_amt=3.4, rim_dir=(-0.2, -1.0), grade=self.GR, wind=10)
         tip = info['top']
-        sun = (tip[0], tip[1] - 10 - 40 * eio(u))                          # 日从刀尖升起
-        fr = E.sun_disc(fr, sun, 150, amt=1.15)
-        fr = fx2.god_rays(fr, sun, strength=0.9, length=1.0, t=t, occluder=info['A'])
-        fr = E.place_layer(fr, self.rd, self.ra, oy=40 * u)
+        sun = (tip[0], tip[1] - 6 - 24 * eio(u))
+        fr = E.sun_disc(fr, sun, 46, amt=1.0, core=(1.0, 0.98, 0.94))
+        fr = fx2.god_rays(fr, sun, strength=0.7, length=1.0, t=t, occluder=info['A'])
         a = info['A'][..., None]
         fr = fr * (1 - a) + z * a
         p = (t - (CT(48, 5) - 0.12)) / 0.5
-        if p > 0: fr = T.stamp_seal(fr, '刀不放', sun[0] + 6, sun[1] + 4, 170, min(1, p), style='yin', rot=-6, seed=4, alpha=0.92)
+        if p > 0: fr = T.stamp_seal(fr, '刀不放', sun[0] - 6, sun[1] + 40, 210, min(1, p), style='yin', rot=-6, seed=4, alpha=0.95)
+        G = np.zeros((H // 2, W // 2), np.float32)                         # 前景：贴镜头的草叶（强虚化、压暗）
+        for (x, s_, lean) in self.grass:
+            x0 = (x + 60 * u) / 2
+            cv2.line(G, (int(x0), H // 2 - BAR // 2 + 30), (int(x0 + (lean + 0.12 * math.sin(t * 2.3 + x)) * 120 * s_), int(H // 2 - BAR // 2 - 95 * s_)), 1.0, 6, cv2.LINE_AA)
+        G = cv2.resize(cv2.GaussianBlur(G, (0, 0), 7), (W, H))
+        fr = fr * (1 - np.clip(G * 1.3, 0, 1)[..., None] * 0.92)
+        fr = E.dust_motes(fr, t, 1121, n=36, amt=0.5, drift=(30, -40), size=(3, 9), blur=4, col=(0.9, 0.85, 0.8))
         return bloom(fr, 0.8, 0.45)
 
-    def text(self, fr, t): return self.l.draw(fr, t)
 
-
-class E03(Shot):   # S113 ELS 金色云海快速横移，字悬在云层不同深度
+class E03(Shot):   # S113（第三棒重做）一点透视碑林：两列刻满律令的「天理」碑沿纵深排开，冷灰蓝晨雾，尽头门洞白光；推轨前进 + 前景碑擦镜虚化。
+    #  「世间从来没有」一行横排、按唱的顺序逐字烧出（阅读顺序 = 出现顺序），压在画面下三分之一的暗衬上。
     def __init__(self):
-        self.sky = E.dawn_sky(113, horizon=0.62, sun=(420, 560), mid=(0.40, 0.28, 0.16), cloud=0.4)
-        self.cl = [E.cloud_layer(130 + i, W * 2, H, density=0.35 + 0.15 * i) for i in range(3)]
+        self.hall = R3.SteleHall(seed=31, n=7, hy=455)
         tm = cts(49, range(6))
-        xs = [1500, 1270, 1000, 780, 540, 300]; ys = [430, 640, 380, 600, 470, 690]; ss = [92, 150, 70, 128, 84, 112]
-        self.depth = [0.5, 1.0, 0.3, 0.8, 0.4, 0.9]
-        self.ls = [Lyr([(c, xs[i], ys[i], ss[i], 'serif_sb', WHITE_T if i % 2 else GOLD_T, tm[i])], 198.2, seed=10 + i, glow=0.45)
-                   for i, c in enumerate('世间从来没有')]
+        self.l = LyrO(row('世间从来没有', tm, 960, 800, size=100, gold='世间', track=0.18, font='serif_b'), CT(49, 6) - 0.12, seed=10,
+                      glow=0.3, outline=3, plate_amt=0.45)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (420, 560), 60, amt=1.0)
-        for i, (lum, a) in enumerate(self.cl):
-            sp = (0.35 + 0.5 * i) * 900
-            ox = sp * (t - self.t0)
-            yoff = 560 - 100 * i + 50 * eio(u)
-            fr = cloud_blit(fr, lum, a, ox, yoff, GOLDW * (0.50 + 0.22 * i), amb=0.06, fade=180)
-        return bloom(fr, 0.8, 0.4)
+        fr = self.hall.render(t, dz=0.2 + 1.5 * eio(u), sway=-30 + 60 * u)
+        fr = fx2.god_rays(fr, (960, 455), strength=0.55, length=1.0, t=t)
+        fr = E.dust_motes(fr, t, 113, n=90, amt=0.45, drift=(10, 6), col=(0.85, 0.9, 1.0), depth=True)
+        return bloom(fr, 0.85, 0.4)
 
-    def text(self, fr, t):
-        for l, d in zip(self.ls, self.depth):
-            fr = l.draw(fr, t, dx=-(t - self.t0) * 900 * (0.35 + 0.5 * d) * 0.35 + 160)
-        return fr
+    def text(self, fr, t): return self.l.draw(fr, t)
 
 
 def cloud_blit(fr, lum, a, ox, yoff, tone, amb=0.03, fade=140):
@@ -146,7 +145,7 @@ class E04(Shot):   # S114 CU 暗殿金匾「天理昭彰」：随唱逐字亮起
         slat = (np.sin(np.linspace(0, 60, W // 2)) * 0.5 + 0.5)[None, :] ** 6
         self.bg = cv2.resize(((0.03 + 0.05 * n + 0.025 * slat)[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32), (W, H))
         self.pl = PR.Plaque('天理昭彰', seed=3)
-        self.l = Lyr(row('什么', cts(49, [6, 7]), 250, 330, size=66, vertical=True, base=GOLD_T, track=0.45), 198.3, seed=20)
+        self.l = Sub('什么', cts(49, [6, 7]), 'left', 198.3, seed=20)
         self.lit_t = cts(49, [8, 9, 10, 11])
 
     def render(self, t):
@@ -1114,7 +1113,7 @@ class E36(Shot):   # S138 墨从四角收拢，只剩中心一点朱红 → 黑�
 # =========================================================================================== 剪辑表
 #   切点 = 卡点（小节拍 / 人声字头）最近帧再提前 1 帧
 SHOTS = [  # (类, 起帧, 原镜号, 景别)
-    (E01, 5797, 'S111', 'ECU'), (E02, 5823, 'S112', 'LS'), (E03, 5868, 'S113', 'ELS'), (E04, 5910, 'S114', 'CU'),
+    (E01, 5797, 'S111', 'ECU'), (E02, 5823, 'S112', 'LS'), (E03, 5868, 'S113', 'ELS'), (E04, 5916, 'S114', 'CU'),
     (E05, 5951, 'S114b', 'ECU'), (E06, 5979, 'S115', 'MS'), (E07, 6020, 'S116', 'LS'), (E08, 6061, 'S117', 'CU'),
     (E09, 6102, 'S118', 'MS'), (E10, 6130, 'S119', 'ELS'), (E11, 6157, 'S120a', 'MS'), (E12, 6182, 'S120b', 'ELS'),
     (E13, 6218, 'S121', 'MCU'), (E14T, 6263, 'S122', 'LS'), (E15, 6295, 'S122b', 'ECU'), (E16, 6310, 'S123', 'MCU'),
