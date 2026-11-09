@@ -234,8 +234,15 @@ class C02(Shot):
         fr = fog(fr, t, 3, density=0.35, y0=200, y1=900, color=(0.30, 0.22, 0.15), speed=(12, -4))
         hand_y = 70 - oy * 0.6
         tips = [(830, hand_y + 300), (900, hand_y + 330), (980, hand_y + 340), (1060, hand_y + 320), (1120, hand_y + 280), (790, hand_y + 250)]  # 第四棒：字 72→104px、挂低、画在手前
-        fr, _ = put(fr, t, 'S062/puppeteer', 960, hand_y, 640, anchor='src', src=(0.5, 0.06), rim=WARM, rim_amt=2.2, rim_dir=(0, -1),
+        bg0 = fr.copy()
+        fr, A0 = put(fr, t, 'S062/puppeteer', 960, hand_y, 640, anchor='src', src=(0.5, 0.06), rim=WARM, rim_amt=2.2, rim_dir=(0, -1),
                     expo=0.8, sat=0.4, tint=(1.0, 0.92, 0.82), wind=2)
+        # 第四棒：袖口精灵底边是平切——底部 150px 渐隐进烛光暗部
+        rows = np.where(A0.max(1) > 0.3)[0] if A0 is not None and A0.ndim == 2 else []
+        if len(rows):
+            yb = rows[-1]; yy = np.arange(H, dtype=np.float32)[:, None, None]
+            g = np.clip((yy - (yb - 160)) / 150, 0, 1)
+            fr = fr * (1 - g) + bg0 * g
         s = Sent(28, [5, 6, 7, 8, 9, 10], 0, 0, size=70, mode='type', red='', glitch='剧本')
         for i, x in enumerate(self.XS):
             ti = s.tin[i]
@@ -1710,7 +1717,7 @@ CUTS = {
     'C26': ('shatter', 0.0, 0.22, dict(center=(1065, 560))),
     'C27': ('luma', 0.08, 0.14, {}),                                     # 崩墙后的亮天 → 缺口亮天（亮处匹配）
     'C28': ('push', 0.06, 0.10, dict(center=(960, 480), z=0.5)),         # 推进缺口里的光
-    'C29': ('luma', 0.06, 0.12, {}),                                     # 「亮」字形光 → 缺口逆光（亮处匹配）
+    'C29': ('hard', 0, 0, {}),                                           # 第四棒：luma 会在 C28 亮眼处开洞（像面具）→ 落拍硬切冲击
     'C30': ('flash_red', 0.0, 0.14, {}),
     'C31': ('hard', 0, 0, {}),
     'C32': ('split_slide', 0.06, 0.12, dict(angle=90.0)),                # 掌风压下：画面上下错开
