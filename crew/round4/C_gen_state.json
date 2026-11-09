@@ -1,5 +1,5 @@
 {
- "spent": 69,
+ "spent": 78,
  "jobs": {
   "slash_strings": {
    "tries": [
@@ -251,6 +251,39 @@
      "status": "done",
      "pts": 3,
      "file": "/workspace/work/c_cands5/c16_drip_try1_0.png"
+    }
+   ]
+  },
+  "c06_lid": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "d0cfd60a-a3e6-4da6-bdc7-af3ad1804aff",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "c41_sweep": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "bac2774e-97d3-4bb3-ae7f-d06c47e9a451",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "c35b_bear": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "7be64e98-8892-4b57-a026-f88a8743ed4b",
+     "status": "running",
+     "pts": 3,
+     "file": null
     }
    ]
   }

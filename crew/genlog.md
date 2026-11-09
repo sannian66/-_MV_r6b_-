@@ -379,3 +379,6 @@
 | 11-09 04:49 | E组/E_r6/shoulder_low | RH_image2 | 4K 16:9 | 0 | 4b46ec30-5cbc-4e8d-9f67-0d304f0c2a73 | 采用 | assets/gen/E_r6/shoulder_low_raw.png | [E组] 第六棒 try1 采用（e_recut 20） |
 | 11-09 04:49 | E组/E_r6/blade_vert | RH_image2 | 4K 16:9 | 0 | 78cc68f7-f8eb-4add-99cb-fc18cdeb598a | 采用 | assets/gen/E_r6/blade_vert_raw.png | [E组] 第六棒 try1 采用（recut_flat 16） |
 | 11-09 04:49 | E组/E_r6/scabbard_tassel | RH_image2 | 4K 16:9 | 0 | 08c0ed5b-776e-4f50-9b20-32c2f0a9731d | 采用 | assets/gen/E_r6/scabbard_tassel_raw.png | [E组] 第六棒 try1 采用（e_recut 20） |
+| 11-09 05:05 | C组/c06_lid | RH_image2 | 4K 16:9 | 3 | d0cfd60a-a3e6-4da6-bdc7-af3ad1804aff | submitted | - | [C组] 第六棒 C06 try1 (quote 3) |
+| 11-09 05:05 | C组/c41_sweep | RH_image2 | 4K 16:9 | 3 | bac2774e-97d3-4bb3-ae7f-d06c47e9a451 | submitted | - | [C组] 第六棒 C41 try1 (quote 3) |
+| 11-09 05:05 | C组/c35b_bear | RH_image2 | 4K 16:9 | 3 | 7be64e98-8892-4b57-a026-f88a8743ed4b | submitted | - | [C组] 第六棒 C35b try1 (quote 3) |
