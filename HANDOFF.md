@@ -188,3 +188,12 @@ intro → army(五百重甲,寒光刀光) → pscales0(纸上天平滴血) → d
 - 新沙箱注意：skia 需要系统库 `sudo apt-get install -y libegl1 libgl1`（否则 props.CharWall 报 skia None）。
 - 产出（05:52）：`out/chorus1_sprite/chorus1_sprite_master_crf18.mp4`（26.73s，1920×1080 30fps + AAC，55.9MB，不入库）、`out/chorus1_sprite/chorus1_sprite_crf23.mp4`（入库）、`lib/rig_test/c1_sprite_contact.jpg`。
 - 自评仍待改：S037 远景背影太小太暗，几乎看不见；S045 旋斩中间姿势（84.30–84.47）角向+方向模糊后成一团糊影，读不出转身；S035 斜劈落地的代码弧形刀光与精灵手里的刀不完全对位；S039 缓行只是整张图横移+起伏，脚不动（近看像滑行）；S044 / S029 构图满屏没有景深层次，略像贴图；S043 仍沿用试点图（马尾顶被裁）；S046 人物在刀后虚焦，OK。
+
+## 17. 全片精灵版收尾（第四任接手，2026-11-09 07:40– CST）
+- 接手环境：新沙箱，仓库克隆后用软链接 `/workspace/work/mv` 指向克隆目录（代码路径写死）；pip 装 requirements + `libegl1 libgl1`。
+- 复查联系表 `out/full_sprite/contact_v2.jpg`（`python3 render_sprite_full.py contact …`，78 个精灵镜头，约 3 分钟）：第一版联系表后的修正全部生效——桥段整体提亮、S007/S014 提亮、S021 竖排字让开手部、中近景人物缩小不再顶头；未发现新问题。
+- 仍偏弱（未改）：S007 远景剪影偏淡；S098 前景大黑剪影压住虚化字幕；S110 人物小而暗；S062 手偏灰偏糊；S056 拳头裁剪后发闷。59.47s、86.2s 两处副歌一精修版与旧场景+精灵的画风跳变仍在。
+- 整片渲染：`run_sprite_chunks.sh`（31 块 × 240 帧，2 进程，约 1.8 s/帧/进程，整片约 60 分钟）。后台 shell 单次最长约 19 分钟，所以用 `timeout 1150` 分段跑、断点续跑；被 timeout 打断时残留的 python 进程要先 `pkill -9 -f '[r]ender_sprite_full'`（必须用方括号写法，否则 pkill 会匹配并杀掉自己的 shell），并删掉 `/tmp/sfc/tmp_*.mp4`。分块按 .gitignore 不入库，放在持久工作区。
+- 导出：`export_full_sprite.sh` → 母版 `full_sprite_master.mp4`（视频流拷贝 CRF17 + AAC 320k，不入库）、网络版 `full_sprite_web.mp4`（1080p CRF21 + AAC 192k，不入库）、预览版 `full_sprite_720p.mp4`（CRF26 + AAC 128k，入库）；每个文件 ffprobe + 全量解码校验，结果写 `out/full_sprite/verify.txt`。
+- 同步：`crew/export_chat.py` 改为以 `CONVERSATION_part2.md`（前三任冻结）为底 + 本任 journal（旧版指向上一任的 journal 目录，在新会话里会把前任记录清空）。另设定时任务每 30 分钟 autosync + 渲染中断自动续跑（到 2026-11-11 08:00）。
+- 安全：之前贴进对话的 RH Key 建议作废换新（仓库公开，导出时已打码）。
