@@ -667,7 +667,7 @@ class P11(Shot):
             cx, cy = p10.pos[ch]; cv_[cy - S // 2:cy + S // 2, cx - S // 2:cx + S // 2] = 0.01
         q = np.float32([[-500, -260], [2500, -300], [2250, 820], [-300, 840]])
         M = cv2.getPerspectiveTransform(np.float32([[0, 0], [2800, 0], [2800, 1500], [0, 1500]]), q)
-        tray = cv2.warpPerspective(cv_, M, (W, H))
+        tray = np.nan_to_num(cv2.warpPerspective(np.ascontiguousarray(cv_), M, (W, H)))
         x, y = K.grid()
         tray = cv2.GaussianBlur(tray, (0, 0), 7) * (0.35 + 0.6 * np.exp(-(((x - 1000) / 700) ** 2 + ((y - 380) / 300) ** 2)))[..., None]
         floor = sstep(770, 800, y)
@@ -685,7 +685,7 @@ class P11(Shot):
             Mk = cv2.getRotationMatrix2D((75, 75), r.uniform(-40, 40), 1.0); Mk[1] *= 0.45
             Mk[0, 2] += px - 75; Mk[1, 2] += py - 34
             self.bg, _ = BK.paste_rgba(self.bg, rgb * 0.8, A, Mk)
-        self.bg = self.bg.astype(np.float32)
+        self.bg = np.nan_to_num(self.bg.astype(np.float32), nan=0.0, posinf=1.0, neginf=0.0)
 
     def render(self, t):
         u = self.u(t)
