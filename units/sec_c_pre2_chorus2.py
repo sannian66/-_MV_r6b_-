@@ -1163,68 +1163,55 @@ class C21(Shot):
 
 
 class C22(Shot):
-    """ELS 字墙入云：宋体律令砌成的墙从积水升到雷云里，仰拍上摇；脚下一个小小的人（look_up_back）。"""
-    def __init__(self): self.wall = PR.CharWall(seed=22, cols=22, rows=26, brick=(150, 64))
+    """第五棒重做（评审 P1：扁平梯形字墙 = 代码味）：生图底板 C5/c22_wall——乌铁色城墙从积水直插雷云，极低机位仰拍、缓慢上摇；
+    墙脚积水里一个小小的人（look_up_back 第 1 次，中景仰望）。「若规则是」逐字在墙心被闪电照出（冷白刻痕，「规」朱红）。"""
     def render(self, t):
         u = self.u(t)
         tb = V(141.32)
         fl = bolt_env(t, tb) + 0.7 * bolt_env(t, V(141.94))
-        oy = lerp(120, -80, eio(u))
-        fr = storm(t, 22, horizon=930 - oy * 0.3, flash=0.5 + fl, fc=(960, 60), refl=0.5)
-        fr, info = self.wall.draw(fr, t, x0=360, y0=-900 - oy, x1=1560, y1=900 - oy * 0.3, tilt=0.55, light_color=COLD, rim=0.8, fog=0.4)
-        fr = bolt(fr, t, tb, 221, (1400, 40), (1250, 500), inten=1.0)
-        # 律令里被点亮的「若规则是」：竖排在墙面中轴
-        for i, k in enumerate((0, 1, 2, 3)):
-            ti = V(CT(34, k))
+        cy = lerp(0.56, 0.47, eio(u))
+        fr = plate_view('C5/c22_wall', 0.5, cy, 1.0 + 0.04 * u) * (0.85 + 0.75 * fl)
+        oy = (cy - 0.5) * plate('C5/c22_wall').shape[0]
+        fr = bolt(fr, t, tb, 221, (1400, 40), (1250, 420), inten=0.9)
+        for i in range(4):
+            ti = V(CT(34, i))
             if t < ti - 0.1: continue
             e = eout((t - ti + 0.1) / 0.18)
-            fr = paste_glyph(fr, '若规则是'[i], 960, 220 + i * 120 - oy * 0.6, 96, (0.95, 0.97, 1.0) if i != 1 else RED_T,
+            fr = paste_glyph(fr, '若规则是'[i], 960, 250 + i * 128 - oy * 0.0, 104, (0.95, 0.97, 1.0) if i != 1 else RED_T,
                              glow=0.8, glow_c=(0.7, 0.8, 1.0) if i != 1 else (0.9, 0.1, 0.05), scale=lerp(1.5, 1, e), alpha=e, font='serif_b')
-        fr = fog(fr, t, 22, density=0.6, y0=760, y1=950, color=(0.4, 0.43, 0.5), speed=(40, 0))
+        fr, _ = put(fr, t, 'C/look_up_back', 960 + 10 * u, 905, 190, rim=COLD, rim_amt=2.8, rim_dir=(0.2, -1), flash=fl, expo=0.7, wind=6)
+        fr = fog(fr, t, 22, density=0.5, y0=780, y1=950, color=(0.4, 0.43, 0.5), speed=(40, 0))
         fr = rain(fr, t, 220, inten=1.0, angle=8)
         return fr
 
 
 class C23(Shot):
-    """CU 仰拍字墙局部（同墙 match cut）：「铁」「壁」「铜」三块石砖逐拍从墙里推出、逼近镜头（真立体砖：侧面、刻字、碎屑）。"""
-    def __init__(self):
-        self.wall = PR.CharWall(seed=23, cols=12, rows=14, brick=(150, 64))
-        self.bricks = []
-        for i, c in enumerate('铁壁铜'):
-            # 第三棒：与墙同一种灰石（不再是深色盒子），字阴刻（倒角明暗 + 刻槽里积的冷银雨水），侧面是粗糙断面
-            face = CP.stone_tex(600, 256, 230 + i, base=(0.30, 0.30, 0.32), border=False)
-            m = CP.text_mask(c, 210, 600, 256)
-            sh, sp = CP._bevel_shade(1 - m, width=3.0, light=(-0.5, -0.8))
-            face = face * (1 - m[..., None]) + m[..., None] * (0.06 + 0.25 * sh[..., None]) * np.array([0.85, 0.9, 1.0], np.float32) + sp[..., None] * m[..., None] * 0.6
-            chip = cv2.resize(CP.nz(64, 250 + i, 4, 3), (600, 256))
-            face = face * (0.8 + 0.4 * chip[..., None])
-            side = CP.stone_tex(600, 256, 240 + i, base=(0.15, 0.15, 0.16), border=False) * (0.7 + 0.6 * cv2.resize(CP.nz(64, 260 + i, 12, 3), (600, 256)))[..., None]
-            self.bricks.append(CP.Cuboid(dict(front=face, side=side)))
+    """第五棒重做（评审 P1：半透明灰矩形贴片）：同一面城墙推近（C22 底板 2.3× 局部，match cut），三块实铸铜牌（生图 C5/c23_bronze）
+    逐拍（铁 142.44 / 壁 142.76 / 铜 143.48）从墙里推出、逼近镜头，字阴刻在铜面上（刻槽积暗 + 倒角高光），推出时墙面碎石掉落、
+    镜头横移；砖缝渗水。"""
     def render(self, t):
         u = self.u(t)
-        fl = sum(0.6 * bolt_env(t, V(CT(34, k))) for k in (4, 5, 6))
-        fr = storm(t, 23, horizon=1300, flash=0.3 + fl, ground=False)
-        fr, info = self.wall.draw(fr, t, x0=-300, y0=-500, x1=2200, y1=1400, tilt=0.35, light_color=COLD, rim=1.0)
-        fr = fr * 1.25
-        pos = [(560, 470), (960, 690), (1380, 420)]
-        for i, k in enumerate((4, 5, 6)):
+        ks = (4, 5, 6)
+        fl = sum(0.6 * bolt_env(t, V(CT(34, k))) for k in ks)
+        fr = plate_view('C5/c22_wall', lerp(0.46, 0.54, eio(u)), 0.62, 2.3 + 0.15 * u) * (0.9 + 0.7 * fl)
+        pos = [(520, 450), (980, 640), (1420, 420)]
+        for i, k in enumerate(ks):
             ti = V(CT(34, k))
-            x, y = pos[i]
-            if t < ti - 0.15:
-                continue
+            x, y = pos[i]; x -= 120 * u
+            if t < ti - 0.15: continue
             e = eout((t - ti + 0.15) / 0.22)
-            depth = 40 + 260 * e + 60 * (t - ti)
-            # 砖洞（墙上被推出后留下的黑洞）
-            hole = np.zeros((H, W), np.float32)
-            cv2.rectangle(hole, (int(x - 150), int(y - 64)), (int(x + 150), int(y + 64)), 1.0, -1)
-            fr = fr * (1 - hole[..., None] * 0.9 * e)
-            C = np.zeros((H, W, 3), np.float32); A = np.zeros((H, W), np.float32)
-            self.bricks[i].draw(C, A, x, y + 64, 300, 128, depth, yaw=(x - 960) / 28, pitch=-10 - (y - 540) / 30, f=1400,
-                                light=(-0.4, 0.6, -0.7), amb=0.45, rim=COLD, rim_amt=0.12, flash=fl, offset=(0, 0, -depth / 2 + 20))
-            A = cv2.GaussianBlur(A, (0, 0), 0.8)
-            fr = CP.compose(fr, C, A, shadow=0.75)
-            fr = dust(fr, t, 230 + i, n=60, amt=0.7 * e * (1 - sm(0.2, 0.8, t - ti)), drift=(0, 160),
-                      region=(int(x - 170), int(y - 70), int(x + 170), int(y + 260)), size=(1, 4))
+            sz = 250 * (0.75 + 0.35 * e + 0.08 * (t - ti))
+            hole = np.zeros((H // 2, W // 2), np.float32)
+            cv2.rectangle(hole, (int((x - 120) / 2), int((y - 120) / 2)), (int((x + 120) / 2), int((y + 120) / 2)), 1.0, -1)
+            fr = fr * (1 - cv2.resize(cv2.GaussianBlur(hole, (0, 0), 6), (W, H))[..., None] * 0.85 * e)
+            dx, dy = (x - 960) * 0.08 * e, (y - 540) * 0.08 * e
+            fr, _ = put(fr, t, 'C5/c23_bronze', x + dx, y + dy, sz, anchor='src', src=(0.5, 0.5), rim=COLD, rim_amt=1.4, rim_dir=(-0.6, -0.8),
+                        flash=fl, expo=1.0, sat=0.8, tint=(1.0, 0.98, 0.95), wind=0, breathe=0.0)
+            gs = sz * 0.55
+            fr = paste_glyph(fr, '铁壁铜'[i], x + dx + 2, y + dy + 3, gs, (0.85, 0.75, 0.55), glow=0.0, shadow=0.0, alpha=0.55)
+            fr = paste_glyph(fr, '铁壁铜'[i], x + dx, y + dy, gs, (0.07, 0.06, 0.05), glow=0.25, glow_c=(0.6, 0.45, 0.2), shadow=0.3)
+            fr = dust(fr, t, 230 + i, n=70, amt=0.8 * e * (1 - sm(0.2, 0.8, t - ti)), drift=(0, 220),
+                      region=(int(x - 150), int(y - 40), int(x + 150), int(y + 280)), size=(1, 5))
         fr = rain(fr, t, 230, inten=0.7, angle=4)
         return fr
 
@@ -1235,9 +1222,8 @@ class C24(Shot):
     def render(self, t):
         u = self.u(t)
         ox = 900 * u
-        fr = storm(t, 24, horizon=950, flash=0.35 + 0.5 * bolt_env(t, V(143.94)), refl=0.5, ox=ox)
-        fr, _ = self.wall.draw(fr, t, x0=-400 - ox * 0.9, y0=BAR - 40, x1=3600 - ox * 0.9, y1=960, tilt=0.0, light_color=WARM, rim=0.5)
-        fr = fr * 0.7
+        # 第五棒：墙换成 C22/C23 同一面生图城墙（横移跟拍墙根），不再用程序字砖墙
+        fr = plate_view('C5/c22_wall', lerp(0.62, 0.40, u), 0.70, 2.0) * (0.75 + 0.6 * bolt_env(t, V(143.94)))
         x = 1250 - 80 * u; y = 990
         tip = (x + 370, y - 158)      # 第五棒：火星对准拖在身后的真实刀尖（原来在身前，刀尖与火星脱节）
         # 火星长线（墙面上灼痕：从刀尖拖向他跑来的右侧画外）
@@ -1905,7 +1891,7 @@ SENTS = [
     S(32, [3, 4, 5], 960, 260, size=120, mode='fly', red='刀', exit='shatter', out=V(137.40), track=0.25),           # 刀不放
     S(33, [0, 1, 2], 560, 300, size=100, mode='fly', exit='shatter', out=V(138.33), offs=[(0, 0), (40, 60), (80, 120)]),   # 谁人来（斜）
     S(33, [6, 7], 960, 880, size=76, mode='fly', exit='shatter', out=V(140.62), track=0.4),                        # 一方
-    S(34, [7], 1600, 470, size=260, mode='fly', exit='shatter', out=V(144.70)),                                      # 墙（C24 低频震）
+    S(34, [6, 7], 1560, 470, size=260, mode='fly', exit='shatter', out=V(144.70), sizes=[170, 260], back=0.4),   # 第五棒：补「铜」（143.48 落在 C24 开头，原来丢字）                                      # 墙（C24 低频震）
     S(35, [0, 1], 460, 300, size=84, mode='fly', exit='shatter', out=V(145.60), layout='v'),                        # 那就（C25）
     S(35, [3, 4], 1480, 830, size=84, mode='fly', exit='shatter', out=V(146.40)),                                    # 开它
     S(35, [5, 6, 7], 1560, 300, size=100, mode='fly', layout='v', exit='cut', out=V(147.38), track=0.3, back=0.6),    # 看个天（竖排压在暗墙上）
