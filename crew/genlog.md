@@ -375,3 +375,7 @@
 | 11-09 12:52 | A/bronze_scale | RH_image2 | 4K 16:9 | 0 | b48a9237-d21f-42d3-80cd-e8f5eecb17ec | 采用 | assets/gen/A_r6/bronze_scale_raw.png | try1 采用（V09 底图） |
 | 11-09 12:52 | A/giant_seal | RH_image2 | 4K 16:9 | 0 | eca9483c-53b8-4110-8955-e2a087037091 | 采用 | assets/gen/A_r6/giant_seal_raw.png | try1 采用（V16/V17 巨印侧面） |
 | 11-09 12:52 | A/carve_grip | RH_image2 | 4K 16:9 | 0 | a5fb7985-55d5-429f-bcab-b85d9aa7eac2 | 采用 | assets/gen/A_r6/carve_grip_raw.png | try1 采用（V15 双手握柄） |
+| 11-09 04:49 | E组/E_r6/emperor_cu | RH_image2 | 4K 16:9 | 0 | c0acf0f3-0c15-4a02-9c1c-69a3683d7f07 | 采用 | assets/gen/E_r6/emperor_cu_raw.png | [E组] 第六棒 try1 采用（同 S116 白发老者身份；e_recut 外沿 + recut_flat 内芯合并） |
+| 11-09 04:49 | E组/E_r6/shoulder_low | RH_image2 | 4K 16:9 | 0 | 4b46ec30-5cbc-4e8d-9f67-0d304f0c2a73 | 采用 | assets/gen/E_r6/shoulder_low_raw.png | [E组] 第六棒 try1 采用（e_recut 20） |
+| 11-09 04:49 | E组/E_r6/blade_vert | RH_image2 | 4K 16:9 | 0 | 78cc68f7-f8eb-4add-99cb-fc18cdeb598a | 采用 | assets/gen/E_r6/blade_vert_raw.png | [E组] 第六棒 try1 采用（recut_flat 16） |
+| 11-09 04:49 | E组/E_r6/scabbard_tassel | RH_image2 | 4K 16:9 | 0 | 08c0ed5b-776e-4f50-9b20-32c2f0a9731d | 采用 | assets/gen/E_r6/scabbard_tassel_raw.png | [E组] 第六棒 try1 采用（e_recut 20） |
