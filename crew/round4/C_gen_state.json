@@ -1,0 +1,93 @@
+{
+ "spent": 24,
+ "jobs": {
+  "slash_strings": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "31ddd6d6-4db9-49e5-abef-cc12c4520692",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_strings_try1_0.png"
+    }
+   ]
+  },
+  "leap_arc": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "b3f3d287-b618-4552-b74a-a0e2aa380f2b",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/leap_arc_try1_0.png"
+    }
+   ]
+  },
+  "slash_diag_down": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "d46fb9bc-359e-417c-b71d-26d7186f5c61",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_diag_down_try1_0.png"
+    }
+   ]
+  },
+  "slash_back": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "99070403-0cfb-4785-8782-9c4a4c810595",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_back_try1_0.png"
+    }
+   ]
+  },
+  "look_up_back": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "6eab862a-e32e-4af0-b43b-cffb4bfd795b",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/look_up_back_try1_0.png"
+    }
+   ]
+  },
+  "tsh_brush": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "6c432a6d-71de-4dd1-95d4-85d3b70d3d24",
+     "status": "done",
+     "pts": 3,
+     "file": "/workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/tsh_brush_try1_0.png"
+    }
+   ]
+  },
+  "blade_hot": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "d6d58fab-d846-461d-b353-e3d8f049c43a",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  },
+  "blade_level": {
+   "tries": [
+    {
+     "n": 1,
+     "task_id": "598c26c7-05dc-4a3d-a148-43ac3b681914",
+     "status": "running",
+     "pts": 3,
+     "file": null
+    }
+   ]
+  }
+ }
+}

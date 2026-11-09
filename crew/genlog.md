@@ -205,3 +205,36 @@
 | 11-09 00:56 | D组/thrust_sky_back | RH_image2 | 4K 16:9 | 0 | 879beaaa-43d7-4351-9a4f-69e47a56f38a | completed | d_cands/thrust_sky_back_try1_0.png | try1 |
 | 11-09 00:56 | D组/companions | RH_image2 | 4K 16:9 | 0 | 486068a3-f67f-4522-8f56-0eabd78779be | completed | d_cands/companions_try1_0.png | try1 |
 | 11-09 00:56 | B组/slash_h | RH_image2 | 4K 16:9 | 0 | 8b44599c-35c3-4f27-b574-a82c50919252 | completed | b_cands/slash_h_try1_0.png | try1 |
+| 11-09 00:56 | A/eyes | RH_image2 | 4K 16:9 | 0 | 893325b0-967f-4fb1-ac67-3028eeeef5cb | 采用 | assets/gen/A/eyes_raw.png | A组 采用 |
+| 11-09 00:56 | B组/drag_blade | RH_image2 | 4K 16:9 | 0 | 9f6aaf31-c906-4449-92d1-b68781386105 | completed | b_cands/drag_blade_try1_0.png | try1 |
+| 11-09 00:56 | A/blade_face | RH_image2 | 4K 16:9 | 0 | a8251b2c-860c-41b6-87d7-400a49a0102b | 采用 | assets/gen/A/blade_face_raw.png | A组 采用 |
+| 11-09 00:56 | D组/walk_back | RH_image2 | 4K 16:9 | 0 | 8dde7291-64f4-493d-a9bf-160b7b03b79b | 采用 | assets/gen/D_bridge/walk_back_raw.png | try1 采用 |
+| 11-09 00:56 | D组/tsh_brush | RH_image2 | 4K 16:9 | 0 | ef65528f-ba49-41f8-906d-b6bcea7e5223 | 采用 | assets/gen/D_bridge/tsh_brush_raw.png | try1 采用 |
+| 11-09 00:57 | D组/kneel_bow | RH_image2 | 4K 16:9 | 0 | 039ee9a5-b767-4e20-8e05-336f1c6570dd | 采用 | assets/gen/D_bridge/kneel_bow_raw.png | try1 采用 |
+| 11-09 00:57 | A/slash_up | RH_image2 | 4K 16:9 | 0 | df6a6a83-b46a-40d3-a54e-82d8be4a3818 | 采用 | assets/gen/A/slash_up_raw.png | A组 采用 |
+| 11-09 00:57 | D组/eyes_closed | RH_image2 | 4K 16:9 | 0 | 24e46be9-f84f-48fd-855b-7844442e21e6 | 采用 | assets/gen/D_bridge/eyes_closed_raw.png | try1 采用 |
+| 11-09 00:57 | B组/tsh_smirk | RH_image2 | 4K 16:9 | 0 | ff6b3c9a-6948-4518-a9a9-ba2b41da1bd7 | completed | b_cands/tsh_smirk_try1_0.png | try1 |
+| 11-09 00:57 | A/boots | RH_image2 | 4K 16:9 | 0 | 3be472e2-97a4-4b74-a952-a1c8ba05cc82 | 采用 | assets/gen/A/boots_raw.png | A组 采用 |
+| 11-09 00:57 | D组/slash_sky_back | RH_image2 | 4K 16:9 | 0 | 42275b97-622e-4c07-aa03-53ffa73cddaa | 采用 | assets/gen/D_bridge/slash_sky_back_raw.png | try1 采用 |
+| 11-09 00:57 | D组/spin_front | RH_image2 | 4K 16:9 | 0 | 3e3f11ff-0c44-4e7b-9943-b5f64246a018 | 采用 | assets/gen/D_bridge/spin_front_raw.png | try1 采用 |
+| 11-09 00:57 | D组/thrust_sky_back | RH_image2 | 4K 16:9 | 0 | 879beaaa-43d7-4351-9a4f-69e47a56f38a | 采用 | assets/gen/D_bridge/thrust_sky_back_raw.png | try1 采用 |
+| 11-09 00:57 | A/tsh_raise | RH_image2 | 4K 16:9 | 0 | 0f48fbe3-f39e-469b-bec5-43d38718800d | 采用 | assets/gen/A/tsh_raise_raw.png | A组 采用 |
+| 11-09 00:57 | B组/tsh_brush_hand | RH_image2 | 4K 16:9 | 0 | 12ee8f89-7994-4fa3-99aa-bc2140df9fcf | completed | b_cands/tsh_brush_hand_try1_0.png | try1 |
+| 11-09 00:57 | D组/companions | RH_image2 | 4K 16:9 | 0 | 486068a3-f67f-4522-8f56-0eabd78779be | 采用 | assets/gen/D_bridge/companions_raw.png | try1 采用 |
+| 11-09 00:57 | C组/slash_strings | RH_image2 | 4K 16:9 | 0 | 31ddd6d6-4db9-49e5-abef-cc12c4520692 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_strings_try1_0.png | try1 |
+| 11-09 00:57 | B组/blade_face | RH_image2 | 4K 16:9 | 0 | 1f1acfd4-d6e7-4a3f-9591-8d22303c1bde | completed | b_cands/blade_face_try1_0.png | try1 |
+| 11-09 00:57 | B组/back_stand | RH_image2 | 4K 16:9 | 0 | e9db3eeb-c2d0-4a19-8ba5-45941b4b73de | completed | b_cands/back_stand_try1_0.png | try1 |
+| 11-09 00:57 | C组/leap_arc | RH_image2 | 4K 16:9 | 0 | b3f3d287-b618-4552-b74a-a0e2aa380f2b | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/leap_arc_try1_0.png | try1 |
+| 11-09 00:57 | A/tsh_hand | RH_image2 | 4K 16:9 | 0 | 74335986-b749-422b-9f8a-bc894042ca4e | 采用 | assets/gen/A/tsh_hand_raw.png | A组 采用 |
+| 11-09 00:57 | B组/slash_h | RH_image2 | 4K 16:9 | 0 | 8b44599c-35c3-4f27-b574-a82c50919252 | 采用 | assets/gen/B_r4/slash_h_raw.png | try1 采用 |
+| 11-09 00:57 | C组/slash_diag_down | RH_image2 | 4K 16:9 | 0 | d46fb9bc-359e-417c-b71d-26d7186f5c61 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_diag_down_try1_0.png | try1 |
+| 11-09 00:57 | B组/drag_blade | RH_image2 | 4K 16:9 | 0 | 9f6aaf31-c906-4449-92d1-b68781386105 | 采用 | assets/gen/B_r4/drag_blade_raw.png | try1 采用 |
+| 11-09 00:57 | B组/tsh_smirk | RH_image2 | 4K 16:9 | 0 | ff6b3c9a-6948-4518-a9a9-ba2b41da1bd7 | 采用 | assets/gen/B_r4/tsh_smirk_raw.png | try1 采用 |
+| 11-09 00:57 | C组/slash_back | RH_image2 | 4K 16:9 | 0 | 99070403-0cfb-4785-8782-9c4a4c810595 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/slash_back_try1_0.png | try1 |
+| 11-09 00:57 | B组/tsh_brush_hand | RH_image2 | 4K 16:9 | 0 | 12ee8f89-7994-4fa3-99aa-bc2140df9fcf | 采用 | assets/gen/B_r4/tsh_brush_hand_raw.png | try1 采用 |
+| 11-09 00:57 | B组/blade_face | RH_image2 | 4K 16:9 | 0 | 1f1acfd4-d6e7-4a3f-9591-8d22303c1bde | 采用 | assets/gen/B_r4/blade_face_raw.png | try1 采用 |
+| 11-09 00:57 | C组/look_up_back | RH_image2 | 4K 16:9 | 0 | 6eab862a-e32e-4af0-b43b-cffb4bfd795b | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/look_up_back_try1_0.png | try1 |
+| 11-09 00:57 | B组/back_stand | RH_image2 | 4K 16:9 | 0 | e9db3eeb-c2d0-4a19-8ba5-45941b4b73de | 采用 | assets/gen/B_r4/back_stand_raw.png | try1 采用 |
+| 11-09 00:57 | C组/tsh_brush | RH_image2 | 4K 16:9 | 0 | 6c432a6d-71de-4dd1-95d4-85d3b70d3d24 | completed | /workspace/projects/614ceffe-275f-4d89-90f0-6cbd68b8bafd/work/c_cands/tsh_brush_try1_0.png | try1 |
+| 11-09 00:58 | C组/blade_hot | RH_image2 | 4K 16:9 | 3 | d6d58fab-d846-461d-b353-e3d8f049c43a | submitted | - | C11/C12 try1 (quote 3) |
+| 11-09 00:58 | C组/blade_level | RH_image2 | 4K 16:9 | 3 | 598c26c7-05dc-4a3d-a148-43ac3b681914 | submitted | - | C38 try1 (quote 3) |
