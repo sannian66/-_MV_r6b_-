@@ -578,7 +578,7 @@ class V10(Shot):
         # 玻璃罩上的雨珠（高光点 + 暗折射）
         for dx_, dy_, r_ in self.drops:
             px, py = int(dx_ * W), int(120 + dy_ * 840); rr = int(4 + r_ * 12)
-            cv2.circle(fr, (px, py), rr, (0.02, 0.02, 0.025), -1, cv2.LINE_AA)
+            cv2.circle(fr, (px, py), rr, (0.06, 0.055, 0.05), -1, cv2.LINE_AA)
             cv2.circle(fr, (px - rr // 3, py - rr // 3), max(1, rr // 3), (0.85, 0.85, 0.9), -1, cv2.LINE_AA)
         # 「算够」刻在弧上（阴刻：暗字 + 下缘高光），逐字烫金
         pr = prs(22, [5, 6], t, 0.22)
@@ -591,7 +591,7 @@ class V10(Shot):
         A = L.A
         fr = fr * (1 - A[..., None] * 0.8) + A[..., None] * np.array([0.02, 0.015, 0.01], np.float32)
         fr += np.clip(np.roll(A, -3, 0) - A, 0, 1)[..., None] * np.array([0.6, 0.45, 0.25], np.float32)
-        fr += A[..., None] * GOLD * 0.5 * sum(pulse(t, V(CT(22, k)), 0.25) * (t >= V(CT(22, k))) for k in (5, 6))
+        fr += A[..., None] * GOLD * 0.25 + A[..., None] * GOLD * 0.7 * sum(pulse(t, V(CT(22, k)), 0.25) * (t >= V(CT(22, k))) for k in (5, 6))
         # 指针：纹丝不动（冲击时只抖 0.3°，然后回正）
         hk = hitp(t, self.T_HIT, 0.15)
         a = math.radians(-90 + 0.6 * hk * math.sin(t * 60))
@@ -621,7 +621,6 @@ class V10(Shot):
 class V11(Shot):
     T_LIANG = 99.0
     def __init__(self):
-        self.seal = PR.GiantSeal('量', 5601)
         self.bg = BK.dark_bg(5602, 0.012, 0.04)
         self.rain = fx2.RainSheet(5603, density=0.7)
         self.spl = fx2.Splashes(5604)
@@ -636,11 +635,13 @@ class V11(Shot):
         lip = (((x - 960) / 820) ** 2 + ((y - 840) / 150) ** 2 < 1).astype(np.float32) - (((x - 960) / 790) ** 2 + ((y - 836) / 136) ** 2 < 1).astype(np.float32)
         fr = fr * (1 - pan[..., None]) + pan[..., None] * np.array([0.10, 0.08, 0.05], np.float32) * (0.7 + 0.5 * cv2.resize(K.fbm(H // 4, W // 4, 5605, 6, 4), (W, H)))[..., None]
         fr += np.clip(lip, 0, 1)[..., None] * GOLD * 0.35
-        fall = clamp01((t - (V(self.T_LIANG) - 0.32)) / 0.32)
-        fr, info = self.seal.draw(fr, t, 960, 820, 520, fall=ein(fall, 2) if fall < 1 else 1.0, tilt=8, rim_color=GOLD, rim=1.4)
+        # 金印俯视落下（stamp_seal：p 0→0.3 自高处落下，0.3 = 99.0 落印）
+        ps = clamp01((t - (V(self.T_LIANG) - 0.3 * 0.9)) / 0.9)
+        if ps > 0:
+            fr = T.stamp_seal(fr, '量', 960, 800, 360, ps, style='yang', rot=-3, seed=56, color='gold')
         hk = hitp(t, self.T_LIANG, 0.14)
         if t >= V(self.T_LIANG):
-            fr = K.sparks(fr, t, 5606, (960, 820), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
+            fr = K.sparks(fr, t, 5606, (960, 800), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
                           area=(500, 20), color=(0.75, 0.8, 0.9), amt=1.0, t0=V(self.T_LIANG), burst=True)
             fr = fx2.ripples(fr, t, [(960, 840)], [V(self.T_LIANG)], amt=0.9, flat=0.18, speed=700, life=0.8)
         fr = self.spl.draw(fr, t, y_far=700, y_near=990, rate=80, amt=0.6)
@@ -677,7 +678,7 @@ class V12(Shot):
         fr += np.exp(-((y - edge_y - 30) / 60) ** 2)[..., None] * GOLD * 0.06
         px, py, rot = self.pos(t)
         wet = clamp01(u * 1.3)
-        fr, _ = self.fig.draw(fr, px, py + 150, 300, t, tilt=rot, wet=wet, ink=0.5 * wet, light='back', light_color=GOLD, rim=0.8)
+        fr, _ = self.fig.draw(fr, px, py + 260, 520, t, tilt=rot, blur=1.5, wet=wet, ink=0.5 * wet, light='back', light_color=GOLD, rim=0.8)
         # 墨在纸人周围化开（被雨打湿）
         blot = np.exp(-(((x - px) ** 2 + (y - py) ** 2) / (120 + 260 * wet) ** 2))
         nz = cv2.resize(K.fbm(H // 8, W // 8, 5704, 6, 4), (W, H))
@@ -835,7 +836,7 @@ class V16(Shot):
         self.d, self.a, self.n, self.sw = d, a, n, swirl
         r = np.random.default_rng(6103)
         self.streaks = r.uniform(0, 1, (900, 3))
-        T.warm('上苍', 'serif_black', 330); T.warm('不问', 'cao', 170)
+        T.warm('上苍', 'serif_black', 330); T.warm('不问', 'xing', 170)
 
     def render(self, t):
         u = self.u(t)
@@ -869,8 +870,8 @@ class V16(Shot):
             cv2.line(buf, p0, p1, 0.25 + 0.6 * ph, 1, cv2.LINE_AA)
         fr += cv2.resize(buf, (W, H))[..., None] * COLDC * 0.6
         pb = prs(24, [4, 5], t)
-        fr = T.scatter_stack(fr, '不问', pb, places=[dict(ch='不', x=330, y=300, size=170, rot=-8, font='cao', idx=0, emph=False),
-                                                       dict(ch='问', x=420, y=520, size=200, rot=6, font='cao', idx=1, emph=True)],
+        fr = T.scatter_stack(fr, '不问', pb, places=[dict(ch='不', x=330, y=300, size=170, rot=-8, font='xing', idx=0, emph=False),
+                                                       dict(ch='问', x=420, y=520, size=200, rot=6, font='xing', idx=1, emph=True)],
                              color='white', emph_color=(0.84, 0.10, 0.07), t_local=u, style_kw=dict(shadow=0.8))
         fr = cam(fr, 1.0 + 0.08 * eio(u), 0, 0, -8 * eio(u), center=self.c)
         return fr, 0
@@ -894,10 +895,10 @@ class V17(Shot):
                        wind_amp=4, shade=(900, 1900, 0.3, 700, 0.2))
         # 掌心积水 + 倒影「命」（随涟漪抖动），107.08 字头亮起
         cx, cy = self.PALM[0] + 10, self.PALM[1] - 20
-        pool = np.exp(-(((x - cx) / 120) ** 2 + ((y - cy) / 46) ** 2) ** 2)
+        pool = np.exp(-(((x - cx) / 150) ** 2 + ((y - cy) / 60) ** 2) ** 2)
         pm = prs(25, [2], t, 0.3)[0]
         if pm > 0:
-            L = T.Layer(); T.place(L, '命', cx, cy, 120, color='red', fname='serif_black', alpha=min(1, pm * 1.5), sy=0.42)
+            L = T.Layer(); T.place(L, '命', cx, cy, 190, color='red', fname='serif_black', alpha=min(1, pm * 1.5), sy=0.45)
             wob = np.sin((x - cx) * 0.08 + t * 14) * 3 + np.sin((y - cy) * 0.3 + t * 9) * 2
             A = cv2.remap(L.A, x + wob.astype(np.float32), y, cv2.INTER_LINEAR) * pool
             fr = fr * (1 - A[..., None] * 0.7) + A[..., None] * np.array([0.95, 0.10, 0.06], np.float32)
@@ -995,7 +996,7 @@ class V20(Shot):
     def scene(self, t):
         x, y = K.grid()
         refl = self.sky.copy()
-        refl, _ = put(refl, self.sp, t, 760, (960, 160), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
+        refl, _ = put(refl, self.sp, t, 700, (960, 900), look=None, rim=dict(col=(0.7, 0.8, 1.0), amt=2.0, dir=(0.0, 1.0)), wind_amp=8,
                       shade=None, wrap=0.2)
         refl = refl[::-1] if False else refl
         # 倒影：人物头朝下（脚在上沿）
@@ -1014,7 +1015,7 @@ class V20(Shot):
         pr = prs(26, [0, 1, 2], t)
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('若这世', pr)):
-            if pc > 0: T.place(L, ch, 1380, 300 + i * 160, 140, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
+            if pc > 0: T.place(L, ch, 1240, 330 + i * 160, 140, color='white', fname='serif_black', alpha=min(1, pc * 2), scale=1.2 - 0.2 * eout(pc))
         fr = T.compose(fr, L, shadow=0.85, glow=0.12)
         ang = 90 * ein(u, 2)
         fr = cam(fr, 1.0 + 0.12 * math.sin(math.pi * u * 0.5), 0, 0, ang)
@@ -1066,25 +1067,21 @@ class V22(Shot):
                     shade=(600, 1600, 0.2, 600, 0.3))
         fr = self.rain.draw(fr, t, intensity=1.0, angle=10)
         tc = V(self.T_CUT)
-        line_y = 330 + 0.06 * (x - 960)                 # 刀线（沿刀身，略斜）
-        P = [dict(ch=c, x=500 + i * 300, y=560, size=170, rot=0, font='kai', idx=i, emph=(c == '刀')) for i, c in enumerate('那就用刀')]
-        pr = prs(27, [0, 1, 2, 3], t)
+        line_y = 470 + 0.06 * (x - 960)                 # 刀线（沿刀身，略斜）
         q = clamp01((t - tc) / 0.35)
+        # 负片：斩前全屏；斩后只剩刀线以下（先做负片，字后合成，朱红「刀」不被反相）
+        m = np.ones((H, W), np.float32) if t < tc else sstep(-6, 6, y - line_y)
+        fr = fr * (1 - m[..., None]) + (1 - np.clip(fr, 0, 1)) * 0.9 * m[..., None]
+        P = [dict(ch=c, x=500 + i * 300, y=700, size=170, rot=0, font='kai', idx=i, emph=(c == '刀')) for i, c in enumerate('那就用刀')]
+        pr = prs(27, [0, 1, 2, 3], t)
         if q <= 0:
             L = T.Layer()
             for pp, pc in zip(P, pr):
-                if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'white', fname='kai', alpha=min(1, pc * 2))
-            fr = T.compose(fr, L, shadow=0.85, glow=0.15)
+                if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'ink', fname='kai', alpha=min(1, pc * 2))
+            fr = T.compose(fr, L, shadow=0.0, glow=0.0)
         else:
             fr = T.slash_cut(fr, '那就用刀', clamp01(0.25 + q * 0.75), places=P, fname='kai', color='white', emph=('刀',),
                              emph_color=(0.86, 0.10, 0.06), angle=4, cut_at=0.25, slide=0.18, appear=0.0)
-        # 负片：斩前全屏；斩后只剩刀线以下
-        if t < tc:
-            m = np.ones((H, W), np.float32)
-        else:
-            m = sstep(-6, 6, y - line_y - (1 - eout(q)) * 0)
-        neg = 1 - np.clip(fr, 0, 1)
-        fr = fr * (1 - m[..., None]) + neg * 0.9 * m[..., None]
         if t >= tc - 0.05:
             ql = clamp01((t - (tc - 0.05)) / 0.15)
             band = np.exp(-((y - line_y) / (3 + 20 * (1 - ql))) ** 2) * (x < W * ql + 200)
@@ -1102,7 +1099,7 @@ def gash(fr, t, pts, width, heat=1.0, seed=0):
     m = np.zeros((H // 2, W // 2), np.float32)
     n = len(pts)
     for i in range(n - 1):
-        w = max(1, int(width * (1 - i / n * 0.85) / 2))
+        w = max(1, int((width * (1 - i / n) ** 1.6 + 3) / 2))
         cv2.line(m, (int(pts[i][0] / 2), int(pts[i][1] / 2)), (int(pts[i + 1][0] / 2), int(pts[i + 1][1] / 2)), 1.0, w, cv2.LINE_AA)
     m = cv2.resize(m, (W, H))
     nz = cv2.resize(K.fbm(H // 4, W // 4, seed, 10, 4), (W, H))
@@ -1172,20 +1169,21 @@ class V24(Shot):
         e = eio(u)
         fr = self.bg.copy()
         grow = clamp01(u * 1.4 + 0.2)
-        near, far = np.array([700.0, 1000.0]), np.array([1180.0, 425.0])
+        near, far = np.array([860.0, 1080.0]), np.array([1010.0, 432.0])
         n = 30
         pts = [tuple(near + (far - near) * (i / n) ** 0.8) for i in range(int(2 + n * grow))]
-        fr, core = gash(fr, t, pts, 40, heat=1.0, seed=6806)
+        fr, core = gash(fr, t, pts, 70, heat=1.0, seed=6806)
         fr = self.fog.draw(fr, t, density=0.55, y0=300, y1=700, color=(0.32, 0.33, 0.36), speed=(30, 0))
-        fr, _ = put(fr, self.sp, t, 300, (690, 990), look='sil', rim=dict(col=(1.0, 0.4, 0.25), amt=3.0, dir=(0.3, 1.0)), wind_amp=6,
+        fp = near + (far - near) * 0.22 ** 0.8
+        fr, _ = put(fr, self.sp, t, 260, (fp[0] - 20, fp[1]), look='sil', rim=dict(col=(1.0, 0.4, 0.25), amt=3.0, dir=(0.3, 1.0)), wind_amp=6,
                     shade=None, wrap=0.2)
         pr = prs(27, [8, 9], t)
         for i, (ch, pc) in enumerate(zip('出方', pr)):
             if pc <= 0: continue
-            q = 0.35 + 0.35 * i
+            q = 0.40 + 0.30 * i
             pp = near + (far - near) * q ** 0.8
             sz = 230 * (1 - q * 0.75)
-            L = T.Layer(); T.place(L, ch, pp[0] + 40, pp[1] - sz * 0.15, sz, color=(0.95, 0.18, 0.07), fname='xing', alpha=min(1, pc * 2), sy=0.55)
+            L = T.Layer(); T.place(L, ch, pp[0] + sz * 0.9, pp[1] - sz * 0.1, sz, color=(0.95, 0.18, 0.07), fname='xing', alpha=min(1, pc * 2), sy=0.55)
             fr = T.compose(fr, L, shadow=0.5, glow=0.7, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=10)
         fr = cam(fr, 1.12 - 0.12 * e, 0, 80 - 120 * e)          # 摇臂升：画面下压 + 拉开
@@ -1215,13 +1213,13 @@ class V25(Shot):
         pts = [(960 + (i / 30) ** 1.0 * 0, 1080 - (1080 - 605) * (1 - (1 - i / 30) ** 2)) for i in range(31)]
         fr, core = gash(fr, t, pts, 120, heat=1.0, seed=6906)
         fr = self.fog.draw(fr, t, density=0.5, y0=420, y1=760, color=(0.30, 0.30, 0.33), light=(960, 600), light_r=500, light_color=RED * 0.8)
-        fr, _ = put(fr, self.sp, t, 560, (900, 960), look='sil', rim=dict(col=(1.0, 0.38, 0.22), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
+        fr, _ = put(fr, self.sp, t, 440, (760, 960), look='sil', rim=dict(col=(1.0, 0.38, 0.22), amt=3.2, dir=(0.0, 1.0)), wind_amp=8,
                     shade=None, wrap=0.2)
         pr = prs(27, [10], t, 0.3)[0]
         if pr > 0:
-            fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1000, y=470, size=210, rot=0, font='xing', idx=0, emph=False)],
+            fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1000, y=520, size=190, rot=0, font='xing', idx=0, emph=False)],
                            color='red', embers=140, seed=69, style_kw=dict(shadow=0.4, glow=0.7, glow_color=(1.0, 0.3, 0.08)))
-        Lf = T.Layer(); T.place(Lf, '方', 1250, 820, 220, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.85, sy=0.6, rot=-4)
+        Lf = T.Layer(); T.place(Lf, '方', 1130, 800, 200, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.85, sy=0.6, rot=-4)
         fr = T.compose(fr, Lf, shadow=0.5, glow=0.5, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=8)
         end = clamp01((t - 117.33) / 0.45)

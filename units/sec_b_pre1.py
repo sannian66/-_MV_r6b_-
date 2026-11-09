@@ -339,7 +339,7 @@ class P07(Shot):
     def __init__(self):
         self.sp = spr('S023/look_up_low')
         self.tex = K.tile(1024, 907, 4, 6)
-        T.warm('我不信', 'cao', 200)
+        T.warm('我不信', 'cao', 200); T.warm('不', 'xing', 150)
         import fx2; self.fx2 = fx2
 
     def sky(self, t, rot=0.0, seed_off=0):
@@ -364,7 +364,7 @@ class P07(Shot):
         fr = BK.rain(fr, t, 971, amt=0.42, n=650, angle=-8, speed=2500)
         pr = tp(10, [0, 1, 2], t, 0.18)
         fr = T.scatter_stack(fr, '我不信', pr, places=[dict(ch='我', x=1400, y=330, size=190, rot=-5, font='cao', idx=0, emph=False),
-                                                         dict(ch='不', x=1560, y=540, size=150, rot=6, font='cao', idx=1, emph=True),
+                                                         dict(ch='不', x=1560, y=540, size=150, rot=6, font='xing', idx=1, emph=True),
                                                          dict(ch='信', x=1690, y=720, size=170, rot=-4, font='cao', idx=2, emph=True)],
                              color='white', emph_color=(0.84, 0.10, 0.07), t_local=u, style_kw=dict(shadow=0.75, glow=0.12))
         fr = cam(fr, 1.04 - 0.04 * eio(u), 0, 0, -4 + 4 * eio(u))
@@ -411,7 +411,7 @@ class P09(Shot):
         self.a = spr('S024/fist'); self.b = spr('S024/pommel_thrust')
         self.bg = BK.dark_bg(909, 0.02, 0.06, tint=(1.1, 1.0, 1.0))
         self.seal = T.seal_layer('命', 960, 470, 520, style='yin', rot=-4, seed=9)
-        T.warm('不信', 'cao', 120)
+        T.warm('不信', 'cao', 120); T.warm('不', 'xing', 130)
 
     def render(self, t):
         u = self.u(t)
@@ -440,7 +440,7 @@ class P09(Shot):
             fr = K.sparks(fr, t, 991, (720, 380), n=60, life=0.5, speed=(400, 1200), dirc=(-0.4, -1), spread=1.2, grav=900, area=(80, 80), amt=1.0)
         if self.T_HIT <= t < self.T_HIT + 1 / 30 + 1e-3: fr = fr * 0.4 + 0.75
         pr = tp(10, [7, 8], t, 0.18)
-        fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=300, y=330, size=130, rot=-6, font='cao', idx=0, emph=False),
+        fr = T.scatter_stack(fr, '不信', pr, places=[dict(ch='不', x=300, y=330, size=130, rot=-6, font='xing', idx=0, emph=False),
                                                        dict(ch='信', x=380, y=500, size=150, rot=5, font='cao', idx=1, emph=False)],
                              color='white', t_local=u, style_kw=dict(shadow=0.75, glow=0.1))
         k2 = pulse(t, V(52.84), 0.1) * (t >= V(52.84)) + pulse(t, self.T_HIT, 0.12) * (t >= self.T_HIT)
