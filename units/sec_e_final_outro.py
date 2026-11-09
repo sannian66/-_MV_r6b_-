@@ -119,18 +119,25 @@ class E03(Shot):   # S113 ELS 金色云海快速横移，字悬在云层不同�
         for i, (lum, a) in enumerate(self.cl):
             sp = (0.35 + 0.5 * i) * 900
             ox = sp * (t - self.t0)
-            col = (lum[..., None] * (GOLD * (0.55 + 0.3 * i)) + 0.03)
-            yoff = 300 - 120 * i + 60 * eio(u)
-            M = np.float32([[1, 0, -ox % W], [0, 1, yoff]])
-            R = cv2.warpAffine(col, M, (W, H), borderMode=cv2.BORDER_WRAP); A = cv2.warpAffine(a, M, (W, H))
-            A[:int(max(0, yoff))] = 0
-            fr = fr * (1 - A[..., None]) + R * A[..., None]
+            yoff = 560 - 100 * i + 50 * eio(u)
+            fr = cloud_blit(fr, lum, a, ox, yoff, GOLDW * (0.50 + 0.22 * i), amb=0.06, fade=180)
         return bloom(fr, 0.8, 0.4)
 
     def text(self, fr, t):
         for l, d in zip(self.ls, self.depth):
             fr = l.draw(fr, t, dx=-(t - self.t0) * 900 * (0.35 + 0.5 * d) * 0.35 + 160)
         return fr
+
+
+def cloud_blit(fr, lum, a, ox, yoff, tone, amb=0.03, fade=140):
+    """云海层横移贴图（层宽 2W，取 [ox%W, ox%W+W] 窗口；顶边软过渡，不留硬切线）。"""
+    x0 = int(ox % W)
+    L = lum[:, x0:x0 + W]; A = a[:, x0:x0 + W]
+    M = np.float32([[1, 0, 0], [0, 1, yoff]])
+    L = cv2.warpAffine(L, M, (W, H)); A = cv2.warpAffine(A, M, (W, H))
+    A = A * sstep(yoff, yoff + fade, np.arange(H, dtype=np.float32))[:, None]
+    R = L[..., None] * np.asarray(tone, np.float32) + amb
+    return fr * (1 - A[..., None]) + R * A[..., None]
 
 
 class E04(Shot):   # S114 CU 暗殿金匾「天理昭彰」：随唱逐字亮起；高窗光柱
@@ -239,11 +246,15 @@ class E07(Shot):   # S116 LS 纸帘缝后太上皇巨影 → 环绕揭示：原�
         fr = E.sun_disc(self.sky.copy(), (980, 420), 120, amt=0.9)
         rv = eio((t - 200.95) / 0.5)
         dx = 90 - 170 * eio(u)
-        if rv < 1:
+        if rv < 1:      # 帘后：威压的帝王剪影
             fr0, _ = put(fr.copy(), t, 'S116/emperor', (960 + dx, 1110), h=1040, rim=GOLDW, rim_amt=2.0, grade=G_SIL, look='sil', wind=2)
-        if rv > 0:
-            fr1, info = put(fr.copy(), t, 'S116/emperor', (960 + dx, 1110), h=1040, rim=GOLDW, rim_amt=3.0, grade=G_DAWN, look='paper', wind=2)
-            fr1 = paper_frame(fr1, info['A'], t)
+        if rv > 0:      # 揭示：原来是纸扎（E_r2/paper_effigy：宣纸蒙竹骨），逆光透亮、纸边被晨风掀动
+            back = fr.copy()
+            fr1, info = put(fr.copy(), t, 'E_r2/paper_effigy', (960 + dx, 1110), h=1040, rim=GOLDW, rim_amt=3.2, wind=7,
+                            grade=dict(expo=0.85, sat=0.7, tint=(1.06, 0.98, 0.88), lift=0.0, gamma=1.05))
+            A = info['A'][..., None]
+            fr1 = fr1 + A * back * 0.16 * (0.7 + 0.3 * math.sin(t * 3.1))    # 透光：日光穿纸
+            fr1 = paper_frame(fr1, info['A'], t, amt=0.18)
         fr = fr1 if rv >= 1 else (fr0 if rv <= 0 else fr0 * (1 - rv) + fr1 * rv)
         fr = fx2.god_rays(fr, (980, 420), strength=0.45, length=0.8, t=t)
         # 前景纸帘从两侧掠过（环绕视差）
@@ -260,14 +271,31 @@ class E07(Shot):   # S116 LS 纸帘缝后太上皇巨影 → 环绕揭示：原�
     def text(self, fr, t): return self.l.draw(fr, t)
 
 
-def paper_frame(fr, A, t, seed=0):
-    """纸糊揭示：剪影内叠竹骨架暗格 + 纸缝。"""
-    yy, xx = E.grid()
-    g = (np.abs(np.sin(xx / 61.0 + 0.3)) < 0.035) | (np.abs(np.sin(yy / 47.0)) < 0.03)
-    d = (np.abs(np.sin((xx + yy) / 140.0)) < 0.02)
-    m = (g | d).astype(np.float32)
-    m = cv2.GaussianBlur(m, (0, 0), 1.2) * A
-    return fr * (1 - 0.55 * m[..., None])
+_PF = {}
+def paper_frame(fr, A, t, seed=0, amt=0.55):
+    """纸扎质感：皱纸纤维（明暗 ±）+ 不规则竹骨（少量歪斜竹篾，透光处亮、骨处暗）+ 糊纸接缝。只在精灵 alpha 内。"""
+    if seed not in _PF:
+        r = np.random.default_rng(900 + seed)
+        yy, xx = E.grid()
+        m = np.zeros((H, W), np.float32)
+        for k in range(6):                                  # 竖篾：微弯、粗细不一
+            x0 = 300 + k * 260 + r.uniform(-60, 60); a = r.uniform(-0.08, 0.08); w = r.uniform(2.5, 6)
+            m = np.maximum(m, np.exp(-((xx - (x0 + a * (yy - 540) + 14 * np.sin(yy / r.uniform(90, 160)))) / w) ** 2))
+        for k in range(5):                                  # 横篾
+            y0 = 200 + k * 180 + r.uniform(-40, 40); a = r.uniform(-0.12, 0.12); w = r.uniform(2.5, 5)
+            m = np.maximum(m, np.exp(-((yy - (y0 + a * (xx - 960) + 10 * np.sin(xx / r.uniform(120, 220)))) / w) ** 2))
+        crumple = K.fbm(H // 2, W // 2, 910 + seed, base=26, octaves=5)
+        crumple = cv2.resize(crumple, (W, H))
+        fib = cv2.resize(K.fbm(H // 2, W // 2, 920 + seed, base=180, octaves=2), (W, H))
+        seam = np.exp(-((np.sin((xx * 0.8 + yy * 0.6) / 210.0)) / 0.025) ** 2) * 0.5   # 糊纸接缝（斜向）
+        _PF[seed] = (cv2.GaussianBlur(m, (0, 0), 1.0), crumple, fib, seam)
+    m, cr, fib, seam = _PF[seed]
+    tex = 0.86 + 0.22 * cr + 0.08 * (fib - 0.5)
+    k = A[..., None]
+    out = fr * (1 - k) + fr * k * tex[..., None]
+    out = out * (1 - (amt * m + 0.25 * seam * amt)[..., None] * k)
+    halo = cv2.GaussianBlur(m, (0, 0), 6) - m * 0.5                     # 骨两侧纸被绷紧 → 微亮
+    return out + np.clip(halo, 0, 1)[..., None] * k * np.array([1.0, 0.85, 0.6], np.float32) * 0.08 * (amt / 0.55)
 
 
 class E08(Shot):   # S117 CU 纸糊巨脸自中心烧穿，背后空无一物（白金虚空）
@@ -277,21 +305,21 @@ class E08(Shot):   # S117 CU 纸糊巨脸自中心烧穿，背后空无一物（
         self.nz2 = cv2.resize(r.random((H // 6, W // 6)).astype(np.float32), (W, H), interpolation=cv2.INTER_CUBIC)
         self.void = E.dawn_sky(118, horizon=0.4, top=(0.75, 0.62, 0.42), mid=(1.0, 0.86, 0.62), hor=(1.0, 0.95, 0.85), cloud=0.0)
         self.l = Lyr(row('伪装', cts(50, [6, 7]), 960, 860, size=150, red='伪装', track=0.15), CT(51, 0) - 0.12, seed=50)
+        self.bg = E.dawn_sky(119, horizon=0.8, mid=(0.5, 0.36, 0.2), cloud=0.0)
 
     def render(self, t):
         u = self.u(t)
-        bg = E.dawn_sky(119, horizon=0.8, mid=(0.5, 0.36, 0.2), cloud=0.0) if not hasattr(self, 'bg') else self.bg
-        self.bg = bg
-        fr, info = put(bg.copy(), t, 'S117/emperor_face', (960, 1190), h=1250 * (1 + 0.08 * u), rim=GOLDW, rim_amt=2.4, look='paper', wind=1)
-        fr = paper_frame(fr, info['A'], t)
+        fr, info = put(self.bg.copy(), t, 'S117/emperor_face', (960, 1190), h=1250 * (1 + 0.08 * u), rim=GOLDW, rim_amt=2.4, wind=1,
+                       grade=dict(expo=0.8, sat=0.45, tint=(1.08, 1.0, 0.86), lift=0.03, gamma=1.08))
+        fr = paper_frame(fr, info["A"], t, seed=1, amt=0.28)
         tb = CT(50, 6) - 0.05
-        prog = c01((t - tb) / 1.1)
+        prog = c01((t - tb) / 1.3)
         if prog > 0:
             yy, xx = E.grid()
             c = (960, 470)
             d = np.hypot(xx - c[0], (yy - c[1]) * 1.15) / 900
             field = d + (self.nz - 0.5) * 0.35 + (self.nz2 - 0.5) * 0.08
-            R = eout(prog, 2) * 1.25
+            R = eout(prog, 2) * 0.6
             keep = np.clip((field - R) / 0.015, 0, 1)
             ember = np.exp(-((field - R) / 0.02) ** 2)
             char = np.exp(-np.maximum(field - R, 0) / 0.05) * (field > R)
@@ -367,8 +395,7 @@ class E10(Shot):   # S119 碎纸慢放扑向镜头，日前剪影；字写在飞
         return bloom(fr, 0.8, 0.5)
 
     def text(self, fr, t):
-        z = 1 + 0.25 * self.u(t)
-        return self.l.draw(fr, t, dx=0, dy=0)
+        return self.l.draw(fr, t)
 
 
 class E11(Shot):   # S120a 低机位 MS：刀插大地，尘环冲击；巨字「定」
@@ -402,16 +429,21 @@ class E11(Shot):   # S120a 低机位 MS：刀插大地，尘环冲击；巨字�
     def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
 
 
-class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印以刀为中心盖下（摇臂升）
+class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印以刀为中心盖下（摇臂升）；人+插地刀=真俯视精灵 E_r2/top_down，晨光拉出长影
+    KEY = 'E_r2/top_down'
+
     def __init__(self):
         n = K.fbm(H, W, 1210, base=6, octaves=6)
         cr = K.fbm(H, W, 1211, base=22, octaves=3)
         crack = np.clip(1 - np.abs(cr - 0.5) * 40, 0, 1)
-        g = 0.10 + 0.16 * n - crack * 0.06
+        pb = K.fbm(H // 2, W // 2, 1212, base=220, octaves=2)
+        peb = cv2.resize(np.clip((pb - 0.6) * 5, 0, 1), (W, H))
+        g = 0.10 + 0.16 * n - crack * 0.06 + peb * 0.05
         self.ground = (g[..., None] * np.array([1.0, 0.80, 0.58], np.float32)).astype(np.float32)
         self.face = PR.seal_face('鬼屠', 700, style='bai', wear=0.25, seed=12)
         self.cap = Lyr(row('自己定规章', [CT(51, 5), CT(51, 6), CT(51, 7), CT(51, 8), CT(51, 9)], 960, 900, size=62, red='自己'),
                        CT(52, 0) - 0.15, seed=90)
+        self.SW = (0.66, 0.79)       # 插地刀（土堆中心）在精灵包围盒里的相对位置
 
     def render(self, t):
         u = self.u(t)
@@ -419,16 +451,23 @@ class E12(Shot):   # S120b ELS 正俯拍：大地即印面，「鬼屠」朱印�
         yy, xx = E.grid()
         fr = fr * (0.55 + 0.6 * np.exp(-((xx - 1300) ** 2 + (yy - 200) ** 2) / (2 * 700 ** 2)))[..., None]   # 晨光斜照
         p = (t - (CT(51, 9) - 0.18)) / 0.7
-        if p > 0: fr = PR.stamp_imprint(fr, self.face, 960, 540, 700, min(1, p), angle=-4)
-        # 刀与人（俯视极小）：人影 + 拉长的晨影
-        cv2.line(fr, (960, 540), (760, 690), (0.02, 0.02, 0.02), 14, cv2.LINE_AA)
-        cv2.circle(fr, (960, 540), 13, (0.03, 0.025, 0.02), -1, cv2.LINE_AA)
-        cv2.line(fr, (948, 536), (975, 548), (0.9, 0.85, 0.75), 2, cv2.LINE_AA)
+        c = (960, 560)
+        if p > 0: fr = PR.stamp_imprint(fr, self.face, c[0], c[1], 700, min(1, p), angle=-4)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, self.KEY, c, h=380, anc=self.SW, rim=GOLDW, rim_amt=2.0, rim_dir=(0.7, -0.7),
+                      grade=G_DAWN, wind=5)
+        A = info['A']
+        Sh = np.zeros_like(A)                                              # 晨光自右上 → 长影拖向左下（多层位移叠出拉长感）
+        for k in range(1, 7):
+            M = np.float32([[1, 0, -40 * k], [0, 1, 30 * k]]); Sh = np.maximum(Sh, cv2.warpAffine(A, M, (W, H)) * (1 - 0.08 * k))
+        Sh = cv2.GaussianBlur(Sh, (0, 0), 7)
+        fr = fr * (1 - 0.65 * Sh[..., None])
+        fr = fr * (1 - A[..., None]) + z * A[..., None]
         if p > 0.3:
             q = (p - 0.3) / 0.7
             r = 380 + 600 * eout(q)
-            ring = np.exp(-((np.hypot(xx - 960, yy - 540) - r) / 40) ** 2) * (1 - q)
+            ring = np.exp(-((np.hypot(xx - c[0], yy - c[1]) - r) / 40) ** 2) * (1 - q)
             fr = fr + ring[..., None] * np.array([0.8, 0.5, 0.3], np.float32) * 0.6
+            fr = E.dust_motes(fr, t, 1213, n=60, amt=0.5 * (1 - q), drift=(40, 30), col=(0.9, 0.7, 0.5), size=(2, 5))
         return fr
 
     def text(self, fr, t): return self.cap.draw(fr, t)
@@ -476,7 +515,6 @@ class E14(Shot):   # S122 LS 他逆光朝镜头走来，灰烬与焦纸在晨风
         fr = fx2.god_rays(fr, (960, 300), strength=0.7, length=1.0, t=t)
         bob = 6 * abs(math.sin(t * 5.5))
         fr, info = put(fr, t, 'S122/walk_toward', (960, 1000 - bob), h=740, rim=GOLDW, rim_amt=3.0, wind=10)
-        sh = info['A']   # 长影朝镜头
         fr = self.sh.draw(fr, t, t0=self.t0 - 1.5, origin=(960, 300), spread=(1200, 500), to_camera=0.4, gravity=40, wind=(-40, 0), burn=0.6)
         fr = RS.fx_embers(fr, t, 1223, amt=0.7, n=60)
         return bloom(fr, 0.8, 0.45)
@@ -494,7 +532,9 @@ class E14T(E14):
     def text(self, fr, t): return lyr_gu().draw(fr, t)
 
 
-class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（他自己画的线）
+class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（他自己画的线）；刀尖由精灵 alpha 标定，火线头 = 刀尖
+    KEY = 'S122/walk_toward|crop=0.26,0.62,0.40,0.92'
+
     def __init__(self):
         n = K.fbm(H // 2, W // 2, 1230, base=12, octaves=6)
         cr = K.fbm(H // 2, W // 2, 1231, base=30, octaves=3)
@@ -502,21 +542,37 @@ class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（�
         yy = np.linspace(0, 1, H // 2, dtype=np.float32)[:, None]
         g = g * (0.5 + 0.9 * yy)
         self.ground = cv2.resize((g[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32), (W, H))
+        pb = K.fbm(H // 2, W // 2, 1232, base=200, octaves=2)                       # 碎石/焦土颗粒高光
+        self.peb = cv2.resize(np.clip((pb - 0.62) * 6, 0, 1), (W, H))
+        _, info = put(np.zeros((H, W, 3), np.float32), 0.0, self.KEY, (960, 540), h=760, anc=(0.06, 0.96), rot=62, wind=0)
+        ys, xs = np.where(info['A'] > 0.4)
+        k = np.argmax(ys)                                                          # 最低点 = 刀尖
+        self.off = (float(xs[k]) - 960, float(ys[k]) - 540)
+
+    @staticmethod
+    def ly(x): return 640 + (x - 960) * 0.03
 
     def render(self, t):
         u = self.u(t)
         fr = self.ground.copy()
         yy, xx = E.grid()
-        fr = fr * (0.7 + 0.6 * np.exp(-((yy - 150) / 500) ** 2))[..., None]
         x = -100 + 1900 * eio(0.15 + u * 0.85)
-        ly = 640 + (xx - x) * 0.04
-        on = (xx < x)
-        line = np.exp(-((yy - ly) / 4) ** 2) * on
-        glow = np.exp(-((yy - ly) / 26) ** 2) * on * np.exp(-np.maximum(x - xx, 0) / 900)
-        fr = fr * (1 - 0.6 * np.exp(-((yy - ly) / 7) ** 2) * on)[..., None]
-        fr = fr + (line * 1.5)[..., None] * np.array([1.0, 0.45, 0.15], np.float32) + glow[..., None] * np.array([1.0, 0.35, 0.1], np.float32) * 0.9
-        fr, info = put(fr, t, 'S122/walk_toward|crop=0.26,0.62,0.40,0.92', (x + 20, 645), h=760, anc=(0.06, 0.96), rot=62, rim=GOLDW, rim_amt=2.5, wind=0)
-        fr = RS.fx_sparks(fr, t, t - 0.3, (x, 642), int(t * 30) % 50 + 1230, n=40, spd=700, dirv=(-1, -0.6), spread=0.8, grav=1200, amt=1.2)
+        tip = (x, self.ly(x))
+        lit = np.exp(-((xx - x) ** 2 + ((yy - tip[1]) * 2.2) ** 2) / (2 * 260 ** 2))       # 火线照亮刀尖周围焦土
+        fr = fr * (0.7 + 0.6 * np.exp(-((yy - 150) / 500) ** 2))[..., None] + (self.peb * lit)[..., None] * np.array([1.0, 0.55, 0.25], np.float32) * 0.22
+        fr = fr + lit[..., None] * np.array([0.35, 0.12, 0.04], np.float32)
+        ly = self.ly(xx)
+        on = 1 - sstep(x - 40, x, xx)
+        cool = np.exp(-np.maximum(x - xx, 0) / 700)                                     # 远处冷却成暗红
+        line = np.exp(-((yy - ly) / 3.5) ** 2) * on
+        glow = np.exp(-((yy - ly) / 24) ** 2) * on * cool
+        fr = fr * (1 - 0.6 * np.exp(-((yy - ly) / 8) ** 2) * on)[..., None]
+        hot = np.array([1.0, 0.85, 0.5], np.float32) * cool[..., None] + np.array([0.8, 0.12, 0.04], np.float32) * (1 - cool[..., None])
+        fr = fr + (line * 1.6)[..., None] * hot + glow[..., None] * np.array([1.0, 0.35, 0.1], np.float32) * 0.9
+        fr, info = put(fr, t, self.KEY, (tip[0] - self.off[0], tip[1] - self.off[1]), h=760, anc=(0.06, 0.96), rot=62,
+                       rim=(1.0, 0.6, 0.3), rim_amt=2.5, rim_dir=(-0.6, 0.8), wind=0)
+        fr = RS.fx_sparks(fr, t, t - 0.3, tip, int(t * 30) % 50 + 1230, n=50, spd=700, dirv=(-1, -0.6), spread=0.8, grav=1200, amt=1.2)
+        fr = E.dust_motes(fr, t, 1233, n=50, amt=0.5, drift=(-30, -60), col=(1.0, 0.55, 0.25), size=(1, 3))
         return bloom(fr, 0.75, 0.5)
 
     def text(self, fr, t): return lyr_gu().draw(fr, t)
@@ -681,32 +737,50 @@ class E21(Shot):   # S127 CU 仰望侧脸，晨光勾金边（呼应片头月下
     def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
 
 
-class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他自己成了秤；「来量」刻在刀上
+class E22(Shot):   # S128 LS 横刀于胸，太阳恰落在刀身正中——他自己成了秤；「我来量」刻在刀身上（逐字烧亮）
+    GR = dict(expo=0.55, sat=0.55, tint=(1.04, 0.97, 0.9), lift=0.0, gamma=1.2)
+
     def __init__(self):
-        self.sky = E.dawn_sky(1280, horizon=0.86, mid=(0.42, 0.30, 0.16), cloud=0.6, sun=(960, 360))
+        self.sky = E.dawn_sky(1280, horizon=0.86, mid=(0.42, 0.30, 0.16), cloud=0.6, sun=None)
         self.rd, self.ra = E.ridges(n=2, base=0.82, step=0.05, seed=128, amp=0.05, far=0.35, near=0.03)
+        self.cal = None
+
+    def _calib(self, t, dy):
+        """刀身行：精灵 alpha 在 y∈[200,620] 内横向最宽的一行；刀身水平范围取该行 alpha>0.5 的首末列。"""
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S128/blade_level', (960, 1060 + dy), h=900, grade=self.GR, wind=0)
+        A = info['A'] > 0.5
+        wid = A[200:620].sum(1); r = 200 + int(np.argmax(wid))
+        xs = np.where(A[r])[0]
+        self.cal = dict(y=r - dy, x0=int(xs[0]), x1=int(xs[-1]))
+        ch = '我来量'; ts = [CT(54, 3), CT(54, 4), CT(54, 5)]
+        cx = [960 - 130, 960, 960 + 130]   # 双手之间的刀身段
+        self.eng = Lyr([(c, cx[i], self.cal['y'] + 1, 30, 'serif_b', GOLD_T if i < 2 else REDT, ts[i]) for i, c in enumerate(ch)],
+                       CT(55, 0) - 0.1, seed=170, glow=1.1, shadow=0.0, direction=(1.0, 0.0))
+        self.big = Lyr(row('我来量', ts, 1560, 560, size=74, vertical=True, red='量', track=0.45), CT(55, 0) - 0.1, seed=171)
 
     def render(self, t):
-        u = self.u(t)
+        u = self.u(t); dy = -20 * u
+        if self.cal is None: self._calib(self.t0, 0.0)
+        by = self.cal['y'] + dy
         fr = self.sky.copy()
-        z = np.zeros((H, W, 3), np.float32)
-        z, info = put(z, t, 'S128/blade_level', (960, 1060 - 20 * u), h=900, rim=GOLDW, rim_amt=3.0, grade=dict(expo=0.55, sat=0.55, tint=(1.04, 0.97, 0.9), lift=0.0, gamma=1.2), wind=6)
-        bx0, by0 = info['box'][0]; bx1, by1 = info['box'][1]
-        self.blade_y = by0 + 0.205 * (by1 - by0)
-        sun = (960, self.blade_y - 4)
-        fr = E.sun_disc(fr, sun, 120, amt=1.15)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S128/blade_level', (960, 1060 + dy), h=900, rim=GOLDW, rim_amt=3.0, grade=self.GR, wind=6)
+        sun = (960, by)                                                  # 日心 = 刀身中点
+        fr = E.sun_disc(fr, sun, 130, amt=1.15)
         fr = fx2.god_rays(fr, sun, strength=1.0, length=1.0, t=t, occluder=info['A'])
         fr = E.place_layer(fr, self.rd, self.ra)
         a = info['A'][..., None]
         fr = fr * (1 - a) + z * a
+        # 日光沿刃线溢出（刀身受光的一条金线）
+        yy = np.arange(H, dtype=np.float32)[:, None]; xx = np.arange(W, dtype=np.float32)[None, :]
+        span = sstep(self.cal['x0'] + 20, self.cal['x0'] + 120, xx) * (1 - sstep(self.cal['x1'] - 120, self.cal['x1'] - 10, xx))
+        edge = np.exp(-((yy - (by - 9)) / 1.6) ** 2) * span * (0.5 + 0.5 * np.exp(-((xx - 960) / 260) ** 2))
+        fr = fr + edge[..., None] * GOLDW * 1.4
+        self.by = by
         return bloom(fr, 0.8, 0.5)
 
     def text(self, fr, t):
-        y = getattr(self, 'blade_y', 300)
-        l = Lyr([('来', 760, y + 2, 46, 'serif_b', GOLD_T, CT(54, 4)), ('量', 1160, y + 2, 46, 'serif_b', REDT, CT(54, 5))], CT(55, 0) - 0.1, seed=170, glow=0.8, shadow=0.3)
-        fr = l.draw(fr, t)
-        big = Lyr(row('我来量', [CT(54, 3) - 5, CT(54, 4), CT(54, 5)], 960, 880, size=66, red='量', track=0.3), CT(55, 0) - 0.1, seed=171)
-        return big.draw(fr, t)
+        fr = self.eng.draw(fr, t, dy=getattr(self, 'by', self.cal['y']) - self.cal['y'] if self.cal else 0)
+        return self.big.draw(fr, t)
 
 
 class E23(Shot):   # S129 MCU 后撤蓄力，速度坡度推近（吸气）
@@ -849,11 +923,7 @@ class Title(Shot):
         fr = E.sun_disc(self.sky.copy(), (960, 690), 110, amt=1.1)
         for i, (lum, a) in enumerate(self.cl):
             ox = (t - 224.0) * (40 + 60 * i)
-            col = lum[..., None] * (GOLD * (0.5 + 0.3 * i)) + 0.03
-            M = np.float32([[1, 0, -ox % W], [0, 1, 420 - 100 * i]])
-            R = cv2.warpAffine(col, M, (W, H), borderMode=cv2.BORDER_WRAP); A = cv2.warpAffine(a, M, (W, H))
-            A[:420 - 100 * i] = 0
-            fr = fr * (1 - A[..., None]) + R * A[..., None]
+            fr = cloud_blit(fr, lum, a, ox, 600 - 90 * i, GOLDW * (0.45 + 0.22 * i), amb=0.05, fade=180)
         return fr
 
 
@@ -963,10 +1033,7 @@ class E33(Credits):   # S135b 高空云海，鸟群掠过朝阳；署名③：AI
         fr = fx2.god_rays(fr, (700, 470), strength=0.5, length=0.9, t=t)
         for i, (lum, a) in enumerate(self.cl):
             ox = (t - self.t0) * (50 + 80 * i)
-            col = lum[..., None] * (GOLD * (0.55 + 0.3 * i)) + 0.03
-            M = np.float32([[1, 0, -ox % W], [0, 1, 520 - 110 * i]])
-            R = cv2.warpAffine(col, M, (W, H), borderMode=cv2.BORDER_WRAP); A = cv2.warpAffine(a, M, (W, H)); A[:520 - 110 * i] = 0
-            fr = fr * (1 - A[..., None]) + R * A[..., None]
+            fr = cloud_blit(fr, lum, a, ox, 520 - 110 * i, GOLD * (0.42 + 0.22 * i))
         for (x0, y0, s, ph) in self.birds:
             x = x0 + 520 * (t - self.t0) * s; y = y0 - 30 * (t - self.t0) + 6 * math.sin(t * 3 + ph)
             fl = math.sin(t * 11 * s + ph); w = 16 * s

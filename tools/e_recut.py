@@ -1,11 +1,11 @@
 """E 组抠图（tools/recut_flat.py 的变体，不改原文件）：发丝缝隙不再被闭运算填成实心灰；脚下地面阴影去掉。
-  python3 tools/e_recut.py raw.png out_cut.png [thr=22] [deep=41] [floor=1]"""
+  python3 tools/e_recut.py raw.png out_cut.png [thr=22] [deep=41] [floor=1] [multi=0]（multi>0：保留面积≥该比例的所有连通域）"""
 import sys, numpy as np, cv2
 from PIL import Image
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
 from cutout import fit_bg
 
-def recut(raw, out, thr=22.0, deep=41, floor=1):
+def recut(raw, out, thr=22.0, deep=41, floor=1, multi=0.0):
     im = np.asarray(Image.open(raw).convert('RGB')).astype(np.float32)
     h, w = im.shape[:2]
     border = np.zeros((h, w), bool); b = int(0.04 * w)
@@ -20,6 +20,9 @@ def recut(raw, out, thr=22.0, deep=41, floor=1):
     n, lab, st, _ = cv2.connectedComponentsWithStats(hard, 8)
     keep = 1 + np.argmax(st[1:, cv2.CC_STAT_AREA])
     m = (lab == keep).astype(np.uint8)
+    if multi > 0:   # 多主体（人 + 插地刀）：保留面积 ≥ multi×画幅 的所有连通域
+        for i in range(1, n):
+            if st[i, cv2.CC_STAT_AREA] >= multi * h * w: m[lab == i] = 1
     # 小碎块（发梢）只要离主体近也保留
     big = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (61, 61)))
     m = np.maximum(m, hard * big)
@@ -41,4 +44,5 @@ def recut(raw, out, thr=22.0, deep=41, floor=1):
 
 if __name__ == '__main__':
     a = sys.argv
-    recut(a[1], a[2], float(a[3]) if len(a) > 3 else 22.0, int(a[4]) if len(a) > 4 else 41, int(a[5]) if len(a) > 5 else 1)
+    recut(a[1], a[2], float(a[3]) if len(a) > 3 else 22.0, int(a[4]) if len(a) > 4 else 41, int(a[5]) if len(a) > 5 else 1,
+          float(a[6]) if len(a) > 6 else 0.0)
