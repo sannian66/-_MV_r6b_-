@@ -149,9 +149,9 @@
     {
      "n": 1,
      "task_id": "897ea9cb-63f8-4027-afda-fdd019197966",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c07_chin_try1_0.png"
     }
    ]
   },
@@ -160,9 +160,9 @@
     {
      "n": 1,
      "task_id": "1e9e2e9d-ae98-4dba-9ee4-474a4027807b",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c08_eyes_try1_0.png"
     }
    ]
   },
@@ -171,9 +171,9 @@
     {
      "n": 1,
      "task_id": "6f7c4ab5-92a9-4b06-b512-fe87380155c3",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c14_ots_try1_0.png"
     }
    ]
   },
@@ -182,9 +182,9 @@
     {
      "n": 1,
      "task_id": "a1c28f02-166d-4536-b2db-dc4e47c93c9b",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c28_face_try1_0.png"
     }
    ]
   },
@@ -193,9 +193,9 @@
     {
      "n": 1,
      "task_id": "1731eb0e-b167-4c3d-b423-4ec3dfc6a8ec",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c38_grip_try1_0.png"
     }
    ]
   },
@@ -204,9 +204,9 @@
     {
      "n": 1,
      "task_id": "86c2c256-cfa1-4b08-bb3f-0732ec60fd38",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c22_wall_try1_0.png"
     }
    ]
   },
@@ -215,9 +215,9 @@
     {
      "n": 1,
      "task_id": "c476f9d6-0d7e-453d-9b53-7bbb8ec40646",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c37_plaque_try1_0.png"
     }
    ]
   },
@@ -226,9 +226,9 @@
     {
      "n": 1,
      "task_id": "cb8e95cc-3e22-42fb-8dca-2e308a2346af",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c10_tablets_try1_0.png"
     }
    ]
   },
@@ -237,9 +237,9 @@
     {
      "n": 1,
      "task_id": "780476a2-192b-4210-8eb9-821a9412b440",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c23_bronze_try1_0.png"
     }
    ]
   },
@@ -248,9 +248,9 @@
     {
      "n": 1,
      "task_id": "de51d1de-32c0-4ba6-ab7c-443245348fdb",
-     "status": "running",
+     "status": "done",
      "pts": 3,
-     "file": null
+     "file": "/workspace/work/c_cands5/c16_drip_try1_0.png"
     }
    ]
   }

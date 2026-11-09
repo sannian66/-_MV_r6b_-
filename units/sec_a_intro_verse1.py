@@ -1098,10 +1098,10 @@ class V14(Shot):
         fr, info = A.place(fr, t, S('S015/hand_draw'), (960 - 50 * u, 560), w=2350 * (1 + 0.06 * u), anc=(0.5, 0.5), rim=COLD, rim_amt=2.0,
                            grade=dict(expo=0.88, sat=0.55), wind=4)
         P0 = info['to_scr']((0.335, 0.585)); P1 = info['to_scr']((0.585, 0.825))                    # 刀身（护手 → 刀尖方向）
-        txt = '每一次拔刀都是我的'
-        prog = cprog(5, list(range(9)), t, 0.25)
+        txt = '每一次拔刀都是'                                           # 第五棒：「我的」交给 V15 碑刻（34.68 / 35.07）
+        prog = cprog(5, list(range(7)), t, 0.25)
         if prog[0] > 0:
-            fr = T.carved_on_blade(fr, txt, [P0, P1], height=66, p=min(1.0, sum(prog) / 9 + 0.02), fname='kai',
+            fr = T.carved_on_blade(fr, txt, [P0, P1], height=66, p=min(1.0, sum(prog) / 7 + 0.02), fname='kai',
                                    finish='steel', taper=(1.0, 0.9), fill=True)
         a = t - CT(5, 4)
         if a >= 0:
@@ -1110,50 +1110,71 @@ class V14(Shot):
         return fr, (4 if 0 <= a < 0.1 else 0)
 
 
-# V15 34.44–36.27 过肩大前景 + 城门石碑（第四棒：去月）：右 1/3 鬼屠肩背黑剪影，越肩看左侧雨中巨碑；「主张」逐笔凿进碑面
-#     （阴刻：凹槽暗 + 下缘反光 + 石屑），推镜；入：V14 刀身刻字 ↔ 碑面刻字 match_cut
+# V15 34.44–36.27 MS 刀刻石碑（第五棒重做，评审 P0：缺「我的」、碑线框露边、描边剪影人物）：
+#     左 60% 雨中巨碑（粗糙不规则碑边、无线框、雨水流痕），右侧鬼屠侧身 MCU（carve_mcu 精灵）以刀尖刻字，刀尖随当前字移动；
+#     右列「我的」(34.68 / 35.07) 先刻、左列「主张」(35.46 / 35.82) 大字后刻（竖排右起），每字迸石屑；左上体积光束穿雨照碑面
 class V15(Shot):
+    GL = [('我', 7, 1010, 360, 170), ('的', 8, 1010, 560, 170), ('主', 9, 690, 400, 270), ('张', 10, 690, 700, 270)]
     def __init__(self):
-        T.warm('主张', 'kai', 250)
+        T.warm('我的', 'kai', 170); T.warm('主张', 'kai', 270)
         self.tex = cv2.resize(A.tex(151, 512, 8, 6), (W, H)); self.tex2 = cv2.resize(A.tex(152, 512, 40, 3), (W, H))
+        q = 2; edge = cv2.resize(A.tex(153, 256, 6, 4), (W // q, H // q)) * 60
+        yy, xx = np.mgrid[0:H // q, 0:W // q].astype(np.float32)
+        x0, x1, y0 = 380, 1200, 140                                           # 碑：不规则粗糙边（不再是直线框）
+        d = np.minimum.reduce([xx * q - x0 + edge, x1 - xx * q + edge * 0.6, yy * q - y0 - 40 * np.sin(xx * q / 300) + edge * 0.8])
+        self.st = cv2.resize(np.clip(d / 4, 0, 1), (W, H))
+        chip = np.clip((cv2.resize(A.tex(154, 256, 20, 3), (W, H)) - 0.66) * 6, 0, 1) * np.clip(1 - np.abs(cv2.resize(d, (W, H)) - 20) / 30, 0, 1)
+        self.chip = chip
+    def tip(self, t):
+        pts = [(gx + 0, gy) for (_, k, gx, gy, _) in self.GL]
+        ts = [CT(5, k) for (_, k, _, _, _) in self.GL]
+        if t <= ts[0]: return pts[0]
+        for i in range(len(ts) - 1):
+            if t < ts[i + 1]:
+                q = eio(clamp01((t - ts[i]) / (ts[i + 1] - ts[i])))
+                return (pts[i][0] + (pts[i + 1][0] - pts[i][0]) * q, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * q)
+        return pts[-1]
     def render(self, t):
         u = self.u(t)
-        fr = night((0.01, 0.012, 0.022), (0.04, 0.045, 0.06))
-        fr = A.glow(fr, (300, 150), 700, 0.3, (0.5, 0.58, 0.78))
-        fr = RAIN.draw(fr, t, 0.7, angle=8, light=(300, 150), layers=(0,))
+        fr = night((0.012, 0.014, 0.024), (0.04, 0.045, 0.06))
+        fr = A.glow(fr, (200, 60), 800, 0.35, (0.55, 0.62, 0.82))
+        fr = RAIN.draw(fr, t, 0.7, angle=8, light=(200, 60), layers=(0,))
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-        x0, x1, y0 = 330, 1210, 170
-        st = ((xx > x0) & (xx < x1) & (yy > y0)).astype(np.float32); st = cv2.GaussianBlur(st, (0, 0), 1.5)
-        lit = np.clip(1.15 - (xx - x0) / 1400 - (yy - y0) / 1800, 0.25, 1)
+        st = self.st[..., None]
+        lit = np.clip(1.2 - (xx - 380) / 1300 - (yy - 140) / 1600, 0.25, 1.1)
         stone = ((0.6 + 0.45 * self.tex) * (0.85 + 0.25 * self.tex2) * lit)[..., None] * np.array([0.13, 0.135, 0.15], np.float32)
-        wet = np.clip(np.sin(xx / 23 + self.tex * 6) * 0.5 + 0.5, 0, 1) ** 8 * (yy > y0)          # 雨水竖流痕
-        stone = stone + (wet * 0.06)[..., None] * np.array([0.6, 0.7, 0.9], np.float32)
-        fr = fr * (1 - st[..., None]) + stone * st[..., None]
-        ed = np.exp(-((xx - x0) / 3) ** 2) * (yy > y0) + np.exp(-((yy - y0) / 3) ** 2) * (xx > x0) * (xx < x1)
-        fr = fr + ed[..., None] * np.array([0.5, 0.58, 0.8], np.float32) * 0.6
-        G = np.zeros((H, W), np.float32)
-        for i, (c, k) in enumerate((('主', 9), ('张', 10))):
-            p = clamp01((t - (CT(5, k) - 0.25)) / 0.5)
-            if p > 0:
-                g = T.ink_bleed_glyph(c, 'kai', 300, p, seed=20 + i, bleed=0.4)
-                h_, w_ = g.shape; cx, cy = 770, 420 + 330 * i
-                ys, xs = int(cy - h_ / 2), int(cx - w_ / 2)
-                G[max(0, ys):ys + h_, max(0, xs):xs + w_] = np.maximum(G[max(0, ys):ys + h_, max(0, xs):xs + w_], g[max(0, -ys):, max(0, -xs):][:H - max(0, ys), :W - max(0, xs)])
+        wet = np.clip(np.sin(xx / 23 + self.tex * 6) * 0.5 + 0.5, 0, 1) ** 8
+        stone = stone + (wet * 0.07)[..., None] * np.array([0.6, 0.7, 0.9], np.float32) - self.chip[..., None] * 0.05
+        fr = fr * (1 - st) + stone * st
+        fr = fx2.god_rays(fr, (200, 40), strength=0.35, length=1.0, color=(0.65, 0.72, 0.9), t=t, src_r=180)   # 体积光束穿雨
+        G = np.zeros((H, W), np.float32); cur = None
+        for (c, k, gx, gy, sz) in self.GL:
+            p = clamp01((t - (CT(5, k) - 0.10)) / 0.40)
+            if p <= 0: continue
+            if p < 1: cur = (gx, gy)
+            g = T.ink_bleed_glyph(c, 'kai', sz, p, seed=20 + k, bleed=0.3)
+            h_, w_ = g.shape; ys, xs = int(gy - h_ / 2), int(gx - w_ / 2)
+            G[ys:ys + h_, xs:xs + w_] = np.maximum(G[ys:ys + h_, xs:xs + w_], g)
         if G.max() > 0:
-            Gs = cv2.GaussianBlur(G, (0, 0), 1.2)
-            sh = np.clip(Gs - cv2.warpAffine(Gs, np.float32([[1, 0, 5], [0, 1, 6]]), (W, H)), 0, 1)   # 凹槽上缘阴影
-            hl = np.clip(Gs - cv2.warpAffine(Gs, np.float32([[1, 0, -4], [0, 1, -5]]), (W, H)), 0, 1)  # 下缘反光
+            Gs = cv2.GaussianBlur(G, (0, 0), 1.2) * self.st
+            sh = np.clip(Gs - cv2.warpAffine(Gs, np.float32([[1, 0, 5], [0, 1, 6]]), (W, H)), 0, 1)
+            hl = np.clip(Gs - cv2.warpAffine(Gs, np.float32([[1, 0, -4], [0, 1, -5]]), (W, H)), 0, 1)
             fr = fr * (1 - 0.85 * Gs[..., None]) + Gs[..., None] * np.array([0.012, 0.012, 0.016], np.float32)
-            fr = fr * (1 - 0.6 * sh[..., None]) + hl[..., None] * np.array([0.55, 0.62, 0.85], np.float32) * 0.9
-            for i, k in enumerate((9, 10)):
+            fr = fr * (1 - 0.6 * sh[..., None]) + hl[..., None] * np.array([0.6, 0.68, 0.9], np.float32) * 1.0
+            for (c, k, gx, gy, sz) in self.GL:
                 a = t - CT(5, k)
-                if 0 <= a < 0.6:
-                    fr = K.sparks(fr, t, 150 + i, (770, 420 + 330 * i), n=40, life=0.5, speed=(150, 500), dirc=(0.6, -0.4), spread=1.5, grav=900,
-                                  area=(90, 90), amt=0.6, t0=CT(5, k), burst=True, color=(0.8, 0.82, 0.9))
-        fr = fog(fr, t, 0, 780, 1000, 0.4, (0.22, 0.25, 0.32), speed=(-50, 0))
-        fr, info = A.place(fr, t, S('S002/back_wind'), (1520 - 40 * u, 1760), h=1580, flip=True, look='sil', rim=COLD, rim_amt=4.5,
-                           rim_dir=(-0.9, -0.3), wind=14, defocus=1.0)
-        fr = RAIN.draw(fr, t, 0.8, angle=8, layers=(1, 2))
+                if -0.1 <= a < 0.6:
+                    fr = K.sparks(fr, t, 150 + k, (gx + sz * 0.2, gy), n=40, life=0.5, speed=(150, 500), dirc=(0.8, -0.4), spread=1.4, grav=900,
+                                  area=(sz * 0.4, sz * 0.4), amt=0.6, t0=CT(5, k) - 0.1, burst=True, color=(0.85, 0.85, 0.92))
+        # 人：右侧侧身 MCU，刀尖抵住当前在刻的字（随字移动）
+        tx, ty = self.tip(t)
+        jit = 3 * math.sin(t * 40) if cur is not None else 0
+        sx = tx + 860 + 40 * u                                             # 精灵刀尖在其包围盒左缘：锚点 (0, 0.495)
+        fr, info = A.place(fr, t, S('A/carve_mcu'), (tx - 10 + jit, ty), h=1000, anc=(0.0, 0.495), rim=COLD, rim_amt=3.4,
+                           rim_dir=(-0.7, -0.6), wind=8, grade=dict(expo=0.82, sat=0.5, gamma=1.12))
+        fr = A.glow(fr, (tx, ty), 50, 0.6 if cur is not None else 0.15, (0.8, 0.88, 1.0))
+        fr = fog(fr, t, 0, 800, 1000, 0.4, (0.22, 0.25, 0.32), speed=(-50, 0))
+        fr = RAIN.draw(fr, t, 0.8, angle=8, light=(200, 60), layers=(1, 2))
         return fr, 0
 
 
@@ -1423,7 +1444,7 @@ MOVES3 = {
     'V12': M3('sine_io', 'beat', x=(-50, 40), rot=(-2, 1), note='手持 + 横移'),
     'V13': M3('sine_io', 'beat', x=(40, -40), z=(1.04, 1.0), note='反向横移 + 拉'),
     'V14': M3('sine_io', 'beat', x=(-50, 50), z=(1.0, 1.05), note='沿刀身滑移'),
-    'V15': M3('expo_out', None, z=(1.15, 1.0), note='后拉 crane back'),
+    'V15': M3('sine_io', 'beat', z=(1.08, 1.0), x=(30, -30), note='第五棒：缓拉 + 横移跟刀尖'),
     'V16': M3('sine_io', 'beat', y=(40, -30), pitch=(-5, 0), z=(1.0, 1.05), note='仰拍升'),
     'V17': M3('sine_io', 'beat', y=(-60, 40), note='跟印下摇'),
     'V18': M3('sine_io', 'beat', z=(1.08, 1.0), rot=(-2, 0), note='高机位拉 + 回旋'),
