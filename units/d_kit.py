@@ -312,30 +312,38 @@ def storm(t, seed=7, c=(960, 380), spin=0.05, twist=0.55, base=(0.035, 0.04, 0.0
 
 
 def lightning(fr, t, t_hit, p0, p1, seed=0, life=0.18, amt=1.6, col=(0.85, 0.9, 1.0), branches=4, width=3):
-    """闪电（无状态）：t_hit 起 life 秒内闪烁"""
+    """闪电（无状态，第二棒重写）：中点位移分形主干 + 渐细分叉；细亮芯 + 两级辉光 + 整屏冷光；life 内两次频闪"""
     age = t - t_hit
     if age < 0 or age > life: return fr
-    k = (1 - age / life) * (0.6 + 0.4 * (int(age * 60) % 2))
+    k = (1 - age / life) ** 0.7 * (0.55 + 0.45 * (int(age * 60) % 2))
     r = np.random.default_rng(seed)
     m = np.zeros((H // 2, W // 2), np.float32)
-    def bolt(a, b, w, depth):
-        pts = [np.array(a, float)]
-        n = 14
-        for i in range(1, n):
-            q = np.array(a) + (np.array(b) - np.array(a)) * i / n
-            nrm = np.array([-(b[1] - a[1]), b[0] - a[0]], float); nrm /= (np.linalg.norm(nrm) + 1e-6)
-            pts.append(q + nrm * r.normal(0, 40))
-        pts.append(np.array(b, float))
-        P = (np.array(pts) / 2).astype(np.int32)
-        cv2.polylines(m, [P], False, 1.0, w, cv2.LINE_AA)
+
+    def path(a, b, rough=0.22, depth=7):
+        P = [np.array(a, float), np.array(b, float)]
+        for d in range(depth):
+            Q = [P[0]]
+            for i in range(len(P) - 1):
+                u, v = P[i], P[i + 1]; L = np.linalg.norm(v - u) + 1e-6
+                nrm = np.array([-(v - u)[1], (v - u)[0]]) / L
+                Q += [(u + v) / 2 + nrm * r.normal(0, rough * L), v]
+            P = Q
+        return np.array(P)
+
+    def bolt(a, b, w, depth, inten):
+        P = path(a, b)
+        cv2.polylines(m, [(P / 2).astype(np.int32)], False, inten, max(1, int(w)), cv2.LINE_AA)
         if depth > 0:
-            for _ in range(branches):
-                j = r.integers(2, n - 2); s = pts[j]
-                e = s + (np.array(b) - np.array(a)) * r.uniform(0.15, 0.35) + r.normal(0, 120, 2)
-                bolt(s, e, max(1, w - 1), depth - 1)
-    bolt(p0, p1, width, 1)
-    g = cv2.GaussianBlur(m, (0, 0), 1.0) * 1.5 + cv2.GaussianBlur(m, (0, 0), 10) * 1.6
-    return fr + cv2.resize(g, (W, H))[..., None] * np.array(col, np.float32) * amt * k + 0.10 * k * amt
+            for _ in range(branches if depth > 1 else 2):
+                j = r.integers(len(P) // 6, len(P) * 5 // 6); s0 = P[j]
+                dirv = (np.array(b) - np.array(a)); dirv = dirv / (np.linalg.norm(dirv) + 1e-6)
+                ang = r.uniform(-0.9, 0.9); ca, sa = math.cos(ang), math.sin(ang)
+                dv = np.array([dirv[0] * ca - dirv[1] * sa, dirv[0] * sa + dirv[1] * ca])
+                e = s0 + dv * np.linalg.norm(np.array(b) - np.array(a)) * r.uniform(0.15, 0.4)
+                bolt(s0, e, max(1, w - 1), depth - 1, inten * 0.55)
+    bolt(p0, p1, max(1, width - 1), 2, 1.0)
+    g = cv2.GaussianBlur(m, (0, 0), 0.7) * 1.8 + cv2.GaussianBlur(m, (0, 0), 5) * 0.9 + cv2.GaussianBlur(m, (0, 0), 24) * 1.4
+    return fr * (1 + 0.25 * k * amt) + cv2.resize(g, (W, H))[..., None] * np.array(col, np.float32) * amt * k + 0.06 * k * amt
 
 
 def embers(fr, t, seed, n=80, area=(0, BAR, W, H - BAR), rise=(40, 140), size=(1.0, 3.2), amt=1.0, col=(1.0, 0.5, 0.15), blur=1.2):

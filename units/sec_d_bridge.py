@@ -961,7 +961,8 @@ class S23_Eye(Shot):
     t0, t1 = 184.67, 185.57
     def render(self, t):
         u = self.u(t)
-        fr = D.storm(t, 231, c=(960, 480), spin=0.09, twist=0.8, base=(0.03, 0.032, 0.045), lit=(0.45, 0.48, 0.6), eye=170, bright=1.0)
+        fr = D.storm(t, 231, c=(960, 480), spin=0.09, twist=0.8, base=(0.02, 0.022, 0.032), lit=(0.30, 0.33, 0.42), eye=170, bright=1.0,
+                     glow=(1300, 300, 1.2 * impact(t, V(O[46][0]), 0.15) + 0.6 * impact(t, 184.85, 0.12)))
         th = V(O[46][0])
         fr = D.lightning(fr, t, 184.85, (300, 120), (760, 500), seed=11, amt=1.2)
         fr = D.lightning(fr, t, th, (1500, 120), (1050, 470), seed=12, amt=1.8, life=0.25)
@@ -1042,7 +1043,7 @@ class S26_Judge(Shot):
 
     def render(self, t):
         u = self.u(t)
-        fr = D.storm(t, 261, c=(960, 460), spin=0.05, base=(0.03, 0.03, 0.042), lit=(0.38, 0.4, 0.5), eye=300)
+        fr = D.storm(t, 261, c=(960, 460), spin=0.05, base=(0.02, 0.02, 0.03), lit=(0.24, 0.25, 0.32), eye=300)
         x, y = K.grid()
         fr = fr * (1 - 0.6 * K.sstep(860, 960, y)[..., None])
         fr = judge(fr, t)
@@ -1050,7 +1051,7 @@ class S26_Judge(Shot):
                               rim=(1.0, 0.4, 0.3), rim_amt=4.0, wind=6, look='sil')
         fr = vcol(fr, '我来判', 260, 300, 96, [O[46][3], O[46][4], O[46][5]], t, WHITE, {'判': RED}, fname='xing', ink=False)
         fl = impact(t, J1, 0.12)
-        fr = fr + fl * RED * 0.6
+        fr = fr + fl * RED * 0.3
         return shake_cam(fr, t, [J1], 14, z=1.0 + 0.03 * u + 0.08 * fl), 0.0
 
 
