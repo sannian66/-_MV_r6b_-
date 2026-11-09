@@ -305,9 +305,12 @@ def crowd_mask(seed, n=120, y_far=560, y_near=840, s_far=26, s_near=90, kneel=0.
             cv2.circle(m, (int(x + s * 0.42), int(y - s * 0.12)), int(s * 0.17), 1.0, -1, cv2.LINE_AA)
             cv2.rectangle(m, (int(x - s * 0.55), int(y - 2)), (int(x + s * 0.55), int(y + s * 0.08)), 1.0, -1)
         else:
-            cv2.circle(m, (int(x), int(y - s * 0.78)), int(s * 0.16), 1.0, -1, cv2.LINE_AA)
-            poly = np.array([[x - s * 0.24, y - s * 0.6], [x + s * 0.24, y - s * 0.6], [x + s * 0.32, y + s * 0.3], [x - s * 0.32, y + s * 0.3]], np.int32)
+            lean = r.uniform(-0.12, 0.12) * s
+            cv2.ellipse(m, (int(x + lean), int(y - s * 0.74)), (int(s * 0.15), int(s * 0.18)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)        # 头
+            cv2.ellipse(m, (int(x + lean * 0.5), int(y - s * 0.50)), (int(s * 0.30), int(s * 0.13)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)  # 圆肩
+            poly = np.array([[x - s * 0.29 + lean * 0.5, y - s * 0.5], [x + s * 0.29 + lean * 0.5, y - s * 0.5], [x + s * 0.36, y + s * 0.35], [x - s * 0.36, y + s * 0.35]], np.int32)
             cv2.fillPoly(m, [poly], 1.0, cv2.LINE_AA)
+            m = cv2.GaussianBlur(m, (0, 0), 0.6 + 2.2 * (1 - z))
         A = np.maximum(A, m * dens)
     A = cv2.GaussianBlur(A, (0, 0), 1.2)
     _C[key] = A

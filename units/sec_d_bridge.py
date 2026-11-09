@@ -93,6 +93,13 @@ class S01_Drop(Shot):
         gy, gx = np.gradient(h)
         spec = np.clip(-gx * 0.6 - gy * 1.4, 0, None) ** 1.5 * 6
         fr = fr + spec[..., None] * np.array([0.8, 0.85, 0.95], np.float32) * 0.7
+        # [r5] 涟漪冷轮廓光（背光侧的环边一线亮）+ 斜上方一束月光体积 + 水面贴地雾
+        rimr = np.clip(gx * 0.9 + gy * 0.5, 0, None) ** 1.3 * 9
+        fr = fr + rimr[..., None] * np.array(COLD, np.float32) * 0.55
+        dl = np.abs((x - 620) * 0.86 - (y - 120) * 0.5) / 1.0
+        shaft = np.exp(-(dl / (110 + 0.25 * y)) ** 2) * np.clip((y - BAR) / 500, 0, 1) * (0.5 + 0.5 * np.clip(1 - (y - 600) / 500, 0, 1))
+        fr = fr + (shaft * (0.13 + 0.03 * math.sin(t * 2.3)))[..., None] * np.array([0.7, 0.8, 1.0], np.float32)
+        fr = K.fog(fr, t, 911, amt=0.55, speed=(45, 0), y0=0.40, y1=0.80, color=(0.15, 0.16, 0.20))
         # 水下朱墨云
         for th, c, s in self.hits:
             age = t - th
@@ -120,9 +127,9 @@ class S01_Drop(Shot):
                 fr = K.sparks(fr, t, 300 + int(s * 10), c, n=int(40 * s), life=0.35, speed=(200, 600), dirc=(0, -1), spread=0.9,
                               grav=2200, burst=True, t0=th, color=(0.75, 0.15, 0.1), amt=0.9)
         # 第三棒 P3：第二滴之后，朱墨云里浮出第一个字「什」（水波扭动），提前进入「什么叫」
-        q = cl((t - 162.25) / 0.3)
+        q = cl((t - 162.08) / 0.4)
         if q > 0:
-            L = D.text_layer([('什', 960, 545, 300, 0.75 * q, 1.08 - 0.08 * eo(q), 0.0, (0.85, 0.12, 0.08))], fname='serif_black')
+            L = D.text_layer([('什', 960, 545, 300, 0.8 * q, 1.08 - 0.08 * eo(q), 0.0, (0.85, 0.12, 0.08))], fname='serif_black')
             wob = (np.sin(y / 23.0 + t * 9) * 5 * (1 - 0.6 * q)).astype(np.float32)
             L.A = cv2.remap(L.A, (x + wob).astype(np.float32), y.astype(np.float32), cv2.INTER_LINEAR)
             L.C = cv2.remap(L.C, (x + wob).astype(np.float32), y.astype(np.float32), cv2.INTER_LINEAR); L.bb = [0, 0, W, H]
@@ -184,6 +191,12 @@ class S03_TypeSlam(Shot):
         fr = fr * (1 - 0.10 * K.sstep(0.55, 0.62, g) * (1 - K.sstep(0.62, 0.9, g)))  # 地平线淡墨
         fr = D.wash(fr, 0.16, 0.6, 1.0, seed=33)
         fr = D.fall_chars(fr, t, '什么叫大局', 32, density=5, sizes=(16, 40), alpha=0.5, near_blur=2)
+        # [r5] 中景：地平线上黑压压一片人群剪影（远淡近浓），「大」「局」压在他们头上；每次落字人群往下一缩
+        cr = R5.crowd_mask(303, n=320, y_far=640, y_near=960, s_far=18, s_near=62)
+        sq = sum(impact(t, V(c[4]), 0.1) for c in self.CH)
+        if sq > 0.01:
+            M = np.float32([[1, 0, 0], [0, 1 - 0.03 * sq, 930 * 0.03 * sq]]); cr = cv2.warpAffine(cr, M, (W, H))
+        fr = fr * (1 - cr[..., None] * 0.62) + INK * cr[..., None] * 0.62 * (fr / 0.93)
         hits = []
         for ch, x, y, s, on in self.CH:
             th = V(on)
@@ -248,7 +261,7 @@ class S04_Snow(Shot):
             L = D.text_layer([(ch, x, y, 300, 1.0, 1.0, -10 + 25 * q, CINNABAR)], fname='serif_black')
             L.A = cv2.GaussianBlur(L.A, (0, 0), 0.5 + 2.0 * max(0, 1 - q))
             fr = D.ink_text(fr, L, bleed=0.2, sig=8)
-        fr = vcol(fr, '什么叫', 1745, 300, 112, O[40][5:8], t, 'ink', fname='serif_black', adv=1.15)   # [r4] 停用角落小竖排：只留「什么叫」中号，牺牲由巨字承担
+        fr = vcol(fr, '什么叫', 1745, 300, 108, O[40][5:8], t, (0.42, 0.40, 0.38), fname='serif_black', adv=1.15)   # [r5] 质问递进 1/3：淡墨、中号、右   # [r4] 停用角落小竖排：只留「什么叫」中号，牺牲由巨字承担
         return K.cam(fr, 1.04, -30 + 60 * u, 0), 1.0
 
 
@@ -280,6 +293,15 @@ class S05_Ren(Shot):
     def render(self, t):
         u = self.u(t)
         fr = self.pap.copy()
+        # [r5] 中景层：一道斜贯纸面的淡墨刀影（「忍」= 刃悬于心上），缓缓滑过
+        x_, y_ = K.grid()
+        cx_, cy_ = 980 + 120 * u, 520
+        th_ = math.radians(-24)
+        a_ = (x_ - cx_) * math.cos(th_) + (y_ - cy_) * math.sin(th_); b_ = -(x_ - cx_) * math.sin(th_) + (y_ - cy_) * math.cos(th_)
+        wid = 46 * np.clip((1100 - a_) / 1500, 0, 1) ** 0.6
+        blade = np.clip((wid - np.abs(b_ - 0.25 * wid)) / 6, 0, 1) * (a_ > -900) * (a_ < 1100)
+        blade = cv2.GaussianBlur(blade.astype(np.float32), (0, 0), 9) * 0.16
+        fr = fr * (1 - blade[..., None])
         tr = V(O[40][13]); tin = tr - 0.1
         x, y, s = self.REN
         if t < tr:
@@ -290,7 +312,7 @@ class S05_Ren(Shot):
                     Lq.paste(T.ink_bleed_glyph(ch, 'serif_black', 220, p, seed=k), 960, 300 + k * 250, INK)
             fr = D.ink_text(fr, Lq, bleed=0.1)
         else:
-            fr = vcol(fr, '什么叫', 300, 330, 110, [self.t0] * 3, t, 'ink', fname='serif_black', adv=1.15)
+            fr = vcol(fr, '什么叫', 270, 270, 150, [self.t0] * 3, t, 'ink', emph={'叫': tuple(CINNABAR)}, fname='serif_black', adv=1.12)   # [r5] 递进 2/3：大一号、浓墨、叫朱红
         if t >= tin:
             # 第三棒：「忍」踩拍落定后保持完整清晰的宋体（≥15 帧可读），最后 0.2s 才从笔画边缘碎开、洇进下一镜
             q = cl((t - tin) / 0.1)
@@ -328,6 +350,7 @@ class S05_Ren(Shot):
             if p2 > 0:
                 L2 = D.text_layer([('让', 1640, 800, 170, p2, 1 + 0.3 * (1 - p2))], fname='serif_black')
                 fr = D.ink_text(fr, L2)
+        fr = D.fall_chars(fr, t, '忍让', 505, density=2, sizes=(90, 160), speed=(260, 420), layers=1, alpha=0.4, near_blur=9)   # [r5] 前景虚焦落字
         hit = [tr] if t >= tr else []
         fr = shake_cam(fr, t, hit, 14, z=1.0 + 0.05 * u, rot=1.2 * u)
         return fr, 1.0
@@ -426,9 +449,10 @@ class S06_Scale(Shot):
         items = []
         for i, (ch, p) in enumerate(zip('什么叫以一人换千人', prog)):
             if p <= 0: continue
-            xx = 610 + i * 87.5; yy = 240 - 40 * (1 - eo(p))
-            c = CINNABAR if i in (4, 5) else 'ink'
-            items.append((ch, xx, yy, 60, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, c))
+            big = i < 3                                            # [r5] 递进 3/3：「什么叫」在句首放大成 96px
+            xx = (520 + i * 104) if big else (820 + (i - 3) * 87.5); yy = (220 if big else 240) - 40 * (1 - eo(p))
+            c = CINNABAR if i in (2, 4, 5) else 'ink'
+            items.append((ch, xx, yy, 96 if big else 60, min(1, p * 1.5), 1 + 0.35 * (1 - eo(p)), 0.0, c))
         L = D.text_layer(items, fname='serif_sb')
         fr = D.ink_text(fr, self._rot(L, M), bleed=0.12)
         return fr
