@@ -180,16 +180,16 @@ def sil_over(fr, tmp, rim_col, rim_w=5, amt=1.0, blur=0.0):
 #   前＝虚焦草叶（焦点由草→刀）；中＝斜插的刀；后＝雾中城墙/城楼。小款「鬼屠」+ 屠字朱印（与副歌一 S047 同款）
 class V01(Shot):
     def __init__(self):
-        sk = night_sky(4701, top=(0.03, 0.035, 0.045), bot=(0.20, 0.21, 0.235), horizon=0.72)
+        sk = night_sky(4701, top=(0.045, 0.05, 0.065), bot=(0.30, 0.31, 0.34), horizon=0.70)   # 第五棒：提亮（评审：偏暗偏空）
         wl, wm = city_wall_far(4702, 560, 790, tone=0.075)
-        wl = K.blur_ds(wl, 5); wm = K.blur_ds(wm, 5)
-        sk = sk * (1 - wm[..., None] * 0.8) + wl * wm[..., None] * 0.8
+        wl = K.blur_ds(wl, 10); wm = K.blur_ds(wm, 10)
+        sk = sk * (1 - wm[..., None] * 0.55) + wl * wm[..., None] * 0.55
         x, y = K.grid()
         self.gm = sstep(828, 850, y)
         mud = (0.025 + 0.035 * cv2.resize(K.fbm(H // 2, W // 2, 4703, 10, 6), (W, H)))[..., None] * np.array([1.0, 0.98, 0.96], np.float32)
         self.bg = sk * (1 - self.gm[..., None]) + mud * self.gm[..., None]
         self.puddle = np.clip((cv2.resize(K.fbm(H // 8, W // 8, 4704, 4, 4), (W, H)) - 0.45) * 5, 0, 1) * self.gm
-        self.grass = K.Grass(4705, n=40, y_base=1010, height=(160, 420), width=(5, 13))
+        self.grass = K.Grass(4705, n=16, y_base=1030, height=(120, 300), width=(4, 9))     # 第五棒：草叶减量压低（评审：片状草代码味）
         self.rain = fx2.RainSheet(4706, density=0.9)
         self.spl = fx2.Splashes(4707)
         self.fog = fx2.Fog(4708)
@@ -200,13 +200,16 @@ class V01(Shot):
         u = self.u(t)
         e = eio(u)
         fr = self.bg.copy()
-        fr = self.fog.draw(fr, t, density=0.75, y0=480, y1=860, color=(0.36, 0.38, 0.42), speed=(40, 0), top_fade=300)
+        fr = self.fog.draw(fr, t, density=0.75, y0=480, y1=860, color=(0.40, 0.42, 0.47), speed=(40, 0), top_fade=300)
+        # 第五棒：刀后一团冷月雾光（逆光勾出刀的轮廓，画面有视觉中心）
+        x, y = K.grid()
+        fr += np.exp(-(((x - 1120) / 420) ** 2 + ((y - 470) / 300) ** 2))[..., None] * np.array([0.16, 0.18, 0.22], np.float32)
         # 刀：焦点转移（开头刀虚、草实 → 刀实、草虚）
         focus = sstep(0.15, 0.75, u)
-        base = (1060, 940)
+        base = (1060, 958)
         # 第四棒：程序灰板刀 → 生图真刀 blade_stuck（缠红绳柄、圆镡、湿钢、泥堆）；冷月顶光轮廓
-        fr, _ = BK.put_at(fr, self.blade, t, BS_MUD, (base[0], base[1] + 25), BS_W, rim=dict(col=(0.75, 0.84, 1.0), amt=3.4, dir=(0.5, 1.0)),
-                          grade=dict(expo=0.95, sat=0.85, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.15), wind_amp=0, breathe=0,
+        fr, _ = BK.put_at(fr, self.blade, t, BS_MUD, (base[0], base[1] + 25), BS_W * 1.15, rim=dict(col=(0.75, 0.84, 1.0), amt=4.0, dir=(0.5, 1.0)),
+                          grade=dict(expo=1.15, sat=0.85, tint=(0.92, 0.97, 1.06), lift=0.0, gamma=1.15), wind_amp=0, breathe=0,
                           shade=None, wrap=0.15, defocus=6 * (1 - focus))
         # 积水倒影（上下翻 + 涟漪抖动）
         ref = fr[::-1].copy()
@@ -215,17 +218,17 @@ class V01(Shot):
         ref = cv2.remap(ref, *[a.astype(np.float32) for a in (K.grid()[0] + (nz - 0.5) * 14, K.grid()[1])], cv2.INTER_LINEAR)
         fr = fr + ref * (self.puddle * 0.55)[..., None]
         # 雨水沿刃下流（亮点）
-        g0 = bs_pt(BS_GUARD, (base[0], base[1] + 25)); g1 = bs_pt(BS_ENTRY, (base[0], base[1] + 25))
+        g0 = bs_pt(BS_GUARD, (base[0], base[1] + 25), BS_W * 1.15); g1 = bs_pt(BS_ENTRY, (base[0], base[1] + 25), BS_W * 1.15)
         for k_ in range(6):                                  # 雨水沿刃下流（亮珠）
             s_ = ((t * 0.8 + k_ * 0.17) % 1.0)
             px = g0[0] + (g1[0] - g0[0]) * s_ + 6 * math.sin(k_ * 2); py = g0[1] + 30 + (g1[1] - g0[1] - 30) * s_
             cv2.circle(fr, (int(px), int(py)), 3, (0.85, 0.9, 1.0), -1, cv2.LINE_AA)
         fr = self.spl.draw(fr, t, y_far=840, y_near=1000, rate=140, size=1.0, amt=0.8)
         fr = fx2.ripples(fr, t, [(base[0] - 30, base[1] + 6), (base[0] + 40, base[1] + 10)], [86.3, 86.9], amt=0.5, flat=0.18)
-        fr = self.rain.draw(fr, t, intensity=1.0, angle=10, light=(1300, 300), light_r=700)
+        fr = self.rain.draw(fr, t, intensity=0.75, angle=10, light=(1120, 450), light_r=700)
         # 前景草叶（虚焦，随焦点转移由实到虚）
         gmask = self.grass.mask(t, wind=1.2, blur=2 + 22 * focus)
-        fr = fr * (1 - gmask[..., None] * 0.92) + gmask[..., None] * np.array([0.012, 0.014, 0.016], np.float32)
+        fr = fr * (1 - gmask[..., None] * 0.75) + gmask[..., None] * np.array([0.03, 0.035, 0.04], np.float32)
         fr = fr * np.array([0.92, 0.97, 1.08], np.float32)
         fr = cam(fr, 1.08 - 0.06 * e, 0, 50 - 70 * e)               # 摇臂升 + 微拉
         # 墨退（与副歌一 S047 同一遮罩、同一时间、同一墨色）
@@ -246,9 +249,7 @@ class V02(Shot):
     T_THUNDER = 88.905
     def __init__(self):
         sc = night_sky(4801, top=(0.03, 0.035, 0.05), bot=(0.22, 0.23, 0.26), horizon=0.62, cloud=1.0)
-        wl, wm = city_wall_far(4802, 600, 1080, tone=0.09)
-        sc = sc * (1 - wm[..., None]) + wl * wm[..., None]
-        self.scene0 = sc
+        self.scene0 = sc                             # 第五棒：去倒影里的城墙（上墙下人分得太齐像拼贴）
         self.sp = spr('S050/scepter')
         self.bolt = fx2.Lightning(4803, p0=(1500, 0), p1=(1180, 600), branches=5)
         # 背景：刀镡/刀柄的微距虚焦（真刀贴图放大）
@@ -287,13 +288,18 @@ class V02(Shot):
         sx = (960 + (x - cx) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)
         sy = (540 - (y - cy) / max(Rz, 1) * 960 * fe / np.maximum(rn, 1e-3) * k).astype(np.float32)   # 倒置
         inner = cv2.remap(sc, sx, sy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        m = np.clip((Rz - dist) / 2, 0, 1)
-        rim = np.exp(-((dist - Rz) / (2 + 0.01 * Rz)) ** 2) * 0.6
+        m = np.clip((Rz - dist) / (3 + 0.02 * Rz), 0, 1)
+        m = cv2.GaussianBlur(m, (0, 0), 1.5)
+        ang_ = np.arctan2(y - cy, x - cx)
+        caus = np.exp(-((dist - Rz * 0.86) / (3 + 0.05 * Rz)) ** 2) * np.clip(np.cos(ang_ - 0.9), 0, 1) ** 3 * 0.55   # 右下一弯焦散
+        dark = np.exp(-((dist - Rz * 0.97) / (2 + 0.05 * Rz)) ** 2) * 0.55                                            # 折射暗边
+        rim = caus
         spec = np.exp(-(((x - cx + Rz * 0.35) ** 2 + (y - cy + Rz * 0.42) ** 2) / (Rz * 0.1 + 2) ** 2)) * 0.9
         # 水滴挂在刀镡下沿：上方一条细水颈
         neck = np.exp(-((x - cx) / (8 + 0.04 * Rz)) ** 2) * (y < cy - Rz * 0.9) * (y > cy - Rz * 1.6) * (1 - u)
         fr = fr * (1 - m[..., None]) + inner * m[..., None] * 0.92
-        fr += (rim + spec * m + neck * 0.3)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
+        fr = fr * (1 - dark[..., None])
+        fr += (rim * m + spec * m + neck * 0.3)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
         if tl <= t < tl + 1 / 30 + 1e-3: fr = fr * 1.9 + COLDC * 0.04          # 第四棒：雷光照亮（乘性），不再抬白
         elif t > tl: fr = fr * (1 + 0.5 * pulse(t, tl + 0.04, 0.15))
         return fr, (3 if abs(t - tl) < 0.04 else 0)
@@ -1047,7 +1053,8 @@ class V18(Shot):
         x, y = K.grid()
         fr = self.bg + np.exp(-(((x - 900) / 600) ** 2 + ((y - 450) / 400) ** 2))[..., None] * COLDC * 0.10
         hk = hitp(t, self.T_WO, 0.12)
-        fr, _ = put_at(fr, self.sp, t, (0.38, 0.28), (860, 470), 2300 * (1 + 0.05 * hk), rim=dict(col=(0.75, 0.82, 1.0), amt=2.4, dir=(0.4, -1.0)),
+        fr, _ = put_at(fr, self.sp, t, (0.38, 0.28), (860, 470), 2300 * (1 + 0.05 * hk), rim=dict(col=(0.75, 0.82, 1.0), amt=2.0, dir=(0.4, -1.0)),
+                       grade=dict(expo=0.66, sat=0.95, tint=(1.10, 0.93, 0.82), lift=0.0, gamma=1.22),       # 第五棒：去灰白石膏感 → 与 P14/V17 同一冷光下的苍白肤色
                        wind_amp=2, mblur=(0, -30 * hk), shade=(1100, 1900, 0.3, 700, 0.3))
         fr = K.sparks(fr, t, 6303, (820, 420), n=160, life=0.6, speed=(300, 1300), dirc=(0, -1), spread=3.0, grav=1500, size=1.6,
                       area=(160, 60), color=(0.8, 0.85, 0.95), amt=1.1, t0=V(self.T_WO), burst=True)
@@ -1195,8 +1202,10 @@ class V22(Shot):
     def __init__(self):
         self.sp = spr('slash_h')
         sk = night_sky(6601, top=(0.02, 0.022, 0.03), bot=(0.12, 0.125, 0.14), horizon=0.8)
-        wl, wm = city_wall_far(6602, 620, 840, tone=0.06)
-        self.bg = sk * (1 - wm[..., None]) + K.blur_ds(wl, 3) * wm[..., None]
+        wl, wm = city_wall_far(6602, 640, 840, tone=0.05, crenel=False)      # 第五棒：去城楼平涂块（负片里成白色叠矩形）
+        wm = K.blur_ds(wm, 8)
+        self.bg = sk * (1 - wm[..., None] * 0.7) + K.blur_ds(wl, 8) * wm[..., None] * 0.7
+        self.bg = fx2.Fog(6604).draw(self.bg, 0.0, density=0.6, y0=500, y1=900, color=(0.16, 0.17, 0.19), speed=(0, 0))
         self.rain = fx2.RainSheet(6603, density=1.0)
         T.warm('那就用刀', 'kai', 150)
 
@@ -1224,7 +1233,10 @@ class V22(Shot):
                 if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'ink', fname='kai', alpha=min(1, pc * 2))
             fr = T.compose(fr, L, shadow=0.0, glow=0.0)
         else:
-            fr = T.slash_cut(fr, '那就用刀', clamp01(0.25 + q * 0.75), places=P, fname='kai', color=(0.03, 0.03, 0.035), emph=('刀',),
+            L = T.Layer()                                           # 第五棒：「那就用」保持完整可读，只有「刀」被刀线斩开
+            for pp in P[:3]: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='ink', fname='kai')
+            fr = T.compose(fr, L, shadow=0.0, glow=0.0)
+            fr = T.slash_cut(fr, '刀', clamp01(0.25 + q * 0.75), places=[dict(P[3], idx=0)], fname='kai', color=(0.03, 0.03, 0.035), emph=('刀',),
                              emph_color=(0.86, 0.10, 0.06), angle=4, cut_at=0.25, slide=0.18, appear=0.0)
         if t >= tc - 0.05:
             ql = clamp01((t - (tc - 0.05)) / 0.15)
@@ -1328,10 +1340,12 @@ class V23(Shot):
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('锋重新划', pr)):
             if pc <= 0: continue
-            xx = 640 + i * 290 - 200 * e                                 # 第四棒：字放大上移（150→190px，y760→690）
-            T.place(L, ch, xx, 690 - i * 10, 190 - i * 8, color=(1.0, 0.86, 0.6) if pc < 1 else (0.92, 0.16, 0.06), fname='xing',
+            xx = 700 + i * 205 - 200 * e                                 # 第五棒：字距 290→205（评审 P2：字距过大）、烫金→亮朱 + 暗衬
+            T.place(L, ch, xx, 680 - i * 8, 210 - i * 6, color=(1.0, 0.92, 0.70) if pc < 1 else (1.0, 0.30, 0.12), fname='xing',
                     alpha=min(1, pc * 2), rot=-2)
-        fr = T.compose(fr, L, shadow=0.7, glow=0.6, glow_color=(1.0, 0.3, 0.08))
+        if L.box(4) is not None:
+            fr = fr * (1 - 0.55 * K.blur_ds(L.A, 26)[..., None])
+        fr = T.compose(fr, L, shadow=0.9, outline=2, outline_color=(0.12, 0.02, 0.01), glow=0.7, glow_color=(1.0, 0.3, 0.08))
         hk = hitp(t, 113.64, 0.12)
         dx, dy, dr = shake(t, 4 + 12 * hk, 10, 67)
         fr = cam(fr, 1.04, dx - 60 * e, dy, dr)
