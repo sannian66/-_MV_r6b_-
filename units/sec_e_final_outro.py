@@ -754,7 +754,7 @@ class E17(Shot):   # S124（第五棒改版式）MS 横向构图：整幅朱光�
         self.wash = np.clip(1 - sstep(700, 1150, xx + (n - 0.5) * 260), 0, 1).astype(np.float32)
         self.ink = ((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.8, 0.7], np.float32)).astype(np.float32)
         self.l1 = LyrO([('错', 480, 500, 470, 'serif_black', REDT, CT(53, 4))], CT(53, 8) - 0.1, seed=130, glow=0.5, outline=4)
-        self.l2 = Sub('就是错', cts(53, [5, 6, 7]), 'right', CT(53, 8) - 0.1, seed=131)
+        self.l2 = Sub('就是错', cts(53, [5, 6, 7]), 'center', CT(53, 8) - 0.1, seed=131)
         self.tf = CT(53, 7)
 
     def render(self, t):
