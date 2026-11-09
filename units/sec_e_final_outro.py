@@ -531,7 +531,7 @@ class E14(Shot):   # S122（第三棒重做）低机位仰拍：他从烟尘里�
         hy = 905
         m = sstep(hy - 3, hy + 30, np.arange(H, dtype=np.float32))[:, None, None]
         fr = fr * (1 - m) + self.ground * m
-        sm = cv2.resize(np.roll(self.smoke, int(-80 * (t - self.t0)), 1), (W, H))
+        sm = cv2.resize(R3.slide(self.smoke, -40 * (t - self.t0)), (W, H))
         fr = fr + (np.clip(sm - 0.4, 0, 1) * 0.5)[..., None] * np.array([0.55, 0.55, 0.6], np.float32) * sstep(200, 900, np.arange(H, dtype=np.float32))[:, None, None]
         yy, xx = E.grid()
         fr = fr + (np.exp(-(((xx - 1700) / 500) ** 2 + ((yy - 800) / 260) ** 2)) * 0.35)[..., None] * np.array([1.0, 0.45, 0.15], np.float32)  # 右后方余火
@@ -722,7 +722,7 @@ class E20(Shot):   # S126 ELS 巨大日轮占满画面；「天」字在日中�
         d = np.hypot(xx - c[0], yy - c[1])
         disc = np.clip((R - d) / 2.5, 0, 1)
         k = cv2.resize(self.tex * 0.6 + self.tex2 * 0.4, (W, H))
-        k = np.roll(k, int(30 * (t - self.t0)), 1)
+        k = R3.slide(k, 30 * (t - self.t0))
         limb = np.clip(1 - (d / R) ** 2, 0, 1) ** 0.35
         surf = (0.75 + 0.5 * k) * limb
         col = np.stack([surf * 1.25, surf * 0.95, surf * 0.55], -1)
@@ -997,16 +997,20 @@ class E28(Shot):   # S132b ECU 暗红腰带与马尾在逆光里翻飞（红绳�
         return bloom(fr, 0.8, 0.45)
 
 
-class Title(Shot):
+class Title(Shot):   # 片名底板（第三棒改）：不再是金色云海空镜，改墨黑底 + 低处缓缓涌动的暖金烟 + 余烬上飘（墨黑红次色调）
     def __init__(self):
-        self.sky = E.dawn_sky(1340, horizon=0.66, mid=(0.36, 0.26, 0.15), hor=(1.0, 0.8, 0.5), cloud=0.5, sun=(960, 700))
-        self.cl = [E.cloud_layer(1341 + i, W * 2, H, density=0.4 + 0.2 * i) for i in range(2)]
+        n = K.fbm(H // 2, W // 2, 1340, base=4, octaves=5)
+        self.ink = cv2.resize(((0.015 + 0.03 * n)[..., None] * np.array([1.0, 0.85, 0.75], np.float32)).astype(np.float32), (W, H))
+        self.sm = [K.fbm(H // 4, W // 2, 1341 + i, base=3 + 2 * i, octaves=5) for i in range(2)]
 
     def base(self, t):
-        fr = E.sun_disc(self.sky.copy(), (960, 690), 110, amt=1.1)
-        for i, (lum, a) in enumerate(self.cl):
-            ox = (t - 224.0) * (40 + 60 * i)
-            fr = cloud_blit(fr, lum, a, ox, 600 - 90 * i, GOLDW * (0.45 + 0.22 * i), amb=0.05, fade=180)
+        fr = self.ink.copy()
+        yv = np.arange(H, dtype=np.float32)[:, None, None] / H
+        for i, sm in enumerate(self.sm):
+            m = cv2.resize(R3.slide(sm, (t - 224.0) * (8 + 10 * i)), (W, H))
+            m = np.clip((m - 0.45) * 2.2, 0, 1)[..., None] * sstep(0.35, 0.95, yv)
+            fr = fr + m * np.array([0.55, 0.28, 0.10], np.float32) * (0.35 + 0.25 * i)
+        fr = RS.fx_embers(fr, t, 1342, amt=0.7, n=60)
         return fr
 
 
@@ -1080,7 +1084,7 @@ class E31(Credits):   # S134 ELS 晨雾群山缓移；署名①：出品人 / �
         u = self.u(t)
         fr = E.sun_disc(self.sky.copy(), (560, 600), 60, amt=0.55)
         fr = E.place_layer(fr, self.rd, self.ra, ox=-120 * u, z=1.05)
-        f = cv2.resize(np.roll(self.fog, int(60 * u), 1), (W, H))
+        f = cv2.resize(R3.slide(self.fog, 30 * u), (W, H))
         m = np.clip((f - 0.45) * 2.5, 0, 1) * sstep(0.45, 0.85, np.arange(H, dtype=np.float32)[:, None] / H)
         fr = fr * (1 - m[..., None] * 0.7) + m[..., None] * np.array([0.80, 0.82, 0.84], np.float32) * 0.6
         fr = E.dust_motes(fr, t, 1352, n=40, amt=0.25, drift=(20, -6), col=(0.9, 0.9, 0.95))
@@ -1103,27 +1107,23 @@ class E32(Credits):   # S135 CU 手握刀柄，沿刀身滑移；署名②：美
         return bloom(fr, 0.8, 0.35)
 
 
-class E33(Credits):   # S135b 高空云海，鸟群掠过朝阳；署名③：AI画师
+class E33(Credits):   # S135b（第三棒重做）晨后冷调：贴地低机位，他划下的那道线已冷成一道暗红焦痕伸向远方，晨雾贴地，远处一线淡日；署名③：AI画师
     def __init__(self):
-        self.sky = E.dawn_sky(1370, horizon=0.58, mid=(0.45, 0.32, 0.18), hor=(1.0, 0.84, 0.56), cloud=0.6, sun=(700, 470))
-        self.cl = [E.cloud_layer(1371 + i, W * 2, H, density=0.45 + 0.2 * i) for i in range(2)]
+        self.sky = E.dawn_sky(1370, horizon=0.52, top=(0.10, 0.12, 0.15), mid=(0.42, 0.46, 0.52), hor=(0.88, 0.86, 0.82), cloud=0.4, sun=(760, 560))
+        self.g = R3.Ground(331, tone=(0.85, 0.88, 0.95))
         self.blocks = [('AI画师', ['沉溺', '雪晴', '索恩'], 1640, 230, 232.45, 1.3)]
-        r = np.random.default_rng(137)
-        self.birds = [(r.uniform(-300, 200), r.uniform(330, 560), r.uniform(0.6, 1.2), r.uniform(0, 6.28)) for _ in range(11)]
+        self.fog = K.fbm(H // 4, W // 2, 1372, base=5, octaves=5)
 
     def render(self, t):
         u = self.u(t)
-        fr = E.sun_disc(self.sky.copy(), (700, 470), 95, amt=1.1)
-        fr = fx2.god_rays(fr, (700, 470), strength=0.5, length=0.9, t=t)
-        for i, (lum, a) in enumerate(self.cl):
-            ox = (t - self.t0) * (50 + 80 * i)
-            fr = cloud_blit(fr, lum, a, ox, 520 - 110 * i, GOLD * (0.42 + 0.22 * i))
-        for (x0, y0, s, ph) in self.birds:
-            x = x0 + 520 * (t - self.t0) * s; y = y0 - 30 * (t - self.t0) + 6 * math.sin(t * 3 + ph)
-            fl = math.sin(t * 11 * s + ph); w = 16 * s
-            pts = np.array([[x - w, y - fl * 7 * s], [x - w * 0.3, y], [x, y + 2], [x + w * 0.3, y], [x + w, y - fl * 7 * s]], np.int32)
-            cv2.polylines(fr, [pts], False, (0.03, 0.025, 0.02), max(2, int(3 * s)), cv2.LINE_AA)
-        return bloom(fr, 0.85, 0.4)
+        hy = 565
+        fr = E.sun_disc(self.sky.copy(), (760, hy - 10), 40, amt=0.45, core=(1.0, 0.98, 0.95))
+        fr, z = self.g.render(fr, hy, f=900, camh=0.6, dz=-3 * u, cx=760, line=0.6, line_col=(0.55, 0.08, 0.04), fog=(0.85, 0.87, 0.9))
+        f = cv2.resize(R3.slide(self.fog, 25 * u), (W, H))
+        m = np.clip((f - 0.4) * 2.0, 0, 1) * sstep(0.45, 0.62, np.arange(H, dtype=np.float32)[:, None] / H) * (1 - sstep(0.7, 0.95, np.arange(H, dtype=np.float32)[:, None] / H))
+        fr = fr * (1 - m[..., None] * 0.6) + m[..., None] * np.array([0.82, 0.84, 0.88], np.float32) * 0.55
+        fr = E.dust_motes(fr, t, 1373, n=40, amt=0.25, drift=(15, -5), col=(0.9, 0.92, 0.96))
+        return bloom(fr, 0.85, 0.35)
 
 
 class E34(Credits):   # S136 ELS 日出全景，远处一粒走向太阳的人影；署名④：音乐
@@ -1202,20 +1202,20 @@ BOUNDS = [s[1] for s in SHOTS] + [F1]
 CHORUS_END = 6638
 
 # 入点转场：(名称, pre 秒, post 秒, kw)；'hard' = 切后 2 帧冲击（推近+提亮）
-CUTS = {
+CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处、whip 1 处、zoom_through 0 处），换成暗色系：墨晕吞屏 / 刀光黑切 / 印章盖屏
     'E01': ('entry_flash', 0, 0.22, {}),
     'E02': ('hard', 0, 0, {}),
-    'E03': ('smoke_through', 0.10, 0.20, dict(color=(0.95, 0.80, 0.55), direction=-1, seed=3)),
+    'E03': ('ink_swallow', 0.10, 0.22, dict(center=(1150, 360), seed=3)),
     'E04': ('hard', 0, 0, {}),
     'E05': ('whip_pan_blur', 0.05, 0.10, dict(direction='right')),
-    'E06': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=-1, color=(0.92, 0.84, 0.64))),
+    'E06': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=-1, color=(0.03, 0.02, 0.015))),
     'E07': ('hard', 0, 0, {}),
     'E08': ('hard', 0, 0, {}),
     'E09': ('paper_tear', 0.06, 0.18, dict(seed=5)),
-    'E10': ('zoom_through', 0.08, 0.14, dict(variant='paper', center=(960, 520))),
+    'E10': ('blade_black', 0.06, 0.12, dict(angle=-25, width=200)),
     'E11': ('hard', 0, 0, {}),
-    'E12': ('whip_pan_blur', 0.05, 0.10, dict(direction='up')),
-    'E13': ('flash_white', 0.0, 0.20, dict(color=(1.0, 0.9, 0.7))),
+    'E12': ('seal_cover', 0.08, 0.16, dict(center=(820, 500), rot=-4)),
+    'E13': ('hard', 0, 0, {}),
     'E14T': ('hard', 0, 0, {}),
     'E15': ('hard', 0, 0, {}),
     'E16': ('slash_wipe', 0.04, 0.14, dict(angle=90)),
@@ -1226,22 +1226,23 @@ CUTS = {
     'E21': ('flash_red', 0.0, 0.16, {}),
     'E22': ('match_cut', 0.0, 0.18, dict(shape='circle', center=(960, 330), radius=120)),
     'E23': ('hard', 0, 0, {}),
-    'E24': ('whip_pan_blur', 0.04, 0.08, dict(direction='left')),
+    'E24': ('hard', 0, 0, {}),
     'E25': ('slash_wipe', 0.03, 0.12, dict(angle=-8)),
-    'E26': ('match_cut', 0.0, 0.22, dict(shape='line', center=(960, 640), angle=0)),
+    'E26': ('match_cut', 0.0, 0.22, dict(shape='line', center=(960, 600), angle=0)),
     'E27a': ('hard', 0, 0, {}),
     'E27b': ('hard', 0, 0, {}),
     'E27c': ('hard', 0, 0, {}),
-    'E28': ('whip_pan_blur', 0.05, 0.10, dict(direction='right')),
-    'E29': ('flash_white', 0.0, 0.18, dict(color=(1.0, 0.9, 0.7))),
+    'E28': ('blade_black', 0.04, 0.10, dict(angle=35, width=170)),
+    'E29': ('ink_swallow', 0.12, 0.25, dict(center=(1000, 500), seed=9)),
     'E30': ('hard', 0, 0, {}),
-    'E31': ('smoke_through', 0.18, 0.30, dict(color=(0.96, 0.86, 0.66), seed=9)),
+    'E31': ('ink_bleed', 0.0, 0.40, dict(center=(960, 540), white=False, seed=9)),
     'E32': ('occlusion', 0.10, 0.18, dict(kind='blade', direction=1)),
-    'E33': ('ink_bleed', 0.0, 0.40, dict(center=(700, 470), white=True, seed=8)),
-    'E34': ('zoom_through', 0.10, 0.18, dict(center=(960, 640))),
+    'E33': ('occlusion', 0.10, 0.20, dict(kind='branch', direction=-1, color=(0.03, 0.035, 0.04))),
+    'E34': ('ink_bleed', 0.0, 0.45, dict(center=(960, 620), white=False, seed=8)),
     'E35': ('hard', 0, 0, {}),
     'E36': ('cut', 0, 0, {}),
 }
+CUSTOM = {'blade_black': R3.blade_black, 'seal_cover': R3.seal_cover, 'ink_swallow': R3.ink_swallow}
 
 # 运镜：(缓动, z0, z1, x0, x1, y0, y1, rot0, rot1)
 MOVE = {
@@ -1338,7 +1339,9 @@ class _Sec:
             A = self.full(j - 1, min(t, c - 1 / FPS) if pre == 0 else t)
             p = (t - (c - pre)) / (pre + post)
             if pre == 0: p = 0.5 + 0.5 * p
-            return TR.transition(name, np.clip(A, 0, 4).astype(np.float32), np.clip(B, 0, 4).astype(np.float32), p, **kw), 2
+            A = np.clip(A, 0, 4).astype(np.float32); B = np.clip(B, 0, 4).astype(np.float32)
+            if name in CUSTOM: return CUSTOM[name](A, B, p, **kw), 2
+            return TR.transition(name, A, B, p, **kw), 2
         fr = self.full(i, t)
         name = CUTS.get(IDS[i], ('hard',))[0]
         k = f - BOUNDS[i]

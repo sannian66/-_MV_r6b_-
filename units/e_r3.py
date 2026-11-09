@@ -519,22 +519,24 @@ def seal_cover(A, B, p, center=(W / 2, H / 2), rot=-6.0, color=(0.70, 0.07, 0.05
     return out * (1 - frame[..., None]) + np.asarray(color, np.float32) * (0.8 + 0.3 * nz)[..., None] * frame[..., None]
 
 
-def ink_swallow(A, B, p, center=(W / 2, H / 2), seed=5):
-    """墨晕吞屏：浓墨从一点洇开吞掉 A，墨中透出 B 的暗影；p>0.5 墨退，B 从墨里浮出。"""
+def ink_swallow(A, B, p, center=(W / 2, H / 2), seed=5, band=0.32):
+    """墨晕吞屏：一圈浓墨带从一点洇开向外推，墨带外是 A、墨带内是 B（墨带里透出 B 的暗影 + 火色边）。
+    任意中间帧都同时有 A、墨、B 三层，不会整屏发黑/发白。"""
     hs, ws = H // 4, W // 4
     y, x = np.mgrid[0:hs, 0:ws].astype(np.float32)
-    d = np.hypot((x * 4 - center[0]) / W * 1.7, (y * 4 - center[1]) / H) + (K.fbm(hs, ws, seed, base=5, octaves=5) - 0.5) * 0.5
+    d = np.hypot((x * 4 - center[0]) / W * 1.7, (y * 4 - center[1]) / H) + (K.fbm(hs, ws, seed, base=5, octaves=5) - 0.5) * 0.45
     d = cv2.resize(d, (W, H))
-    if p < 0.5:
-        r = eio(p / 0.5) * 1.3
-        m = np.clip((r - d) * 8, 0, 1)
-        base = A
-        ink = np.array([0.02, 0.018, 0.02], np.float32)
-        out = base * (1 - m[..., None]) + (ink + B * 0.18) * m[..., None]
-    else:
-        r = eio((p - 0.5) / 0.5) * 1.3
-        m = np.clip((r - d) * 8, 0, 1)
-        ink = np.array([0.02, 0.018, 0.02], np.float32)
-        out = (ink + B * 0.18) * (1 - m[..., None]) + B * m[..., None]
-    edge = np.exp(-((r - d) / 0.03) ** 2)
-    return out + edge[..., None] * np.array([0.5, 0.25, 0.1], np.float32) * 0.6
+    r = -0.05 + (1.75 + band) * eio(p)
+    outer = np.clip((d - r) * 10, 0, 1)                      # 1 = 还在 A
+    inner = np.clip((r - band - d) * 10, 0, 1)               # 1 = 已是 B
+    ink = np.array([0.018, 0.015, 0.016], np.float32)
+    mid = ink + B * 0.35
+    out = A * outer[..., None] + B * inner[..., None] + mid * np.clip(1 - outer - inner, 0, 1)[..., None]
+    edge = np.exp(-((d - r) / 0.025) ** 2)
+    return out + edge[..., None] * np.array([0.8, 0.38, 0.12], np.float32) * 0.6
+
+
+def slide(img, dx, dy=0.0):
+    """平移（镜像边界，不像 np.roll 那样在接缝处出现竖直硬边）。"""
+    h, w = img.shape[:2]
+    return cv2.warpAffine(img, np.float32([[1, 0, dx], [0, 1, dy]]), (w, h), borderMode=cv2.BORDER_REFLECT)
