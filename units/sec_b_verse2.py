@@ -539,7 +539,7 @@ class V09(Shot):
         for i, (ch, pc) in enumerate(zip('牺牲多少才', pr)):
             if pc <= 0: continue
             q = eio(pc)
-            tx, ty = pl[0] - 240 + i * 120, pl[1] - 150 - (12 if i % 2 else 0)
+            tx, ty = max(170, pl[0] - 200) + i * 118, pl[1] - 150 - (12 if i % 2 else 0)
             yy = 160 + (ty - 160) * q ** 1.6
             T.place(Lr if ch in '牺牲' else L, ch, tx, yy, 108, color='red' if ch in '牺牲' else 'white', fname='serif_black',
                     rot=(1 - q) * (30 if i % 2 else -30) + (4 if i % 2 else -3) * q)
@@ -639,19 +639,19 @@ class V11(Shot):
         x, y = K.grid()
         fr = self.bg.copy()
         # 秤盘（金属浅盘，俯视椭圆）+ 积水
-        pan = (((x - 960) / 820) ** 2 + ((y - 840) / 150) ** 2 < 1).astype(np.float32)
-        lip = (((x - 960) / 820) ** 2 + ((y - 840) / 150) ** 2 < 1).astype(np.float32) - (((x - 960) / 790) ** 2 + ((y - 836) / 136) ** 2 < 1).astype(np.float32)
+        pan = (((x - 960) / 820) ** 2 + ((y - 700) / 220) ** 2 < 1).astype(np.float32)
+        lip = (((x - 960) / 820) ** 2 + ((y - 700) / 220) ** 2 < 1).astype(np.float32) - (((x - 960) / 790) ** 2 + ((y - 696) / 204) ** 2 < 1).astype(np.float32)
         fr = fr * (1 - pan[..., None]) + pan[..., None] * np.array([0.10, 0.08, 0.05], np.float32) * (0.7 + 0.5 * cv2.resize(K.fbm(H // 4, W // 4, 5605, 6, 4), (W, H)))[..., None]
         fr += np.clip(lip, 0, 1)[..., None] * GOLD * 0.35
         # 金印俯视落下（stamp_seal：p 0→0.3 自高处落下，0.3 = 99.0 落印）
         ps = clamp01((t - (V(self.T_LIANG) - 0.3 * 0.9)) / 0.9)
         if ps > 0:
-            fr = T.stamp_seal(fr, '量', 960, 800, 360, ps, style='yang', rot=-3, seed=56, color='gold')
+            fr = T.stamp_seal(fr, '量', 960, 610, 380, ps, style='yang', rot=-3, seed=56, color='gold')
         hk = hitp(t, self.T_LIANG, 0.14)
         if t >= V(self.T_LIANG):
-            fr = K.sparks(fr, t, 5606, (960, 800), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
+            fr = K.sparks(fr, t, 5606, (960, 700), n=120, life=0.55, speed=(300, 1100), dirc=(0, -1), spread=1.4, grav=1400, size=1.4,
                           area=(500, 20), color=(0.75, 0.8, 0.9), amt=1.0, t0=V(self.T_LIANG), burst=True)
-            fr = fx2.ripples(fr, t, [(960, 840)], [V(self.T_LIANG)], amt=0.9, flat=0.18, speed=700, life=0.8)
+            fr = fx2.ripples(fr, t, [(960, 760)], [V(self.T_LIANG)], amt=0.9, flat=0.27, speed=700, life=0.8)
         fr = self.spl.draw(fr, t, y_far=700, y_near=990, rate=80, amt=0.6)
         pr = prs(22, [7], t)[0]
         if pr > 0:
@@ -810,8 +810,8 @@ class V15(Shot):
             fr = self.bolt.draw(fr, t, tl, intensity=1.1)
         walk = 1060 - 80 * e
         bob = 6 * abs(math.sin(t * 6.5))
-        fr, _ = put(fr, self.sp, t, 640, (walk, 860 - bob), rim=dict(col=(0.75, 0.82, 1.0), amt=2.0 + 4 * env, dir=(0.7, -0.7)),
-                    grade=dict(expo=0.62 + 0.4 * env, sat=0.5, tint=(0.9, 0.96, 1.06), lift=0.0, gamma=1.2), wind_amp=8,
+        fr, _ = put(fr, self.sp, t, 820, (walk, 930 - bob), rim=dict(col=(0.75, 0.82, 1.0), amt=2.6 + 4 * env, dir=(0.7, -0.7)),
+                    grade=dict(expo=0.80 + 0.4 * env, sat=0.5, tint=(0.9, 0.96, 1.06), lift=0.0, gamma=1.2), wind_amp=8,
                     shade=(500, 1500, 0.2, 600, 0.3))
         # 积水反光
         ref = fr[::-1].copy(); ref = cv2.warpAffine(ref, np.float32([[1, 0, 0], [0, 1, 2 * 860 - H]]), (W, H))
@@ -1177,7 +1177,7 @@ class V24(Shot):
         e = eio(u)
         fr = self.bg.copy()
         grow = clamp01(u * 1.4 + 0.2)
-        near, far = np.array([860.0, 1080.0]), np.array([1010.0, 432.0])
+        near, far = np.array([520.0, 1000.0]), np.array([1080.0, 432.0])
         n = 30
         pts = [tuple(near + (far - near) * (i / n) ** 0.8) for i in range(int(2 + n * grow))]
         fr, core = gash(fr, t, pts, 70, heat=1.0, seed=6806)
@@ -1194,7 +1194,7 @@ class V24(Shot):
             L = T.Layer(); T.place(L, ch, pp[0] + sz * 0.9, pp[1] - sz * 0.1, sz, color=(0.95, 0.18, 0.07), fname='xing', alpha=min(1, pc * 2), sy=0.55)
             fr = T.compose(fr, L, shadow=0.5, glow=0.7, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=10)
-        fr = cam(fr, 1.12 - 0.12 * e, 0, 80 - 120 * e)          # 摇臂升：画面下压 + 拉开
+        fr = cam(fr, 1.10 - 0.10 * e, 0, 60 - 60 * e)          # 摇臂升：画面下压 + 拉开
         return fr, 0
 
 

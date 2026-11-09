@@ -172,7 +172,7 @@ def brush_box(fr, c, half, prog, seed=0, width=26, color=(0.62, 0.06, 0.04)):
 
 
 class P03(Shot):
-    HALF = 230
+    HALF = 270
     def __init__(self):
         self.bg = BK.paper(203, (0.78, 0.72, 0.60))
         self.fig = PA.PaperFigure(31, view='front')
@@ -182,7 +182,7 @@ class P03(Shot):
         fr = self.bg.copy()
         x, y = K.grid()
         fr = fr * (0.42 + 0.65 * np.exp(-(((x - c[0]) / 900) ** 2 + ((y - c[1] + 100) / 600) ** 2)))[..., None] * np.array([1.0, 0.93, 0.82], np.float32)
-        hh = half * 1.25
+        hh = half * 1.55
         # 纸人投影 + 纸人
         sh = np.zeros((H, W), np.float32)
         cv2.ellipse(sh, (int(c[0] + hh * 0.12), int(c[1] + hh * 0.48)), (int(hh * 0.28), int(hh * 0.07)), 0, 0, 360, 1.0, -1, cv2.LINE_AA)
