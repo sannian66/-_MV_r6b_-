@@ -556,7 +556,7 @@ class E15(Shot):   # S122b ECU 刀尖拖过焦土，划出一道朱金火线（�
         u = self.u(t)
         fr = self.ground.copy()
         yy, xx = E.grid()
-        x = -100 + 1900 * eio(0.15 + u * 0.85)
+        x = -100 + 1900 * eio(0.3 + u * 0.7)
         tip = (x, self.ly(x))
         lit = np.exp(-((xx - x) ** 2 + ((yy - tip[1]) * 2.2) ** 2) / (2 * 260 ** 2))       # 火线照亮刀尖周围焦土
         fr = fr * (0.7 + 0.6 * np.exp(-((yy - 150) / 500) ** 2))[..., None] + (self.peb * lit)[..., None] * np.array([1.0, 0.55, 0.25], np.float32) * 0.22
