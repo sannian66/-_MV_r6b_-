@@ -1267,41 +1267,97 @@ class C24(Shot):
         return fr
 
 
+_BLADE = {}
+def blade_strip():
+    """第六棒：从 blade_level 精灵里只裁刀身前段（第二只手之后 → 刀尖，x 0.73–0.995、刀身行带），转成竖直、刀尖朝上的 RGBA（float）。"""
+    if 'b' not in _BLADE:
+        im = cv2.imread(ROOT_DIR + '/assets/gen/C/blade_level_cut.png', cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.0
+        h, w = im.shape[:2]
+        sub = im[618:752, int(w * 0.73):int(w * 0.995)].copy()
+        sub[..., :3] = sub[..., :3][..., ::-1]                      # BGR → RGB
+        _BLADE['b'] = np.rot90(sub, 1).copy()                       # 刀尖朝上
+    return _BLADE['b']
+
+
 class C25(Shot):
-    """LS 跃起上撩劈墙（S079）：145.14 一道白金刀光自下而上贯穿整面字墙，「劈」字被竖向斩开。"""
-    def __init__(self): self.wall = PR.CharWall(seed=25, cols=16, rows=20, brick=(150, 64))
+    """第六棒重做（critic_C_r3 P0③：墙前跃起劈墙 ≈ 副歌一 S035）：不再拍人。ECU 仰拍贴墙——镜头贴着那面生图城墙仰望（荷兰角），
+    墙心阴刻一个巨大的「劈」（石刻：刻槽积暗、上沿冷光倒角）；145.14 一柄刀竖直从画底自下而上贯穿全画（只有刀身，速度拖影），
+    沿画面中轴留下一道赤热的劈缝，「劈」连同整面墙被这条缝一分为二、向两侧错开，缝里灌出惨白电光、碎石落下。
+    景别 ECU（S035 是全身 LS）、方向竖直向上（S035 斜向跃起）、主体是刀与墙（S035 是人）。下一镜 C26 从同一条缝炸开。"""
+    def __init__(self):
+        L = T.Layer(); T.place(L, '劈', 960, 540, 600, (1, 1, 1), 'serif_black', texture=False)
+        self.g = L.A.copy()
     def render(self, t):
         u = self.u(t)
         ts = V(145.14)
-        fl = 1.2 * pulse(t, ts, 0.12)
-        fr = storm(t, 25, horizon=1000, flash=0.3 + fl, refl=0.4)
-        fr, _ = self.wall.draw(fr, t, x0=-200, y0=-300, x1=2120, y1=1000, tilt=0.25, light_color=COLD, rim=0.6)
-        fr = fr * (0.8 + fl)
-        k = t - self.t0
-        y = lerp(1040, 820, eout(k / 0.4))
-        fr, _ = put(fr, t, 'S079/leap_slash_up', 900, y, 700, rim=COLD, rim_amt=2.4, flash=fl, expo=0.95, wind=9)
-        fr = slash_streak(fr, (1010, 1000), (1120, BAR - 20), (t - ts) / 0.45, width=12, col=(1.0, 0.92, 0.75), amt=2.0)
-        if t > ts:
-            g = np.zeros((H, W), np.float32); cv2.line(g, (1010, 1000), (1120, BAR), 1.0, 3, cv2.LINE_AA)
-            fr = fr + cv2.GaussianBlur(g, (0, 0), 10)[..., None] * GOLD * 0.8 * (1 - sm(0.3, 0.8, t - ts))
-            fr = sparks(fr, t, 251, (1065, 560), n=200, life=0.7, speed=(300, 1200), dirc=(1, 0), spread=1.5, grav=900, t0=ts, burst=True,
-                        area=(30, 420), color=(1.0, 0.85, 0.5))
-        # 「劈」被斩开
-        if t >= ts - 0.12:
-            L = T.Layer(); e = eout((t - ts + 0.12) / 0.12)
-            T.place(L, '劈', 1480, 520, 420, RED_T, 'serif_black', scale=lerp(1.6, 1, e), alpha=min(1, e * 2), texture=False)
-            q = sm(ts + 0.05, ts + 0.4, t)
-            if q > 0:
-                A2, C2 = L.A.copy(), L.C.copy()
-                L.A[:] = 0
-                for sgn in (-1, 1):
-                    M = np.float32([[1, 0, sgn * 60 * q], [0, 1, -sgn * 20 * q]])
-                    msk = np.zeros((H, W), np.float32); xx = np.arange(W)[None, :]
-                    msk[:] = ((xx < 1480) if sgn < 0 else (xx >= 1480))
-                    L.A[:] = np.maximum(L.A, cv2.warpAffine(A2 * msk, M, (W, H)))
-                L.C[:] = C2
-            fr = T.compose(fr, L, shadow=0.7, shadow_sigma=24, glow=0.8, glow_sigma=22, glow_color=(0.9, 0.08, 0.04))
-        self.ca = 6 if 0 <= t - ts < 0.1 else 0
+        k = t - ts
+        fl = 1.1 * pulse(t, ts, 0.14) + 0.5 * bolt_env(t, V(144.86))
+        cy = lerp(0.60, 0.50, eio(u))
+        base = plate_view('C5/c22_wall', 0.52, cy, 2.7 + 0.12 * u)
+        base = cv2.warpAffine(base, cv2.getRotationMatrix2D((960, 540), -6 + 2 * u, 1.0), (W, H), borderMode=cv2.BORDER_REFLECT)
+        base = base * (0.75 + 0.45 * fl)
+        # 石刻「劈」：刻槽积暗 + 上左倒角冷光 + 下右暗边
+        g = self.g
+        hi = cv2.GaussianBlur(np.clip(g - np.roll(np.roll(g, 3, 0), 3, 1), 0, 1), (0, 0), 1.0)
+        ins = cv2.GaussianBlur(np.clip(g - np.roll(np.roll(g, -9, 0), -9, 1), 0, 1), (0, 0), 3.0)      # 槽内上左壁的投影
+        base = base * (1 - 0.72 * g[..., None]) * (1 - 0.6 * ins[..., None]) + hi[..., None] * COLD * (0.30 + 0.6 * fl)
+        # 刀扫过之前：刀身在画底蓄势，刃口有冷光
+        sp = clamp((k + 0.06) / 0.14)                            # 0..1 刀从画底扫到画顶
+        gap = 0.0 if k < 0 else 80 * eout(clamp(k / 0.35)) + 20 * clamp((k - 0.35) / 0.3)
+        sx = 960
+        if gap > 0:
+            # 墙（连同字）沿中轴劈开：左半左移、右半右移并微旋；缝里是惨白电光天
+            xx = np.arange(W)[None, :]
+            Lh = cv2.warpAffine(base, np.float32([[1, 0, -gap / 2], [0, 1, 6 * clamp(k / 0.3)]]), (W, H), borderMode=cv2.BORDER_REFLECT)
+            Rh = cv2.warpAffine(base, cv2.getRotationMatrix2D((960, 1000), -1.2 * clamp(k / 0.3), 1.0) + np.float32([[0, 0, gap / 2], [0, 0, -4 * clamp(k / 0.3)]]),
+                                (W, H), borderMode=cv2.BORDER_REFLECT)
+            r = np.random.default_rng(25)
+            ys = np.linspace(0, H, 28); jag = np.interp(np.arange(H), ys, r.normal(0, 7, 28)).astype(np.float32)[:, None]
+            edgeL = sx - gap / 2 + jag; edgeR = sx + gap / 2 + jag
+            mL = np.clip(edgeL - xx + 0.5, 0, 1)[..., None]; mR = np.clip(xx - edgeR + 0.5, 0, 1)[..., None]
+            sky = storm(t, 25, horizon=1300, flash=1.6 + fl, fc=(960, 400), ground=False) + 0.22
+            fr = Lh * mL + Rh * mR + sky * np.clip(1 - mL - mR, 0, 1)
+            # 劈缝的热沿着「劈」的刻槽往两边灌：字槽被烧成朱红（关键字），离缝越远越晚、越暗
+            gL = cv2.warpAffine(g, np.float32([[1, 0, -gap / 2], [0, 1, 6 * clamp(k / 0.3)]]), (W, H))
+            gR = cv2.warpAffine(g, cv2.getRotationMatrix2D((960, 1000), -1.2 * clamp(k / 0.3), 1.0) + np.float32([[0, 0, gap / 2], [0, 0, -4 * clamp(k / 0.3)]]), (W, H))
+            spread = np.exp(-np.abs(xx - sx).astype(np.float32) / (40 + 900 * eout(clamp(k / 0.3))))
+            gg = (gL * mL[..., 0] + gR * mR[..., 0]) * spread
+            fr = fr * (1 - 0.5 * gg[..., None]) + gg[..., None] * (np.array([0.95, 0.16, 0.08], np.float32) * 1.3 + np.array([1.0, 0.6, 0.2], np.float32) * 0.8 * math.exp(-k / 0.2))
+            fr = fr + cv2.GaussianBlur(gg, (0, 0), 14)[..., None] * np.array([0.9, 0.1, 0.04], np.float32) * 0.6
+            # 断口：赤热→冷却的边
+            hot = math.exp(-k / 0.28)
+            for ex in (edgeL, edgeR):
+                e = np.exp(-((xx - ex) / 5.0) ** 2)[..., None]
+                fr = fr + e * (np.array([1.0, 0.5, 0.15], np.float32) * 1.6 * hot + COLD * 0.5 * (1 - hot))
+            fr = K.vol_light(fr, (960, 520), 520, (0.9, 0.93, 1.0), 0.55 * (0.4 + 0.6 * math.exp(-k / 0.5)))
+            fr = dust(fr, t, 251, n=180, amt=0.9 * math.exp(-k / 0.5), drift=(0, 300), region=(860, BAR, 1060, H - BAR), size=(2, 6))
+        else:
+            fr = base
+        # 赤热劈缝：随刀尖从下往上烧出来（刀过之前不出现）
+        if 0 < sp and gap <= 0:
+            ytip = lerp(H + 200, -300, ein(sp, 1.3))
+            G = np.zeros((H, W), np.float32); cv2.line(G, (sx, H), (sx, int(max(0, ytip + 300))), 1.0, 3, cv2.LINE_AA)
+            fr = fr + (cv2.GaussianBlur(G, (0, 0), 10)[..., None] * 1.2 + G[..., None]) * np.array([1.0, 0.55, 0.2], np.float32)
+        # 刀：竖直自下而上（只有刀身），速度拖影；刀过后从画顶飞出
+        if -0.08 < k < 0.10:
+            B = blade_strip(); bh = 1500
+            Bs = cv2.resize(B, (110, bh), interpolation=cv2.INTER_AREA)
+            ytip = lerp(H + 200, -300, ein(sp, 1.3)) - 40
+            ky = int(9 + 140 * pulse(t, ts - 0.01, 0.06)) | 1
+            Bs = cv2.GaussianBlur(Bs, (1, ky), 0)
+            x0 = int(sx + 6 - Bs.shape[1] / 2); y0 = int(ytip)
+            ys0, ys1 = max(0, y0), min(H, y0 + bh); xs0, xs1 = max(0, x0), min(W, x0 + Bs.shape[1])
+            if ys1 > ys0 and xs1 > xs0:
+                sub = Bs[ys0 - y0:ys1 - y0, xs0 - x0:xs1 - x0]
+                a = sub[..., 3:4]; c = sub[..., :3] ** 1.1 * (1.1 + 1.2 * fl) + np.array([0.15, 0.17, 0.22], np.float32) * a
+                fr[ys0:ys1, xs0:xs1] = fr[ys0:ys1, xs0:xs1] * (1 - a) + c * a
+            fr = sparks(fr, t, 252, (sx, max(BAR, ytip + 40)), n=120, life=0.5, speed=(300, 1100), dirc=(0, 1), spread=1.4, grav=1500, amt=1.3,
+                        color=(1.0, 0.7, 0.3))
+        if k > 0:
+            fr = sparks(fr, t, 253, (960, 560), n=220, life=0.7, speed=(200, 1000), dirc=(0, 1), spread=2.6, grav=1100, t0=ts, burst=True,
+                        area=(20, 520), color=(1.0, 0.75, 0.4))
+        fr = fog(fr, t, 25, density=0.25, y0=700, y1=1000, color=(0.35, 0.38, 0.45), speed=(30, 0))
+        fr = rain(fr, t, 250, inten=0.8, angle=-8)
         return fr
 
 
@@ -1929,7 +1985,7 @@ CUTS = {
     'C23': ('push', 0.08, 0.12, dict(center=(960, 400))),                # 墙远景 → 墙面（同墙推进）
     'C24': ('occlusion', 0.10, 0.10, dict(kind='pillar', direction=1)),  # 横移：墙柱掠过前景
     'C25': ('hard', 0, 0, {}),
-    'C26': ('shatter', 0.0, 0.22, dict(center=(1065, 560))),
+    'C26': ('shatter', 0.0, 0.22, dict(center=(960, 540))),        # 第六棒：从 C25 中轴劈缝炸开
     'C27': ('luma', 0.08, 0.14, {}),                                     # 崩墙后的亮天 → 缺口亮天（亮处匹配）
     'C28': ('push', 0.06, 0.10, dict(center=(960, 480), z=0.5)),         # 推进缺口里的光
     'C29': ('hard', 0, 0, {}),                                           # 第四棒：luma 会在 C28 亮眼处开洞（像面具）→ 落拍硬切冲击
@@ -1960,7 +2016,7 @@ MOV = {
     'C16': dict(z=(1.0, 1.08)), 'C17': dict(z=(1.03, 1.0), y=(-40, 0), hh=6), 'C18': dict(z=(1.0, 1.12), hh=8),
     'C19': dict(z=(1.0, 1.05), rot=(-3, 3), hh=6), 'C20': dict(z=(1.0, 1.1)), 'C21': dict(z=(1.0, 1.03)),
     'C22': dict(z=(1.0, 1.05), rot=(-1.5, 0.5)), 'C23': dict(z=(1.0, 1.12)), 'C24': dict(hh=7),
-    'C25': dict(z=(1.0, 1.08), y=(30, -30), hh=6), 'C26': dict(z=(1.1, 1.0)), 'C27': dict(z=(1.0, 1.06)),
+    'C25': dict(z=(1.0, 1.06), hh=4), 'C26': dict(z=(1.1, 1.0)), 'C27': dict(z=(1.0, 1.06)),
     'C28': dict(z=(1.0, 1.06)), 'C29': dict(z=(1.08, 1.0), hh=4), 'C30': dict(z=(1.0, 1.08), hh=6),
     'C31': dict(z=(1.0, 0.95), hh=6), 'C32': dict(z=(1.0, 1.06), hh=5), 'C33': dict(z=(1.04, 1.0), hh=8),
     'C34': dict(z=(1.0, 1.06), rot=(3, -2), hh=6), 'C35': dict(z=(1.0, 1.05), y=(-30, 10), hh=4), 'C35b': dict(z=(1.04, 1.0), hh=9),
@@ -2112,6 +2168,8 @@ class Sec:
             l = np.clip(fr.mean(-1, keepdims=True), 0, 1)
             fr = fr * 0.45 + np.clip(1.0 - l * 1.6, 0, 1) ** 2 * np.array([0.55, 0.05, 0.04], np.float32); ca = max(ca, 5)   # 朱红负片叠原画（保留结构，不是色卡）
         sid = self.ids[self.idx(t)]
+        # 第六棒（critic_C_r3 P0④）：RGB 分离只留 C04 glitch_cut（含入切前 0.07s）和 INSERTS 闪切帧，其余一律关掉（原来成了底噪）
+        if not (ins or sid == 'C04' or self.ids[self.idx(t + 0.075)] == 'C04'): ca = 0
         fr = fr * (EXPO_ALL * EXPO.get(sid, 1.0))
         fr = fr + 0.014 * (1 - np.clip(fr, 0, 1))
         dx, dy, z = cm
