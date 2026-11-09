@@ -711,46 +711,64 @@ def half_field(seed, col, sun=None):
     return sky
 
 
-class E16(Shot):   # S123 MCU 左半金光中正面；右半墨底金色巨字「对」
+class E16(Shot):   # S123（第五棒改版式）CU 正面推近：整幅金色晨光，人物偏左占满画高，右侧被墨烟压暗，金色巨字「对」从烟里烧出（不再硬分屏）
     def __init__(self):
-        self.gold = half_field(1230, (1.0, 0.80, 0.48), sun=(480, 700))
-        n = K.fbm(H // 2, W // 2, 1232, base=5, octaves=5)
-        self.ink = cv2.resize(((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.85, 0.7], np.float32)).astype(np.float32), (W, H))
-        self.l1 = Lyr([('对', 1440, 500, 470, 'serif_black', GOLD_T, CT(53, 0))], CT(53, 4) - 0.1, seed=120, glow=0.6)
+        self.gold = half_field(1230, (1.0, 0.80, 0.48), sun=(380, 640))
+        n = cv2.resize(K.fbm(H // 2, W // 2, 1232, base=5, octaves=5), (W, H))
+        xx = np.arange(W, dtype=np.float32)[None, :]
+        self.wash = np.clip(sstep(900, 1350, xx + (n - 0.5) * 260), 0, 1).astype(np.float32)                 # 右侧墨烟（软边、有烟纹）
+        self.ink = ((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.85, 0.7], np.float32)).astype(np.float32)
+        self.l1 = LyrO([('对', 1450, 500, 470, 'serif_black', GOLD_T, CT(53, 0))], CT(53, 4) - 0.1, seed=120, glow=0.6, outline=4)
         self.l2 = Sub('就是对', cts(53, [1, 2, 3]), 'right', CT(53, 4) - 0.1, seed=121)
 
     def render(self, t):
         u = self.u(t)
-        left = self.gold.copy()
-        left = fx2.god_rays(left, (480, 700), strength=0.6, length=1.0, t=t)
-        left, info = put(left, t, 'S123/front', (500 + 60 * u, 1140), h=900, rim=GOLDW, rim_amt=2.6, grade=G_DAWN, wind=5)
-        x = np.arange(W)[None, :, None]
-        fr = np.where(x < 960, left, self.ink)
-        g = np.exp(-((np.arange(W, dtype=np.float32) - 960) / 3) ** 2)[None, :, None]
-        return fr + g * GOLDW * 1.0
+        fr = fx2.god_rays(self.gold.copy(), (380, 640), strength=0.6, length=1.0, t=t)
+        fr, info = put(fr, t, 'S123/front', (640 + 30 * u, 1330), h=1300 * (1 + 0.05 * u), rim=GOLDW, rim_amt=2.6, rim_dir=(-0.8, -0.6), grade=G_DAWN, wind=5)
+        w = (self.wash * (0.85 + 0.15 * math.sin(t * 1.3)))[..., None]
+        fr = fr * (1 - w) + self.ink * w
+        return bloom(fr, 0.85, 0.4)
 
     def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
 
 
-class E17(Shot):   # S124 MCU 镜像：右半朱光中回头冷视；左半墨底朱红巨字「错」
+class E17(Shot):   # S124（第五棒改版式）MS 横向构图：整幅朱光，他在右侧中景回头冷视；左侧朱红巨字「错」，第二个「错」唱出时被一道衣袖暗影扫过、字翻转倒置
     def __init__(self):
-        self.red = half_field(1240, (0.85, 0.22, 0.12), sun=(1440, 720))
-        n = K.fbm(H // 2, W // 2, 1242, base=5, octaves=5)
-        self.ink = cv2.resize(((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.8, 0.7], np.float32)).astype(np.float32), (W, H))
-        self.l1 = Lyr([('错', 480, 500, 470, 'serif_black', REDT, CT(53, 4))], CT(53, 8) - 0.1, seed=130, glow=0.5)
-        self.l2 = Sub('就是错', cts(53, [5, 6, 7]), 'left', CT(53, 8) - 0.1, seed=131)
+        self.red = half_field(1240, (0.85, 0.22, 0.12), sun=(1500, 700))
+        n = cv2.resize(K.fbm(H // 2, W // 2, 1242, base=5, octaves=5), (W, H))
+        xx = np.arange(W, dtype=np.float32)[None, :]
+        self.wash = np.clip(1 - sstep(700, 1150, xx + (n - 0.5) * 260), 0, 1).astype(np.float32)
+        self.ink = ((0.02 + 0.05 * n)[..., None] * np.array([1.0, 0.8, 0.7], np.float32)).astype(np.float32)
+        self.l1 = LyrO([('错', 480, 500, 470, 'serif_black', REDT, CT(53, 4))], CT(53, 8) - 0.1, seed=130, glow=0.5, outline=4)
+        self.l2 = Sub('就是错', cts(53, [5, 6, 7]), 'right', CT(53, 8) - 0.1, seed=131)
+        self.tf = CT(53, 7)
 
     def render(self, t):
         u = self.u(t)
-        right = self.red.copy()
-        right, info = put(right, t, 'S124/over_shoulder', (1430 - 60 * u, 1150), h=920, rim=(1.0, 0.45, 0.3), rim_amt=2.6,
-                          grade=dict(expo=0.8, sat=0.6, tint=(1.08, 0.93, 0.88), lift=0.0, gamma=1.12), wind=5)
-        x = np.arange(W)[None, :, None]
-        fr = np.where(x >= 960, right, self.ink)
-        g = np.exp(-((np.arange(W, dtype=np.float32) - 960) / 3) ** 2)[None, :, None]
-        return fr + g * np.array([1.0, 0.5, 0.35], np.float32)
+        fr = self.red.copy()
+        fr, info = put(fr, t, 'S124/over_shoulder', (1400 - 50 * u, 1060), h=760, rim=(1.0, 0.45, 0.3), rim_amt=2.6,
+                       grade=dict(expo=0.8, sat=0.6, tint=(1.08, 0.93, 0.88), lift=0.0, gamma=1.12), wind=5)
+        w = (self.wash * (0.85 + 0.15 * math.sin(t * 1.1)))[..., None]
+        return bloom(fr * (1 - w) + self.ink * w, 0.85, 0.4)
 
-    def text(self, fr, t): return self.l2.draw(self.l1.draw(fr, t), t)
+    def text(self, fr, t):
+        F = self.l1.draw(fr.copy(), t)
+        q = c01((t - self.tf) / 0.14)
+        if q > 0:                                                            # 衣袖扫过 → 字横向翻转倒置
+            sx = math.cos(math.pi * eio(q))
+            y0, y1, x0, x1 = 160, 860, 120, 840
+            src = F[y0:y1, x0:x1]; dst = fr[y0:y1, x0:x1].copy()
+            cx = (x1 - x0) / 2
+            M = np.float32([[sx if abs(sx) > 0.02 else 0.02, 0, cx * (1 - sx)], [0, 1, 0]])
+            M[0, 1] = 0.0
+            dst = cv2.warpAffine(src, M, (x1 - x0, y1 - y0), dst=dst, borderMode=cv2.BORDER_TRANSPARENT)
+            F = F.copy(); F[y0:y1, x0:x1] = dst
+            if q < 1:
+                xx = np.arange(W, dtype=np.float32)[None, :]
+                bx = -200 + 1300 * q
+                sl = np.exp(-((xx - bx) / 140) ** 2)                          # 袖影（暗红带、强横向模糊）
+                F = F * (1 - 0.85 * sl[..., None]) + sl[..., None] * np.array([0.08, 0.01, 0.01], np.float32)
+        return self.l2.draw(F, t)
 
 
 class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂开、金光喷出（下一镜碎裂）
@@ -763,11 +781,10 @@ class E18(Shot):   # S124b 对/错 同框：两半同时在画，中缝锯齿裂
     def render(self, t):
         u = self.u(t)
         if not hasattr(self, 'AB'):   # 两半是定格（各取上一镜字落定的一帧），只算一次
-            self.AB = (self.a.text(self.a.render(211.05), 211.05), self.b.text(self.b.render(212.0), 212.0))
-        A, B = self.AB
-        A = K.cam(A, 1.0, ox=480 - 40 * u); B = K.cam(B, 1.0, ox=-480 + 40 * u)
-        x = np.arange(W)[None, :, None]
-        fr = np.where(x < 960, A, B)
+            self.AB = (self.a.text(self.a.render(211.05), 211.05), self.b.text(self.b.render(211.85), 211.85))
+        A, B = self.AB                                                # 第五棒：左 =「对」（E16 右半），右 =「错」（E17 左半），中缝留给金色「何」
+        o = int(40 * u)
+        fr = np.concatenate([A[:, 960 - o:1920 - o], B[:, o:960 + o]], 1)
         m = np.zeros((H, W), np.float32)
         pts = self.zz.copy(); pts[:, 0] = 960 + (pts[:, 0] - 960) * (0.4 + 2.5 * u)
         cv2.polylines(m, [pts.astype(np.int32)], False, 1.0, 3 + int(14 * u), cv2.LINE_AA)

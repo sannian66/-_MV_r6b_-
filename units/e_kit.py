@@ -215,6 +215,11 @@ def burn_glyph(ch, font, size, e, q=0.0, seed=0, direction=(0.25, -1.0)):
     F = ((xx - 0.5) * dv[0] + (yy - 0.5) * dv[1]) / (abs(dv[0]) + abs(dv[1])) + 0.5
     F = F * 0.7 + _nz(g, seed + ord(ch)) * 0.3
     em = None
+    if e < 1 and size < 120:   # 第五棒：小字（副句/署名）不走火线烧出 —— 半烧中间态会截出半个偏旁像乱码；改为末 3 帧整字由虚到实淡入
+        k = c01((e - 0.55) / 0.45)
+        b = cv2.GaussianBlur(a, (0, 0), 0.5 + 4.0 * (1 - k))
+        a = b * k
+        e = 1.0
     if e < 1:
         fr_ = e * 1.25 - 0.1
         m = np.clip((fr_ - F) / 0.05, 0, 1)
