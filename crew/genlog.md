@@ -249,3 +249,7 @@
 | 2026-11-09 09:35 CST | C组 | C11/C12/C38 | 0（重新下载，未重生成） | 8557bf9f…(blade_hot) / 2e002f69…(blade_level) | 旧沙箱丢失，curl 结果地址重下 → 2560 宽 → recut_flat 16 ✓ |
 | 11-09 09:55 | E组/E12 top_down | RH_image2 | 4K 16:9 | 3 | 395c4836-f0c4-495d-8e2b-b6af88826095 | submitted | - | [E组] 第二棒：E12 俯拍小人占位 → 真俯视精灵（参考 鬼屠）；quote 3（累计 30） |
 | 11-09 09:55 | E组/E07 paper_effigy | RH_image2 | 4K 16:9 | 3 | 599266ee-8d70-48e1-b052-ccf055229b87 | submitted | - | [E组] 第二棒：太上皇纸扎真质感（参考 太上皇）；quote 3（累计 33） |
+| 11-09 01:30 | D组/blade_up_cu | RH_image2 | 4K 16:9 | 3 | 9d01184f-4f52-45b2-bc60-0afdea9c5b27 | submitted | - | try1 extreme close-up from a low angle: only his right hand and f |
+| 11-09 01:30 | D组/wall_stand_back | RH_image2 | 4K 16:9 | 3 | da4f10f3-5af0-4c7a-a8de-553d94e361d7 | submitted | - | try1 seen squarely from behind, standing perfectly still with fee |
+| 11-09 01:30 | A/kneel_beg | RH_image2 | 4K 16:9 | 3 | dcacb003-4d50-4198-bf20-818431504e2c | submitted | - | A组 kneel_beg try1 |
+| 11-09 01:30 | A/villain_fall | RH_image2 | 4K 16:9 | 3 | 9f74a166-620f-42d7-ac29-417641e434ad | submitted | - | A组 villain_fall try1 |

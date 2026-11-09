@@ -166,10 +166,26 @@ def clouds(fr, t, seed=1, speed=(20, 0), y0=120, y1=700, amt=0.6, col=(0.20, 0.2
     return out
 
 
-def moon(fr, cx, cy, r, amt=1.0, col=(1.0, 1.0, 1.0), phase=0.0, halo=0.5):
-    rgb, A = K.moon_sprite(int(r), 4, phase)
-    fr = K.paste_sprite(fr, rgb * np.array(col, np.float32), A, cx, cy, alpha=amt)
-    return glow(fr, (cx, cy), r * 2.4, halo * amt, (0.55, 0.62, 0.78))
+_MOON = {}
+def moon(fr, cx, cy, r, amt=1.0, col=(1.0, 1.0, 1.0), phase=0.0, halo=0.5, bright=0.78):
+    """月亮（第二棒：压亮度 + 月海对比，避免过曝成白盘；bright 为盘面峰值亮度）"""
+    k = (int(r), phase)
+    if k not in _MOON:
+        rgb, A_ = K.moon_sprite(int(r), 4, phase)
+        disc = np.clip(A_ * 1.0, 0, 1)
+        lum = rgb.mean(-1, keepdims=True)
+        inner = (lum > 0.6).astype(np.float32)     # 盘面像素（光晕是 0.75 左右蓝灰，盘面 ≥0.75 的亮白）
+        rgb2 = np.where(rgb.min(-1, keepdims=True) > 0.62, (rgb / 0.95) ** 2.6, rgb * 0.8)
+        _MOON[k] = (rgb2.astype(np.float32), A_)
+        if len(_MOON) > 8: _MOON.pop(next(iter(_MOON)))
+    rgb, A = _MOON[k]
+    fr = K.paste_sprite(fr, rgb * np.array(col, np.float32) * bright, A, cx, cy, alpha=amt)
+    # 光晕只在盘外（盘内叠加会把月海冲成白盘）
+    q = 4
+    yy, xx = np.mgrid[0:H // q, 0:W // q].astype(np.float32)
+    d = np.hypot(xx * q - cx, yy * q - cy)
+    g = np.exp(-d * d / (2 * (r * 2.4) ** 2)) * np.clip((d - r * 0.80) / (r * 0.22), 0, 1)
+    return fr + cv2.resize(g, (W, H))[..., None] * halo * amt * 0.8 * np.array((0.55, 0.62, 0.78), np.float32)
 
 
 def ridge(fr, base_y, amp, seed, tone=(0.03, 0.035, 0.045), rim=None, rim_amt=0.6, peaks=3, dx=0.0, fogcol=None, fog=0.0, w_extra=400):
@@ -237,3 +253,23 @@ def brush_column(fr, text, prog, x, y0, size=84, red='', gold='', out=0.0, seed=
         c = LYR_RED if p['ch'] in red else (LYR_GOLD if p['ch'] in gold else LYR_WHITE)
         L.paste(A, p['x'], p['y'] - 14 * q, c, alpha)
     return T.compose(fr, L, shadow=0.75, shadow_sigma=22, glow=glow_amt, glow_sigma=16)
+
+
+def defringe(key, erode=5, work=2560):
+    """第二棒：recut 抠图灰边处理 → 收 alpha + 边缘色用内部颜色外推（去灰底溢色）。返回缓存 PNG 路径。"""
+    os.makedirs(CACHE, exist_ok=True)
+    out = CACHE + '/df_' + hashlib.md5(f'{key}{erode}{work}'.encode()).hexdigest()[:12] + '.png'
+    if os.path.exists(out): return out
+    im = Image.open(GEN + key + '_cut.png').convert('RGBA')
+    im = im.resize((work, round(work * im.size[1] / im.size[0])), Image.LANCZOS)
+    F = np.asarray(im).astype(np.float32) / 255
+    rgb, A = F[..., :3], F[..., 3]
+    Ae = cv2.erode(A, np.ones((erode, erode), np.uint8))
+    Ae = cv2.GaussianBlur(Ae, (0, 0), 1.2)
+    inner = (cv2.erode(A, np.ones((erode + 6, erode + 6), np.uint8)) > 0.98).astype(np.float32)
+    num = cv2.GaussianBlur(rgb * inner[..., None], (0, 0), 6); den = cv2.GaussianBlur(inner, (0, 0), 6)[..., None]
+    ext = num / np.maximum(den, 1e-4)
+    w = np.clip((0.98 - A) / 0.5, 0, 1)[..., None] * (den > 0.02)
+    rgb = rgb * (1 - w) + np.minimum(rgb, ext) * w
+    Image.fromarray((np.concatenate([rgb, Ae[..., None]], -1) * 255 + 0.5).astype(np.uint8), 'RGBA').save(out)
+    return out

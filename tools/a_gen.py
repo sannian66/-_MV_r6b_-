@@ -32,18 +32,28 @@ JOBS = {
                               'chin raised, long hair and sleeves moving in wind.'),
     'tsh_hand': (TSH, 'CU', 'Close-up of ONLY his aged long-fingered right hand and the edge of his wide embroidered sleeve, hand descending from the top of the frame, '
                              'pressing down the square handle of a large dark jade imperial seal. NO face.'),
+    # 第二棒：V13 跪地求饶者、V12 被斩倒的恶徒（无参考图，纯文字；非主角）
+    'kneel_beg': (None, 'LS', 'Full body side view (facing left) of a middle-aged wuxia bandit thug in a torn dark brown hemp robe, leather bracers and a loose '
+                              'head cloth, kneeling on the ground and bowing deeply, both palms pressed together raised in front of his lowered face, '
+                              'begging for mercy, trembling, his broken sabre dropped on the ground beside his knees. Whole figure inside the frame with margin.'),
+    'villain_fall': (None, 'LS', 'Full body side view (facing left) of a burly wuxia bandit in dark leather lamellar armour and a ragged dark cloak, '
+                                 'struck by a sword: staggering backwards off balance, head thrown back, one arm flung up, his sabre flying out of his hand, '
+                                 'cloak flaring. Whole figure inside the frame with margin.'),
 }
+VILLAIN_LOOK = ('Gritty realistic Chinese wuxia film costume, weathered fabric, scarred rough face, no modern items. ')
 
 
 def prompt(char, size, pose):
-    look = GT_LOOK if char == GT else TSH_LOOK
+    look = GT_LOOK if char == GT else (TSH_LOOK if char == TSH else VILLAIN_LOOK)
     return (BG + 'Subject: ' + pose + ' ' + look + ' ' + FRAME[size] + LIGHT_COLD + HANDS +
             'Photorealistic high-end wuxia film still, sharp focus, ultra detailed fabric and skin texture.')
 
 
 def body(k):
     c, s, p = JOBS[k]
-    return dict(model='RH_image2', prompt=prompt(c, s, p), ratio='16:9', size='4K', input=[REFS[c + '.webp']])
+    d = dict(model='RH_image2', prompt=prompt(c, s, p), ratio='16:9', size='4K')
+    if c: d['input'] = [REFS[c + '.webp']]
+    return d
 
 
 def load():

@@ -92,7 +92,7 @@ class A01(Shot):
     def scene(self, t):
         fr = self.bg.copy()
         fr = A.moon(fr, 1240, 360, 96, 1.0, phase=0.32, halo=0.55)
-        fr = fx2.god_rays(fr, (1240, 360), strength=0.35, length=0.8, color=(0.7, 0.78, 0.95), t=t, src_r=120)
+        fr = fx2.god_rays(fr, (1240, 360), strength=0.2, length=0.8, color=(0.7, 0.78, 0.95), t=t, src_r=120)
         fr = A.clouds(fr, t, 3, speed=(18, 0), y0=130, y1=640, amt=0.85, col=(0.16, 0.18, 0.23), light=(1240, 360), light_r=420, thr=0.45)
         for i, (by, amp, tone) in enumerate(((720, 160, (0.05, 0.06, 0.08)), (800, 120, (0.03, 0.035, 0.05)), (900, 90, (0.012, 0.014, 0.02)))):
             fr, _ = A.ridge(fr, by, amp, 40 + i, tone=tone, rim=(0.5, 0.58, 0.75), rim_amt=0.35 - 0.1 * i, dx=-t * (6 + 10 * i))
@@ -504,7 +504,7 @@ class V07(Shot):
         u = self.u(t)
         fr = night((0.02, 0.022, 0.035), (0.10, 0.10, 0.12), y1=700)
         fr = A.moon(fr, 960, 330, 190, 0.8, halo=0.5)
-        fr = fx2.god_rays(fr, (960, 330), strength=0.45, length=1.2, color=(0.85, 0.82, 0.72), t=t, src_r=200, occluder=None)
+        fr = fx2.god_rays(fr, (960, 330), strength=0.22, length=1.2, color=(0.85, 0.82, 0.72), t=t, src_r=200, occluder=None)
         fr = A.clouds(fr, t, 51, speed=(30, 0), y0=120, y1=420, amt=0.5, col=(0.15, 0.16, 0.2), light=(960, 330), light_r=300, thr=0.5)
         # 城楼（仰拍：梯形透视）
         m = np.zeros((H, W), np.float32)
@@ -623,19 +623,31 @@ class V10(Shot):
         return fr, (3 if 0 <= a < 0.08 else 0)
 
 
-# V11 28.93–29.86 ECU 单眼（右眼）特写：朱红反光映在瞳孔里，慢推——「我杀过」之前的一口气
+# V11 28.93–29.86 ECU 刀身当面（blade_face 精灵，第二棒替换单眼重复）：竖刀把脸劈成两半，两侧各一只眼；
+#     左侧朱红轮廓光（承接 V10 朱墨），29.40「我」起一线红光沿刃口自下而上爬升 —— 「我杀过」之前的一口气
 class V11(Shot):
     def __init__(self):
-        self.path = S('A/eyes', 'dm', crop=(0.16, 0.0, 0.84, 1.0))
+        self.path = A.defringe('A/blade_face')
     def render(self, t):
         u = self.u(t)
-        fr = night((0.01, 0.004, 0.004), (0.03, 0.01, 0.01))
-        fr, info = A.place(fr, t, self.path, (720 - 40 * u, 520), w=4300 * (1 + 0.05 * u), anc=(0.64, 0.80), rim=REDR, rim_amt=2.0,
-                           rim_dir=(-0.7, -0.4), grade=dict(expo=0.62, sat=0.45, tint=(1.0, 0.94, 0.96), gamma=1.25), wind=3, breathe=0.0)
+        fr = night((0.012, 0.005, 0.005), (0.035, 0.012, 0.012))
+        fr = A.glow(fr, (300, 500), 600, 0.25, (0.7, 0.10, 0.06))
+        fr, info = A.place(fr, t, self.path, (960 + 30 * u, 560), w=2350 * (1 + 0.05 * eio(u)), anc=(0.5, 0.40), rim=REDR, rim_amt=1.3,
+                           rim_dir=(-0.8, -0.3), grade=dict(expo=0.70, sat=0.45, tint=(1.0, 0.95, 0.95), gamma=1.2), wind=4, breathe=0.0)
         xx = np.arange(W, dtype=np.float32)[None, :, None]
-        fr = fr * (0.35 + 0.75 * np.clip(1 - np.abs(xx - 760) / 900, 0, 1))
-        p = info['to_scr']((0.595, 0.80))
-        fr = pupil_glint(fr, (p[0] + 6, p[1] - 14), 0.35, 0.8, (1.0, 0.35, 0.25))
+        fr = fr * (0.45 + 0.65 * np.clip(1 - np.abs(xx - 960) / 1100, 0, 1))
+        # 刃口红光：沿刀身（屏幕上 x≈刀中线）自下而上
+        bx0, by0 = info['to_scr']((0.5, 1.0)); bx1, by1 = info['to_scr']((0.5, 0.0))
+        q = clamp01((t - (self.t0 + 0.22)) / 0.5)
+        if q > 0:
+            y = by0 + (by1 - by0) * eio(q)
+            yy = np.arange(H, dtype=np.float32)[:, None]
+            xs = np.exp(-((np.arange(W, dtype=np.float32)[None] - bx0 - 30 * u) / 8) ** 2)
+            trail = np.clip((yy - y) / 600, 0, 1) * (yy > y) * np.exp(-np.clip(yy - y, 0, None) / 500)
+            head = np.exp(-((yy - y) / 40) ** 2)
+            band = (head * 2.0 + trail * 0.8) * xs
+            fr = fr + (band * 4.0 + cv2.GaussianBlur(band, (0, 0), 16) * 6.0)[..., None] * np.array([1.0, 0.28, 0.18], np.float32)
+        fr = ASH.draw(fr, t, 0.3, wind=(-60, -20))
         return fr, 0
 
 
@@ -1013,7 +1025,7 @@ def energy(t): return float(np.interp(t, _ET, _EV))
 # ---------------- 屏幕层：署名（前奏）——思源宋职务 + 马善政人名竖排 + 名后小朱印，墨晕逐字显出
 CREDITS = [  # (显出起点, 退场起点, 职务, 人名, x, y_top, seal)
     (0.45, 1.95, '出品人', '西几王传媒', 560, 250, '西几王'),
-    (0.60, 1.95, '后期总监', '沉溺', 360, 250, None),
+    (0.50, 1.95, '后期总监', '沉溺', 360, 250, None),
     (2.21, 3.85, '编剧 / 导演', '苏打', 420, 300, '苏打'),
     (4.06, 5.80, '美术设计', 'Cait', 1640, 250, None),
     (4.21, 5.80, '音乐', '西几王', 1440, 250, '西几王'),
@@ -1025,7 +1037,7 @@ def credits(fr, t):
     for (a, b, role, names, x, y, seal) in CREDITS:
         a_, b_ = V(a), V(b)
         if not (a_ - 0.01 <= t < b_ + 0.35): continue
-        p = clamp01((t - a_) / 1.0)
+        p = clamp01((t - a_) / 0.55)                     # 第二棒：0.55s 显全（A01 1.2s 时两条署名都已完整）
         out = clamp01((t - b_) / 0.3)
         g = T.credit_block(fr, role, names, x, y, p, role_size=30, name_size=62, seal_text=seal, seed=len(role))
         fr = fr + (g - fr) * (1 - out)
