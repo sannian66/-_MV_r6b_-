@@ -889,22 +889,26 @@ class V09(Shot):
         T.warm('谁把人命装进天平', 'kai', 92)
     def render(self, t):
         u = self.u(t)
-        fr = A.vgrad((0.012, 0.009, 0.008), (0.035, 0.026, 0.02), 0, 880)
+        fr = A.vgrad((0.004, 0.003, 0.003), (0.022, 0.015, 0.011), 0, 880)
         # 后景：两根朱漆殿柱（焦外）+ 远烛光斑
         xx = np.arange(W, dtype=np.float32)[None, :, None]; yy = np.arange(H, dtype=np.float32)[:, None, None]
         for cx_, w_ in ((250 - 60 * u, 120), (1680 - 60 * u, 130)):
             m = np.clip((w_ / 2 - np.abs(xx - cx_)) / 30, 0, 1) * (yy < 880)
             shade = 0.5 + 0.5 * np.clip((xx - cx_ + w_ / 2) / w_, 0, 1)
-            fr = fr * (1 - m) + m * np.array([0.10, 0.018, 0.012], np.float32) * shade
+            fr = fr * (1 - m) + m * np.array([0.16, 0.025, 0.015], np.float32) * shade * (0.5 + 0.8 * np.clip(1 - np.abs(yy - 500) / 500, 0, 1))
+            rim_ = np.exp(-((xx - cx_ - w_ / 2 + 8) / 6) ** 2) * (yy < 880)
+            fr = fr + rim_ * np.array([0.5, 0.25, 0.1], np.float32) * 0.35
         for i, (bx, by) in enumerate(((420, 520), (470, 560), (1460, 500), (1520, 540), (1400, 580))):
             fl = 0.85 + 0.15 * math.sin(t * 9 + i * 2)
             fr = A.glow(fr, (bx - 60 * u, by), 26, 0.55 * fl, (1.0, 0.62, 0.3), aspect=1.4)
             fr = A.glow(fr, (bx - 60 * u, by), 120, 0.10 * fl, (1.0, 0.5, 0.2))
-        fr = fx2.god_rays(fr, (1180, 40), strength=0.45, length=1.1, color=(1.0, 0.82, 0.55), t=t, src_r=200)
+        fr = fx2.god_rays(fr, (1180, 40), strength=0.38, length=1.1, color=(1.0, 0.82, 0.55), t=t, src_r=120)
         # 地面：磨光金砖（缝 + 烛光反射）
         fl_m = np.clip((yy - 880) / 3, 0, 1)
         tiles = 1 - 0.35 * ((np.mod(xx + (yy - 880) * (xx - 960) / 300, 240) < 3) | (np.mod(yy, 46) < 2))
-        fr = fr * (1 - fl_m) + fl_m * self.floor * tiles * np.array([0.05, 0.035, 0.025], np.float32)
+        fr = fr * (1 - fl_m) + fl_m * self.floor * tiles * np.array([0.035, 0.024, 0.017], np.float32)
+        for bx in (420, 1460):
+            fr = fr + fl_m * np.exp(-((xx - bx + 60 * u) / 40) ** 2) * np.exp(-(yy - 880) / 60) * np.array([0.5, 0.3, 0.12], np.float32) * 0.6
         # 天平：先在黑底合成拿到预乘色，再做倒影
         z = np.zeros((H, W, 3), np.float32)
         rot = 0.5 * math.sin(t * 1.3)
@@ -916,11 +920,11 @@ class V09(Shot):
         fr[880:960] = fr[880:960] * (1 - Ra[:80] * g) + cv2.GaussianBlur(Rf[:80], (0, 0), 3) * g
         fr = fr * (1 - Al) + P
         fr = A.glow(fr, info['to_scr']((0.78, 0.63)), 90, 0.25 + 0.1 * math.sin(t * 5), (1.0, 0.8, 0.4))   # 金玺反光
-        fr = fog(fr, t, 1, 640, 900, 0.30, (0.20, 0.15, 0.11), speed=(-30, 0), light=(1180, 40))
+        fr = fog(fr, t, 1, 700, 900, 0.16, (0.20, 0.15, 0.11), speed=(-30, 0), light=(1180, 40))
         # 前景：焦外暗柱边横移 + 焦外烛焰
         fx_ = 1980 - 520 * u
-        m = np.clip((fx_ - xx) / 40 + 0, 0, 1) * 0 + np.clip((xx - fx_) / 40, 0, 1)
-        fr = fr * (1 - 0.92 * m)
+        m = np.clip((xx - fx_) / 40, 0, 1)
+        fr = fr * (1 - 0.94 * m) + np.exp(-((xx - fx_ - 30) / 14) ** 2) * np.array([0.35, 0.18, 0.08], np.float32) * 0.4
         fr = A.glow(fr, (140 + 80 * u, 900), 70, 0.5, (1.0, 0.55, 0.25), aspect=1.3)
         # 梁下两列竖排
         L = T.Layer(); Lr = T.Layer()
