@@ -285,7 +285,7 @@ def _glitch_slices(L, q, seed):
 def draw_sent(fr, s, t, cam=(0.0, 0.0, 1.0)):
     """cam=(dx,dy,z)：字层随镜头轻微漂移（字是空间里的物体，不是死贴屏幕）"""
     if t < s.tin[0] - s.lead - 0.02: return fr
-    q_out = clamp((t - s.out) / 0.30)
+    q_out = clamp((t - s.out) / getattr(s, 'exit_len', 0.30))     # 第四棒：exit_len 让碎裂在下一个切点前收完
     if q_out >= 1: return fr
     L = T.Layer(); Lr = None
     dx, dy, z = cam

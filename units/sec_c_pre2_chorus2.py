@@ -1792,6 +1792,16 @@ SENTS = [
 ]
 
 
+# 第四棒：碎裂/故障出场不许跨切点（评审：切点帧上的碎字残片像出错）——出场在下一切点前收完，最短 0.12s
+_CUTS_S = [f / FPS for f in CUT_F[1:-1]]
+for _s in SENTS:
+    _nx = next((c for c in _CUTS_S if c > _s.out - 1e-6), None)
+    if _nx is None or _s.exit == 'cut': continue
+    if _nx - _s.out < 0.30:
+        if _nx - _s.out < 0.12: _s.out = _nx - 0.12
+        _s.exit_len = max(0.12, _nx - _s.out - 1 / FPS)
+
+
 class _Lazy:
     def __init__(self, cls): self.cls = cls; self.t0 = cls.t0; self.t1 = cls.t1; self.obj = None; self.id = cls.__name__
     def render(self, t):
