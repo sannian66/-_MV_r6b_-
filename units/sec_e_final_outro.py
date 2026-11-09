@@ -542,7 +542,7 @@ class E10(Shot):   # S119（第三棒重做）碎纸扑面：被斩碎的律令�
         bg = (0.015 + 0.04 * n)[..., None] * np.array([1.0, 0.85, 0.75], np.float32) + glow[..., None] * np.array([0.45, 0.12, 0.04], np.float32) * (0.6 + 0.5 * n[..., None])
         self.bg = cv2.resize(bg.astype(np.float32), (W, H))
         self.sh = R3.Shreds(119, n=70, gold=0.3, size=(60, 200), spread=(1500, 700), zr=(0.5, 3.4))
-        self.l = LyrO([('它', 520, 430, 240, 'serif_black', WHITE_T, CT(51, 4)), ('自', 1330, 380, 190, 'serif_black', GOLD_T, CT(51, 5)),
+        self.l = LyrO([('它', 520, 430, 240, 'serif_black', GOLD_T, CT(51, 4)), ('自', 1330, 380, 190, 'serif_black', GOLD_T, CT(51, 5)),
                        ('己', 1520, 560, 190, 'serif_black', GOLD_T, CT(51, 6))], CT(51, 7) - 0.12, seed=70, glow=0.4, outline=4)
 
     def render(self, t):
@@ -728,7 +728,7 @@ L_GU = None
 def lyr_gu():
     global L_GU
     if L_GU is None:
-        L_GU = Sub('骨未凉', cts(52, [3, 4, 5]), 'left', CT(53, 0) - 0.15, red='骨', seed=110)
+        L_GU = Sub('骨未凉', [CT(52, 3), CT(52, 4), min(CT(52, 5), 209.68)], 'left', CT(53, 0) - 0.15, red='骨', seed=110)   # 第六棒：三字在 E14T 内出完（凉 提前 0.3s）
     return L_GU
 
 
@@ -1593,7 +1593,7 @@ CUTS = {   # 第三棒：亮底上不再用白色系转场（flash_white 0 处�
     'E02': ('hard', 0, 0, {}),
     'E03': ('ink_swallow', 0.10, 0.22, dict(center=(1150, 360), seed=3)),
     'E04': ('hard', 0, 0, {}),
-    'E05': ('whip_pan_blur', 0.05, 0.10, dict(direction='right')),
+    'E05': ('whip_pan_blur', 0.05, 0.10, dict(direction='right', strength=0.45)),   # 第六棒：减弱，模糊帧里留住匾纹残影
     'E06': ('occlusion', 0.08, 0.16, dict(kind='pillar', direction=-1, color=(0.03, 0.02, 0.015))),
     'E07': ('hard', 0, 0, {}),
     'E08': ('hard', 0, 0, {}),
