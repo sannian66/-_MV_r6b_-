@@ -27,6 +27,10 @@ def chorus1():
 
 def frame(f, cache):
     t = f / FPS
+    import sections as SEC                      # 第四轮：各组 units/sec_*.py 接管自己的帧区间（READY=True 时）
+    m = SEC.lookup(f)
+    if m is not None:
+        return m.frame(f, cache.setdefault('_v4_' + m.__name__, {}))
     if C1_F0 <= f < C1_F1:
         C, X = chorus1()
         fr, _ = X.frame(t, 1 / FPS)
