@@ -233,27 +233,27 @@ class C02(Shot):
         fr = candle_room(t, glow_c=(960, 120), amt=1.3) * 0.8
         fr = fog(fr, t, 3, density=0.35, y0=200, y1=900, color=(0.30, 0.22, 0.15), speed=(12, -4))
         hand_y = 70 - oy * 0.6
-        tips = [(830, hand_y + 300), (900, hand_y + 330), (980, hand_y + 340), (1060, hand_y + 320), (1120, hand_y + 280), (790, hand_y + 250)]
+        tips = [(830, hand_y + 300), (900, hand_y + 330), (980, hand_y + 340), (1060, hand_y + 320), (1120, hand_y + 280), (790, hand_y + 250)]  # 第四棒：字 72→104px、挂低、画在手前
+        fr, _ = put(fr, t, 'S062/puppeteer', 960, hand_y, 640, anchor='src', src=(0.5, 0.06), rim=WARM, rim_amt=2.2, rim_dir=(0, -1),
+                    expo=0.8, sat=0.4, tint=(1.0, 0.92, 0.82), wind=2)
         s = Sent(28, [5, 6, 7, 8, 9, 10], 0, 0, size=70, mode='type', red='', glitch='剧本')
         for i, x in enumerate(self.XS):
             ti = s.tin[i]
             sw = 9 * math.sin(t * 2.2 + i * 1.3) + 22 * pulse(t, ti, 0.25) * (1 if i % 2 else -1)
-            ly = 560 + 90 * math.sin(i * 1.7) - oy * 0.4
+            ly = 690 + 70 * math.sin(i * 1.7) - oy * 0.4
             jerk = -40 * pulse(t, ti, 0.12)
             end = (x + sw, ly + jerk - 50)
             fr = red_line(fr, tips[i], end, w=2, amt=0.9)
             if t >= ti:
                 c = s.text[i]
-                L = glyph_layer(c, end[0], end[1] + 60, 72, CREAM if c not in '剧本' else (1.0, 0.86, 0.6), font='serif_sb',
+                L = glyph_layer(c, end[0], end[1] + 74, 104, CREAM if c not in '剧本' else (1.0, 0.86, 0.6), font='serif_sb',
                                 rot=-sw * 0.6, scale=1 + 0.15 * pulse(t, ti, 0.06))
                 fr = T.compose(fr, L, shadow=0.6, shadow_sigma=14, glow=0.25, glow_sigma=10)
                 if c in '剧本':
                     off = 7 * pulse(t, ti, 0.3) + 3
                     for dx, cc in ((-off, (1, 0.1, 0.1)), (off, (0.1, 0.6, 1.0))):
-                        L2 = glyph_layer(c, end[0] + dx, end[1] + 60, 72, cc, font='serif_sb', rot=-sw * 0.6, alpha=0.5)
+                        L2 = glyph_layer(c, end[0] + dx, end[1] + 74, 104, cc, font='serif_sb', rot=-sw * 0.6, alpha=0.5)
                         fr = T.compose(fr, L2, shadow=0, glow=0)
-        fr, _ = put(fr, t, 'S062/puppeteer', 960, hand_y, 640, anchor='src', src=(0.5, 0.06), rim=WARM, rim_amt=2.2, rim_dir=(0, -1),
-                    expo=0.8, sat=0.4, tint=(1.0, 0.92, 0.82), wind=2)
         return fr
 
 
