@@ -1,0 +1,59 @@
+{
+ "spent": 18,
+ "jobs": {
+  "eyes": [
+   {
+    "task_id": "893325b0-967f-4fb1-ac67-3028eeeef5cb",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/eyes_893325b0_0.png",
+    "accepted": true
+   }
+  ],
+  "blade_face": [
+   {
+    "task_id": "a8251b2c-860c-41b6-87d7-400a49a0102b",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/blade_face_a8251b2c_0.png",
+    "accepted": true
+   }
+  ],
+  "slash_up": [
+   {
+    "task_id": "df6a6a83-b46a-40d3-a54e-82d8be4a3818",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/slash_up_df6a6a83_0.png",
+    "accepted": true
+   }
+  ],
+  "boots": [
+   {
+    "task_id": "3be472e2-97a4-4b74-a952-a1c8ba05cc82",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/boots_3be472e2_0.png",
+    "accepted": true
+   }
+  ],
+  "tsh_raise": [
+   {
+    "task_id": "0f48fbe3-f39e-469b-bec5-43d38718800d",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/tsh_raise_0f48fbe3_0.png",
+    "accepted": true
+   }
+  ],
+  "tsh_hand": [
+   {
+    "task_id": "74335986-b749-422b-9f8a-bc894042ca4e",
+    "status": "done",
+    "pts": 3,
+    "file": "/workspace/work/a_cands/tsh_hand_74335986_0.png",
+    "accepted": true
+   }
+  ]
+ }
+}
