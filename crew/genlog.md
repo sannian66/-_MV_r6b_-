@@ -371,3 +371,7 @@
 | 11-09 04:22 | E组/E_r6/shoulder_low | RH_image2 | 4K 16:9 | 3 | 4b46ec30-5cbc-4e8d-9f67-0d304f0c2a73 | completed | gen_cands/E/E_r6/shoulder_low_try1_0.png | [E组] 第六棒 shoulder_low try1 |
 | 11-09 04:22 | E组/E_r6/emperor_cu | RH_image2 | 4K 16:9 | 3 | c0acf0f3-0c15-4a02-9c1c-69a3683d7f07 | completed | gen_cands/E/E_r6/emperor_cu_try1_0.png | [E组] 第六棒 emperor_cu try1 |
 | 11-09 04:23 | E组/E_r6/blade_vert | RH_image2 | 4K 16:9 | 3 | 78cc68f7-f8eb-4add-99cb-fc18cdeb598a | completed | gen_cands/E/E_r6/blade_vert_try1_0.png | [E组] 第六棒 blade_vert try1 |
+| 11-09 12:52 | A/tsh_seal_lift | RH_image2 | 4K 16:9 | 0 | 01ff5849-3970-4061-9c2e-16837354ac35 | 采用 | assets/gen/A_r6/tsh_seal_lift_raw.png | try1 采用（带脸，V08 只裁手+玺） |
+| 11-09 12:52 | A/bronze_scale | RH_image2 | 4K 16:9 | 0 | b48a9237-d21f-42d3-80cd-e8f5eecb17ec | 采用 | assets/gen/A_r6/bronze_scale_raw.png | try1 采用（V09 底图） |
+| 11-09 12:52 | A/giant_seal | RH_image2 | 4K 16:9 | 0 | eca9483c-53b8-4110-8955-e2a087037091 | 采用 | assets/gen/A_r6/giant_seal_raw.png | try1 采用（V16/V17 巨印侧面） |
+| 11-09 12:52 | A/carve_grip | RH_image2 | 4K 16:9 | 0 | a5fb7985-55d5-429f-bcab-b85d9aa7eac2 | 采用 | assets/gen/A_r6/carve_grip_raw.png | try1 采用（V15 双手握柄） |
