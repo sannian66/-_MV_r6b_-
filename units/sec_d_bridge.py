@@ -536,9 +536,7 @@ class S08_Seals(Shot):
         u = self.u(t)
         fr = D.paper(16).copy()
         fr = D.wash(fr, 0.06, 0.0, 1.0, seed=17)
-        L = D.text_layer([('人', 960, 540, 120, 1.0, 1.0, 0.0, CINNABAR)], fname='serif_black')
-        fr = D.ink_text(fr, L)
-        hits = []
+        hits = []                                            # [r7] 去掉纸心朱「人」（与三方朱批同屏读成「理人所应」）
         for (ch, x, y, s_, sd), on in zip(self.PI, O[41][9:12]):
             th = V(on)
             p = cl((t - (th - 0.14)) / 0.32)
@@ -1101,14 +1099,30 @@ class S21_Charge(Shot):
     t0, t1 = 182.81, 183.69
     TC = 183.06
     def __init__(self):
-        self.P = R5.Plaques(seed=21, n_far=13, n_mid=7, n_near=3, ytop=40, cut=(self.TC, (-100, 780), (2000, 330)), gold_chars='规矩律令法')
+        self.P = R5.Plaques(seed=21, n_far=13, n_mid=7, n_near=3, ytop=40, cut=(self.TC, (-100, 780), (2000, 330)), gold_chars=())     # [r7] 木牌不再有金字抢「矩」「我」
 
     def render(self, t):
         u = self.u(t)
         fl = impact(t, self.TC, 0.12) + 0.6 * impact(t, 183.35, 0.1)
         fr = D.night(t, 211, top=(0.03, 0.032, 0.042), bot=(0.008, 0.008, 0.012), glow=(1150, 260, 460, (0.5, 0.58, 0.85), 0.28 + 0.9 * fl), clouds=0.6, drift=70)
         fr = D.lightning(fr, t, 183.35, (1650, 100), (1350, 360), seed=3, amt=0.9)
-        fr = self.P.render(fr, t, light=1.25, rim=COLD, rim_amt=0.55, flash=fl, fog=(0.03, 0.033, 0.045))
+        fr = self.P.render(fr, t, light=1.0, rim=COLD, rim_amt=0.45, flash=fl, fog=(0.03, 0.033, 0.045))
+        # [r7] P0「矩」182.92：「规」（上一镜立起的金门余像）+「矩」落拍金字砸在木牌林前；183.06 与木牌一起被同一刀斩断、错开熄灭
+        GJ = [dict(ch='规', x=600, y=600, size=250, rot=0.0, font='serif_black', idx=0, emph=False),
+              dict(ch='矩', x=960, y=545, size=320, rot=0.0, font='serif_black', idx=1, emph=False)]
+        tj = V(O[45][4])
+        if t < self.TC:
+            pj = cp(t, O[45][4], 0.1)
+            its = [('规', 600, 600, 250, 1.0, 'g')]
+            if pj > 0: its.append(('矩', 960, 545, 320, pj, 'g'))
+            fr = D.song(fr, its)
+            fr = fr + impact(t, tj, 0.1) * np.array([0.25, 0.16, 0.05], np.float32) * 0.5
+        else:
+            q = cl((t - self.TC) / 0.4)
+            f2 = T.slash_cut(fr, '规矩', 0.02 + 0.98 * q, places=GJ, fname='serif_black', color=tuple(GOLD), angle=-12.1, cut_at=0.02,
+                             offset=0, slide=0.3, appear=0.0, style_kw=dict(shadow=0.6, outline=0, glow=0.45, glow_color=(1.0, 0.55, 0.2)))
+            a_ = 1 - cl((t - self.TC - 0.16) / 0.16)
+            fr = fr + (f2 - fr) * a_
         if self.TC - 0.03 <= t < self.TC + 0.22:
             q = (t - self.TC + 0.03) / 0.25
             fr = TR._slash_streak(fr, (lerp(-100, 2000, eo(q)), lerp(780, 330, eo(q))), np.array((0.977, -0.21)), q, length=2400, width=7, color=(1.0, 0.92, 0.85))
@@ -1119,7 +1133,7 @@ class S21_Charge(Shot):
         for ch, x_, y_, sz, on, sd in (('我', 1460, 430, 330, O[45][5], 31), ('偏', 1500, 770, 200, O[45][6], 32)):
             tv = V(on)
             pq = cl((t - (tv - 0.24)) / 0.24)
-            if pq > 0: fr = D.shard_glyph(fr, ch, x_, y_, sz, pq, seed=sd, spread=620, col=(0.50, 0.34, 0.20), rim=(0.75, 0.82, 1.0))
+            if pq > 0: fr = D.shard_glyph(fr, ch, x_, y_, sz, pq, seed=sd, spread=620, col=(0.86, 0.64, 0.38), rim=(0.85, 0.9, 1.0))   # [r7] 提亮，压过木牌
         return K.cam(fr, 1.03 + 0.05 * u, *K.shake(t, 4 + 10 * impact(t, self.TC, 0.15), 3, 21)[:2], rot=1.0 - 2.0 * u), 0.0
 
 
