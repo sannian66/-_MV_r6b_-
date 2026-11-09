@@ -1202,7 +1202,7 @@ class E27b(Shot):   # 斩：纯刀光——一道巨大的金白弧光自左上�
         if u < 0.1: fr = fr * 1.2 + np.array([0.35, 0.16, 0.05], np.float32) * (1 - u / 0.1)
         fr = RS.fx_embers(fr, t, 2702, amt=0.8, n=60)
         # 第四棒：刀光不再无主 —— 他（低机位跨步精灵翻转、第二次用：墨黑剪影 + 朱金轮廓光）随刀光落地，刀尖正是弧光的尽头
-        fr, info = put(fr, t, 'E_r4/low_stride|flip', (900 - 60 * pr, 1290 - 40 * pr), h=1080, rim=(1.0, 0.55, 0.25), rim_amt=4.5, rim_dir=(0.7, -0.6),
+        fr, info = put(fr, t, 'E_r4/low_stride|flip', (900 - 60 * pr, 1400 - 40 * pr), h=1300, rim=(1.0, 0.6, 0.28), rim_amt=9.0, rim_dir=(0.7, -0.6),   # 第六棒：放大 + 朱金轮廓光加倍
                        grade=dict(expo=0.30, sat=0.5, tint=(1.05, 0.9, 0.85), lift=0.0, gamma=1.3), wind=16, mblur=(int(30 * (1 - pr)), 0))
         return bloom(fr, 0.7, 0.7)
 
@@ -1257,8 +1257,18 @@ class E28(Shot):   # S132b ECU 暗红腰带与马尾在逆光里翻飞（红绳�
     def render(self, t):
         u = self.u(t)
         fr = self.bg.copy()
-        fr, info = put(fr, t, 'S121/wind_sash|crop=0,0.55,0.52,1', (1040 - 80 * u, 560), w=2400, anc=(0.5, 0.5), rot=-6,
-                       rim=GOLDW, rim_amt=3.5, wind=22, grade=G_DAWN)
+        z, info = put(np.zeros((H, W, 3), np.float32), t, 'S121/wind_sash|crop=0,0.22,0.45,1', (1000 - 70 * u, 600), w=2000, anc=(0.5, 0.5), rot=-6,
+                      rim=GOLDW, rim_amt=3.5, wind=22, grade=G_DAWN)
+        A = info['A']                                                     # 第六棒：取景放宽到马尾 + 腰带；腰带给编织纹 + 逆光透红边
+        C = z / np.maximum(A, 1e-3)[..., None]
+        red = np.clip((C[..., 0] - 1.6 * C[..., 1]) * 12, 0, 1) * (A > 0.3)
+        red = cv2.GaussianBlur(red.astype(np.float32), (0, 0), 1.5)
+        if not hasattr(self, 'wv'): self.wv = R6.weave(H, W, seed=28, pitch=6)
+        C = C * (1 + (0.55 * (self.wv - 0.5) * red))[..., None]
+        lum = cv2.GaussianBlur(fr.mean(-1), (0, 0), 20)
+        edge = np.clip(red - cv2.GaussianBlur(cv2.erode(red, np.ones((9, 9), np.uint8)), (0, 0), 3), 0, 1)
+        C = C + (red * np.clip(lum - 0.3, 0, 1) * 0.55)[..., None] * np.array([0.9, 0.12, 0.04], np.float32) + (edge * (0.4 + lum))[..., None] * np.array([1.0, 0.32, 0.08], np.float32) * 1.4
+        fr = fr * (1 - A[..., None]) + C * A[..., None]
         fr = E.dust_motes(fr, t, 1331, n=90, amt=0.6, drift=(-80, -10), depth=True)
         return bloom(fr, 0.8, 0.45)
 
