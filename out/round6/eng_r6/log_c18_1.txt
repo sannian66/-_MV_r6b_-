@@ -1,0 +1,1 @@
+{"sec": 136.9, "fast": 1, "secs": 6.9, "draws": 39, "png": "out/round6/eng_r6/136.9_fast1.png"}
