@@ -1,2 +1,6 @@
 {"sec": 136.9, "fast": 0, "old": false, "secs": 40.83, "draws": 39, "png": "out/round6/eng_r6/136.9_fast0.png"}
 {"sec": 136.9, "fast": 0, "old": true, "secs": 41.13, "draws": 39, "png": "out/round6/eng_r6/136.9_fast0_old.png"}
+/workspace/work/mv/units/c1kit.py:289: RuntimeWarning: invalid value encountered in power
+  edge_y = np.where(x > tipx, 1 - ((x - tipx) / (L - tipx)) ** 1.6 * 0.95, 1.0)
+tools/cpu_slot.sh: line 5: 11503 Killed                  "$@"
+CHAIN1_DONE
