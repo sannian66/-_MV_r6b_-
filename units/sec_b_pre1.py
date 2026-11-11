@@ -27,6 +27,10 @@ def _on(k, d='1'): return os.environ.get(k, d) != '0'
 
 
 NOVLYR = _on('R5_NOVLYR')
+# r6b（用户 2026-11-11 19:18 成片去字）：R6B_TXT=1（默认）去掉本段所有大/中字——P01 朱笔「谁配」→ 朱笔勾销两列人名、P02 纸面乱码缩成小字、
+#   P04「框」及其小框、P05 门上「谁的规矩」、P08 云隙「天」+「不信」（换成闪电劈开云层 + 鬼屠仰天）、P09「命」印 → 太上皇玉玺（同一方玉玺被刀柄撞碎）、
+#   P10/P11 铅字面去字（素面钢活字）及「当」压印。保留：P05 牌匾「规矩」、P01 纸面小字乱码、所有很小的字。R6B_TXT=0 回第六轮。
+R6B_TXT = os.environ.get('R6B_TXT', '1') == '1'
 READY = True   # 第五轮：用户看的是含 B 组新版的整片，接入
 F0, F1 = 1321, 1784
 C1_FROM = 1779                    # 59.30 起交给副歌一（它的 S028 =「血」字头硬切）
@@ -75,6 +79,35 @@ def ledger(seed, cols=13, size=46, x0=150, x1=1770, y0=150, y1=930, rule=(0.55, 
     return fr.astype(np.float32)
 
 
+# r6b：朱笔勾销 —— 判官笔沿两列人名各竖勾一道（生死簿「勾决」），笔触起笔顿、行笔渐细、收笔出锋 + 飞白；不是字
+R6B_STK = [((706, 318), (720, 702)), ((831, 498), (842, 892))]
+
+
+def r6b_strike_tip(p0, p1, t):
+    i, p = (1, p1) if p1 > 0 else (0, p0)
+    (a, b) = R6B_STK[i]; e = eio(p)
+    tip = (a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e)
+    if i == 1 and p >= 1: tip = (b[0] + 40 * clamp01((t - 45.0) / 0.3), b[1] - 60 * max(0.0, t - 45.0))
+    return tip
+
+
+def r6b_strikes(fr, p0, p1, t, color=(0.62, 0.06, 0.04)):
+    m = np.zeros((H, W), np.float32)
+    for (a, b), p in zip(R6B_STK, (p0, p1)):
+        if p <= 0: continue
+        e = eio(p); n = max(2, int(60 * e))
+        for j in range(n):
+            s0 = j / n * e; s1 = (j + 1) / n * e
+            q0 = (a[0] + (b[0] - a[0]) * s0, a[1] + (b[1] - a[1]) * s0); q1 = (a[0] + (b[0] - a[0]) * s1, a[1] + (b[1] - a[1]) * s1)
+            w = 26 * (1.0 - 0.45 * s1) * (1 - 0.7 * clamp01((s1 - 0.86) / 0.14) if p >= 1 else 1.0)
+            cv2.line(m, (int(q0[0]), int(q0[1])), (int(q1[0]), int(q1[1])), 1.0, max(2, int(w)), cv2.LINE_AA)
+        cv2.circle(m, (int(a[0] - 3), int(a[1] + 6)), 19, 1.0, -1, cv2.LINE_AA)        # 起笔顿点
+    if m.max() <= 0: return fr
+    nz = cv2.resize(K.fbm(H // 8, W // 2, 77, base=6, octaves=4), (W, H))          # 竖向飞白丝
+    m = cv2.GaussianBlur(m, (0, 0), 1.2) * np.clip(0.55 + (nz - 0.35) * 2.2, 0.25, 1.0)
+    return fr * (1 - 0.88 * m[..., None]) + m[..., None] * 0.88 * np.array(color, np.float32)
+
+
 class P01(Shot):
     def __init__(self):
         self.bg = ledger(201, chars=_moji() if R5 else None)
@@ -102,6 +135,7 @@ class P01(Shot):
         ang = pc * 9.0
         tip = (pp['x'] + 40 + 90 * pc + 30 * math.sin(ang), pp['y'] - 70 + 150 * pc + 25 * math.cos(ang * 1.3))
         if pc >= 1 and k == 1: tip = (pp['x'] + 130, pp['y'] + 90 - 60 * (t - 45.0))
+        if R6B_TXT: tip = r6b_strike_tip(p0, p1, t)                    # r6b：笔尖跟朱笔勾销线走（不写字）
         if R6:
             fr = self.hand_r6(fr, t, tip, pc)
         elif R5:
@@ -124,8 +158,9 @@ class P01(Shot):
             # 手：笔尖在精灵内约 (0.638, 0.88)；镜像（手从右上入画，不挡字）
             fr, _ = put_at(fr, self.hand, t, (0.638, 0.88), tip, 1500, grade=GR_WARM, rim=RIM_WARM, wind_amp=0, breathe=0.0,
                            shade=None, wrap=0.2)
-        fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='kai', color=(0.62, 0.06, 0.04), splatter=True,
-                           style_kw=dict(shadow=0.15))
+        if R6B_TXT: fr = r6b_strikes(fr, p0, p1, t)
+        else: fr = T.brush_write(fr, '谁配', [p0, p1], places=self.P, fname='kai', color=(0.62, 0.06, 0.04), splatter=True,
+                                 style_kw=dict(shadow=0.15))
         z = 1.0 + 0.08 * eio(u)
         fr = cam(fr, z, 0, 0, 2.0 * eio(u) - 1.0)
         # 入口：墨从黑中洇开成纸（接 A 组）
@@ -180,6 +215,7 @@ class P02(Shot):
     def __init__(self):
         # r6-B3：P02 微距纸面人名也改乱码（与 P01 同一套 GBK 误解码字，NotoSerifSC 全覆盖、无缺字方块）；B_R6_P02MOJI=0 回滚
         self.bg = ledger(202, cols=6, size=110, x0=40, x1=1880, y0=130, y1=980, chars=_moji() if (R6 and _on('B_R6_P02MOJI')) else None)
+        if R6B_TXT: self.bg = ledger(202, cols=15, size=50, x0=40, x1=1880, y0=110, y1=1000, chars=_moji())   # r6b：纸面乱码 110→50px（小字底纹，不再是中字墙）
         T.warm('写生死簿', 'serif_black', 130)
         self.P = [dict(ch=c, x=1010, y=250 + i * 170, size=130, rot=0, font='serif_black', idx=i, emph=c in '生死')
                   for i, c in enumerate('写生死簿')]
@@ -316,10 +352,11 @@ class P04(Shot):
         L = T.Layer()
         for ch, xx, yy, s, pc in (('善', 1450, 330, 160, pr[0]), ('恶', 1590, 500, 160, pr[1])):
             if pc > 0: T.place(L, ch, xx, yy, s, color=(0.10, 0.08, 0.07), fname='xing', alpha=min(1, pc * 2), scale=1 + (1 - eout(pc)) * 1.2)
+        if R6B_TXT: pr = [0.0, 0.0, 0.0]                                    # r6b：「框」字与它外面的小朱框一起去（指尖下的大朱框保留）
         if pr[2] > 0: T.place(L, '框', 1520, 720, 200, color=(0.62, 0.06, 0.04), fname='xing', alpha=min(1, pr[2] * 2), scale=1 + (1 - eout(pr[2])) * 1.2)
         fr = T.compose(fr, L, shadow=0.2)
         kq = clamp01((t - (self.T_KUANG - 0.25)) / 0.25)
-        if kq > 0:
+        if kq > 0 and not R6B_TXT:
             fr = brush_box(fr, (1520, 720), 150, kq, seed=44, width=16)
         # 后拉：开头 z=230/170（与 P03 框同大同位），拉到 1.0
         z0 = P03.HALF / self.HALF
@@ -427,7 +464,7 @@ class P05(Shot):
         fr = np.ascontiguousarray(fr[off:off + H]); seam = self.seam[off:off + H]; studs = self.studs[off:off + H]
         fr, _ = self.plq.draw(fr, t, 960, (310 if R6 else 270) - off, 600, sheen=clamp01((t - self.t0) / 1.2) * 1.4 - 0.2)
         # 金箔浮字：左扇「谁的」右扇「规矩」，被中缝与板缝切断（缝里漏出暗红）
-        pr = tp(9, [0, 1, 2, 3], t, 0.2)
+        pr = [0.0] * 4 if R6B_TXT else tp(9, [0, 1, 2, 3], t, 0.2)        # r6b：门上「谁的规矩」去掉（牌匾「规矩」保留）
         L = T.Layer()
         pos = [(560, 0), (790, 0), (1130, 0), (1360, 0)]
         for i, (ch, pc) in enumerate(zip('谁的规矩', pr)):
@@ -589,6 +626,7 @@ class P08(Shot):
 
     def render(self, t):
         u = self.u(t)
+        if R6B_TXT: return self.render_r6b(t, u)
         fr = self.p7.sky(t * 1.3, rot=1.2)
         m = cv2.GaussianBlur(self.m.astype(np.float32), (0, 0), 7)
         nz = cv2.resize(K.fbm(H // 4, W // 4, 81, base=6, octaves=4), (W, H))
@@ -625,6 +663,33 @@ class P08(Shot):
         return fr, (3 if abs(t - self.T_TIAN) < 0.04 else 0)
 
 
+    def render_r6b(self, t, u):
+        """r6b：去云隙「天」与「不信」→ 同一片旋云天幕 + 52.14 闪电劈下、沿劈线把云层撕开一道冷白云隙（光从缝里泄下），
+        P07 的鬼屠仰天低机位入画（下三分之一，冷轮廓光被闪电一拍打亮），雨。不加字。"""
+        fr = self.p7.sky(t * 1.3, rot=1.2)
+        x, y = K.grid()
+        a = np.array([1300.0, 120.0]); b = np.array([980.0, 560.0]); d = (b - a) / np.linalg.norm(b - a); nn = np.array([-d[1], d[0]])
+        side = ((x - a[0]) * nn[0] + (y - a[1]) * nn[1]); along = ((x - a[0]) * d[0] + (y - a[1]) * d[1])
+        jag = (cv2.resize(K.fbm(H // 8, W // 8, 82, base=4, octaves=3), (W, H)) - 0.5) * 70
+        ps = eout(clamp01((t - (self.T_TIAN + 0.02)) / 0.45), 2)
+        lit = 0.25 + 0.75 * clamp01((t - (self.T_TIAN - 0.05)) / 0.06) * (0.6 + 0.4 * math.exp(-(t - self.T_TIAN) / 0.4) if t > self.T_TIAN else 1.0)
+        if t >= self.T_TIAN - 0.05:
+            fl = clamp01((lit - 0.25) / 0.75)
+            ill = np.exp(-np.abs(side + jag * 1.6) / (60 + 90 * ps)) * np.clip((along + 250) / 250, 0, 1) * np.exp(-np.clip(along - 300, 0, None) / 220)
+            rift = np.clip((6 + 50 * ps - np.abs(side + jag * 1.4)) / 18, 0, 1) * np.clip((along + 100) / 200, 0, 1) * np.exp(-np.clip(along - 380, 0, None) / 260)
+            glowc = np.array([0.85, 0.88, 1.0], np.float32)
+            fr = fr * (1 + (2.0 * ill * (0.35 + 0.65 * fl))[..., None]) + (ill * 0.05 * fl)[..., None] * glowc     # 闪电把劈线两侧的云层照亮（云纹本身被打亮，不是光柱）
+            fr = fr * (1 - 0.5 * rift[..., None]) + rift[..., None] * glowc * 0.55 * (0.4 + 0.6 * fl)                 # 云层被劈开一道细缝，缝里漏冷白天光
+            fr = self.fx2.Lightning.draw(self.bolt, fr, t, self.T_TIAN, intensity=1.0)
+        crane = -40 + 50 * eio(u)
+        fr, _ = put(fr, self.p7.sp, t, 1100, (1260, 1080 + 720 + crane), rim=dict(col=(0.75, 0.82, 1.0), amt=1.6 + 2.0 * (lit - 0.25), dir=(0.1, -1.0)),
+                    grade=GR_COLD, wind_amp=6, shade=(400, 1500, 0.25, 700, 0.35), keep_red=self.p7.kr)
+        fr = BK.rain(fr, t, 981, amt=0.35, n=520, angle=-8, speed=2500)
+        z = 1.0 + 0.06 * eio(u)
+        fr = cam(fr, z, 0, 30 - 60 * eio(u), 3 * eio(u))
+        return fr, (3 if abs(t - self.T_TIAN) < 0.04 else 0)
+
+
 # =====================================================================================
 # P09 MCU：鬼屠握拳（fist）；「命」朱印从背后逼近；53.17 刀柄回撞（pommel_thrust），印碎
 class P09(Shot):
@@ -638,6 +703,7 @@ class P09(Shot):
         self.a = spr('B_r4/fist_pt'); self.b = spr('B_r4/pommel_thrust_pt')
         self.bg = BK.dark_bg(909, 0.02, 0.06, tint=(1.1, 1.0, 1.0))
         self.seal = T.seal_layer('命', self.SC[0], self.SC[1], 470, style='yin', rot=-4, seed=9)
+        if R6B_TXT: self.seal = r6b_jade_layer(self.SC, 560)              # r6b：「命」朱印 → A 段太上皇那方玉玺（同一道具，无字面朝外）
         T.warm('不信', 'kai', 120)
 
     def render(self, t):
@@ -685,6 +751,21 @@ class P09(Shot):
         return fr, (4 if k2 > 0.5 else 0)
 
 
+def r6b_jade_layer(c, wpx, rot=-4):
+    """A 段玉玺生图（R5_A/jade_seal_v2_cut：羊脂白玉 + 九龙钮 + 金镶），压暖、带红环境光，做成 T.Layer 供砸入/碎裂复用。"""
+    from PIL import Image
+    im = np.asarray(Image.open(ROOT + '/assets/gen/R5_A/jade_seal_v2_cut.png').convert('RGBA')).astype(np.float32) / 255
+    a = im[..., 3]; ys, xs = np.nonzero(a > 0.2)
+    im = im[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    h0, w0 = im.shape[:2]; hpx = int(round(h0 * wpx / w0))
+    im = cv2.resize(im, (wpx, hpx), interpolation=cv2.INTER_AREA)
+    M = cv2.getRotationMatrix2D((wpx / 2, hpx / 2), rot, 1.0)
+    im = cv2.warpAffine(im, M, (wpx, hpx))
+    lum = im[..., :3].mean(-1, keepdims=True); rgb = (im[..., :3] * 0.55 + lum * 0.45) ** 1.25 * np.array([0.95, 0.80, 0.74], np.float32) * 0.70   # 压暗降饱和，进红暗场
+    L = T.Layer(); L.paste_rgba(rgb, im[..., 3], int(c[0] - wpx / 2), int(c[1] - hpx / 2))
+    return L
+
+
 # =====================================================================================
 # 铅字块（P10/P11 共用）：金属活字，宋体浮凸
 def type_block(ch, size=220, seed=0, face=(0.42, 0.42, 0.45), gold=0.0):
@@ -701,6 +782,7 @@ def type_block(ch, size=220, seed=0, face=(0.42, 0.42, 0.45), gold=0.0):
     bev = np.clip(1 - ed / 14, 0, 1)
     rgb += (bev * ((xx < yy) * 0.25 - 0.1))[..., None]
     g = T.glyph(ch, 'serif_black', int(s * 0.74), False)      # 方形画布 ≈1.5×size、字心居中 → 居中裁 s×s
+    if R6B_TXT: g = np.zeros_like(g); gold = 0.0                # r6b：铅字面去字 → 素面钢活字（只留倒角、磨损）
     gh, gw = g.shape
     gm = np.zeros((s, s), np.float32)
     if gh >= s:
@@ -833,7 +915,7 @@ class P11(Shot):
         fr = self.bg.copy()
         x, y = K.grid()
         # 「当」落地处在纸上留下的朱红压印（55.1 之后逐渐显影）
-        if t >= self.T_DANG:
+        if t >= self.T_DANG and not R6B_TXT:                         # r6b：「当」朱红压印去掉
             Li = T.Layer(); T.place(Li, '当', 1060, 790, 220, color='red', fname='serif_black', sy=0.42, alpha=min(1, (t - self.T_DANG) / 0.15) * 0.85)
             fr = fr * (1 - Li.A[..., None] * 0.8) + Li.A[..., None] * np.array([0.55, 0.05, 0.03], np.float32)
         # 背景虚焦光斑（冷/暖）
