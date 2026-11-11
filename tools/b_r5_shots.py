@@ -3,7 +3,7 @@
 """
 import sys, os
 sys.argv_saved = list(sys.argv)
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 import importlib.util

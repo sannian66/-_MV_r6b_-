@@ -1,6 +1,6 @@
 #!/bin/bash
 # usage: run_chunks.sh a0 a1 [b0 b1 ...] -> renders pairs in parallel (2 at a time)
-cd /workspace/work/mv
+cd /workspace/work/mv_r6b
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 args=("$@")
 for ((i=0; i<${#args[@]}; i+=2)); do

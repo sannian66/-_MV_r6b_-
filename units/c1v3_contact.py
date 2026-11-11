@@ -1,11 +1,11 @@
 """v3 联系表：每镜主运镜起止帧（从成片抽帧）+ 运镜说明 → out/chorus1_v3_contact.jpg"""
 import sys, subprocess, os
-sys.path[:0] = ['/workspace/work/mv/units', '/workspace/work/mv/lib', '/workspace/work/mv']
+sys.path[:0] = ['/workspace/work/mv_r6b/units', '/workspace/work/mv_r6b/lib', '/workspace/work/mv_r6b']
 import chorus1 as C
 from PIL import Image, ImageDraw, ImageFont
-V = '/workspace/work/mv/out/sample_chorus1_v3.mp4'
-F = ImageFont.truetype('/workspace/work/mv/fonts/NotoSerifSC-Regular.otf', 15)
-FB = ImageFont.truetype('/workspace/work/mv/fonts/NotoSerifSC-SemiBold.otf', 17)
+V = '/workspace/work/mv_r6b/out/sample_chorus1_v3.mp4'
+F = ImageFont.truetype('/workspace/work/mv_r6b/fonts/NotoSerifSC-Regular.otf', 15)
+FB = ImageFont.truetype('/workspace/work/mv_r6b/fonts/NotoSerifSC-SemiBold.otf', 17)
 TW, TH = 480, 210
 rows = []
 for S in C.SHOTS:
@@ -34,5 +34,5 @@ for r, (n, a, b, ims, note) in enumerate(rows):
         if d.textlength(line + ch, font=F) > 350: d.text((TW * 3 + 12, yy), line, font=F, fill=(220, 220, 225)); yy += 22; line = ''
         line += ch
     d.text((TW * 3 + 12, yy), line, font=F, fill=(220, 220, 225))
-S_.save('/workspace/work/mv/out/chorus1_v3_contact.jpg', quality=84)
+S_.save('/workspace/work/mv_r6b/out/chorus1_v3_contact.jpg', quality=84)
 print('ok', S_.size)

@@ -1,6 +1,6 @@
 """typo.py —《谁定正邪》MV 歌词排版与文字动画库（字幕·转场组）
 
-纯代码程序化：numpy / OpenCV / PIL。字体仅用 /workspace/work/mv/fonts/ 四款。
+纯代码程序化：numpy / OpenCV / PIL。字体仅用 /workspace/work/mv_r6b/fonts/ 四款。
 所有效果函数：输入 float32 RGB 帧 (1080,1920,3) 0–1，返回新帧（不原地改写传入帧）。
 有效区：y ∈ [120, 960)（上下黑边各 120px），layout() 保证文字落在安全框内。
 
@@ -31,7 +31,7 @@ from PIL import Image, ImageDraw, ImageFont
 W, H = 1920, 1080
 BAR = 120
 SAFE = (60, BAR + 30, W - 60, H - BAR - 30)   # x0,y0,x1,y1 安全框（含留白）
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 FD = ROOT + '/fonts/'
 FONTS = {
     'kai': FD + 'MaShanZheng-Regular.ttf',     # 马善政楷（端正）

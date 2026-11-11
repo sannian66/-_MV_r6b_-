@@ -1,8 +1,8 @@
 """副歌一关键帧抽取：python v2_shots.py tag  → /tmp/rt/<tag>_<shot>.png ；env RIGV1=1 用 v1 基线 rig"""
 import sys, os, time
-sys.path[:0] = ['/workspace/work/mv/units', '/workspace/work/mv/lib', '/workspace/work/mv']
+sys.path[:0] = ['/workspace/work/mv_r6b/units', '/workspace/work/mv_r6b/lib', '/workspace/work/mv_r6b']
 if os.environ.get('RIGV1'):
-    sys.path.insert(0, '/workspace/work/mv/lib/rig_test')
+    sys.path.insert(0, '/workspace/work/mv_r6b/lib/rig_test')
     import rig_v1_baseline as R; sys.modules['rig'] = R
 os.environ.setdefault('C1_RIG', 'live')
 import numpy as np, cv2

@@ -3,7 +3,7 @@
   python3 units/e_hitmap.py"""
 import json, sys
 import numpy as np
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 sys.path[:0] = [ROOT + '/lib', ROOT]
 A0, A1, W0, W1, FPS = 189.0, 241.4, 191.0, 241.34, 30
 

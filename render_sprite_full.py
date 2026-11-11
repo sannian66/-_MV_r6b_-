@@ -7,7 +7,7 @@
 import os, sys, subprocess, time, random
 os.environ['SPRITE_MODE'] = '1'
 os.environ.setdefault('OMP_NUM_THREADS', '1')
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 os.chdir(ROOT)
 sys.path.insert(0, ROOT + '/units'); sys.path.insert(0, ROOT + '/lib'); sys.path.insert(0, ROOT)
 import numpy as np, cv2

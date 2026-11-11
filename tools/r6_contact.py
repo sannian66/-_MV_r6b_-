@@ -4,7 +4,7 @@
 import sys, subprocess, numpy as np
 from PIL import Image, ImageDraw, ImageFont
 src = sys.argv[1]
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 fnt = lambda s: ImageFont.truetype(ROOT + '/fonts/NotoSerifSC-Bold.otf', s)
 # 一次解码：每 60 帧取一帧（fps=0.5 会取区间中点，改用 select 取 n%60==0）
 r = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-vf', "select=not(mod(n\\,60)),scale=320:180:flags=area", '-vsync', '0',

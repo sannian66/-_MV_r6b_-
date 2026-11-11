@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/devsnap.py — 把仓库的源码闭包镜像到任意目录（做渲染/测试快照）
 
-为什么需要：units/lib 里的模块把 ROOT 硬编码成 `/workspace/work/mv`，在本机直接 import 会找不到资源。
+为什么需要：units/lib 里的模块把 ROOT 硬编码成 `/workspace/work/mv_r6b`，在本机直接 import 会找不到资源。
 本脚本复制所有被 import 到的 .py（沿 AST 递归收集闭包），把该路径改写成快照绝对路径，并把
 assets / audio / fonts 软链过去、crew 复制（避免渲染途中被别人改）。
 
@@ -73,7 +73,7 @@ def main():
         dst = code / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         text = read_src(src, ref)
-        text = text.replace('/workspace/work/mv', str(code))
+        text = text.replace('/workspace/work/mv_r6b', str(code))
         text = text.replace('/tmp/a_spr', str(dest / 'cache/a_spr')).replace('/tmp/spr_cache', str(dest / 'cache/spr_cache'))
         manifest[str(rel)] = hashlib.sha256(text.encode()).hexdigest()
         if not dst.exists() or dst.read_text() != text:

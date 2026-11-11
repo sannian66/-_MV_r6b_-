@@ -1,8 +1,8 @@
 import numpy as np, cv2, random
 from fx import *
 random.seed(2); np.random.seed(2)
-A = '/workspace/work/mv/art/'
-out = '/workspace/work/mv/sf/'
+A = '/workspace/work/mv_r6b/art/'
+out = '/workspace/work/mv_r6b/sf/'
 import os; os.makedirs(out, exist_ok=True)
 
 def warm_embers(fr, n, it, seed):

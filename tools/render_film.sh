@@ -3,7 +3,7 @@
 #
 # 来源：feat/quality-pass e9ea92b/5583752（Mac 版：devsnap 快照 + out/devsnap/prun.py + lyric_uni/grade 钩子）。
 # 第六轮移植到 main（audit-qp2）：main 没有 prun.py / lyric_uni / grade_unify，也不需要快照
-# （ROOT 写死 /workspace/work/mv），所以改成直接调 main 的
+# （ROOT 写死 /workspace/work/mv_r6b），所以改成直接调 main 的
 #   python3 render_sprite_full.py seg F0 F1 out.mp4      （= sections 路由 + 副歌一 + subtitle.py 底部字幕 + GCUT）
 # 每块外包 tools/cpu_slot.sh（沙箱只有 2 核，和单帧渲染共用两个槽）。
 #

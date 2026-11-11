@@ -15,7 +15,7 @@ import numpy as np, cv2
 from PIL import Image, ImageOps
 import sprite as SP
 
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 GEN = ROOT + '/assets/gen/'
 CACHE = '/tmp/spr_cache'
 W, H, BAR = 1920, 1080, 120

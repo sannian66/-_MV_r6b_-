@@ -3,7 +3,7 @@
 import math, os, hashlib, json
 import numpy as np, cv2
 from PIL import Image
-ROOT = '/workspace/work/mv'
+ROOT = '/workspace/work/mv_r6b'
 import sys
 for p in (ROOT, ROOT + '/lib', ROOT + '/units'):
     if p not in sys.path: sys.path.insert(0, p)
