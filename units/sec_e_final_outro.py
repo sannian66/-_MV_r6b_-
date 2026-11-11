@@ -1968,6 +1968,11 @@ if NOVLYR:
         globals()[_nm].text = _nil_vlyr
 
 
+# r6b（2026-11-11 用户：去字 + 3:27 鬼屠镜修抠图与剑）：补丁在 units/r6b_e.py；R6B_TXT=0 / R6B_SHOT=0 分别回第六轮
+import r6b_e
+r6b_e.apply(sys.modules[__name__])
+
+
 if __name__ == '__main__':
     import time
     from PIL import Image
