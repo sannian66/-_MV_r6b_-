@@ -31,6 +31,9 @@ R6_NOBEVEL = R6 and os.environ.get('C_R6_NOBEVEL', '1') != '0'
 R6_NOWALLFRAME = R6 and os.environ.get('C_R6_NOWALLFRAME', '1') != '0'
 R6_FEET = R6 and os.environ.get('C_R6_FEET', '1') != '0'        # r6-C3 #41：C22 开头插脚部特写（靴子踩礁石），141.32 闪电切回大全景
 R6_C39L = R6 and os.environ.get('C_R6_C39L', '1') != '0'        # r6-C3 #43：C39 左半幅补远景青铜天平剪影（为 C40 斩天平铺垫），不加字
+# r6b（2026-11-11 用户去字 + 重做分镜，crew/r6b/CD_r6b.md）：R6B_TXT=0 回到第六轮的字；R6B_SHOT=0 回到第六轮的 C15/C24/C33 分镜。
+R6B_TXT = os.environ.get('R6B_TXT', '1') == '1'
+R6B_SHOT = os.environ.get('R6B_SHOT', '1') == '1'
 WALLP = 'R6_C/c22_wall_noframe' if R6_NOWALLFRAME else 'C5/c22_wall'   # tools/c_r6/wall_noframe.py 生成
 if R5:   # 第五轮通用：人物精灵 wind_amp 统一 5–8px（0 = 道具/手/刀/影子，保持不动）
     _put0 = put
@@ -2099,10 +2102,11 @@ class C32(Shot):
         A1 = ((360, 220), (1560, 880)); A2_ = ((1560, 220), (360, 880))
         fr = blade_smear(fr, *A1, (t - tx) / 0.14, bend=0.12, width=90, seed=322, amt=1.3)
         fr = blade_smear(fr, *A2_, (t - tx - 0.03) / 0.14, bend=-0.12, width=90, seed=323, amt=1.3)
-        e = eout(clamp((t - tx + 0.02) / 0.10))
-        fr = arc_glyph(fr, '是', (1180, 600), 230 * lerp(1.3, 1, e), e, rot=-8)   # 第八棒：人移左，字移到右半空区
-        e2 = eout(clamp((t - tx - 0.01) / 0.10))
-        fr = arc_glyph(fr, '非', (1590, 420), 230 * lerp(1.3, 1, e2), e2, rot=8)
+        if not R6B_TXT:   # r6b：去刀光残影字「是」「非」（只留两道交叉刀光）
+            e = eout(clamp((t - tx + 0.02) / 0.10))
+            fr = arc_glyph(fr, '是', (1180, 600), 230 * lerp(1.3, 1, e), e, rot=-8)   # 第八棒：人移左，字移到右半空区
+            e2 = eout(clamp((t - tx - 0.01) / 0.10))
+            fr = arc_glyph(fr, '非', (1590, 420), 230 * lerp(1.3, 1, e2), e2, rot=8)
         fr = rain(fr, t, 320, inten=1.0, angle=12)
         self.ca = 5 if 0 <= t - tx < 0.1 else 0
         return fr
@@ -2116,7 +2120,7 @@ class C33(Shot):
         td, tc = V(152.70), V(152.90)
         fl = 0.5 * bolt_env(t, td) + 0.5 * bolt_env(t, tc)
         fr = storm(t, 33, horizon=1300, flash=0.3 + fl, ground=False, fc=(500, 200)) * 0.85
-        for ch, c in (('是', (1280, 250)), ('非', (1580, 250))):            # 第七棒：残影移到右上空区（原来压在刀后读不出），亮度 0.28 → 0.6
+        for ch, c in (() if R6B_TXT else (('是', (1280, 250)), ('非', (1580, 250)))):   # r6b：去残影字            # 第七棒：残影移到右上空区（原来压在刀后读不出），亮度 0.28 → 0.6
             fr = arc_glyph(fr, ch, c, 150, 0.6 * (1 - u * 0.4), rot=0)
         fr = blade_smear(fr, (200, 760), (1720, 300), (t - td) / 0.12, bend=-0.10, width=80, seed=331, amt=1.2)
         fr = blade_smear(fr, (1720, 760), (200, 320), (t - tc) / 0.10, bend=0.10, width=80, seed=332, amt=1.2)
@@ -2125,9 +2129,10 @@ class C33(Shot):
         fr, _ = put(fr, t, 'C5/c16_drip', 960, 560, 1500, anchor='src', src=(0.497, 0.5), rot=90 + ang, rim=COLD, rim_amt=2.0, flash=fl,
                     expo=1.0, sat=0.7, wind=0, breathe=0.0)        # 刃（c16_drip 第 2 次：横转、挥动、带血），不露手
         # 第七棒：「对」「错」= 刀面反光里的镂空字（暗槽亮边），跟着刀转（rot 跟刀），不再是白字压白刀面
-        e = eout(clamp((t - td + 0.02) / 0.09)); fr = etched_glyph(fr, '对', (700, 560), 250 * lerp(1.25, 1, e), e, rot=-ang * 0.6)
-        e = eout(clamp((t - tc + 0.02) / 0.09)); fr = etched_glyph(fr, '错', (1240, 560), 250 * lerp(1.25, 1, e), e, rot=-ang * 0.6,
-                                                                   edge=(1.0, 0.72, 0.4))
+        if not R6B_TXT:   # r6b：去刀面镂空字「对」「错」
+            e = eout(clamp((t - td + 0.02) / 0.09)); fr = etched_glyph(fr, '对', (700, 560), 250 * lerp(1.25, 1, e), e, rot=-ang * 0.6)
+            e = eout(clamp((t - tc + 0.02) / 0.09)); fr = etched_glyph(fr, '错', (1240, 560), 250 * lerp(1.25, 1, e), e, rot=-ang * 0.6,
+                                                                       edge=(1.0, 0.72, 0.4))
         fr = rain(fr, t, 330, inten=1.0, angle=12)
         self.ca = 6 if (0 <= t - td < 0.08 or 0 <= t - tc < 0.08) else 0
         return fr
@@ -2142,7 +2147,7 @@ class C34(Shot):
         fl = 0.9 * pulse(t, ts, 0.14)
         fr = storm(t, 34, horizon=860, flash=0.35 + fl, fc=(960, 150), refl=0.5)
         sp = sm(ts, ts + 0.6, t)
-        for i, (ch, c, rt) in enumerate((('是', (300, 300), -8), ('非', (1560, 290), 8), ('对', (270, 700), -6), ('错', (1720, 560), 6))):
+        for i, (ch, c, rt) in enumerate(() if R6B_TXT else (('是', (300, 300), -8), ('非', (1560, 290), 8), ('对', (270, 700), -6), ('错', (1720, 560), 6))):   # r6b：去「是非对错」
             fr = arc_glyph(fr, ch, (c[0] + 10 * math.sin(t * 2 + i), c[1] + 6 * math.cos(t * 2.3 + i)), 190, 0.85, rot=rt, split=sp,
                            warm=1.0 if ch == '错' else 0.0)
         fr = blade_smear(fr, (1450, 180), (150, 960), (t - ts) / 0.16, bend=0.06, width=110, seed=341, amt=1.6, warm=0.25)
@@ -2155,7 +2160,7 @@ class C34(Shot):
 
 class C35(Shot):
     """LS 硬扛：最大的一方巨印压下，鬼屠举刀过顶硬扛（S087），地面龟裂、积水被压得往外喷；「扛」朱红竖排。"""
-    def __init__(self): self.seal = CP.StoneSeal('令', seed=35, front_text='令')
+    def __init__(self): self.seal = CP.StoneSeal(' ', seed=35, front_text=None) if R6B_TXT else CP.StoneSeal('令', seed=35, front_text='令')   # r6b：印底/印侧不刻「令」（只留朱砂印面与边框）
     def render(self, t):
         u = self.u(t)
         tk = V(154.70)
@@ -2179,7 +2184,7 @@ class C35(Shot):
 class C35b(Shot):
     """MCU 仰拍「扛」：同轴跳进——刀横在头顶，印底（朱砂「令」）压到刀背上，咬牙、肩塌、膝弯；154.70 接触瞬间火星沿刃迸开，
     画面重震、整体下沉 30px，再一点点顶回去（表演：被压下 → 顶住）。精灵 S087 第 2 次使用（C35 全身 → 这里中近景大仰角）。"""
-    def __init__(self): self.seal = CP.StoneSeal('令', seed=35, front_text='令')
+    def __init__(self): self.seal = CP.StoneSeal(' ', seed=35, front_text=None) if R6B_TXT else CP.StoneSeal('令', seed=35, front_text='令')   # r6b：印底/印侧不刻「令」（只留朱砂印面与边框）
     def render(self, t):
         u = self.u(t)
         tk = V(154.70)
@@ -2628,6 +2633,155 @@ MOV = {
     'C36': dict(z=(1.0, 1.04), y=(30, -20)), 'C37': dict(z=(1.0, 1.08)), 'C38': dict(z=(1.0, 1.04)),
     'C39': dict(z=(1.0, 1.10), hh=3), 'C40': dict(z=(1.0, 1.08), hh=7), 'C40b': dict(z=(1.06, 1.0), hh=4), 'C41': dict(z=(1.0, 1.12)),
 }
+# =====================================================================================
+# r6b 重做分镜（2026-11-11 用户：「跳斩太丑了」「拖刀火花不好看」「断剑头啥意思」）。切点 / 时长不变；R6B_SHOT=0 回到第六轮。
+# 生图：assets/gen/R6B_CD/（c15_stand 雨中持刀立姿、c24_walk 背影垂刀、c33_blade 刀横眼前近景整幅），参考 C6/c41_sweep、C5/c07_chin 定妆。
+def _r6b_map(name, src_pt, a_src, dst, h):
+    """精灵像素坐标（cut 图，宽 2048）→ 画面坐标（与 put(anchor='src') 同一套仿射，不含呼吸/风）。"""
+    L = K.spr(name)
+    x0, y0, x1, y1 = L.bbox
+    s = h / ((y1 - y0) * L.h)
+    return (dst[0] + (src_pt[0] - a_src[0] * L.w) * s, dst[1] + (src_pt[1] - a_src[1] * L.h) * s)
+
+
+def _c15_r6b(self, t):
+    """r6b 重做 C15（2:13.30–2:14.50）：不跳。极低机位仰拍，他立在雷雨里、刀垂在身侧（生图 R6B_CD/c15_stand），
+    133.38 切点那道闪电把他整个从黑里照成逆光剪影（冷白轮廓）；133.79 第二道闪电亮起时刀刃「翻」出一道寒光——
+    光沿刃从护手扫到刀尖、刀尖一点星芒；镜头一路冲推（MOV）。只用本镜已有的雷暴天 / 雨 / 闪电。"""
+    tb = V(133.38); tb2 = V(133.79)
+    u = self.u(t); k = t - self.t0
+    e1_, e2_ = bolt_env(t, tb), bolt_env(t, tb2)
+    fl = e1_ * 1.1 + e2_ * 0.9
+    fr = storm(t, 15, horizon=960, flash=0.25 + fl, fc=(1000, 240), refl=0.4, ground=False) * (0.72 + 0.28 * min(1.0, fl))   # 低机位：地平线压到画框外，满画面雷云；闪电间隙压暗
+    fr = bolt(fr, t, tb, 151, (1250, 60), (1420, 900), inten=1.2, width=4.0)
+    fr = bolt(fr, t, tb2, 152, (620, 60), (480, 880), inten=1.0, width=3)
+    fr = K.vol_light(fr, (980, 230), 620, (0.85, 0.9, 1.0), 0.30 + 0.55 * fl)       # 头后天光：剪影的底
+    name = 'R6B_CD/c15_stand'; src = (0.505, 0.985); dst = (960 + 6 * u, 952); h = 730 * (1 + 0.03 * eio(u))
+    rdx = (0.7 * e1_ - 0.7 * e2_) / (e1_ + e2_ + 0.3)                                # 哪道闪电亮，轮廓光就从哪侧勾
+    fr, A = put(fr, t, name, dst[0], dst[1], h, anchor='src', src=src, rim=(0.9, 0.94, 1.0), rim_amt=3.0 + 3.0 * min(1.0, e1_ + e2_),
+                rim_dir=(rdx, -1), flash=0.45 * fl, expo=0.42 + 0.35 * e1_ + 0.2 * e2_, sat=0.5, gamma=1.22, wind=7, breathe=0.004)
+    # 刀刃寒光：133.79 第二道闪电那一下，一道冷白光带沿刃从护手扫到刀尖（0.16s），扫到刀尖迸一颗星芒
+    p0 = _r6b_map(name, (770, 858), src, dst, h); p1 = _r6b_map(name, (1580, 1106), src, dst, h)
+    q = clamp((t - (tb2 - 0.02)) / 0.16)
+    if 0 < q < 1 or (t >= tb2 and t - tb2 < 0.45):
+        bx = np.array(p0) + (np.array(p1) - np.array(p0)) * eio(q)
+        yy, xx = np.ogrid[0:H, 0:W]
+        d = np.hypot(xx - bx[0], yy - bx[1]).astype(np.float32)
+        g = np.exp(-(d / 120.0) ** 2) * A                                              # 只亮在刀/手的 alpha 上
+        dl = (np.abs((xx - p0[0]) * (p1[1] - p0[1]) - (yy - p0[1]) * (p1[0] - p0[0])) / math.hypot(p1[0] - p0[0], p1[1] - p0[1])).astype(np.float32)
+        seg = ((xx - p0[0]) * (p1[0] - p0[0]) + (yy - p0[1]) * (p1[1] - p0[1])) / ((p1[0] - p0[0]) ** 2 + (p1[1] - p0[1]) ** 2)
+        bl = np.clip((20 - dl) / 6, 0, 1) * np.clip(seg / 0.04, 0, 1) * np.clip((1.02 - seg) / 0.04, 0, 1) * A   # 只在护手→刀尖这一段刃上
+        a_ = math.sin(math.pi * q) if q < 1 else 0.0
+        G = g * bl * a_ * 1.2 + bl * 0.22 * e2_                                        # 光带 + 闪电那下整条刃面泛冷光
+        fr = fr + (G + cv2.GaussianBlur(G, (0, 0), 10) * 0.8)[..., None] * np.array([0.92, 0.96, 1.0], np.float32)
+        tq = clamp((t - (tb2 + 0.12)) / 0.30)
+        if 0 < tq < 1:                                                                  # 刀尖星芒（十字 + 圆晕），0.3s 收
+            sa = math.sin(math.pi * min(1.0, tq * 2.2)) * (1 - tq) * 2.0
+            S = np.zeros((H // 2, W // 2), np.float32); c = (int(p1[0] / 2), int(p1[1] / 2))
+            cv2.line(S, (c[0] - 40, c[1] - 12), (c[0] + 40, c[1] + 12), 0.8, 1, cv2.LINE_AA)   # 短星芒，顺刃方向
+            cv2.line(S, (c[0] - 6, c[1] + 20), (c[0] + 6, c[1] - 20), 0.5, 1, cv2.LINE_AA)
+            cv2.circle(S, c, 3, 1.0, -1, cv2.LINE_AA)
+            S = cv2.resize(cv2.GaussianBlur(S, (0, 0), 1.5) + cv2.GaussianBlur(S, (0, 0), 8) * 1.8, (W, H))
+            fr = fr + (S * sa)[..., None] * np.array([0.9, 0.95, 1.0], np.float32)
+    fr = rain(fr, t, 150, inten=1.15, angle=8)
+    fr = fog(fr, t, 15, density=0.38, y0=820, y1=980, color=(0.30, 0.33, 0.40), speed=(50, 0))   # 低雾压住画框下沿（精灵下缘在 2.39 黑边里）
+    self.ca = 0
+    return fr
+
+
+def _c24_r6b(self, t):
+    """r6b 重做 C24（2:23.37–2:24.77）：不跑、不拖火花。镜头低低跟在他身后，他背影一步一步走向那面直插雷云的铁壁
+    （C22/C23 同一张城墙底板，越走墙越压满画面），刀垂在右手、刀尖贴着湿石面——只划出一道细亮的划痕，偶尔迸两三颗火星，
+    雨一打就暗下去；143.94「墙」一道远雷把整面墙照亮。"""
+    tw = V(143.94)
+    u = self.u(t)
+    fl = bolt_env(t, tw) * 0.8 + 0.25 * bolt_env(t, self.t0 + 0.02)
+    z = lerp(1.22, 1.34, eio(u)); cx, cy = 0.52, lerp(0.705, 0.70, u)
+    fr = plate_view(WALLP, cx, cy, z) * (0.62 + 0.75 * fl)
+    fr = fr * np.array([0.92, 0.97, 1.06], np.float32)
+    P = plate(WALLP); ph, pw = P.shape[:2]
+    def w2f(wx, wy):     # 底板归一化坐标 → 画面
+        return (W / 2 + z * (wx - cx) * pw, H / 2 + z * (wy - cy) * ph)
+    def f2w(fx, fy, zz, cyy):
+        return (cx + (fx - W / 2) / (zz * pw), cyy + (fy - H / 2) / (zz * ph))
+    # 人：脚踩在离墙越来越近的地面上（世界坐标脚点前移 → 画面上移 + 变小），步频 1.7Hz 的起伏与微晃
+    name = 'R6B_CD/c24_walk'; src = (0.490, 0.962)
+    wf0 = f2w(930, 905, 1.22, 0.705)                                                   # 镜头开始时脚在画面 (930,905)
+    wf = (wf0[0] + 0.004 * u, wf0[1] - 0.055 * u)
+    fx, fy = w2f(*wf)
+    h = 640 * z / 1.22 * (1 - 0.20 * u)
+    ph_ = 2 * math.pi * 1.7 * (t - self.t0)
+    bob = 7 * abs(math.sin(ph_)); sway = 0.6 * math.sin(ph_)
+    # 接地阴影
+    sh = np.zeros((H // 4, W // 4), np.float32)
+    cv2.ellipse(sh, (int(fx / 4), int((fy + 2) / 4)), (int(h * 0.16 / 4), 6), 0, 0, 360, 1.0, -1)
+    fr = fr * (1 - 0.6 * cv2.resize(cv2.GaussianBlur(sh, (0, 0), 3), (W, H))[..., None])
+    fr, A = put(fr, t, name, fx, fy - bob, h, anchor='src', src=src, rot=sway, rim=COLD, rim_amt=2.2 + 2.5 * fl, rim_dir=(0.2, -1),
+                flash=0.4 * fl, expo=0.62 + 0.3 * fl, sat=0.55, gamma=1.15, wind=6, breathe=0.0)
+    # 刀尖划痕：刀尖世界轨迹（随人前移），画成 1–2px 细亮线，越旧越暗（白热 → 暗红 → 灭，0.45s），雨压着不起大火
+    def tip_at(tt):
+        uu = clamp((tt - self.t0) / (self.t1 - self.t0))
+        zz = lerp(1.22, 1.34, eio(uu)); cyy = lerp(0.705, 0.70, uu)
+        wfx = wf0[0] + 0.004 * uu; wfy = wf0[1] - 0.055 * uu
+        hh = 640 * zz / 1.22 * (1 - 0.20 * uu)
+        L = K.spr(name); x0, y0, x1, y1 = L.bbox; s = hh / ((y1 - y0) * L.h)
+        ffx = W / 2 + zz * (wfx - cx) * pw; ffy = H / 2 + zz * (wfy - cyy) * ph
+        tx = ffx + (1662 - src[0] * L.w) * s; ty = ffy + (1110 - src[1] * L.h) * s
+        return f2w(tx, ty, zz, cyy)                                                     # 刀尖落在地面上的世界点
+    S = np.zeros((H // 2, W // 2), np.float32); Hh = np.zeros_like(S)
+    n = 16
+    for i in range(n):
+        ta = self.t0 + (t - self.t0) * i / n; tb_ = self.t0 + (t - self.t0) * (i + 1) / n
+        if tb_ <= self.t0 + 1e-4: continue
+        a = w2f(*tip_at(ta)); b = w2f(*tip_at(tb_))
+        age = t - tb_
+        heat = math.exp(-age / 0.12); glow = math.exp(-age / 0.45)
+        cv2.line(S, (int(a[0] / 2), int(a[1] / 2)), (int(b[0] / 2), int(b[1] / 2)), glow, 2, cv2.LINE_AA)
+        cv2.line(Hh, (int(a[0] / 2), int(a[1] / 2)), (int(b[0] / 2), int(b[1] / 2)), heat, 1, cv2.LINE_AA)
+    S = cv2.resize(S, (W, H)); Hh = cv2.resize(Hh, (W, H))
+    fr = fr + S[..., None] * np.array([0.60, 0.17, 0.06], np.float32) * 1.1 + cv2.GaussianBlur(S, (0, 0), 5)[..., None] * np.array([0.5, 0.14, 0.05], np.float32) * 0.8
+    fr = fr + Hh[..., None] * np.array([1.0, 0.82, 0.55], np.float32) * 1.1
+    tip = w2f(*tip_at(t))
+    fr = K.vol_light(fr, tip, 70, (1.0, 0.6, 0.3), 0.25)
+    fr = sparks(fr, t, 2411, tip, n=7, life=0.30, speed=(120, 420), dirc=(0.2, -1), spread=0.9, grav=1600, amt=0.9, size=0.8)   # 零星火星
+    fr = sparks(fr, t, 2412, tip, n=12, life=0.35, speed=(150, 520), dirc=(0.1, -1), spread=1.1, grav=1600, amt=1.0, size=0.8, t0=tw, burst=True)
+    fr = fog(fr, t, 24, density=0.30, y0=760, y1=960, color=(0.36, 0.39, 0.46), speed=(40, 0))
+    fr = rain(fr, t, 240, inten=1.0, angle=6)
+    self.ca = 0
+    return fr
+
+
+def _c33_r6b(self, t):
+    """r6b 重做 C33（2:32.53–2:33.00）：雨中近景——他抬眼直视镜头，刀横在眼前（生图 R6B_CD/c33_blade），
+    刃上的血被雨冲开、顺刃口往下滴（生图里的血丝与血滴，只保留血的红、其余去饱和）；152.70 闪电照亮刃面，一道冷光沿刃扫过；镜头微推。"""
+    td = V(152.70)
+    u = self.u(t)
+    fl = bolt_env(t, td) * 0.7
+    fr = plate_view('R6B_CD/c33_blade', 0.50, 0.50 - 0.01 * u, lerp(1.0, 1.04, eio(u)))
+    g = fr.mean(-1, keepdims=True)
+    red = np.clip((fr[..., :1] - np.maximum(fr[..., 1:2], fr[..., 2:3])) * 4, 0, 1)    # 血保留饱和，其余去饱和偏冷（与 C32/C34 同档）
+    fr = (g + (fr - g) * (0.35 + 0.65 * red)) * np.array([0.92, 0.96, 1.05], np.float32) * (0.78 + 0.55 * fl)
+    # 刃面冷光：沿刀身（y≈0.65 画高）从左扫到右
+    q = clamp((t - (td - 0.03)) / 0.18)
+    if 0 < q < 1:
+        yy, xx = np.ogrid[0:H, 0:W]
+        bx = lerp(150, 1750, eio(q))
+        band = np.exp(-((xx - bx) / 60.0) ** 2) * np.exp(-((yy - 700) / 38.0) ** 2) * math.sin(math.pi * q)
+        fr = fr + (band * 0.9).astype(np.float32)[..., None] * np.array([0.9, 0.95, 1.0], np.float32)
+    fr = rain(fr, t, 330, inten=1.0, angle=10)
+    self.ca = 4 if 0 <= t - td < 0.06 else 0
+    return fr
+
+
+if R6B_SHOT:
+    C15.render = _c15_r6b
+    C24.render = _c24_r6b
+    C33.render = _c33_r6b
+    MOV['C15'] = dict(z=(1.0, 1.09), y=(0, 30), hh=3)        # 冲推（下移补偿，头顶不进黑边）
+    MOV['C24'] = dict(z=(1.0, 1.03), hh=4)                   # 跟拍：轻手持
+    MOV['C33'] = dict(z=(1.0, 1.04), hh=3)                   # 近景微推
+
+
 EXPO = {'C13': 1.0, 'C28': 1.0, 'C06': 0.9}
 EXPO_ALL = 1.22
 
@@ -2688,6 +2842,8 @@ def _on(k, d='1'): return os.environ.get(k, d) != '0'
 NOVLYR = _on('R5_NOVLYR')
 if NOVLYR:
     SENTS = [s for s in SENTS if s.layout != 'v']
+if R6B_TXT:   # r6b：屏幕层剩下的「骨未凉 / 我自己扛 / 天不」全去（歌词只走底部横排字幕）
+    SENTS = []
 
 
 # 第四棒：碎裂/故障出场不许跨切点（评审：切点帧上的碎字残片像出错）——出场在下一切点前收完，最短 0.12s
