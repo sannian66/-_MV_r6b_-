@@ -37,6 +37,10 @@ def _on(k, d='1'): return os.environ.get(k, d) != '0'
 
 
 NOVLYR = _on('R5_NOVLYR')
+# r6b F 组（2026-11-11 用户：没点名保留的画内大字/中字/歌词字一律去掉）：R6B_TXT=0 回第六轮。
+#   去：V03 世人/教我/顾全、V04 笏板刻字 大局/退让（连同刻刀火星）、V14 反抗、V17 掌心血纹的「命」字形包络（改掌心椭圆，只剩掌纹渗血）、
+#   V22 那就用刀、V23 锋重新划（连同暗衬）、V24 出方、V25 方/向。保留：V07 权、V09–V11 牺牲多少才算够分量、V20/V21 黑白。
+R6B_TXT = os.environ.get('R6B_TXT', '1') == '1'
 
 # 切点（秒）：落拍 / 字头（第二棒按 align.json 逐字时间修正，避免字头跨镜）
 CUT_T = [86.192, 87.53, 89.40, 90.77, 91.67, 93.34, 93.97, 94.48, 96.10, 97.52, 98.48, 99.47, 100.58, 102.14,
@@ -774,7 +778,7 @@ class V03(Shot):
         items = [dict(text='世人', x=-520, y=-170, z=1700, size=150, color='white', font='serif_sb', style='h', prog=pr[0:2]),
                  dict(text='教我', x=80, y=-60, z=1250, size=150, color='white', font='serif_sb', style='h', prog=pr[2:4]),
                  dict(text='顾全', x=420, y=110, z=850, size=160, color='white', font='serif_sb', style='h', prog=pr[4:6])]
-        fr = T.kinetic_track(fr, items, cam=(-pan * 1.4, 0, 0), focal=1000, focus_z=1250, dof=0.004)
+        if not R6B_TXT: fr = T.kinetic_track(fr, items, cam=(-pan * 1.4, 0, 0), focal=1000, focus_z=1250, dof=0.004)
         fr = self.rain.draw(fr, t, intensity=1.1, angle=12, light=(1450, 560), light_r=600, cam=(pan, 0))
         fr = cam(fr, 1.02 + 0.02 * e, 0, 0, 0.6 * e)
         return fr, 0
@@ -818,7 +822,7 @@ class V04(Shot):
         fr = fr * (0.75 + 0.45 * np.exp(-(((x - 900) / 800) ** 2 + ((y - 380) / 380) ** 2)))[..., None]   # 顶光落在笏板上半
         spark = []
         chars = [('大', 0, 0, 150, True), ('局', 1, 0, 128, True), ('退', 0, 1, 112, False), ('让', 1, 1, 100, False)]
-        for k, (ch, hu, row, sz, gold) in enumerate(chars):
+        for k, (ch, hu, row, sz, gold) in enumerate([] if R6B_TXT else chars):
             tk = tks[k]
             p = clamp01((t - (tk - 0.03)) / 0.14)
             if p <= 0: continue
@@ -1569,7 +1573,7 @@ class V14(Shot):
             fr = K.sparks(fr, t, 5907, (self.FOOT[0], self.FOOT[1] - 10), n=180, life=0.6, speed=(300, 1100), dirc=(0, -1), spread=2.6,
                           grav=1600, size=1.6, area=(260, 10), color=(0.55, 0.55, 0.58), amt=1.0, t0=tf, burst=True)
         # 「反」「抗」从泥里拔起立定（马善政楷，同一字体，朱红）
-        for i, (ch, tk, cx, cy) in enumerate((('反', tf, 1300, 420), ('抗', tk2, 1380, 690))):
+        for i, (ch, tk, cx, cy) in enumerate(() if R6B_TXT else (('反', tf, 1300, 420), ('抗', tk2, 1380, 690))):
             p = clamp01((t - (tk - 0.04)) / 0.22)
             if p <= 0: continue
             e = eout(p, 3)
@@ -1791,12 +1795,17 @@ class V17(Shot):
         palm = np.exp(-(((x - self.PC[0]) / 330) ** 2 + ((y - self.PC[1]) / 230) ** 2) ** 1.5)
         crease = np.clip((cv2.GaussianBlur(l, (0, 0), 6) - l - 0.008) * 26, 0, 1) * palm   # 掌纹 = 比周围暗的细线
         self.crease = cv2.GaussianBlur(crease.astype(np.float32), (0, 0), 1.0)
+        if R6B_TXT:                                                    # r6b：只取主掌纹（粗尺度、高阈值），不再满掌红色碎纹（读成红字）
+            cr2 = np.clip((cv2.GaussianBlur(l, (0, 0), 12) - cv2.GaussianBlur(l, (0, 0), 2.5) - 0.022) * 22, 0, 1) * palm
+            self.crease = cv2.GaussianBlur(cr2.astype(np.float32), (0, 0), 1.5)
         self.spec = np.clip((l - 0.62) * 3.0, 0, 1)[..., None]                            # 积水高光
         self.nz = cv2.resize(K.fbm(H // 6, W // 6, 6211, 4, 4), (W, H)).astype(np.float32)
         self.nz2 = cv2.resize(K.fbm(H // 3, W // 3, 6212, 4, 4), (W, H)).astype(np.float32)
         L = T.Layer(); T.place(L, '命', self.PC[0] + 10, self.PC[1] - 5, 340, color='red', fname='kai', rot=-8)
         self.G = L.A.astype(np.float32)
         self.Gd = cv2.GaussianBlur(self.G, (0, 0), 45); self.Gd = self.Gd / max(1e-3, self.Gd.max())
+        if R6B_TXT:                                                    # r6b：血纹包络不再取「命」字形，改掌心椭圆（只剩沿掌纹渗血）
+            self.Gd = (0.75 * np.exp(-(((x - self.PC[0]) / 300) ** 2 + ((y - self.PC[1]) / 200) ** 2) ** 1.5)).astype(np.float32)
         self.rain = fx2.RainSheet(6202, density=0.7)
         T.warm('谁的', 'kai', 130); T.warm('都', 'kai', 100)
 
@@ -2134,7 +2143,8 @@ class V22(Shot):
         P = [dict(ch=c, x=(1215, 1365, 1515, 1680)[i], y=700, size=(135, 135, 135, 180)[i], rot=0, font='kai', idx=i, emph=(c == '刀'))
              for i, c in enumerate('那就用刀')]                     # 第四棒：移到右侧亮墙，不压人物
         pr = prs(27, [0, 1, 2, 3], t)
-        if q <= 0:
+        if R6B_TXT: pass
+        elif q <= 0:
             L = T.Layer()
             for pp, pc in zip(P, pr):
                 if pc > 0: T.place(L, pp['ch'], pp['x'], pp['y'], pp['size'], color='red' if pp['emph'] else 'ink', fname='kai', alpha=min(1, pc * 2))
@@ -2244,6 +2254,7 @@ class V23(Shot):
         fr = self.fog.draw(fr, t, density=0.35, y0=600, y1=960, color=(0.55, 0.42, 0.38), speed=(60, -40))
         fr = self.rain.draw(fr, t, intensity=0.7, angle=8)
         pr = prs(27, [4, 5, 6, 7], t)
+        if R6B_TXT: pr = [0.0] * 4
         L = T.Layer()
         for i, (ch, pc) in enumerate(zip('锋重新划', pr)):
             if pc <= 0: continue
@@ -2303,6 +2314,7 @@ class V24(Shot):
         fr = self.spl.draw(fr, t, y_far=fy - 30, y_near=fy + 60, rate=60, amt=0.6) if hasattr(self, 'spl') else fr
         # 「出方」立在刀痕两侧（远近两处，近大远小），随刀痕到达时燃起
         pr = prs(27, [8, 9], t)
+        if R6B_TXT: pr = [0.0, 0.0]
         for i, (ch, pc, Zc, Xs) in enumerate(zip('出方', pr, (18.0, 40.0), (3.5, 9.0))):
             if pc <= 0: continue
             sx_ = 960 + FF * (X0 + AX * Zc + Xs) / Zc; sy_ = HOR + FF * CH / Zc
@@ -2362,12 +2374,13 @@ class V25(Shot):
         fr = fr + (Am * np.clip((y - 520) / 300, 0, 1))[..., None] * RED * 0.10
         fr = fr + (edge_rim(Am, 0, 9, 3.5) + 0.3 * edge_rim(Am, 7, 3, 3.5) + 0.3 * edge_rim(Am, -7, 3, 3.5))[..., None] * RED * 0.6   # 第八棒：红光从脚下刀痕反打 → 只上下缘
         fr = fr + (edge_rim(Am, 0, -8) * np.clip((700 - y) / 300, 0, 1))[..., None] * np.array([0.5, 0.57, 0.7], np.float32)
-        pr = prs(27, [10], t, 0.3)[0]
+        pr = 0.0 if R6B_TXT else prs(27, [10], t, 0.3)[0]
         if pr > 0:
             fr = T.burn_in(fr, '向', pr, places=[dict(ch='向', x=1460, y=450, size=300, rot=0, font='xing', idx=0, emph=False)],
                            color='red', embers=140, seed=69, style_kw=dict(shadow=0.4, glow=0.7, glow_color=(1.0, 0.3, 0.08)))
-        Lf = T.Layer(); T.place(Lf, '方', 1170, 470, 250, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.9, rot=-3)   # 第四棒：段尾主词放大、与「向」横排同读
-        fr = T.compose(fr, Lf, shadow=0.5, glow=0.5, glow_color=(1.0, 0.3, 0.08))
+        if not R6B_TXT:
+            Lf = T.Layer(); T.place(Lf, '方', 1170, 470, 250, color=(0.9, 0.16, 0.06), fname='xing', alpha=0.9, rot=-3)   # 第四棒：段尾主词放大、与「向」横排同读
+            fr = T.compose(fr, Lf, shadow=0.5, glow=0.5, glow_color=(1.0, 0.3, 0.08))
         fr = self.rain.draw(fr, t, intensity=0.9, angle=8)
         end = clamp01((t - 117.33) / 0.45)
         fr = fr * (1 - 0.7 * eio(end))

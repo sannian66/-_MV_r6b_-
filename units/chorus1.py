@@ -1757,3 +1757,11 @@ class Chorus1:
 
 
 X = Chorus1
+
+
+# r6b F 组（2026-11-11 用户：去字 + 1:10 跳斩重做）：R6B_TXT=0 且 R6B_SHOT=0 回到第六轮（见 units/r6b_f_c1.py）
+R6B_TXT = os.environ.get('R6B_TXT', '1') == '1'
+R6B_SHOT = os.environ.get('R6B_SHOT', '1') == '1'
+if R6B_TXT or R6B_SHOT:
+    import r6b_f_c1 as _R6BF
+    _R6BF.patch(globals(), R6B_TXT, R6B_SHOT)
